@@ -46,3 +46,7 @@ prisma/migrations/dev_*
 # Misc
 *.tsbuildinfo
 .eslintcache
+
+# Dev scratch files
+combined-*.txt
+folder-structure.txt
