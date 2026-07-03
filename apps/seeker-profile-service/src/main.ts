@@ -16,6 +16,7 @@ import {
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import compression from 'compression';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 function flattenValidationErrors(errors: ValidationError[]): string[] {
     const result: string[] = [];
@@ -39,10 +40,22 @@ async function bootstrap() {
     app.use(helmet({ frameguard: { action: 'deny' }, noSniff: true }));
 
     const allowedOrigins =
-        process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()) || [
+        process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()) || [];
+
+    if (process.env.NODE_ENV !== 'production') {
+        allowedOrigins.push(
             'http://localhost:3000',
             'http://localhost:4000',
-        ];
+            'http://localhost:4001',
+            'http://localhost:4002',
+            'http://localhost:4003',
+            'http://127.0.0.1:3000',
+            'http://127.0.0.1:4000',
+            'http://127.0.0.1:4001',
+            'http://127.0.0.1:4002',
+            'http://127.0.0.1:4003',
+        );
+    }
 
     app.enableCors({
         origin: (origin, callback) => {
@@ -82,6 +95,17 @@ async function bootstrap() {
 
     process.on('SIGTERM', async () => { await app.close(); process.exit(0); });
     process.on('SIGINT', async () => { await app.close(); process.exit(0); });
+
+    if (process.env.NODE_ENV !== 'production') {
+        const config = new DocumentBuilder()
+            .setTitle('Seeker Profile Service')
+            .setDescription('The Seeker Profile Service API description')
+            .setVersion('1.0')
+            .addBearerAuth()
+            .build();
+        const document = SwaggerModule.createDocument(app, config);
+        SwaggerModule.setup('api/docs', app, document);
+    }
 
     const port = process.env.SEEKER_PROFILE_PORT || 4003;
     const host = process.env.HOST || '0.0.0.0';

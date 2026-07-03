@@ -33,6 +33,9 @@ export class MailService {
 
     async sendVerificationEmail(email: string, verifyUrl: string): Promise<void> {
         try {
+            if (process.env.NODE_ENV !== 'production') {
+                this.logger.log(`[DEV] Verification URL for ${email}: ${verifyUrl}`, 'MailService');
+            }
             const { error } = await this.resend.emails.send({
                 from: `"Cykruit 🚀" <${this.fromEmail}>`,
                 replyTo: 'support@cykruit.com',
@@ -51,6 +54,9 @@ export class MailService {
 
     async sendPasswordResetEmail(email: string, resetUrl: string): Promise<void> {
         try {
+            if (process.env.NODE_ENV !== 'production') {
+                this.logger.log(`[DEV] Password Reset URL for ${email}: ${resetUrl}`, 'MailService');
+            }
             const { error } = await this.resend.emails.send({
                 from: `"Cykruit 🚀" <${this.fromEmail}>`,
                 replyTo: 'support@cykruit.com',

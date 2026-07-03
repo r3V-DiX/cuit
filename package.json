@@ -17,14 +17,12 @@
     "typecheck:auth:ci": "tsc --noEmit --project apps/auth-service/tsconfig.json",
     "build:auth": "tsc -p apps/auth-service/tsconfig.build.json",
     "start:auth:prod": "node dist/apps/auth-service/main.js",
-
     "start:settings": "ts-node -r ./tsconfig-paths-bootstrap.js --project apps/user-settings-service/tsconfig.json apps/user-settings-service/src/main.ts",
     "start:settings:dev": "ts-node-dev --respawn -r ./tsconfig-paths-bootstrap.js --project apps/user-settings-service/tsconfig.json apps/user-settings-service/src/main.ts",
     "typecheck:settings": "tsc --noEmit --project apps/user-settings-service/tsconfig.json --watch",
     "typecheck:settings:ci": "tsc --noEmit --project apps/user-settings-service/tsconfig.json",
     "build:settings": "tsc -p apps/user-settings-service/tsconfig.build.json",
     "start:settings:prod": "node dist/apps/user-settings-service/main.js",
-    
     "start:seeker-profile": "ts-node -r ./tsconfig-paths-bootstrap.js --project apps/seeker-profile-service/tsconfig.json apps/seeker-profile-service/src/main.ts",
     "start:seeker-profile:dev": "ts-node-dev --respawn -r ./tsconfig-paths-bootstrap.js --project apps/seeker-profile-service/tsconfig.json apps/seeker-profile-service/src/main.ts",
     "build:seeker-profile": "tsc -p apps/seeker-profile-service/tsconfig.build.json",
@@ -80,6 +78,7 @@
     "rxjs": "^7.8.1",
     "slugify": "^1.6.6",
     "socket.io": "^4.8.1",
+    "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
@@ -101,6 +100,7 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/pdf-parse": "^1.1.5",
     "@types/supertest": "^6.0.2",
+    "@types/swagger-ui-express": "^4.1.8",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.1.8",
     "globals": "^15.14.0",
