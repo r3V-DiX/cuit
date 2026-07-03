@@ -1,0 +1,725 @@
+===== apps\seeker-profile-service\src\profile\controllers\profile.controller.ts =====
+// apps/seeker-profile-service/src/profile/controllers/profile.controller.ts
+
+import {
+    Controller, Get, Patch, Delete,
+    Body, UseGuards, UseInterceptors,
+    UploadedFile, ParseFilePipe,
+    MaxFileSizeValidator, FileTypeValidator,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UserRole } from '@prisma/client';
+import type { User } from '@prisma/client';
+import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
+import { SkipRateLimit } from '@cykruit/rate-limit';
+import { ProfileService } from '../services/profile.service';
+import { UpdateBasicInfoDto } from '../dto/update-basic-info.dto';
+import { UpdateSummaryDto } from '../dto/update-summary.dto';
+
+@Controller('profile')
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard)
+@Roles(UserRole.SEEKER)
+export class ProfileController {
+    constructor(private readonly profileService: ProfileService) { }
+
+    @Get()
+    @SkipRateLimit()
+    getProfile(@CurrentUser() user: User) {
+        return this.profileService.getProfile(user.id);
+    }
+
+    @Patch('basic-info')
+    updateBasicInfo(@CurrentUser() user: User, @Body() dto: UpdateBasicInfoDto) {
+        return this.profileService.updateBasicInfo(user.id, dto);
+    }
+
+    @Patch('summary')
+    updateSummary(@CurrentUser() user: User, @Body() dto: UpdateSummaryDto) {
+        return this.profileService.updateSummary(user.id, dto);
+    }
+
+    @Patch('image')
+    @UseInterceptors(FileInterceptor('file'))
+    uploadProfileImage(
+        @CurrentUser() user: User,
+        @UploadedFile(new ParseFilePipe({
+            validators: [
+                new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+                new FileTypeValidator({ fileType: /(jpg|jpeg|png|webp)$/ }),
+            ],
+        })) file: Express.Multer.File,
+    ) {
+        return this.profileService.uploadProfileImage(user.id, file);
+    }
+
+    @Delete('image')
+    deleteProfileImage(@CurrentUser() user: User) {
+        return this.profileService.deleteProfileImage(user.id);
+    }
+
+    @Get('completion')
+    @SkipRateLimit()
+    getProfileCompletion(@CurrentUser() user: User) {
+        return this.profileService.getProfileCompletion(user.id);
+    }
+}
+
+
+===== apps\seeker-profile-service\src\profile\controllers\skills.controller.ts =====
+// apps/seeker-profile-service/src/profile/controllers/skills.controller.ts
+
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
+import type { User } from '@prisma/client';
+import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
+import { SkipRateLimit } from '@cykruit/rate-limit';
+import { SkillsService } from '../services/skills.service';
+import { AddSkillDto } from '../dto/skills/add-skill.dto';
+import { UpdateSkillDto } from '../dto/skills/update-skill.dto';
+import { SearchSkillsDto } from '../dto/skills/search-skills.dto';
+
+@Controller('skills')
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard)
+@Roles(UserRole.SEEKER)
+export class SkillsController {
+    constructor(private readonly skillsService: SkillsService) { }
+
+    @Get()
+    @SkipRateLimit()
+    getSkills(@CurrentUser() user: User) {
+        return this.skillsService.getSkills(user.id);
+    }
+
+    @Get('search')
+    @SkipRateLimit()
+    searchSkills(@Query() dto: SearchSkillsDto) {
+        return this.skillsService.searchSkills(dto);
+    }
+
+    @Get('categories')
+    @SkipRateLimit()
+    getSkillCategories() {
+        return this.skillsService.getSkillCategories();
+    }
+
+    @Get(':id')
+    @SkipRateLimit()
+    getSkillById(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.skillsService.getSkillById(user.id, id);
+    }
+
+    @Post()
+    addSkill(@CurrentUser() user: User, @Body() dto: AddSkillDto) {
+        return this.skillsService.addSkill(user.id, dto);
+    }
+
+    @Patch(':id')
+    updateSkill(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: UpdateSkillDto) {
+        return this.skillsService.updateSkill(user.id, id, dto);
+    }
+
+    @Delete(':id')
+    deleteSkill(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.skillsService.deleteSkill(user.id, id);
+    }
+}
+
+
+===== apps\seeker-profile-service\src\profile\controllers\education.controller.ts =====
+// apps/seeker-profile-service/src/profile/controllers/education.controller.ts
+
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
+import type { User } from '@prisma/client';
+import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser, Public } from '@cykruit/auth-core';
+import { SkipRateLimit } from '@cykruit/rate-limit';
+import { EducationService } from '../services/education.service';
+import { CreateEducationDto } from '../dto/education/create-education.dto';
+import { UpdateEducationDto } from '../dto/education/update-education.dto';
+import { SearchInstitutesDto } from '../dto/education/search-institutes.dto';
+
+@Controller('education')
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard)
+@Roles(UserRole.SEEKER)
+export class EducationController {
+    constructor(private readonly educationService: EducationService) { }
+
+    @Get()
+    @SkipRateLimit()
+    getEducation(@CurrentUser() user: User) {
+        return this.educationService.getEducation(user.id);
+    }
+
+    @Public()
+    @Get('institutes/search')
+    @SkipRateLimit()
+    searchInstitutes(@Query() dto: SearchInstitutesDto) {
+        return this.educationService.searchInstitutes(dto);
+    }
+
+    @Get(':id')
+    @SkipRateLimit()
+    getEducationById(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.educationService.getEducationById(user.id, id);
+    }
+
+    @Post()
+    createEducation(@CurrentUser() user: User, @Body() dto: CreateEducationDto) {
+        return this.educationService.createEducation(user.id, dto);
+    }
+
+    @Patch(':id')
+    updateEducation(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: UpdateEducationDto) {
+        return this.educationService.updateEducation(user.id, id, dto);
+    }
+
+    @Delete(':id')
+    deleteEducation(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.educationService.deleteEducation(user.id, id);
+    }
+}
+
+
+===== apps\seeker-profile-service\src\profile\controllers\experience.controller.ts =====
+// apps/seeker-profile-service/src/profile/controllers/experience.controller.ts
+
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
+import type { User } from '@prisma/client';
+import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
+import { SkipRateLimit } from '@cykruit/rate-limit';
+import { ExperienceService } from '../services/experience.service';
+import { CreateExperienceDto } from '../dto/experience/create-experience.dto';
+import { UpdateExperienceDto } from '../dto/experience/update-experience.dto';
+
+@Controller('experiences')
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard)
+@Roles(UserRole.SEEKER)
+export class ExperienceController {
+    constructor(private readonly experienceService: ExperienceService) { }
+
+    @Get()
+    @SkipRateLimit()
+    getExperiences(@CurrentUser() user: User) {
+        return this.experienceService.getExperiences(user.id);
+    }
+
+    @Get(':id')
+    @SkipRateLimit()
+    getExperienceById(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.experienceService.getExperienceById(user.id, id);
+    }
+
+    @Post()
+    createExperience(@CurrentUser() user: User, @Body() dto: CreateExperienceDto) {
+        return this.experienceService.createExperience(user.id, dto);
+    }
+
+    @Patch(':id')
+    updateExperience(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: UpdateExperienceDto) {
+        return this.experienceService.updateExperience(user.id, id, dto);
+    }
+
+    @Delete(':id')
+    deleteExperience(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.experienceService.deleteExperience(user.id, id);
+    }
+}
+
+
+===== apps\seeker-profile-service\src\profile\controllers\certifications.controller.ts =====
+// apps/seeker-profile-service/src/profile/controllers/certifications.controller.ts
+
+import {
+    Controller, Get, Post, Patch, Delete,
+    Body, Param, Query, UseGuards,
+    UseInterceptors, UploadedFile,
+    ParseFilePipe, MaxFileSizeValidator, FileTypeValidator,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UserRole } from '@prisma/client';
+import type { User } from '@prisma/client';
+import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser, Public } from '@cykruit/auth-core';
+import { SkipRateLimit } from '@cykruit/rate-limit';
+import { CertificationsService } from '../services/certifications.service';
+import { AddCertificationDto } from '../dto/certifications/add-certification.dto';
+import { UpdateCertificationDto } from '../dto/certifications/update-certification.dto';
+import { SearchCertificationsDto } from '../dto/certifications/search-certifications.dto';
+
+@Controller('certifications')
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard)
+@Roles(UserRole.SEEKER)
+export class CertificationsController {
+    constructor(private readonly certificationsService: CertificationsService) { }
+
+    @Get()
+    @SkipRateLimit()
+    getCertifications(@CurrentUser() user: User) {
+        return this.certificationsService.getCertifications(user.id);
+    }
+
+    @Public()
+    @Get('search')
+    @SkipRateLimit()
+    searchCertifications(@Query() dto: SearchCertificationsDto) {
+        return this.certificationsService.searchCertifications(dto);
+    }
+
+    @Get(':id')
+    @SkipRateLimit()
+    getCertificationById(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.certificationsService.getCertificationById(user.id, id);
+    }
+
+    @Post()
+    addCertification(@CurrentUser() user: User, @Body() dto: AddCertificationDto) {
+        return this.certificationsService.addCertification(user.id, dto);
+    }
+
+    @Patch(':id')
+    updateCertification(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: UpdateCertificationDto) {
+        return this.certificationsService.updateCertification(user.id, id, dto);
+    }
+
+    @Delete(':id')
+    deleteCertification(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.certificationsService.deleteCertification(user.id, id);
+    }
+
+    @Patch(':id/certificate')
+    @UseInterceptors(FileInterceptor('file'))
+    uploadCertificateFile(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+        @UploadedFile(new ParseFilePipe({
+            validators: [
+                new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+                new FileTypeValidator({ fileType: /(pdf|jpg|jpeg|png)$/ }),
+            ],
+        })) file: Express.Multer.File,
+    ) {
+        return this.certificationsService.uploadCertificateFile(user.id, id, file);
+    }
+
+    @Delete(':id/certificate')
+    deleteCertificateFile(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.certificationsService.deleteCertificateFile(user.id, id);
+    }
+}
+
+
+===== apps\seeker-profile-service\src\profile\controllers\projects.controller.ts =====
+// apps/seeker-profile-service/src/profile/controllers/projects.controller.ts
+
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
+import type { User } from '@prisma/client';
+import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
+import { SkipRateLimit } from '@cykruit/rate-limit';
+import { ProjectsService } from '../services/projects.service';
+import { CreateProjectDto } from '../dto/projects/create-project.dto';
+import { UpdateProjectDto } from '../dto/projects/update-project.dto';
+
+@Controller('projects')
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard)
+@Roles(UserRole.SEEKER)
+export class ProjectsController {
+    constructor(private readonly projectsService: ProjectsService) { }
+
+    @Get()
+    @SkipRateLimit()
+    getProjects(@CurrentUser() user: User) {
+        return this.projectsService.getProjects(user.id);
+    }
+
+    @Get(':id')
+    @SkipRateLimit()
+    getProjectById(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.projectsService.getProjectById(user.id, id);
+    }
+
+    @Post()
+    createProject(@CurrentUser() user: User, @Body() dto: CreateProjectDto) {
+        return this.projectsService.createProject(user.id, dto);
+    }
+
+    @Patch(':id')
+    updateProject(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: UpdateProjectDto) {
+        return this.projectsService.updateProject(user.id, id, dto);
+    }
+
+    @Delete(':id')
+    deleteProject(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.projectsService.deleteProject(user.id, id);
+    }
+}
+
+
+===== apps\seeker-profile-service\src\profile\controllers\resume.controller.ts =====
+// apps/seeker-profile-service/src/profile/controllers/resume.controller.ts
+
+import {
+    Controller, Get, Post, Patch, Delete,
+    Param, UseGuards, UseInterceptors,
+    UploadedFile, ParseFilePipe, MaxFileSizeValidator,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UserRole } from '@prisma/client';
+import type { User } from '@prisma/client';
+import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
+import { SkipRateLimit } from '@cykruit/rate-limit';
+import { ResumeService } from '../services/resume.service';
+import { DocumentFileValidator } from '../validators/file.validators';
+
+@Controller('resumes')
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard)
+@Roles(UserRole.SEEKER)
+export class ResumeController {
+    constructor(private readonly resumeService: ResumeService) { }
+
+    @Get()
+    @SkipRateLimit()
+    getResumes(@CurrentUser() user: User) {
+        return this.resumeService.getResumes(user.id);
+    }
+
+    @Get(':id')
+    @SkipRateLimit()
+    getResumeById(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.resumeService.getResumeById(user.id, id);
+    }
+
+    @Post()
+    @UseInterceptors(FileInterceptor('file'))
+    uploadResume(
+        @CurrentUser() user: User,
+        @UploadedFile(new ParseFilePipe({
+            validators: [
+                new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+                new DocumentFileValidator(),
+            ],
+        })) file: Express.Multer.File,
+    ) {
+        return this.resumeService.uploadResume(user.id, file);
+    }
+
+    @Patch(':id')
+    @UseInterceptors(FileInterceptor('file'))
+    replaceResume(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+        @UploadedFile(new ParseFilePipe({
+            validators: [
+                new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+                new DocumentFileValidator(),
+            ],
+        })) file: Express.Multer.File,
+    ) {
+        return this.resumeService.replaceResume(user.id, id, file);
+    }
+
+    @Delete(':id')
+    deleteResume(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.resumeService.deleteResume(user.id, id);
+    }
+}
+
+
+===== apps\seeker-profile-service\src\profile\controllers\ctf-profile.controller.ts =====
+// apps/seeker-profile-service/src/profile/controllers/ctf-profile.controller.ts
+
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
+import type { User } from '@prisma/client';
+import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
+import { SkipRateLimit } from '@cykruit/rate-limit';
+import { CTFProfileService } from '../services/ctf-profile.service';
+import { CreateCTFProfileDto } from '../dto/ctf/create-ctf-profile.dto';
+import { UpdateCTFProfileDto } from '../dto/ctf/update-ctf-profile.dto';
+
+@Controller('ctf-profiles')
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard)
+@Roles(UserRole.SEEKER)
+export class CTFProfileController {
+    constructor(private readonly ctfProfileService: CTFProfileService) { }
+
+    @Get()
+    @SkipRateLimit()
+    getCTFProfiles(@CurrentUser() user: User) {
+        return this.ctfProfileService.getCTFProfiles(user.id);
+    }
+
+    @Get(':id')
+    @SkipRateLimit()
+    getCTFProfileById(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.ctfProfileService.getCTFProfileById(user.id, id);
+    }
+
+    @Post()
+    createCTFProfile(@CurrentUser() user: User, @Body() dto: CreateCTFProfileDto) {
+        return this.ctfProfileService.createCTFProfile(user.id, dto);
+    }
+
+    @Patch(':id')
+    updateCTFProfile(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: UpdateCTFProfileDto) {
+        return this.ctfProfileService.updateCTFProfile(user.id, id, dto);
+    }
+
+    @Delete(':id')
+    deleteCTFProfile(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.ctfProfileService.deleteCTFProfile(user.id, id);
+    }
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\update-basic-info.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/update-basic-info.dto.ts
+
+import { IsString, IsOptional, IsUrl, IsUUID, ValidateNested, IsObject } from 'class-validator';
+import { Type } from 'class-transformer';
+
+class LocationDataDto {
+    @IsString() city: string;
+    @IsOptional() @IsString() state?: string;
+    @IsString() country: string;
+}
+
+export class UpdateBasicInfoDto {
+    @IsOptional() @IsString() firstName?: string;
+    @IsOptional() @IsString() lastName?: string;
+    @IsOptional() @IsString() title?: string;
+    @IsOptional() @IsUUID() locationId?: string;
+    @IsOptional() @ValidateNested() @Type(() => LocationDataDto) @IsObject() location?: LocationDataDto;
+    @IsOptional() @IsUrl() linkedin?: string;
+    @IsOptional() @IsUrl() github?: string;
+    @IsOptional() @IsUrl() portfolio?: string;
+    @IsOptional() @IsString() availability?: string;
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\update-summary.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/update-summary.dto.ts
+
+import { IsString, IsNotEmpty, Length } from 'class-validator';
+
+export class UpdateSummaryDto {
+    @IsString()
+    @IsNotEmpty()
+    @Length(10, 2000)
+    summary: string;
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\skills\add-skill.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/skills/add-skill.dto.ts
+
+import { IsString, IsNotEmpty, IsEnum, IsOptional, IsInt, Min, Max } from 'class-validator';
+
+enum SkillProficiency { BEGINNER = 'Beginner', INTERMEDIATE = 'Intermediate', EXPERT = 'Expert' }
+
+export class AddSkillDto {
+    @IsString() @IsNotEmpty() skillId: string;
+    @IsEnum(SkillProficiency) proficiency: SkillProficiency;
+    @IsOptional() @IsInt() @Min(0) @Max(50) yearsOfExperience?: number;
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\skills\update-skill.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/skills/update-skill.dto.ts
+
+import { IsEnum, IsOptional, IsInt, Min, Max } from 'class-validator';
+
+enum SkillProficiency { BEGINNER = 'Beginner', INTERMEDIATE = 'Intermediate', EXPERT = 'Expert' }
+
+export class UpdateSkillDto {
+    @IsOptional() @IsEnum(SkillProficiency) proficiency?: SkillProficiency;
+    @IsOptional() @IsInt() @Min(0) @Max(50) yearsOfExperience?: number;
+}   
+
+
+===== apps\seeker-profile-service\src\profile\dto\skills\search-skills.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/skills/search-skills.dto.ts
+
+import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class SearchSkillsDto {
+    @IsOptional() @IsString() query?: string;
+    @IsOptional() @IsString() category?: string;
+    @IsOptional() @IsInt() @Min(1) @Max(100) @Type(() => Number) limit?: number;
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\education\create-education.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/education/create-education.dto.ts
+
+import { IsString, IsNotEmpty, IsOptional, MinLength, MaxLength, Matches, ValidateIf } from 'class-validator';
+
+export class CreateEducationDto {
+    @IsString() @IsNotEmpty() @MinLength(2) @MaxLength(200) degree: string;
+    @IsOptional() @IsString() @MaxLength(100) fieldOfStudy?: string;
+    @IsOptional() @IsString() @ValidateIf(o => !o.instituteName) instituteId?: string;
+    @IsOptional() @IsString() @ValidateIf(o => !o.instituteId) @MinLength(2) @MaxLength(200) instituteName?: string;
+    @IsOptional() @IsString() @Matches(/^\d{4}$/, { message: 'Start date must be in YYYY format' }) startDate?: string;
+    @IsOptional() @IsString() @Matches(/^\d{4}$/, { message: 'End date must be in YYYY format' }) endDate?: string;
+    @IsOptional() @IsString() @MaxLength(50) grade?: string;
+    @IsOptional() @IsString() @MaxLength(1000) description?: string;
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\education\update-education.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/education/update-education.dto.ts
+
+import { IsString, IsOptional, MinLength, MaxLength, Matches } from 'class-validator';
+
+export class UpdateEducationDto {
+    @IsOptional() @IsString() @MinLength(2) @MaxLength(200) degree?: string;
+    @IsOptional() @IsString() @MaxLength(100) fieldOfStudy?: string;
+    @IsOptional() @IsString() instituteId?: string;
+    @IsOptional() @IsString() @MinLength(2) @MaxLength(200) instituteName?: string;
+    @IsOptional() @IsString() @Matches(/^\d{4}$/) startDate?: string;
+    @IsOptional() @IsString() @Matches(/^\d{4}$/) endDate?: string;
+    @IsOptional() @IsString() @MaxLength(50) grade?: string;
+    @IsOptional() @IsString() @MaxLength(1000) description?: string;
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\education\search-institutes.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/education/search-institutes.dto.ts
+
+import { IsString, IsOptional, IsInt, Min, Max, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class SearchInstitutesDto {
+    @IsOptional() @IsString() @MaxLength(200) query?: string;
+    @IsOptional() @IsString() country?: string;
+    @IsOptional() @IsInt() @Min(1) @Max(100) @Type(() => Number) limit?: number;
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\experience\create-experience.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/experience/create-experience.dto.ts
+// (same as old, just clean import)
+
+import { IsString, IsNotEmpty, IsEnum, IsBoolean, IsArray, IsOptional, MinLength, MaxLength, ArrayMinSize, ArrayMaxSize, Matches, ValidateIf } from 'class-validator';
+
+enum EmploymentType {
+    FULL_TIME = 'Full-time',
+    PART_TIME = 'Part-time',
+    CONTRACT = 'Contract',
+    FREELANCE = 'Freelance',
+    INTERNSHIP = 'Internship',
+}
+
+export class CreateExperienceDto {
+    @IsString() @IsNotEmpty() @MinLength(2) @MaxLength(100) title: string;
+    @IsString() @IsNotEmpty() @MinLength(2) @MaxLength(100) company: string;
+    @IsString() @IsNotEmpty() @MaxLength(200) location: string;
+    @IsEnum(EmploymentType) @IsOptional() employmentType?: EmploymentType;
+    @IsString() @IsNotEmpty() @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, { message: 'Start date must be in YYYY-MM format' }) startDate: string;
+    @IsString() @IsOptional() @ValidateIf(o => o.endDate !== '') @Matches(/^\d{4}-(0[1-9]|1[0-2])$/, { message: 'End date must be in YYYY-MM format' }) endDate?: string;
+    @IsBoolean() current: boolean;
+    @IsString() @IsNotEmpty() @MinLength(5) @MaxLength(2000) description: string;
+    @IsArray() @ArrayMinSize(1) @ArrayMaxSize(20) @IsString({ each: true }) @MaxLength(50, { each: true }) tools: string[];
+    @IsArray() @IsOptional() @ArrayMaxSize(10) @IsString({ each: true }) @MaxLength(500, { each: true }) achievements?: string[];
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\experience\update-experience.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/experience/update-experience.dto.ts
+
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateExperienceDto } from './create-experience.dto';
+
+export class UpdateExperienceDto extends PartialType(CreateExperienceDto) { }
+
+
+===== apps\seeker-profile-service\src\profile\dto\certifications\add-certification.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/certifications/add-certification.dto.ts
+
+import { IsString, IsNotEmpty, IsOptional, IsUrl, MaxLength, Matches } from 'class-validator';
+
+export class AddCertificationDto {
+    @IsString() @IsNotEmpty() certificationId: string;
+    @IsString() @IsNotEmpty() @Matches(/^\d{4}-(0[1-9]|1[0-2])$/) issueDate: string;
+    @IsOptional() @IsString() @Matches(/^\d{4}-(0[1-9]|1[0-2])$/) expiryDate?: string;
+    @IsOptional() @IsString() @MaxLength(100) credentialId?: string;
+    @IsOptional() @IsUrl() @MaxLength(500) credentialUrl?: string;
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\certifications\update-certification.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/certifications/update-certification.dto.ts
+
+import { IsString, IsOptional, IsUrl, MaxLength, Matches } from 'class-validator';
+
+export class UpdateCertificationDto {
+    @IsOptional() @IsString() @Matches(/^\d{4}-(0[1-9]|1[0-2])$/) issueDate?: string;
+    @IsOptional() @IsString() @Matches(/^\d{4}-(0[1-9]|1[0-2])$/) expiryDate?: string;
+    @IsOptional() @IsString() @MaxLength(100) credentialId?: string;
+    @IsOptional() @IsUrl() @MaxLength(500) credentialUrl?: string;
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\certifications\search-certifications.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/certifications/search-certifications.dto.ts
+
+import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class SearchCertificationsDto {
+    @IsOptional() @IsString() query?: string;
+    @IsOptional() @IsString() organization?: string;
+    @IsOptional() @IsInt() @Min(1) @Max(100) @Type(() => Number) limit?: number;
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\projects\create-project.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/projects/create-project.dto.ts
+
+import { IsString, IsNotEmpty, IsBoolean, IsArray, IsOptional, IsUrl, MinLength, MaxLength, ArrayMinSize, ArrayMaxSize, Matches, ValidateIf } from 'class-validator';
+
+export class CreateProjectDto {
+    @IsString() @IsNotEmpty() @MinLength(2) @MaxLength(100) title: string;
+    @IsString() @IsNotEmpty() @MinLength(10) @MaxLength(2000) description: string;
+    @IsArray() @ArrayMinSize(1) @ArrayMaxSize(20) @IsString({ each: true }) @MaxLength(50, { each: true }) technologies: string[];
+    @IsOptional() @IsUrl() @ValidateIf(o => o.projectUrl?.trim() !== '') @MaxLength(500) projectUrl?: string;
+    @IsOptional() @IsString() @Matches(/^\d{4}-(0[1-9]|1[0-2])$/) startDate?: string;
+    @IsOptional() @IsString() @ValidateIf(o => o.endDate?.trim() !== '') @Matches(/^\d{4}-(0[1-9]|1[0-2])$/) endDate?: string;
+    @IsOptional() @IsBoolean() current?: boolean;
+    @IsOptional() @IsArray() @ArrayMaxSize(10) @IsString({ each: true }) @MaxLength(500, { each: true }) highlights?: string[];
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\projects\update-project.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/projects/update-project.dto.ts
+
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateProjectDto } from './create-project.dto';
+
+export class UpdateProjectDto extends PartialType(CreateProjectDto) { }
+
+
+===== apps\seeker-profile-service\src\profile\dto\ctf\create-ctf-profile.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/ctf/create-ctf-profile.dto.ts
+
+import { IsString, IsNotEmpty, IsUrl, IsOptional, IsInt, Min, MaxLength, MinLength } from 'class-validator';
+
+export class CreateCTFProfileDto {
+    @IsString() @IsNotEmpty() @MinLength(2) @MaxLength(50) platform: string;
+    @IsString() @IsNotEmpty() @MinLength(2) @MaxLength(50) username: string;
+    @IsUrl() @IsNotEmpty() @MaxLength(500) profileUrl: string;
+    @IsOptional() @IsString() @MaxLength(50) rank?: string;
+    @IsOptional() @IsInt() @Min(0) points?: number;
+}
+
+
+===== apps\seeker-profile-service\src\profile\dto\ctf\update-ctf-profile.dto.ts =====
+// apps/seeker-profile-service/src/profile/dto/ctf/update-ctf-profile.dto.ts
+
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateCTFProfileDto } from './create-ctf-profile.dto';
+
+export class UpdateCTFProfileDto extends PartialType(CreateCTFProfileDto) { }
+
+
