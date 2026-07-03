@@ -10,7 +10,7 @@ import { PrismaService } from '@cykruit/prisma';
 import { UploadService } from '@cykruit/upload';
 import { JobSeekerCompletionService, JobSeekerCompletionResult } from '@cykruit/common';
 import { AppLogger } from '@cykruit/logger';
-import { UserErrorCodes, UploadErrorCodes, GeneralErrorCodes } from '@cykruit/common';
+import { UserErrorCodes, UploadErrorCodes } from '@cykruit/common';
 
 @Injectable()
 export class ProfileHelpers {

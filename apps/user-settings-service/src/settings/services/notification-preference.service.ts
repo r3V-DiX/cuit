@@ -4,7 +4,6 @@
 // Service enforces field-level isolation — seeker can't touch employer fields and vice versa.
 
 import { Injectable } from '@nestjs/common';
-import { UserRole } from '@prisma/client';
 import {
     NotificationPreferenceRepository,
     SEEKER_NOTIFICATION_FIELDS,

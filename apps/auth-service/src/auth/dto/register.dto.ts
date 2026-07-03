@@ -41,14 +41,14 @@ export class RegisterDto {
     @IsString()
     @MinLength(2, { message: 'First name must be at least 2 characters' })
     @MaxLength(50)
-    @Matches(/^[a-zA-Z\s'\-]+$/, { message: 'First name can only contain letters, spaces, hyphens and apostrophes' })
+    @Matches(/^[a-zA-Z\s'-]+$/, { message: 'First name can only contain letters, spaces, hyphens and apostrophes' })
     firstName: string;
 
     @Transform(({ value }) => value?.trim())
     @IsString()
     @MinLength(2, { message: 'Last name must be at least 2 characters' })
     @MaxLength(50)
-    @Matches(/^[a-zA-Z\s'\-]+$/, { message: 'Last name can only contain letters, spaces, hyphens and apostrophes' })
+    @Matches(/^[a-zA-Z\s'-]+$/, { message: 'Last name can only contain letters, spaces, hyphens and apostrophes' })
     lastName: string;
 
     @IsOptional()

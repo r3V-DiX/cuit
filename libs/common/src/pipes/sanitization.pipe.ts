@@ -35,9 +35,6 @@ const DATA_URI_RE = /data\s*:\s*text\/html/gi;
 // SQL injection keywords — only in auth-specific string context
 const SQL_INJECTION_RE = /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|TRUNCATE|GRANT|REVOKE)\b)/gi;
 
-// HTML entity decode attacks
-const HTML_ENTITY_RE = /&(#?[a-zA-Z0-9]+);/g;
-
 // ── Field classification ───────────────────────────────────────
 
 // Auth fields — strict: only safe chars allowed
@@ -75,7 +72,7 @@ const URL_FIELDS = new Set([
 
 // ── Allowed patterns for strict fields ────────────────────────
 const EMAIL_ALLOWED_RE = /^[a-zA-Z0-9@._\-+]+$/;
-const NAME_ALLOWED_RE = /^[a-zA-Z0-9\s'\-\.]+$/;
+const NAME_ALLOWED_RE = /^[a-zA-Z0-9\s'.-]+$/;
 // Strict string: block actual injection chars but allow normal punctuation
 const STRICT_DANGEROUS_RE = /[<>"`;\\|$(){}[\]^*!=~]/g;
 

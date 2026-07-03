@@ -6,7 +6,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
-import { NotificationPreference, EmailFrequency } from '@prisma/client';
+import { NotificationPreference } from '@prisma/client';
 
 export type NotificationPrefUpdateData = Partial<Omit<NotificationPreference, 'id' | 'userId' | 'createdAt' | 'updatedAt'>>;
 

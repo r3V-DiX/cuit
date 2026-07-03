@@ -4,7 +4,7 @@
 
 import {
     Controller, Post, Get, Patch, Delete, Body, Res, Req,
-    UseGuards, HttpCode, HttpStatus, Inject,
+    UseGuards, HttpCode, HttpStatus,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';

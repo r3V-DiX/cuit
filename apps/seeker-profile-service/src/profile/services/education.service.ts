@@ -52,7 +52,7 @@ export class EducationService {
         }
 
         let resolvedInstituteId: string | null = null;
-        let resolvedInstituteName: string | null = null;
+        const resolvedInstituteName: string | null = null;
 
         if (dto.instituteId) {
             // Predefined institute — validate it exists

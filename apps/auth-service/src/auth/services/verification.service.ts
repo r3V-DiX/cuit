@@ -9,11 +9,10 @@
 import {
     Injectable,
     BadRequestException,
-    NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { AppLogger } from '@cykruit/logger';
-import { HashService, ErrorCodes } from '@cykruit/common';
+import { HashService } from '@cykruit/common';
 import { MailService } from '@cykruit/mail';
 import { AuditService, AuditAction } from '@cykruit/audit';
 import { ConfigService } from '@nestjs/config';
@@ -90,20 +89,17 @@ export class VerificationService {
         this.auditService.log(AuditAction.EMAIL_VERIFIED, 'SUCCESS', tokenRecord.userId, reqCtx);
         this.logger.log(`Email verified: ${tokenRecord.userId}`, 'VerificationService');
 
-        // ✅ Strip sensitive + all date fields
-        const {
-            password,
-            failedLoginAttempts,
-            lockedUntil,
-            lastFailedLoginAt,
-            lastFailedLoginIp,
-            emailVerifiedAt,
-            lastLogin,
-            lastLoginIp,
-            createdAt,
-            updatedAt,
-            ...safeUser
-        } = updatedUser;
+        const safeUser = { ...updatedUser } as Partial<typeof updatedUser>;
+        delete safeUser.password;
+        delete safeUser.failedLoginAttempts;
+        delete safeUser.lockedUntil;
+        delete safeUser.lastFailedLoginAt;
+        delete safeUser.lastFailedLoginIp;
+        delete safeUser.emailVerifiedAt;
+        delete safeUser.lastLogin;
+        delete safeUser.lastLoginIp;
+        delete safeUser.createdAt;
+        delete safeUser.updatedAt;
 
         return {
             data: { sessionToken, user: safeUser },

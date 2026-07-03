@@ -63,7 +63,6 @@ export class ProfileService {
 
     async updateBasicInfo(userId: string, dto: UpdateBasicInfoDto) {
         let finalLocationId: string | undefined;
-        let locationWarning: { code: string; message: string } | undefined;
 
         if (dto.locationId) {
             const exists = await this.prisma.location.findUnique({ where: { id: dto.locationId } });

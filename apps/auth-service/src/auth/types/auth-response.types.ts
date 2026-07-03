@@ -29,7 +29,7 @@ export interface VerifyEmailResponse extends BaseResponse {
     user: UserResponse;
 }
 
-export interface ResendVerificationResponse extends BaseResponse { }
+export type ResendVerificationResponse = BaseResponse;
 
 export interface VerifyResetTokenResponse extends BaseResponse {
     valid: boolean;
