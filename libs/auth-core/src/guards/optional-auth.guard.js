@@ -25,15 +25,15 @@ let OptionalAuthGuard = class OptionalAuthGuard {
         const request = context.switchToHttp().getRequest();
         const sessionToken = request.cookies[config_1.CookieConfig.COOKIE_NAMES.SESSION];
         if (!sessionToken) {
-            request['user'] = null;
+            request["user"] = null;
             return true;
         }
         try {
             const { user } = await this.sessionValidator.validateSession(sessionToken);
-            request['user'] = user || null;
+            request["user"] = user || null;
         }
         catch {
-            request['user'] = null;
+            request["user"] = null;
         }
         return true;
     }

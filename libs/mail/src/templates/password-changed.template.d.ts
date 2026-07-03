@@ -1,1 +1,4 @@
-export declare const passwordChangedTemplate: (firstName: string, loginUrl: string) => string;
+export declare const passwordChangedTemplate: (
+  firstName: string,
+  loginUrl: string,
+) => string;

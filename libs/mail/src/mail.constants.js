@@ -9,4 +9,4 @@ var EmailType;
     EmailType["PASSWORD_CHANGED"] = "PASSWORD_CHANGED";
     EmailType["NOTIFICATION"] = "NOTIFICATION";
 })(EmailType || (exports.EmailType = EmailType = {}));
-exports.MAIL_QUEUE = 'notification-emails';
+exports.MAIL_QUEUE = "notification-emails";

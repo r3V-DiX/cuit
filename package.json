@@ -26,11 +26,18 @@
     "start:seeker-profile:dev": "ts-node-dev --respawn -r ./tsconfig-paths-bootstrap.js --project apps/seeker-profile-service/tsconfig.json apps/seeker-profile-service/src/main.ts",
     "build:seeker-profile": "tsc -p apps/seeker-profile-service/tsconfig.build.json",
     "start:seeker-profile:prod": "node dist/apps/seeker-profile-service/main.js",
+    "start:public": "ts-node -r ./tsconfig-paths-bootstrap.js --project apps/public-service/tsconfig.json apps/public-service/src/main.ts",
+    "start:public:dev": "ts-node-dev --respawn -r ./tsconfig-paths-bootstrap.js --project apps/public-service/tsconfig.json apps/public-service/src/main.ts",
+    "build:public": "tsc -p apps/public-service/tsconfig.build.json",
+    "start:public:prod": "node dist/apps/public-service/main.js",
     "format": "prettier --write \"{apps,libs}/**/*.ts\"",
     "lint": "eslint \"{apps,libs}/**/*.ts\" --fix",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed/index.ts"
   },
   "engines": {
     "npm": ">=10.0.0",

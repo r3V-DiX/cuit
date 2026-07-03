@@ -17,16 +17,17 @@ const throttler_2 = require("@nestjs/throttler");
 let RateLimitGuard = class RateLimitGuard extends throttler_1.ThrottlerGuard {
     constructor(options, storageService, reflector) {
         super(options, storageService, reflector);
-        const raw = process.env.TRUSTED_PROXY_COUNT ?? '0';
+        const raw = process.env.TRUSTED_PROXY_COUNT ?? "0";
         const parsed = parseInt(raw, 10);
         this.trustedProxyCount = isNaN(parsed) || parsed < 0 ? 0 : parsed;
     }
     // ✅ Override shouldSkip — reads SkipThrottle metadata correctly for named throttlers
     async shouldSkip(context) {
-        const skipMetadata = this.reflector.getAllAndOverride('THROTTLER:SKIP', [context.getHandler(), context.getClass()]);
+        const skipMetadata = this.reflector.getAllAndOverride("THROTTLER:SKIP", [context.getHandler(), context.getClass()]);
         if (skipMetadata === true)
             return true;
-        if (typeof skipMetadata === 'object' && Object.values(skipMetadata).some(v => v === true))
+        if (typeof skipMetadata === "object" &&
+            Object.values(skipMetadata).some((v) => v === true))
             return true;
         return false;
     }
@@ -38,17 +39,17 @@ let RateLimitGuard = class RateLimitGuard extends throttler_1.ThrottlerGuard {
         return `ip:${ip}`;
     }
     extractRealIp(req) {
-        const socketIp = req.ip ?? req.socket?.remoteAddress ?? 'unknown';
+        const socketIp = req.ip ?? req.socket?.remoteAddress ?? "unknown";
         const normalizedSocket = this.normalizeIp(socketIp);
         if (this.trustedProxyCount === 0) {
             return normalizedSocket;
         }
-        const forwarded = req.headers?.['x-forwarded-for'];
-        if (!forwarded || typeof forwarded !== 'string') {
+        const forwarded = req.headers?.["x-forwarded-for"];
+        if (!forwarded || typeof forwarded !== "string") {
             return normalizedSocket;
         }
         const ips = forwarded
-            .split(',')
+            .split(",")
             .map((s) => s.trim())
             .filter((s) => s.length > 0);
         if (ips.length === 0)
@@ -62,8 +63,8 @@ let RateLimitGuard = class RateLimitGuard extends throttler_1.ThrottlerGuard {
     }
     normalizeIp(ip) {
         if (!ip)
-            return 'unknown';
-        if (ip.startsWith('::ffff:'))
+            return "unknown";
+        if (ip.startsWith("::ffff:"))
             return ip.slice(7);
         return ip;
     }
@@ -81,10 +82,10 @@ let RateLimitGuard = class RateLimitGuard extends throttler_1.ThrottlerGuard {
         catch (err) {
             if (err instanceof throttler_1.ThrottlerException) {
                 const res = context.switchToHttp().getResponse();
-                const retryAfter = Number(res.getHeader?.('Retry-After') ?? 60);
+                const retryAfter = Number(res.getHeader?.("Retry-After") ?? 60);
                 throw new common_1.HttpException({
-                    code: 'RATE_LIMIT_EXCEEDED',
-                    message: 'Too many requests. Please wait before trying again.',
+                    code: "RATE_LIMIT_EXCEEDED",
+                    message: "Too many requests. Please wait before trying again.",
                     retryAfter,
                 }, common_1.HttpStatus.TOO_MANY_REQUESTS);
             }

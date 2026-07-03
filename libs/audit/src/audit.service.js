@@ -40,7 +40,7 @@ let AuditService = class AuditService {
         // Fire and forget — intentionally not awaited
         this.writeLog(action, status, userId, req, metadata).catch((err) => {
             // Audit write failure must NEVER break auth flows
-            this.logger.warn(`[AUDIT_WRITE_FAILED] action:${action} uid:${userId ?? 'unknown'} err:${err?.message}`, 'AuditService');
+            this.logger.warn(`[AUDIT_WRITE_FAILED] action:${action} uid:${userId ?? "unknown"} err:${err?.message}`, "AuditService");
         });
     }
     /**
@@ -64,7 +64,7 @@ let AuditService = class AuditService {
         const [logs, total] = await Promise.all([
             this.prisma.authAuditLog.findMany({
                 where,
-                orderBy: { createdAt: 'desc' },
+                orderBy: { createdAt: "desc" },
                 skip,
                 take: safeLimit,
                 select: {
@@ -111,9 +111,9 @@ let AuditService = class AuditService {
     }
     sanitizeIp(ip) {
         if (!ip)
-            return 'unknown';
+            return "unknown";
         // Normalize IPv4-mapped IPv6 (::ffff:1.2.3.4 → 1.2.3.4)
-        if (ip.startsWith('::ffff:'))
+        if (ip.startsWith("::ffff:"))
             return ip.slice(7);
         return ip;
     }
@@ -124,45 +124,45 @@ let AuditService = class AuditService {
      */
     parseUserAgent(ua) {
         try {
-            if (ua.includes('iPhone') || ua.includes('iPad')) {
+            if (ua.includes("iPhone") || ua.includes("iPad")) {
                 const match = ua.match(/CPU (?:iPhone )?OS ([\d_]+)/);
-                const version = match ? ` ${match[1].replace(/_/g, '.')}` : '';
+                const version = match ? ` ${match[1].replace(/_/g, ".")}` : "";
                 return `Safari on iOS${version}`;
             }
-            if (ua.includes('Android')) {
-                if (ua.includes('Chrome'))
-                    return 'Chrome on Android';
-                return 'Browser on Android';
+            if (ua.includes("Android")) {
+                if (ua.includes("Chrome"))
+                    return "Chrome on Android";
+                return "Browser on Android";
             }
-            if (ua.includes('Macintosh')) {
-                if (ua.includes('Chrome') && !ua.includes('Edg'))
-                    return 'Chrome on macOS';
-                if (ua.includes('Firefox'))
-                    return 'Firefox on macOS';
-                if (ua.includes('Safari') && !ua.includes('Chrome'))
-                    return 'Safari on macOS';
-                if (ua.includes('Edg'))
-                    return 'Edge on macOS';
-                return 'Browser on macOS';
+            if (ua.includes("Macintosh")) {
+                if (ua.includes("Chrome") && !ua.includes("Edg"))
+                    return "Chrome on macOS";
+                if (ua.includes("Firefox"))
+                    return "Firefox on macOS";
+                if (ua.includes("Safari") && !ua.includes("Chrome"))
+                    return "Safari on macOS";
+                if (ua.includes("Edg"))
+                    return "Edge on macOS";
+                return "Browser on macOS";
             }
-            if (ua.includes('Windows')) {
-                if (ua.includes('Chrome') && !ua.includes('Edg'))
-                    return 'Chrome on Windows';
-                if (ua.includes('Firefox'))
-                    return 'Firefox on Windows';
-                if (ua.includes('Edg'))
-                    return 'Edge on Windows';
-                return 'Browser on Windows';
+            if (ua.includes("Windows")) {
+                if (ua.includes("Chrome") && !ua.includes("Edg"))
+                    return "Chrome on Windows";
+                if (ua.includes("Firefox"))
+                    return "Firefox on Windows";
+                if (ua.includes("Edg"))
+                    return "Edge on Windows";
+                return "Browser on Windows";
             }
-            if (ua.includes('Linux')) {
-                if (ua.includes('Chrome'))
-                    return 'Chrome on Linux';
-                if (ua.includes('Firefox'))
-                    return 'Firefox on Linux';
-                return 'Browser on Linux';
+            if (ua.includes("Linux")) {
+                if (ua.includes("Chrome"))
+                    return "Chrome on Linux";
+                if (ua.includes("Firefox"))
+                    return "Firefox on Linux";
+                return "Browser on Linux";
             }
-            if (ua === 'unknown')
-                return 'Unknown device';
+            if (ua === "unknown")
+                return "Unknown device";
             return ua.substring(0, 50);
         }
         catch {

@@ -1,2 +1,1 @@
-export declare class CommonModule {
-}
+export declare class CommonModule {}

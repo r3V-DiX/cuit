@@ -33,57 +33,99 @@ const JAVASCRIPT_PROTO_RE = /javascript\s*:/gi;
 const DATA_URI_RE = /data\s*:\s*text\/html/gi;
 // SQL injection keywords — only in auth-specific string context
 const SQL_INJECTION_RE = /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|TRUNCATE|GRANT|REVOKE)\b)/gi;
-// HTML entity decode attacks
-const HTML_ENTITY_RE = /&(#?[a-zA-Z0-9]+);/g;
 // ── Field classification ───────────────────────────────────────
 // Auth fields — strict: only safe chars allowed
 const PASSWORD_FIELDS = new Set([
-    'password', 'confirmPassword', 'currentPassword', 'newPassword',
+    "password",
+    "confirmPassword",
+    "currentPassword",
+    "newPassword",
 ]);
 const TOKEN_FIELDS = new Set([
-    'token', 'resetToken', 'verificationToken', 'accessToken',
-    'refreshToken', 'pushToken', 'csrfToken',
+    "token",
+    "resetToken",
+    "verificationToken",
+    "accessToken",
+    "refreshToken",
+    "pushToken",
+    "csrfToken",
 ]);
-const EMAIL_FIELDS = new Set(['email', 'newEmail', 'contactEmail']);
+const EMAIL_FIELDS = new Set(["email", "newEmail", "contactEmail"]);
 const STRICT_STRING_FIELDS = new Set([
-    'firstName', 'lastName', 'phone', 'role', 'provider',
-    'platform', 'appVersion', 'deviceName', 'deviceModel',
+    "firstName",
+    "lastName",
+    "phone",
+    "role",
+    "provider",
+    "platform",
+    "appVersion",
+    "deviceName",
+    "deviceModel",
 ]);
 // Content fields — allow HTML-ish content, just strip XSS
 const RICH_TEXT_FIELDS = new Set([
-    'description', 'about', 'mission', 'vision', 'message',
-    'content', 'body', 'html', 'cultureDescription', 'tagline',
-    'professionalSummary', 'note', 'adminNotes', 'rejectionReason',
-    'closedReason', 'bio', 'summary', 'overview',
+    "description",
+    "about",
+    "mission",
+    "vision",
+    "message",
+    "content",
+    "body",
+    "html",
+    "cultureDescription",
+    "tagline",
+    "professionalSummary",
+    "note",
+    "adminNotes",
+    "rejectionReason",
+    "closedReason",
+    "bio",
+    "summary",
+    "overview",
 ]);
 // URL fields — trim only, don't strip special chars
 const URL_FIELDS = new Set([
-    'url', 'redirectUrl', 'callbackUrl', 'profileImage', 'companyLogo',
-    'companyBanner', 'companyWebsite', 'linkedin', 'twitter', 'facebook',
-    'instagram', 'github', 'portfolio', 'projectUrl', 'credentialUrl',
-    'actionUrl', 'externalUrl', 'fileUrl', 'documentUrl',
+    "url",
+    "redirectUrl",
+    "callbackUrl",
+    "profileImage",
+    "companyLogo",
+    "companyBanner",
+    "companyWebsite",
+    "linkedin",
+    "twitter",
+    "facebook",
+    "instagram",
+    "github",
+    "portfolio",
+    "projectUrl",
+    "credentialUrl",
+    "actionUrl",
+    "externalUrl",
+    "fileUrl",
+    "documentUrl",
 ]);
 // ── Allowed patterns for strict fields ────────────────────────
 const EMAIL_ALLOWED_RE = /^[a-zA-Z0-9@._\-+]+$/;
-const NAME_ALLOWED_RE = /^[a-zA-Z0-9\s'\-\.]+$/;
+const NAME_ALLOWED_RE = /^[a-zA-Z0-9\s'.-]+$/;
 // Strict string: block actual injection chars but allow normal punctuation
 const STRICT_DANGEROUS_RE = /[<>"`;\\|$(){}[\]^*!=~]/g;
 let SanitizationPipe = class SanitizationPipe {
     transform(value, metadata) {
-        if (metadata.type !== 'body' && metadata.type !== 'query')
+        if (metadata.type !== "body" && metadata.type !== "query")
             return value;
         if (value === null || value === undefined)
             return value;
         return this.sanitizeValue(value, metadata.data);
     }
     sanitizeValue(value, fieldName) {
-        if (typeof value === 'string') {
+        if (typeof value === "string") {
             return this.sanitizeString(value, fieldName);
         }
         if (Array.isArray(value)) {
             return value.map((item) => this.sanitizeValue(item));
         }
-        if (typeof value === 'object' && value !== null) {
+        if (typeof value === "object" && value !== null) {
             const sanitized = {};
             for (const [key, val] of Object.entries(value)) {
                 sanitized[key] = this.sanitizeValue(val, key);
@@ -94,36 +136,35 @@ let SanitizationPipe = class SanitizationPipe {
     }
     sanitizeString(value, fieldName) {
         // Step 1: always strip null bytes
-        let s = value.replace(NULL_BYTE_RE, '');
+        let s = value.replace(NULL_BYTE_RE, "");
         // Step 2: passwords and tokens — ONLY null bytes, never touch anything else
-        if (fieldName && (PASSWORD_FIELDS.has(fieldName) || TOKEN_FIELDS.has(fieldName))) {
+        if (fieldName &&
+            (PASSWORD_FIELDS.has(fieldName) || TOKEN_FIELDS.has(fieldName))) {
             return s;
         }
         // Step 3: URL fields — trim only, strip script protocols
         if (fieldName && URL_FIELDS.has(fieldName)) {
-            s = s.replace(JAVASCRIPT_PROTO_RE, '').replace(DATA_URI_RE, '').trim();
+            s = s.replace(JAVASCRIPT_PROTO_RE, "").replace(DATA_URI_RE, "").trim();
             return s;
         }
         // Step 4: Rich text / content fields — strip XSS vectors only, keep HTML structure
         if (fieldName && RICH_TEXT_FIELDS.has(fieldName)) {
             s = s
-                .replace(NULL_BYTE_RE, '')
-                .replace(SCRIPT_TAG_RE, '')
-                .replace(EVENT_HANDLER_RE, '')
-                .replace(JAVASCRIPT_PROTO_RE, '')
-                .replace(DATA_URI_RE, '');
+                .replace(NULL_BYTE_RE, "")
+                .replace(SCRIPT_TAG_RE, "")
+                .replace(EVENT_HANDLER_RE, "")
+                .replace(JAVASCRIPT_PROTO_RE, "")
+                .replace(DATA_URI_RE, "");
             return s.trim();
         }
         // Step 5: Email fields — lowercase, strict char set
         if (fieldName && EMAIL_FIELDS.has(fieldName)) {
             s = s.toLowerCase().trim();
-            s = s
-                .replace(SCRIPT_TAG_RE, '')
-                .replace(NULL_BYTE_RE, '');
+            s = s.replace(SCRIPT_TAG_RE, "").replace(NULL_BYTE_RE, "");
             if (s && !EMAIL_ALLOWED_RE.test(s)) {
                 throw new common_1.BadRequestException({
-                    code: 'INVALID_EMAIL_FORMAT',
-                    message: 'Invalid characters in email address.',
+                    code: "INVALID_EMAIL_FORMAT",
+                    message: "Invalid characters in email address.",
                 });
             }
             return s;
@@ -131,15 +172,15 @@ let SanitizationPipe = class SanitizationPipe {
         // Step 6: Strict string fields (names, phone, etc.)
         if (fieldName && STRICT_STRING_FIELDS.has(fieldName)) {
             s = s
-                .replace(SCRIPT_TAG_RE, '')
-                .replace(NULL_BYTE_RE, '')
-                .replace(STRICT_DANGEROUS_RE, '')
-                .replace(SQL_INJECTION_RE, '')
+                .replace(SCRIPT_TAG_RE, "")
+                .replace(NULL_BYTE_RE, "")
+                .replace(STRICT_DANGEROUS_RE, "")
+                .replace(SQL_INJECTION_RE, "")
                 .trim();
-            if (fieldName === 'firstName' || fieldName === 'lastName') {
+            if (fieldName === "firstName" || fieldName === "lastName") {
                 if (s && !NAME_ALLOWED_RE.test(s)) {
                     throw new common_1.BadRequestException({
-                        code: 'INVALID_NAME_FORMAT',
+                        code: "INVALID_NAME_FORMAT",
                         message: `Invalid characters in ${fieldName}.`,
                     });
                 }
@@ -149,11 +190,11 @@ let SanitizationPipe = class SanitizationPipe {
         // Step 7: General fields (unknown field names, IDs, slugs, etc.)
         // Strip actual injection patterns but allow normal punctuation like , . - _ ( )
         s = s
-            .replace(SCRIPT_TAG_RE, '')
-            .replace(EVENT_HANDLER_RE, '')
-            .replace(JAVASCRIPT_PROTO_RE, '')
-            .replace(NULL_BYTE_RE, '')
-            .replace(SQL_INJECTION_RE, '')
+            .replace(SCRIPT_TAG_RE, "")
+            .replace(EVENT_HANDLER_RE, "")
+            .replace(JAVASCRIPT_PROTO_RE, "")
+            .replace(NULL_BYTE_RE, "")
+            .replace(SQL_INJECTION_RE, "")
             .trim();
         return s;
     }

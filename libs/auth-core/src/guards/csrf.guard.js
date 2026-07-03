@@ -16,17 +16,19 @@ const core_1 = require("@nestjs/core");
 const config_1 = require("@nestjs/config");
 const crypto_1 = require("crypto");
 const decorators_1 = require("../decorators");
-const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-const CSRF_HEADER = 'x-csrf-token';
-const TOKEN_SEPARATOR = '.';
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+const CSRF_HEADER = "x-csrf-token";
+const TOKEN_SEPARATOR = ".";
 let CsrfGuard = class CsrfGuard {
     constructor(reflector, configService) {
         this.reflector = reflector;
         this.configService = configService;
-        const jwtSecret = this.configService.get('JWT_SECRET');
+        const jwtSecret = this.configService.get("JWT_SECRET");
         if (!jwtSecret)
-            throw new Error('JWT_SECRET must be set for CSRF protection');
-        this.secret = (0, crypto_1.createHmac)('sha256', jwtSecret).update('csrf-token-v1').digest('hex');
+            throw new Error("JWT_SECRET must be set for CSRF protection");
+        this.secret = (0, crypto_1.createHmac)("sha256", jwtSecret)
+            .update("csrf-token-v1")
+            .digest("hex");
     }
     canActivate(context) {
         const request = context.switchToHttp().getRequest();
@@ -41,27 +43,27 @@ let CsrfGuard = class CsrfGuard {
         const token = request.headers[CSRF_HEADER];
         if (!token) {
             throw new common_1.ForbiddenException({
-                code: 'CSRF_TOKEN_MISSING',
-                message: 'CSRF token is required for this request.',
+                code: "CSRF_TOKEN_MISSING",
+                message: "CSRF token is required for this request.",
             });
         }
         if (!this.verifyToken(token)) {
             throw new common_1.ForbiddenException({
-                code: 'CSRF_TOKEN_INVALID',
-                message: 'CSRF token is invalid or has expired.',
+                code: "CSRF_TOKEN_INVALID",
+                message: "CSRF token is invalid or has expired.",
             });
         }
         return true;
     }
     generateToken() {
-        const nonce = (0, crypto_1.randomBytes)(32).toString('hex');
+        const nonce = (0, crypto_1.randomBytes)(32).toString("hex");
         const timestamp = Math.floor(Date.now() / 1000).toString(36);
         const payload = `${nonce}${TOKEN_SEPARATOR}${timestamp}`;
-        const sig = (0, crypto_1.createHmac)('sha256', this.secret).update(payload).digest('hex');
+        const sig = (0, crypto_1.createHmac)("sha256", this.secret).update(payload).digest("hex");
         return `${payload}${TOKEN_SEPARATOR}${sig}`;
     }
     verifyToken(token) {
-        if (!token || typeof token !== 'string')
+        if (!token || typeof token !== "string")
             return false;
         const parts = token.split(TOKEN_SEPARATOR);
         if (parts.length !== 3)
@@ -74,9 +76,11 @@ let CsrfGuard = class CsrfGuard {
         if (nowSeconds - issuedAt > 24 * 60 * 60)
             return false;
         const payload = `${nonce}${TOKEN_SEPARATOR}${timestamp}`;
-        const expectedSig = (0, crypto_1.createHmac)('sha256', this.secret).update(payload).digest('hex');
+        const expectedSig = (0, crypto_1.createHmac)("sha256", this.secret)
+            .update(payload)
+            .digest("hex");
         try {
-            return (0, crypto_1.timingSafeEqual)(Buffer.from(sig, 'hex'), Buffer.from(expectedSig, 'hex'));
+            return (0, crypto_1.timingSafeEqual)(Buffer.from(sig, "hex"), Buffer.from(expectedSig, "hex"));
         }
         catch {
             return false;

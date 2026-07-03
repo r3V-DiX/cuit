@@ -1,2 +1,1 @@
-export declare class RateLimitModule {
-}
+export declare class RateLimitModule {}

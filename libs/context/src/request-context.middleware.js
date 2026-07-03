@@ -19,12 +19,12 @@ let RequestContextMiddleware = class RequestContextMiddleware {
         this.contextService = contextService;
     }
     use(req, res, next) {
-        const requestId = req.headers['x-request-id'] || (0, uuid_1.v4)();
-        const ip = req.headers['x-forwarded-for']?.split(',')[0] ||
+        const requestId = req.headers["x-request-id"] || (0, uuid_1.v4)();
+        const ip = req.headers["x-forwarded-for"]?.split(",")[0] ||
             req.ip ||
             req.socket.remoteAddress ||
-            'unknown';
-        const userAgent = req.headers['user-agent'] || 'unknown';
+            "unknown";
+        const userAgent = req.headers["user-agent"] || "unknown";
         const context = {
             requestId,
             ip,
@@ -33,7 +33,7 @@ let RequestContextMiddleware = class RequestContextMiddleware {
             method: req.method,
             timestamp: new Date(),
         };
-        res.setHeader('X-Request-Id', requestId);
+        res.setHeader("X-Request-Id", requestId);
         this.contextService.setContext(context);
         next();
     }

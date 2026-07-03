@@ -52,7 +52,8 @@ let HashService = class HashService {
     constructor(configService) {
         this.configService = configService;
         // ✅ Default raised from 10 → 12 (OWASP minimum recommendation)
-        this.saltRounds = parseInt(this.configService.get('BCRYPT_ROUNDS'), 10) || 12;
+        this.saltRounds =
+            parseInt(this.configService.get("BCRYPT_ROUNDS"), 10) || 12;
     }
     async hashPassword(password) {
         return bcrypt.hash(password, this.saltRounds);
@@ -61,15 +62,15 @@ let HashService = class HashService {
         return bcrypt.compare(password, hashedPassword);
     }
     hashToken(token) {
-        return (0, crypto_1.createHash)('sha256').update(token).digest('hex');
+        return (0, crypto_1.createHash)("sha256").update(token).digest("hex");
     }
     /**
      * Timing-safe token comparison — prevents timing attacks.
      * Always use this instead of === when comparing tokens/hashes.
      */
     compareToken(token, hashedToken) {
-        const a = Buffer.from(this.hashToken(token), 'hex');
-        const b = Buffer.from(hashedToken, 'hex');
+        const a = Buffer.from(this.hashToken(token), "hex");
+        const b = Buffer.from(hashedToken, "hex");
         if (a.length !== b.length)
             return false;
         return (0, crypto_1.timingSafeEqual)(a, b);

@@ -64,15 +64,15 @@ let TokenService = class TokenService {
         this.prisma = prisma;
         this.configService = configService;
         this.jwtSecret =
-            this.configService.get('JWT_SECRET') || 'your-secret-key';
+            this.configService.get("JWT_SECRET") || "your-secret-key";
     }
     // ─── Helpers ─────────────────────────────────────────────────────────────────
     generateSecureToken() {
-        return (0, crypto_1.randomBytes)(32).toString('hex');
+        return (0, crypto_1.randomBytes)(32).toString("hex");
     }
     /** SHA-256 hash — used so raw tokens are never stored in DB */
     hashToken(token) {
-        return (0, crypto_1.createHash)('sha256').update(token).digest('hex');
+        return (0, crypto_1.createHash)("sha256").update(token).digest("hex");
     }
     // ─── JWTs (stateless — never stored in DB) ──────────────────────────────────
     decodeToken(token) {
@@ -90,7 +90,7 @@ let TokenService = class TokenService {
      */
     createJwtToken(userId, email, role) {
         return jwt.sign({ sub: userId, email, role }, this.jwtSecret, {
-            expiresIn: '7d',
+            expiresIn: "7d",
         });
     }
     /**
@@ -99,7 +99,9 @@ let TokenService = class TokenService {
      * A 7-day token is a huge window if intercepted in transit.
      */
     createWsToken(userId, email, role) {
-        return jwt.sign({ sub: userId, email, role, type: 'ws' }, this.jwtSecret, { expiresIn: '5m' });
+        return jwt.sign({ sub: userId, email, role, type: "ws" }, this.jwtSecret, {
+            expiresIn: "5m",
+        });
     }
     // ─── DB Tokens (email verification & password reset) ────────────────────────
     //
@@ -152,12 +154,16 @@ let TokenService = class TokenService {
     async validateEmailVerificationToken(rawToken) {
         const hashedToken = this.hashToken(rawToken);
         const record = await this.prisma.token.findFirst({
-            where: { token: hashedToken, type: client_1.TokenType.EMAIL_VERIFICATION, usedAt: null },
+            where: {
+                token: hashedToken,
+                type: client_1.TokenType.EMAIL_VERIFICATION,
+                usedAt: null,
+            },
         });
         if (!record)
-            throw new common_1.BadRequestException('Invalid or expired verification token');
+            throw new common_1.BadRequestException("Invalid or expired verification token");
         if (new Date() > record.expiresAt)
-            throw new common_1.BadRequestException('Verification token has expired');
+            throw new common_1.BadRequestException("Verification token has expired");
         await this.prisma.token.update({
             where: { id: record.id },
             data: { usedAt: new Date() },
@@ -167,12 +173,16 @@ let TokenService = class TokenService {
     async validatePasswordResetToken(rawToken) {
         const hashedToken = this.hashToken(rawToken);
         const record = await this.prisma.token.findFirst({
-            where: { token: hashedToken, type: client_1.TokenType.PASSWORD_RESET, usedAt: null },
+            where: {
+                token: hashedToken,
+                type: client_1.TokenType.PASSWORD_RESET,
+                usedAt: null,
+            },
         });
         if (!record)
-            throw new common_1.BadRequestException('Invalid or expired reset token');
+            throw new common_1.BadRequestException("Invalid or expired reset token");
         if (new Date() > record.expiresAt)
-            throw new common_1.BadRequestException('Reset token has expired');
+            throw new common_1.BadRequestException("Reset token has expired");
         await this.prisma.token.update({
             where: { id: record.id },
             data: { usedAt: new Date() },
@@ -182,7 +192,11 @@ let TokenService = class TokenService {
     async verifyPasswordResetToken(rawToken) {
         const hashedToken = this.hashToken(rawToken);
         const record = await this.prisma.token.findFirst({
-            where: { token: hashedToken, type: client_1.TokenType.PASSWORD_RESET, usedAt: null },
+            where: {
+                token: hashedToken,
+                type: client_1.TokenType.PASSWORD_RESET,
+                usedAt: null,
+            },
         });
         if (!record || new Date() > record.expiresAt)
             return false;

@@ -15,7 +15,7 @@ const crypto_1 = require("crypto");
  * @param bytes Number of random bytes (default 64 → 128 char hex string)
  */
 function generateRawToken(bytes = 64) {
-    return (0, crypto_1.randomBytes)(bytes).toString('hex');
+    return (0, crypto_1.randomBytes)(bytes).toString("hex");
 }
 /**
  * SHA-256 hash a raw token before storing in DB.
@@ -23,7 +23,7 @@ function generateRawToken(bytes = 64) {
  * Hashed token is stored in DB — never the raw one.
  */
 function hashToken(rawToken) {
-    return (0, crypto_1.createHash)('sha256').update(rawToken).digest('hex');
+    return (0, crypto_1.createHash)("sha256").update(rawToken).digest("hex");
 }
 /**
  * Resolve session expiry date based on rememberMe flag.

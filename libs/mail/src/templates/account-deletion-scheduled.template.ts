@@ -1,19 +1,19 @@
 // libs/mail/src/templates/account-deletion-scheduled.template.ts
-import { baseTemplate } from './base.template';
-import { cyberButton } from './cyber-button.template';
+import { baseTemplate } from "./base.template";
+import { cyberButton } from "./cyber-button.template";
 
 export const accountDeletionScheduledTemplate = (
-    deletionScheduledAt: Date,
-    loginUrl: string,
+  deletionScheduledAt: Date,
+  loginUrl: string,
 ): string => {
-    const formattedDate = deletionScheduledAt.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-    });
+  const formattedDate = deletionScheduledAt.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-    return baseTemplate(`
+  return baseTemplate(`
     <h2 style="color:#1B3C8B;margin:0 0 15px 0;font-size:28px;font-weight:700;text-align:center;">Account Deletion Scheduled</h2>
     <p style="text-align:center;margin:0 0 25px 0;">
       We've received your request to delete your Cykruit account.
@@ -26,7 +26,7 @@ export const accountDeletionScheduledTemplate = (
         and your account will be automatically reactivated.
       </p>
     </div>
-    ${cyberButton('Log In to Cancel Deletion', loginUrl)}
+    ${cyberButton("Log In to Cancel Deletion", loginUrl)}
     <div style="background:#fef2f2;border-radius:8px;padding:15px;margin-top:25px;border-left:3px solid #ef4444;">
       <p style="color:#991b1b;margin:0;font-size:13px;">
         <strong>⚠️ Important:</strong> After ${formattedDate}, your account and all associated data will be

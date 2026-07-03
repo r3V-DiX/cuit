@@ -27,19 +27,19 @@ let LoggerInterceptor = class LoggerInterceptor {
             next: () => {
                 const duration = Date.now() - startTime;
                 const statusCode = response.statusCode;
-                this.logger.log(`${method} ${url} | ${statusCode} | ${duration}ms`, 'HTTP');
+                this.logger.log(`${method} ${url} | ${statusCode} | ${duration}ms`, "HTTP");
             },
             error: (error) => {
                 const duration = Date.now() - startTime;
                 const statusCode = error.status || 500;
                 if (statusCode >= 500) {
                     // 5xx — log with short stack, no full file paths
-                    const shortStack = error.stack?.split('\n').slice(0, 2).join(' ');
-                    this.logger.error(`${method} ${url} | ${statusCode} | ${duration}ms | ${error.message}`, shortStack, 'HTTP');
+                    const shortStack = error.stack?.split("\n").slice(0, 2).join(" ");
+                    this.logger.error(`${method} ${url} | ${statusCode} | ${duration}ms | ${error.message}`, shortStack, "HTTP");
                 }
                 else {
                     // 4xx — just the message, no stack
-                    this.logger.warn(`${method} ${url} | ${statusCode} | ${duration}ms | ${error.message}`, 'HTTP');
+                    this.logger.warn(`${method} ${url} | ${statusCode} | ${duration}ms | ${error.message}`, "HTTP");
                 }
             },
         }));

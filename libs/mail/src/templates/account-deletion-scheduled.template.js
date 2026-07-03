@@ -5,11 +5,11 @@ exports.accountDeletionScheduledTemplate = void 0;
 const base_template_1 = require("./base.template");
 const cyber_button_template_1 = require("./cyber-button.template");
 const accountDeletionScheduledTemplate = (deletionScheduledAt, loginUrl) => {
-    const formattedDate = deletionScheduledAt.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
+    const formattedDate = deletionScheduledAt.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
     });
     return (0, base_template_1.baseTemplate)(`
     <h2 style="color:#1B3C8B;margin:0 0 15px 0;font-size:28px;font-weight:700;text-align:center;">Account Deletion Scheduled</h2>
@@ -24,7 +24,7 @@ const accountDeletionScheduledTemplate = (deletionScheduledAt, loginUrl) => {
         and your account will be automatically reactivated.
       </p>
     </div>
-    ${(0, cyber_button_template_1.cyberButton)('Log In to Cancel Deletion', loginUrl)}
+    ${(0, cyber_button_template_1.cyberButton)("Log In to Cancel Deletion", loginUrl)}
     <div style="background:#fef2f2;border-radius:8px;padding:15px;margin-top:25px;border-left:3px solid #ef4444;">
       <p style="color:#991b1b;margin:0;font-size:13px;">
         <strong>⚠️ Important:</strong> After ${formattedDate}, your account and all associated data will be

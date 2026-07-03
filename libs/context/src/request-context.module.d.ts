@@ -1,2 +1,1 @@
-export declare class RequestContextModule {
-}
+export declare class RequestContextModule {}

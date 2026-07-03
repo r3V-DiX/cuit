@@ -1,9 +1,9 @@
 // libs/mail/src/templates/password-reset.template.ts
-import { baseTemplate } from './base.template';
-import { cyberButton } from './cyber-button.template';
+import { baseTemplate } from "./base.template";
+import { cyberButton } from "./cyber-button.template";
 
 export const passwordResetTemplate = (resetUrl: string): string =>
-    baseTemplate(`
+  baseTemplate(`
     <div style="text-align:center;margin-bottom:30px;">
       <div style="font-size:48px;margin-bottom:16px;">🔐</div>
       <h2 style="margin:0 0 10px 0;font-size:26px;font-weight:700;color:#1B3C8B;">Reset Your Password</h2>
@@ -14,7 +14,7 @@ export const passwordResetTemplate = (resetUrl: string): string =>
       Click the button below to create a new password. This link is valid for <strong>1 hour</strong>.
     </p>
 
-    ${cyberButton('Reset My Password', resetUrl)}
+    ${cyberButton("Reset My Password", resetUrl)}
 
     <div style="background:#fef3c7;border-radius:8px;padding:16px;margin:24px 0;border-left:4px solid #f59e0b;">
       <p style="margin:0;font-size:13px;color:#92400e;">

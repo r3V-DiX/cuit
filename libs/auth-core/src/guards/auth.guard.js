@@ -31,10 +31,7 @@ let AuthGuard = class AuthGuard {
         ]);
         if (isPublic)
             return true;
-        const isOptional = this.reflector.getAllAndOverride(decorators_1.IS_OPTIONAL_AUTH_KEY, [
-            context.getHandler(),
-            context.getClass(),
-        ]);
+        const isOptional = this.reflector.getAllAndOverride(decorators_1.IS_OPTIONAL_AUTH_KEY, [context.getHandler(), context.getClass()]);
         if (isOptional)
             return true;
         const request = context.switchToHttp().getRequest();
@@ -43,11 +40,11 @@ let AuthGuard = class AuthGuard {
         const sessionToken = request.cookies[config_1.CookieConfig.COOKIE_NAMES.SESSION] ||
             this.extractBearerToken(request);
         if (!sessionToken) {
-            throw new common_1.UnauthorizedException('No session token found. Please login.');
+            throw new common_1.UnauthorizedException("No session token found. Please login.");
         }
         try {
             const ipAddress = this.extractIp(request);
-            const userAgent = request.headers['user-agent']?.substring(0, 255) || 'unknown';
+            const userAgent = request.headers["user-agent"]?.substring(0, 255) || "unknown";
             const { user, newToken } = await this.sessionValidator.validateSession(sessionToken, ipAddress, userAgent, request);
             // Transparent session rotation — no re-login needed
             if (newToken) {
@@ -55,25 +52,25 @@ let AuthGuard = class AuthGuard {
                 response.cookie(config_1.CookieConfig.COOKIE_NAMES.SESSION, newToken, cookieOptions);
                 request.cookies[config_1.CookieConfig.COOKIE_NAMES.SESSION] = newToken;
             }
-            request['user'] = user;
+            request["user"] = user;
             return true;
         }
         catch (error) {
             response.clearCookie(config_1.CookieConfig.COOKIE_NAMES.SESSION, config_1.CookieConfig.getClearCookieOptions());
-            throw new common_1.UnauthorizedException(error.message || 'Invalid or expired session. Please login again.');
+            throw new common_1.UnauthorizedException(error.message || "Invalid or expired session. Please login again.");
         }
     }
     extractBearerToken(request) {
-        const authHeader = request.headers['authorization'];
-        if (!authHeader || !authHeader.startsWith('Bearer '))
+        const authHeader = request.headers["authorization"];
+        if (!authHeader || !authHeader.startsWith("Bearer "))
             return null;
         return authHeader.substring(7);
     }
     extractIp(request) {
-        const forwarded = request.headers['x-forwarded-for'];
+        const forwarded = request.headers["x-forwarded-for"];
         if (forwarded)
-            return forwarded.split(',')[0].trim();
-        return request.ip || request.socket?.remoteAddress || 'unknown';
+            return forwarded.split(",")[0].trim();
+        return request.ip || request.socket?.remoteAddress || "unknown";
     }
 };
 exports.AuthGuard = AuthGuard;

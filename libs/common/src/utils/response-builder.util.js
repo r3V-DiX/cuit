@@ -18,12 +18,16 @@ let ResponseBuilder = class ResponseBuilder {
     constructor(configService, contextService) {
         this.configService = configService;
         this.contextService = contextService;
-        const nodeEnv = this.configService.get('NODE_ENV', 'development');
-        const includeMetaInProd = this.configService.get('INCLUDE_META_IN_PRODUCTION', 'false') === 'true';
-        this.includeMeta = nodeEnv !== 'production' || includeMetaInProd;
-        this.includeRequestId = this.configService.get('INCLUDE_REQUEST_ID', 'true') === 'true';
-        this.includeTimestamp = this.configService.get('INCLUDE_TIMESTAMP', 'true') === 'true';
-        this.includePath = this.configService.get('INCLUDE_PATH', nodeEnv !== 'production' ? 'true' : 'false') === 'true';
+        const nodeEnv = this.configService.get("NODE_ENV", "development");
+        const includeMetaInProd = this.configService.get("INCLUDE_META_IN_PRODUCTION", "false") ===
+            "true";
+        this.includeMeta = nodeEnv !== "production" || includeMetaInProd;
+        this.includeRequestId =
+            this.configService.get("INCLUDE_REQUEST_ID", "true") === "true";
+        this.includeTimestamp =
+            this.configService.get("INCLUDE_TIMESTAMP", "true") === "true";
+        this.includePath =
+            this.configService.get("INCLUDE_PATH", nodeEnv !== "production" ? "true" : "false") === "true";
     }
     buildMeta(path) {
         if (!this.includeMeta)

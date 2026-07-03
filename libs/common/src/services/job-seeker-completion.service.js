@@ -32,7 +32,7 @@ let JobSeekerCompletionService = class JobSeekerCompletionService {
     }
     async calculateCompletion(profileOrId) {
         let profile;
-        if (typeof profileOrId === 'string') {
+        if (typeof profileOrId === "string") {
             profile = await this.prisma.jobSeekerProfile.findUnique({
                 where: { id: profileOrId },
                 include: {
@@ -119,17 +119,17 @@ let JobSeekerCompletionService = class JobSeekerCompletionService {
     }
     formatSectionName(section) {
         const nameMap = {
-            basicInfo: 'Basic Information',
-            profileImage: 'Profile Image',
-            professionalSummary: 'Professional Summary',
-            experience: 'Work Experience',
-            education: 'Education',
-            skills: 'Skills (at least 3)',
-            certifications: 'Certifications',
-            projects: 'Projects',
-            ctfProfiles: 'CTF Profiles',
-            resume: 'Resume',
-            socialLinks: 'Social Links',
+            basicInfo: "Basic Information",
+            profileImage: "Profile Image",
+            professionalSummary: "Professional Summary",
+            experience: "Work Experience",
+            education: "Education",
+            skills: "Skills (at least 3)",
+            certifications: "Certifications",
+            projects: "Projects",
+            ctfProfiles: "CTF Profiles",
+            resume: "Resume",
+            socialLinks: "Social Links",
         };
         return nameMap[section] || section;
     }
@@ -150,9 +150,17 @@ let JobSeekerCompletionService = class JobSeekerCompletionService {
                 socialLinks: false,
             },
             missingSections: [
-                'Basic Information', 'Profile Image', 'Professional Summary',
-                'Work Experience', 'Education', 'Skills (at least 3)',
-                'Certifications', 'Projects', 'CTF Profiles', 'Resume', 'Social Links',
+                "Basic Information",
+                "Profile Image",
+                "Professional Summary",
+                "Work Experience",
+                "Education",
+                "Skills (at least 3)",
+                "Certifications",
+                "Projects",
+                "CTF Profiles",
+                "Resume",
+                "Social Links",
             ],
         };
     }

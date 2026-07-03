@@ -25,17 +25,14 @@ let RolesGuard = class RolesGuard {
         ]);
         if (isPublic)
             return true;
-        const requiredRoles = this.reflector.getAllAndOverride(decorators_1.ROLES_KEY, [
-            context.getHandler(),
-            context.getClass(),
-        ]);
+        const requiredRoles = this.reflector.getAllAndOverride(decorators_1.ROLES_KEY, [context.getHandler(), context.getClass()]);
         if (!requiredRoles || requiredRoles.length === 0)
             return true;
         const user = context.switchToHttp().getRequest().user;
         if (!user)
-            throw new common_1.ForbiddenException('User not found in request');
+            throw new common_1.ForbiddenException("User not found in request");
         if (!requiredRoles.includes(user.role)) {
-            throw new common_1.ForbiddenException(`Access denied. Required role(s): ${requiredRoles.join(', ')}`);
+            throw new common_1.ForbiddenException(`Access denied. Required role(s): ${requiredRoles.join(", ")}`);
         }
         return true;
     }

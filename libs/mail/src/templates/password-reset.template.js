@@ -15,7 +15,7 @@ const passwordResetTemplate = (resetUrl) => (0, base_template_1.baseTemplate)(`
       Click the button below to create a new password. This link is valid for <strong>1 hour</strong>.
     </p>
 
-    ${(0, cyber_button_template_1.cyberButton)('Reset My Password', resetUrl)}
+    ${(0, cyber_button_template_1.cyberButton)("Reset My Password", resetUrl)}
 
     <div style="background:#fef3c7;border-radius:8px;padding:16px;margin:24px 0;border-left:4px solid #f59e0b;">
       <p style="margin:0;font-size:13px;color:#92400e;">

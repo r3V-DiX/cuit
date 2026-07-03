@@ -21,7 +21,7 @@ let TimeoutInterceptor = class TimeoutInterceptor {
     intercept(context, next) {
         return next.handle().pipe((0, operators_1.timeout)(this.timeoutMs), (0, operators_1.catchError)((err) => {
             if (err instanceof rxjs_1.TimeoutError) {
-                return (0, rxjs_1.throwError)(() => new common_1.RequestTimeoutException('Request timeout — operation took too long'));
+                return (0, rxjs_1.throwError)(() => new common_1.RequestTimeoutException("Request timeout — operation took too long"));
             }
             return (0, rxjs_1.throwError)(() => err);
         }));

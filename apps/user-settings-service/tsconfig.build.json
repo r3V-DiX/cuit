@@ -1,24 +1,4 @@
 {
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "baseUrl": "../..",
-    "outDir": "../../dist/apps/auth-service",
-    "rootDir": "src",
-    "paths": {
-      "@cykruit/prisma": ["libs/prisma/src/index.ts"],
-      "@cykruit/config": ["libs/config/src/index.ts"],
-      "@cykruit/context": ["libs/context/src/index.ts"],
-      "@cykruit/logger": ["libs/logger/src/index.ts"],
-      "@cykruit/common": ["libs/common/src/index.ts"],
-      "@cykruit/auth-core": ["libs/auth-core/src/index.ts"],
-      "@cykruit/queue": ["libs/queue/src/index.ts"],
-      "@cykruit/mail": ["libs/mail/src/index.ts"],
-      "@cykruit/upload": ["libs/upload/src/index.ts"],
-      "@cykruit/ai": ["libs/ai/src/index.ts"],
-      "@cykruit/rate-limit": ["libs/rate-limit/src/index.ts"],
-      "@cykruit/audit": ["libs/audit/src/index.ts"]
-    }
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
 }

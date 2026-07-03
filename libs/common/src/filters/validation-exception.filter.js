@@ -30,34 +30,53 @@ let ValidationExceptionFilter = class ValidationExceptionFilter {
         const body = exception.getResponse();
         const errors = this.parseErrors(body);
         const ctx2 = this.contextService.getContext();
-        this.logger.warn(`Validation Error: ${request.method} ${request.url} | ${errors.length} error(s) | User: ${ctx2?.userId || 'anonymous'}`, 'ValidationFilter');
-        const errorResponse = this.responseBuilder.error(error_codes_1.ErrorCodes.VALIDATION_ERROR, 'Validation failed', status, request.url, errors);
+        this.logger.warn(`Validation Error: ${request.method} ${request.url} | ${errors.length} error(s) | User: ${ctx2?.userId || "anonymous"}`, "ValidationFilter");
+        const errorResponse = this.responseBuilder.error(error_codes_1.ErrorCodes.VALIDATION_ERROR, "Validation failed", status, request.url, errors);
         response.status(status).json(errorResponse);
     }
     parseErrors(body) {
         const errors = [];
         if (Array.isArray(body.message)) {
             body.message.forEach((msg) => {
-                if (typeof msg === 'string') {
-                    errors.push({ field: this.extractField(msg), message: msg, constraint: 'validation' });
+                if (typeof msg === "string") {
+                    errors.push({
+                        field: this.extractField(msg),
+                        message: msg,
+                        constraint: "validation",
+                    });
                 }
                 else if (msg?.property) {
                     Object.entries(msg.constraints || {}).forEach(([key, val]) => {
-                        errors.push({ field: msg.property, message: val, constraint: key, value: msg.value });
+                        errors.push({
+                            field: msg.property,
+                            message: val,
+                            constraint: key,
+                            value: msg.value,
+                        });
                     });
                 }
             });
         }
-        else if (typeof body.message === 'string') {
-            errors.push({ field: this.extractField(body.message), message: body.message, constraint: 'validation' });
+        else if (typeof body.message === "string") {
+            errors.push({
+                field: this.extractField(body.message),
+                message: body.message,
+                constraint: "validation",
+            });
         }
         return errors.length > 0
             ? errors
-            : [{ field: 'unknown', message: 'Validation failed', constraint: 'validation' }];
+            : [
+                {
+                    field: "unknown",
+                    message: "Validation failed",
+                    constraint: "validation",
+                },
+            ];
     }
     extractField(message) {
         const match = message.match(/^(\w+)\s/);
-        return match ? match[1] : 'unknown';
+        return match ? match[1] : "unknown";
     }
 };
 exports.ValidationExceptionFilter = ValidationExceptionFilter;

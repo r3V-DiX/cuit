@@ -15,7 +15,7 @@ const verificationTemplate = (verifyUrl) => (0, base_template_1.baseTemplate)(`
       Thanks for signing up! Please click the button below to verify your email address and activate your account.
     </p>
 
-    ${(0, cyber_button_template_1.cyberButton)('Verify My Email', verifyUrl)}
+    ${(0, cyber_button_template_1.cyberButton)("Verify My Email", verifyUrl)}
 
     <div style="background:#f1f5f9;border-radius:8px;padding:16px;margin:24px 0;border-left:4px solid #1B3C8B;">
       <p style="margin:0;font-size:13px;color:#475569;">

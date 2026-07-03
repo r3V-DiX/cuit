@@ -13,7 +13,7 @@ const throttler_storage_redis_1 = require("@nest-lab/throttler-storage-redis");
 const config_1 = require("@nestjs/config");
 const core_1 = require("@nestjs/core");
 const rate_limit_guard_1 = require("./rate-limit.guard");
-const isDev = process.env.NODE_ENV === 'development';
+const isDev = process.env.NODE_ENV === "development";
 let RateLimitModule = class RateLimitModule {
 };
 exports.RateLimitModule = RateLimitModule;
@@ -27,49 +27,49 @@ exports.RateLimitModule = RateLimitModule = __decorate([
                 inject: [config_1.ConfigService],
                 useFactory: (config) => ({
                     storage: new throttler_storage_redis_1.ThrottlerStorageRedisService({
-                        host: config.get('REDIS_HOST', 'localhost'),
-                        port: config.get('REDIS_PORT', 6379),
-                        password: config.get('REDIS_PASSWORD'),
-                        db: config.get('REDIS_THROTTLER_DB', 2),
+                        host: config.get("REDIS_HOST", "localhost"),
+                        port: config.get("REDIS_PORT", 6379),
+                        password: config.get("REDIS_PASSWORD"),
+                        db: config.get("REDIS_THROTTLER_DB", 2),
                     }),
                     throttlers: [
                         {
-                            name: 'global',
+                            name: "global",
                             ttl: 60_000,
                             limit: 500, // ✅ raised from 120 to 500 in prod
                         },
                         {
-                            name: 'login',
+                            name: "login",
                             ttl: 15 * 60_000,
                             limit: isDev ? 10000 : 10,
                         },
                         {
-                            name: 'register',
+                            name: "register",
                             ttl: 60 * 60_000,
                             limit: isDev ? 10000 : 5,
                         },
                         {
-                            name: 'forgot_password',
+                            name: "forgot_password",
                             ttl: 60 * 60_000,
                             limit: isDev ? 10000 : 3,
                         },
                         {
-                            name: 'resend_verification',
+                            name: "resend_verification",
                             ttl: 60 * 60_000,
                             limit: isDev ? 10000 : 3,
                         },
                         {
-                            name: 'verify_email',
+                            name: "verify_email",
                             ttl: 60 * 60_000,
                             limit: isDev ? 10000 : 10,
                         },
                         {
-                            name: 'refresh_token',
+                            name: "refresh_token",
                             ttl: 60_000,
                             limit: isDev ? 10000 : 20,
                         },
                         {
-                            name: 'oauth',
+                            name: "oauth",
                             ttl: 60_000,
                             limit: isDev ? 10000 : 20,
                         },

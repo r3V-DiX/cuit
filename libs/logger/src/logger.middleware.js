@@ -21,11 +21,11 @@ let LoggerMiddleware = class LoggerMiddleware {
         const { method, originalUrl } = req;
         const startTime = Date.now();
         this.logger.logRequest(method, originalUrl);
-        res.on('finish', () => {
+        res.on("finish", () => {
             const responseTime = Date.now() - startTime;
             this.logger.logRequest(method, originalUrl, res.statusCode, responseTime);
             if (responseTime > 1000) {
-                this.logger.warn(`Slow request: ${method} ${originalUrl} took ${responseTime}ms`, 'Performance');
+                this.logger.warn(`Slow request: ${method} ${originalUrl} took ${responseTime}ms`, "Performance");
             }
         });
         next();

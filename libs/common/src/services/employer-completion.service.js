@@ -36,7 +36,7 @@ let EmployerCompletionService = class EmployerCompletionService {
     }
     async calculateCompletion(employerOrId) {
         let employer;
-        if (typeof employerOrId === 'string') {
+        if (typeof employerOrId === "string") {
             employer = await this.prisma.employer.findUnique({
                 where: { id: employerOrId },
                 include: {
@@ -72,7 +72,14 @@ let EmployerCompletionService = class EmployerCompletionService {
             if (isComplete)
                 totalPercentage += EMPLOYER_WEIGHTS[section] || 0;
         }
-        const coreSections = ['basicInfo', 'branding', 'about', 'contact', 'social', 'verification'];
+        const coreSections = [
+            "basicInfo",
+            "branding",
+            "about",
+            "contact",
+            "social",
+            "verification",
+        ];
         const missingSections = Object.entries(sections)
             .filter(([section, isComplete]) => !isComplete && coreSections.includes(section))
             .map(([section]) => this.formatSectionName(section));
@@ -87,41 +94,72 @@ let EmployerCompletionService = class EmployerCompletionService {
         return completion.percentage >= 80;
     }
     async canSubmitVerification(employerId) {
-        const employer = await this.prisma.employer.findUnique({ where: { id: employerId } });
+        const employer = await this.prisma.employer.findUnique({
+            where: { id: employerId },
+        });
         if (!employer)
             return false;
         return this.checkBasicInfo(employer);
     }
     checkBasicInfo(e) {
-        return !!(e.companyName && e.companyWebsite && e.companyType && e.industry && e.companySize && e.location);
+        return !!(e.companyName &&
+            e.companyWebsite &&
+            e.companyType &&
+            e.industry &&
+            e.companySize &&
+            e.location);
     }
-    checkBranding(e) { return !!(e.companyLogo && e.companyBanner); }
-    checkAbout(e) { return !!(e.about && e.about.length >= 50 && (e.mission || e.vision)); }
-    checkContact(e) { return !!e.contactEmail; }
-    checkSocial(e) { return !!(e.linkedin || e.twitter); }
-    checkVerification(e) { return e.isVerified === true; }
-    checkTagline(e) { return !!(e.tagline && e.tagline.length >= 10); }
-    checkCulture(e) { return !!(e.cultureDescription && e.cultureDescription.length >= 50); }
-    checkInstagram(e) { return !!e.instagram; }
-    checkOfficeLocations(e) { return !!(e.officeLocations && e.officeLocations.length > 0); }
-    checkBenefits(e) { return !!(e.benefits && e.benefits.length >= 3); }
-    checkTeamMembers(e) { return !!(e.teamMembers && e.teamMembers.length > 0); }
-    checkCompanyMedia(e) { return !!(e.companyMedia && e.companyMedia.length >= 3); }
+    checkBranding(e) {
+        return !!(e.companyLogo && e.companyBanner);
+    }
+    checkAbout(e) {
+        return !!(e.about && e.about.length >= 50 && (e.mission || e.vision));
+    }
+    checkContact(e) {
+        return !!e.contactEmail;
+    }
+    checkSocial(e) {
+        return !!(e.linkedin || e.twitter);
+    }
+    checkVerification(e) {
+        return e.isVerified === true;
+    }
+    checkTagline(e) {
+        return !!(e.tagline && e.tagline.length >= 10);
+    }
+    checkCulture(e) {
+        return !!(e.cultureDescription && e.cultureDescription.length >= 50);
+    }
+    checkInstagram(e) {
+        return !!e.instagram;
+    }
+    checkOfficeLocations(e) {
+        return !!(e.officeLocations && e.officeLocations.length > 0);
+    }
+    checkBenefits(e) {
+        return !!(e.benefits && e.benefits.length >= 3);
+    }
+    checkTeamMembers(e) {
+        return !!(e.teamMembers && e.teamMembers.length > 0);
+    }
+    checkCompanyMedia(e) {
+        return !!(e.companyMedia && e.companyMedia.length >= 3);
+    }
     formatSectionName(section) {
         const nameMap = {
-            basicInfo: 'Company Information',
-            branding: 'Company Logo & Banner',
-            about: 'About Company (with Mission/Vision)',
-            contact: 'Contact Email',
-            social: 'Social Links (LinkedIn or Twitter)',
-            verification: 'Company Verification',
-            tagline: 'Company Tagline',
-            culture: 'Company Culture Description',
-            instagram: 'Instagram Profile',
-            officeLocations: 'Office Locations',
-            benefits: 'Company Benefits (at least 3)',
-            teamMembers: 'Team Members',
-            companyMedia: 'Company Media Gallery (at least 3)',
+            basicInfo: "Company Information",
+            branding: "Company Logo & Banner",
+            about: "About Company (with Mission/Vision)",
+            contact: "Contact Email",
+            social: "Social Links (LinkedIn or Twitter)",
+            verification: "Company Verification",
+            tagline: "Company Tagline",
+            culture: "Company Culture Description",
+            instagram: "Instagram Profile",
+            officeLocations: "Office Locations",
+            benefits: "Company Benefits (at least 3)",
+            teamMembers: "Team Members",
+            companyMedia: "Company Media Gallery (at least 3)",
         };
         return nameMap[section] || section;
     }
@@ -129,15 +167,27 @@ let EmployerCompletionService = class EmployerCompletionService {
         return {
             percentage: 0,
             completedSections: {
-                basicInfo: false, branding: false, about: false, contact: false,
-                social: false, verification: false, tagline: false, culture: false,
-                instagram: false, officeLocations: false, benefits: false,
-                teamMembers: false, companyMedia: false,
+                basicInfo: false,
+                branding: false,
+                about: false,
+                contact: false,
+                social: false,
+                verification: false,
+                tagline: false,
+                culture: false,
+                instagram: false,
+                officeLocations: false,
+                benefits: false,
+                teamMembers: false,
+                companyMedia: false,
             },
             missingSections: [
-                'Company Information', 'Company Logo & Banner',
-                'About Company (with Mission/Vision)', 'Contact Email',
-                'Social Links (LinkedIn or Twitter)', 'Company Verification',
+                "Company Information",
+                "Company Logo & Banner",
+                "About Company (with Mission/Vision)",
+                "Contact Email",
+                "Social Links (LinkedIn or Twitter)",
+                "Company Verification",
             ],
         };
     }

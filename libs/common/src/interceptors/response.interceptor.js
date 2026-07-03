@@ -23,7 +23,7 @@ let ResponseInterceptor = class ResponseInterceptor {
         return next.handle().pipe((0, operators_1.map)((data) => {
             if (data === null || data === undefined)
                 return this.responseBuilder.success(null, undefined, request.url);
-            if (typeof data === 'object' && 'success' in data)
+            if (typeof data === "object" && "success" in data)
                 return data;
             if (this.isMessageOnly(data))
                 return this.responseBuilder.success(null, data.message, request.url);
@@ -43,38 +43,59 @@ let ResponseInterceptor = class ResponseInterceptor {
         }));
     }
     isMessageOnly(data) {
-        return typeof data === 'object' && data !== null
-            && 'message' in data && typeof data.message === 'string'
-            && !('data' in data) && !('warning' in data) && !('info' in data);
+        return (typeof data === "object" &&
+            data !== null &&
+            "message" in data &&
+            typeof data.message === "string" &&
+            !("data" in data) &&
+            !("warning" in data) &&
+            !("info" in data));
     }
     isWarningOnly(data) {
-        return typeof data === 'object' && data !== null
-            && 'warning' in data && typeof data.warning === 'object'
-            && 'code' in data.warning && 'message' in data.warning
-            && !('data' in data);
+        return (typeof data === "object" &&
+            data !== null &&
+            "warning" in data &&
+            typeof data.warning === "object" &&
+            "code" in data.warning &&
+            "message" in data.warning &&
+            !("data" in data));
     }
     isWarningResponse(data) {
-        return typeof data === 'object' && data !== null
-            && 'data' in data && 'warning' in data
-            && typeof data.warning === 'object'
-            && 'code' in data.warning && 'message' in data.warning;
+        return (typeof data === "object" &&
+            data !== null &&
+            "data" in data &&
+            "warning" in data &&
+            typeof data.warning === "object" &&
+            "code" in data.warning &&
+            "message" in data.warning);
     }
     isInfoResponse(data) {
-        return typeof data === 'object' && data !== null
-            && 'data' in data && 'info' in data
-            && typeof data.info === 'object'
-            && 'code' in data.info && 'message' in data.info;
+        return (typeof data === "object" &&
+            data !== null &&
+            "data" in data &&
+            "info" in data &&
+            typeof data.info === "object" &&
+            "code" in data.info &&
+            "message" in data.info);
     }
     isRawObjectWithInfo(data) {
-        return typeof data === 'object' && data !== null
-            && 'info' in data && typeof data.info === 'object'
-            && 'code' in data.info && 'message' in data.info
-            && !('data' in data) && !('warning' in data);
+        return (typeof data === "object" &&
+            data !== null &&
+            "info" in data &&
+            typeof data.info === "object" &&
+            "code" in data.info &&
+            "message" in data.info &&
+            !("data" in data) &&
+            !("warning" in data));
     }
     isMessageResponse(data) {
-        return typeof data === 'object' && data !== null
-            && 'data' in data && 'message' in data && typeof data.message === 'string'
-            && !('warning' in data) && !('info' in data);
+        return (typeof data === "object" &&
+            data !== null &&
+            "data" in data &&
+            "message" in data &&
+            typeof data.message === "string" &&
+            !("warning" in data) &&
+            !("info" in data));
     }
 };
 exports.ResponseInterceptor = ResponseInterceptor;

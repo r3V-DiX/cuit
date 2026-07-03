@@ -34,14 +34,14 @@ let GlobalExceptionFilter = class GlobalExceptionFilter {
         if (exception instanceof common_1.HttpException) {
             status = exception.getStatus();
             const exceptionResponse = exception.getResponse();
-            if (typeof exceptionResponse === 'string') {
+            if (typeof exceptionResponse === "string") {
                 message = exceptionResponse;
                 errorCode = this.statusToCode(status);
             }
-            else if (typeof exceptionResponse === 'object') {
+            else if (typeof exceptionResponse === "object") {
                 const obj = exceptionResponse;
                 if (Array.isArray(obj.message)) {
-                    message = 'Validation failed';
+                    message = "Validation failed";
                     errorCode = error_codes_1.ErrorCodes.VALIDATION_ERROR;
                     details = this.formatValidationErrors(obj.message);
                 }
@@ -52,17 +52,20 @@ let GlobalExceptionFilter = class GlobalExceptionFilter {
                 }
                 else if (obj.message) {
                     message = Array.isArray(obj.message) ? obj.message[0] : obj.message;
-                    errorCode = this.extractCodeFromMessage(message) || obj.error || this.statusToCode(status);
+                    errorCode =
+                        this.extractCodeFromMessage(message) ||
+                            obj.error ||
+                            this.statusToCode(status);
                     if (obj.details)
                         details = obj.details;
                 }
                 else {
-                    message = obj.error || 'An error occurred';
+                    message = obj.error || "An error occurred";
                     errorCode = this.statusToCode(status);
                 }
             }
             else {
-                message = 'An error occurred';
+                message = "An error occurred";
                 errorCode = this.statusToCode(status);
             }
         }
@@ -76,20 +79,22 @@ let GlobalExceptionFilter = class GlobalExceptionFilter {
         else {
             status = common_1.HttpStatus.INTERNAL_SERVER_ERROR;
             errorCode = error_codes_1.ErrorCodes.INTERNAL_SERVER_ERROR;
-            message = 'An unexpected error occurred. Please try again.';
-            this.logger.error(`Unexpected error: ${exception instanceof Error ? exception.message : 'Unknown'}`, exception instanceof Error ? exception.stack?.split('\n').slice(0, 2).join(' ') : undefined, 'GlobalExceptionFilter');
+            message = "An unexpected error occurred. Please try again.";
+            this.logger.error(`Unexpected error: ${exception instanceof Error ? exception.message : "Unknown"}`, exception instanceof Error
+                ? exception.stack?.split("\n").slice(0, 2).join(" ")
+                : undefined, "GlobalExceptionFilter");
         }
-        const logMsg = `${request.method} ${request.url} | ${status} ${errorCode} | ${message}`
-            + (requestContext?.userId ? ` | User: ${requestContext.userId}` : '');
+        const logMsg = `${request.method} ${request.url} | ${status} ${errorCode} | ${message}` +
+            (requestContext?.userId ? ` | User: ${requestContext.userId}` : "");
         if (status >= 500) {
             // ✅ Only first 2 lines of stack — no file paths in logs
             const shortStack = exception instanceof Error
-                ? exception.stack?.split('\n').slice(0, 2).join(' ')
+                ? exception.stack?.split("\n").slice(0, 2).join(" ")
                 : undefined;
-            this.logger.error(logMsg, shortStack, 'HTTP');
+            this.logger.error(logMsg, shortStack, "HTTP");
         }
         else if (status >= 400) {
-            this.logger.warn(logMsg, 'HTTP');
+            this.logger.warn(logMsg, "HTTP");
         }
         const errorResponse = this.responseBuilder.error(errorCode, message, status, request.url, details);
         response.status(status).json(errorResponse);
@@ -124,16 +129,16 @@ let GlobalExceptionFilter = class GlobalExceptionFilter {
     }
     extractField(message) {
         const match = message.match(/^(\w+)\s/);
-        return match ? match[1] : 'unknown';
+        return match ? match[1] : "unknown";
     }
     extractConstraint(message) {
         const map = {
-            'must be a valid email': 'isEmail',
-            'must be a string': 'isString',
-            'must be a number': 'isNumber',
-            'should not be empty': 'isNotEmpty',
-            'must be longer than': 'minLength',
-            'must be shorter than': 'maxLength',
+            "must be a valid email": "isEmail",
+            "must be a string": "isString",
+            "must be a number": "isNumber",
+            "should not be empty": "isNotEmpty",
+            "must be longer than": "minLength",
+            "must be shorter than": "maxLength",
         };
         for (const [key, val] of Object.entries(map)) {
             if (message.includes(key))
@@ -143,77 +148,77 @@ let GlobalExceptionFilter = class GlobalExceptionFilter {
     }
     isPrismaError(exception) {
         return [
-            'PrismaClientKnownRequestError',
-            'PrismaClientValidationError',
-            'PrismaClientInitializationError',
+            "PrismaClientKnownRequestError",
+            "PrismaClientValidationError",
+            "PrismaClientInitializationError",
         ].includes(exception?.name);
     }
     handlePrismaError(exception) {
         // ✅ PrismaClientValidationError has no .code — handle separately
         // This happens when wrong data types or null values are passed to Prisma
-        if (exception.name === 'PrismaClientValidationError') {
-            this.logger.error('Prisma validation error', exception.stack?.split('\n').slice(0, 2).join(' '), 'PrismaError');
+        if (exception.name === "PrismaClientValidationError") {
+            this.logger.error("Prisma validation error", exception.stack?.split("\n").slice(0, 2).join(" "), "PrismaError");
             return {
                 status: 400,
                 code: error_codes_1.ErrorCodes.BAD_REQUEST,
-                message: 'Invalid data provided.',
+                message: "Invalid data provided.",
                 details: undefined,
             };
         }
         // ✅ PrismaClientInitializationError — DB connection issue at startup
-        if (exception.name === 'PrismaClientInitializationError') {
-            this.logger.error('Prisma initialization error', exception.stack?.split('\n').slice(0, 2).join(' '), 'PrismaError');
+        if (exception.name === "PrismaClientInitializationError") {
+            this.logger.error("Prisma initialization error", exception.stack?.split("\n").slice(0, 2).join(" "), "PrismaError");
             return {
                 status: 503,
                 code: error_codes_1.ErrorCodes.DATABASE_CONNECTION_FAILED,
-                message: 'Database connection failed. Please try again later.',
+                message: "Database connection failed. Please try again later.",
                 details: undefined,
             };
         }
         switch (exception.code) {
-            case 'P2002':
+            case "P2002":
                 return {
                     status: 409,
                     code: error_codes_1.ErrorCodes.DUPLICATE_ENTRY,
-                    message: 'A record with this value already exists',
+                    message: "A record with this value already exists",
                     details: { fields: exception.meta?.target },
                 };
-            case 'P2003':
+            case "P2003":
                 return {
                     status: 400,
                     code: error_codes_1.ErrorCodes.FOREIGN_KEY_CONSTRAINT,
-                    message: 'Referenced record does not exist',
+                    message: "Referenced record does not exist",
                     details: undefined,
                 };
-            case 'P2025':
+            case "P2025":
                 return {
                     status: 404,
                     code: error_codes_1.ErrorCodes.NOT_FOUND,
-                    message: 'Record not found',
+                    message: "Record not found",
                     details: undefined,
                 };
-            case 'P2024':
+            case "P2024":
                 return {
                     status: 408,
                     code: error_codes_1.ErrorCodes.QUERY_TIMEOUT,
-                    message: 'Database query timeout. Please try again.',
+                    message: "Database query timeout. Please try again.",
                     details: undefined,
                 };
-            case 'P1001':
-            case 'P1002':
+            case "P1001":
+            case "P1002":
                 return {
                     status: 503,
                     code: error_codes_1.ErrorCodes.DATABASE_CONNECTION_FAILED,
-                    message: 'Database connection failed. Please try again later.',
+                    message: "Database connection failed. Please try again later.",
                     details: undefined,
                 };
             default:
                 // ✅ Never expose raw Prisma error messages to client
-                this.logger.error(`Unhandled Prisma error: ${exception.code}`, exception.stack?.split('\n').slice(0, 2).join(' '), 'PrismaError');
+                this.logger.error(`Unhandled Prisma error: ${exception.code}`, exception.stack?.split("\n").slice(0, 2).join(" "), "PrismaError");
                 return {
                     status: 500,
                     code: error_codes_1.ErrorCodes.INTERNAL_SERVER_ERROR,
-                    message: 'An unexpected database error occurred. Please try again.',
+                    message: "An unexpected database error occurred. Please try again.",
                     details: undefined,
                 };
         }

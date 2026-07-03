@@ -13,7 +13,7 @@ const client_1 = require("@prisma/client");
 let PrismaService = class PrismaService extends client_1.PrismaClient {
     async onModuleInit() {
         await this.$connect();
-        console.log('✅ Connected to PostgreSQL via Prisma');
+        console.log("✅ Connected to PostgreSQL via Prisma");
     }
     async onModuleDestroy() {
         await this.$disconnect();

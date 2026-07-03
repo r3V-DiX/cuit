@@ -11,8 +11,8 @@ function isErrorResponse(response) {
     return response.success === false;
 }
 function hasWarning(response) {
-    return response.success === true && 'warning' in response;
+    return response.success === true && "warning" in response;
 }
 function hasInfo(response) {
-    return response.success === true && 'info' in response;
+    return response.success === true && "info" in response;
 }

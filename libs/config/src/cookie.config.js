@@ -8,25 +8,25 @@ exports.CookieConfig = void 0;
 class CookieConfig {
     // ── Session cookie (httpOnly — JS cannot read, CSRF-safe via double-submit) ──
     static getSessionCookieOptions(rememberMe = false) {
-        const isSecure = process.env.COOKIE_SECURE === 'true';
+        const isSecure = process.env.COOKIE_SECURE === "true";
         return {
             httpOnly: true,
             secure: isSecure,
-            sameSite: isSecure ? 'none' : 'lax',
+            sameSite: isSecure ? "none" : "lax",
             maxAge: rememberMe
                 ? 30 * 24 * 60 * 60 * 1000 // 30 days
                 : 24 * 60 * 60 * 1000, // 24 hours
-            path: '/',
+            path: "/",
             domain: process.env.COOKIE_DOMAIN || undefined,
         };
     }
     static getClearCookieOptions() {
-        const isSecure = process.env.COOKIE_SECURE === 'true';
+        const isSecure = process.env.COOKIE_SECURE === "true";
         return {
             httpOnly: true,
             secure: isSecure,
-            sameSite: isSecure ? 'none' : 'lax',
-            path: '/',
+            sameSite: isSecure ? "none" : "lax",
+            path: "/",
             domain: process.env.COOKIE_DOMAIN || undefined,
         };
     }
@@ -35,30 +35,30 @@ class CookieConfig {
     // An attacker can't read cross-origin cookies (same-origin policy),
     // so they can't forge the x-csrf-token header even if they can see this cookie exists.
     static getCsrfCookieOptions() {
-        const isSecure = process.env.COOKIE_SECURE === 'true';
+        const isSecure = process.env.COOKIE_SECURE === "true";
         return {
             httpOnly: false, // ← intentionally readable by JS
             secure: isSecure,
-            sameSite: isSecure ? 'none' : 'lax',
+            sameSite: isSecure ? "none" : "lax",
             maxAge: 24 * 60 * 60 * 1000, // 24 hours, matches session
-            path: '/',
+            path: "/",
             domain: process.env.COOKIE_DOMAIN || undefined,
         };
     }
     static getClearCsrfCookieOptions() {
-        const isSecure = process.env.COOKIE_SECURE === 'true';
+        const isSecure = process.env.COOKIE_SECURE === "true";
         return {
             httpOnly: false,
             secure: isSecure,
-            sameSite: isSecure ? 'none' : 'lax',
-            path: '/',
+            sameSite: isSecure ? "none" : "lax",
+            path: "/",
             domain: process.env.COOKIE_DOMAIN || undefined,
         };
     }
 }
 exports.CookieConfig = CookieConfig;
 CookieConfig.COOKIE_NAMES = {
-    SESSION: 'session_token',
-    REFRESH: 'refresh_token',
-    CSRF: 'csrf_token',
+    SESSION: "session_token",
+    REFRESH: "refresh_token",
+    CSRF: "csrf_token",
 };

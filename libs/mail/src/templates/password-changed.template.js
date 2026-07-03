@@ -15,7 +15,7 @@ const passwordChangedTemplate = (firstName, loginUrl) => (0, base_template_1.bas
       Hi <strong>${firstName}</strong>, your Cykruit account password was successfully changed.
     </p>
 
-    ${(0, cyber_button_template_1.cyberButton)('Login to Your Account', loginUrl)}
+    ${(0, cyber_button_template_1.cyberButton)("Login to Your Account", loginUrl)}
 
     <div style="background:#fee2e2;border-radius:8px;padding:16px;margin:24px 0;border-left:4px solid #ef4444;">
       <p style="margin:0;font-size:13px;color:#991b1b;">
