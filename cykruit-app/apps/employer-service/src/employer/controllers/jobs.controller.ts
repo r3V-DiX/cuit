@@ -1,0 +1,100 @@
+// apps/employer-service/src/employer/controllers/jobs.controller.ts
+
+import {
+    Controller,
+    Get,
+    Post,
+    Patch,
+    Delete,
+    Body,
+    Param,
+    Query,
+    UseGuards,
+    HttpCode,
+    HttpStatus,
+} from '@nestjs/common';
+import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
+import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
+import type { User } from '@prisma/client';
+import { JobsService } from '../services/jobs.service';
+import { CreateJobDto, UpdateJobDto, CloseJobDto, JobListQueryDto } from '../dto/job.dto';
+
+@Controller('employer/jobs')
+@UseGuards(AuthGuard, PermissionGuard)
+export class JobsController {
+    constructor(private readonly jobsService: JobsService) {}
+
+    // ── GET /employer/jobs ──────────────────────────────────────────────────
+
+    @Get()
+    list(@CurrentUser() user: User, @Query() query: JobListQueryDto) {
+        return this.jobsService.list(user.id, query);
+    }
+
+    // ── GET /employer/jobs/:id ──────────────────────────────────────────────
+
+    @Get(':id')
+    getOne(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.jobsService.getOne(user.id, id);
+    }
+
+    // ── POST /employer/jobs ─────────────────────────────────────────────────
+
+    @Post()
+    @HttpCode(HttpStatus.CREATED)
+    @RequirePermission(ACTIONS.JOBS.CREATE)
+    create(@CurrentUser() user: User, @Body() dto: CreateJobDto) {
+        return this.jobsService.create(user.id, dto);
+    }
+
+    // ── PATCH /employer/jobs/:id ────────────────────────────────────────────
+
+    @Patch(':id')
+    @RequirePermission(ACTIONS.JOBS.UPDATE)
+    update(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+        @Body() dto: UpdateJobDto,
+    ) {
+        return this.jobsService.update(user.id, id, dto);
+    }
+
+    // ── POST /employer/jobs/:id/submit ──────────────────────────────────────
+
+    @Post(':id/submit')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.JOBS.PUBLISH)
+    submit(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.jobsService.submit(user.id, id);
+    }
+
+    // ── POST /employer/jobs/:id/close ───────────────────────────────────────
+
+    @Post(':id/close')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.JOBS.CLOSE)
+    close(
+        @CurrentUser() user: User,
+        @Param('id') id: string,
+        @Body() dto: CloseJobDto,
+    ) {
+        return this.jobsService.close(user.id, id, dto);
+    }
+
+    // ── DELETE /employer/jobs/:id ───────────────────────────────────────────
+
+    @Delete(':id')
+    @RequirePermission(ACTIONS.JOBS.DELETE)
+    remove(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.jobsService.delete(user.id, id);
+    }
+
+    // ── POST /employer/jobs/:id/reopen ──────────────────────────────────────
+
+    @Post(':id/reopen')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.JOBS.PUBLISH)
+    reopen(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.jobsService.reopen(user.id, id);
+    }
+}

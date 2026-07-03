@@ -1,0 +1,507 @@
+[
+  {
+    "id": 1,
+    "title": "Senior Penetration Tester",
+    "company": "CrowdStrike",
+    "logo": "CS",
+    "accent": "bg-red-100 text-red-700",
+    "location": "Remote • US",
+    "remote": "Remote",
+    "type": "Full-time",
+    "tags": [
+      "Red Team",
+      "Web App",
+      "OSCP",
+      "Burp Suite",
+      "Python"
+    ],
+    "posted": "2d ago",
+    "description": "CrowdStrike is looking for a Senior Penetration Tester to join our elite red team. You'll conduct advanced adversarial simulations against clients' infrastructure, identifying critical vulnerabilities before attackers do. This role demands creative thinking beyond automated tooling — you'll craft custom attack chains that mirror the tactics of nation-state adversaries. Your findings will directly shape security posture improvements for some of the world's most targeted organizations.",
+    "responsibilities": [
+      "Plan and execute full-scope red team engagements against enterprise clients",
+      "Perform web application, network, and mobile penetration tests",
+      "Develop custom exploits and tooling for targeted engagements",
+      "Write detailed technical reports and present findings to C-level stakeholders",
+      "Mentor junior team members and contribute to internal research"
+    ],
+    "requirements": [
+      "5+ years of hands-on penetration testing experience",
+      "OSCP, CRTO, or equivalent certification required",
+      "Deep knowledge of OWASP Top 10, MITRE ATT&CK framework",
+      "Proficient in Python, Bash, or PowerShell for tool development",
+      "Strong understanding of Active Directory and Windows internals"
+    ],
+    "niceToHave": [
+      "OSEP or OSED certification",
+      "Experience with C2 frameworks (Cobalt Strike, Sliver)",
+      "Bug bounty hall-of-fame recognitions",
+      "Public CVEs or security research"
+    ],
+    "companyDescription": "CrowdStrike is a global cybersecurity leader protecting customers from breaches via a cloud-native platform that unifies next-generation antivirus, endpoint detection and response, threat intelligence and more.",
+    "companySize": "10,000+ employees",
+    "companyIndustry": "Cybersecurity",
+    "domain": "Offensive Security"
+  },
+  {
+    "id": 2,
+    "title": "Cloud Security Engineer",
+    "company": "Palo Alto Networks",
+    "logo": "PA",
+    "accent": "bg-orange-100 text-orange-700",
+    "location": "Santa Clara, CA",
+    "remote": "Hybrid",
+    "type": "Full-time",
+    "tags": [
+      "AWS",
+      "Zero Trust",
+      "CSPM",
+      "Terraform",
+      "GCP"
+    ],
+    "posted": "1d ago",
+    "description": "Join Palo Alto Networks as a Cloud Security Engineer and help architect and secure multi-cloud environments at scale. You'll work closely with DevOps and platform teams to embed security into the entire cloud lifecycle — from design through deployment and runtime monitoring. Expect to own end-to-end security posture for critical infrastructure spanning AWS, GCP, and Azure, with the autonomy to drive tooling decisions. You'll also serve as a technical anchor during cloud-native incidents, guiding rapid containment and root cause analysis.",
+    "responsibilities": [
+      "Design and implement security controls across AWS, GCP, and Azure environments",
+      "Build and maintain CSPM pipelines and cloud security posture dashboards",
+      "Conduct cloud security architecture reviews for new product initiatives",
+      "Respond to cloud-native security incidents and perform root cause analysis",
+      "Automate security guardrails using Terraform and policy-as-code"
+    ],
+    "requirements": [
+      "3+ years of cloud security engineering experience",
+      "Hands-on experience with AWS Security Hub, GuardDuty, or equivalent",
+      "Proficiency with IaC tools (Terraform, CloudFormation)",
+      "Understanding of Zero Trust architecture and network segmentation",
+      "AWS Security Specialty or CCSP certification preferred"
+    ],
+    "niceToHave": [
+      "Experience with Kubernetes security (OPA, Falco)",
+      "CNAPP or SASE platform experience",
+      "Contributions to open-source cloud security tools"
+    ],
+    "companyDescription": "Palo Alto Networks is the world's cybersecurity leader. They innovate to stay ahead of cyber threats and enable secure digital transformation for thousands of organizations worldwide.",
+    "companySize": "15,000+ employees",
+    "companyIndustry": "Cybersecurity",
+    "domain": "Cloud Security"
+  },
+  {
+    "id": 3,
+    "title": "SOC Analyst — Tier 2",
+    "company": "Mandiant",
+    "logo": "MD",
+    "accent": "bg-blue-100 text-blue-700",
+    "location": "Remote • Global",
+    "remote": "Remote",
+    "type": "Full-time",
+    "tags": [
+      "SIEM",
+      "Threat Hunt",
+      "DFIR",
+      "Splunk",
+      "MITRE ATT&CK"
+    ],
+    "posted": "3h ago",
+    "description": "Mandiant is hiring a Tier 2 SOC Analyst to triage, investigate, and respond to security incidents for our managed detection and response (MDR) clients. You'll work in a 24x7 environment handling real-world threats from financially motivated actors to advanced persistent threat groups. Your analysis will be the frontline defense for organizations across critical infrastructure, finance, and healthcare. Beyond reactive work, you'll contribute to proactive threat hunting initiatives that get ahead of adversary campaigns before they detonate.",
+    "responsibilities": [
+      "Triage and escalate security alerts from SIEM, EDR, and network monitoring tools",
+      "Conduct in-depth investigation of security incidents and threat actors",
+      "Perform proactive threat hunting across client environments",
+      "Develop and refine detection rules and SIEM queries",
+      "Document incident timelines and produce client-facing reports"
+    ],
+    "requirements": [
+      "2+ years SOC or incident response experience",
+      "Hands-on experience with Splunk, QRadar, or Microsoft Sentinel",
+      "Familiarity with MITRE ATT&CK TTPs and threat actor profiles",
+      "Understanding of network protocols, log analysis, and malware behavior",
+      "Security+ or CEH certification preferred"
+    ],
+    "niceToHave": [
+      "GCIH or GCFE certification",
+      "Experience with EDR platforms (CrowdStrike Falcon, SentinelOne)",
+      "Scripting skills for automation (Python, KQL, SPL)"
+    ],
+    "companyDescription": "Mandiant is a recognized leader in dynamic cyber defense, threat intelligence, and incident response services. Now part of Google Cloud, they protect organizations from advanced threats globally.",
+    "companySize": "5,000+ employees",
+    "companyIndustry": "Cybersecurity / Consulting",
+    "domain": "Blue Team / SOC"
+  },
+  {
+    "id": 4,
+    "title": "AppSec Engineer",
+    "company": "Stripe",
+    "logo": "ST",
+    "accent": "bg-indigo-100 text-indigo-700",
+    "location": "San Francisco, CA",
+    "remote": "Hybrid",
+    "type": "Full-time",
+    "tags": [
+      "SAST",
+      "Code Review",
+      "Bug Bounty",
+      "DAST",
+      "Threat Modeling"
+    ],
+    "posted": "5d ago",
+    "description": "Stripe's security team is looking for an AppSec Engineer who loves breaking and building software. You'll partner with product engineering teams to find vulnerabilities early and build scalable security solutions that ship alongside features rather than blocking them. This means owning the full security lifecycle for multiple product areas — from threat modeling in design reviews to validating patches in production. You'll also have a direct hand in shaping Stripe's bug bounty program, one of the most respected in fintech.",
+    "responsibilities": [
+      "Conduct security code reviews and threat modeling for new features",
+      "Integrate SAST/DAST tooling into CI/CD pipelines",
+      "Triage and validate vulnerability reports from our bug bounty program",
+      "Build internal security libraries and secure coding guidelines",
+      "Lead security training sessions for software engineers"
+    ],
+    "requirements": [
+      "4+ years of application security or software engineering background",
+      "Deep understanding of web vulnerabilities (OWASP Top 10, SSRF, XXE)",
+      "Experience with static analysis tools (Semgrep, CodeQL, Checkmarx)",
+      "Proficiency in at least one backend language (Go, Ruby, Python)",
+      "Experience running or triaging bug bounty programs"
+    ],
+    "niceToHave": [
+      "GWEB or BSCP certification",
+      "Experience with cryptography and secure key management",
+      "CVEs in well-known frameworks or libraries"
+    ],
+    "companyDescription": "Stripe is a financial infrastructure platform for the internet. Millions of businesses use Stripe to accept payments, grow revenue, and accelerate new business models.",
+    "companySize": "8,000+ employees",
+    "companyIndustry": "Fintech / Payments",
+    "domain": "Application Security"
+  },
+  {
+    "id": 5,
+    "title": "Malware Analyst",
+    "company": "Recorded Future",
+    "logo": "RF",
+    "accent": "bg-purple-100 text-purple-700",
+    "location": "Remote • US",
+    "remote": "Remote",
+    "type": "Contract",
+    "tags": [
+      "Reverse Engineering",
+      "IDA Pro",
+      "Threat Intel",
+      "YARA",
+      "Ghidra"
+    ],
+    "posted": "1w ago",
+    "description": "Recorded Future is seeking a Malware Analyst to join our threat intelligence research team. You'll analyze advanced malware samples, track threat actor TTPs, and produce intelligence reports consumed by Fortune 500 clients across financial services, energy, and government sectors. This is deep technical work — you'll spend your days inside disassemblers peeling apart evasion techniques, custom packers, and command-and-control protocols. The intel you surface feeds directly into client defenses and national-level threat sharing programs.",
+    "responsibilities": [
+      "Perform static and dynamic analysis of malware samples",
+      "Reverse engineer binaries to extract indicators of compromise (IOCs)",
+      "Track and profile APT groups and their tooling",
+      "Develop YARA and Sigma rules for new threat signatures",
+      "Author threat intelligence reports for technical and executive audiences"
+    ],
+    "requirements": [
+      "3+ years of malware analysis or reverse engineering experience",
+      "Proficiency with IDA Pro, Ghidra, x64dbg, or similar RE tools",
+      "Understanding of Windows internals and PE file format",
+      "Experience writing YARA rules and analyzing network traffic (Wireshark)",
+      "GREM or equivalent certification preferred"
+    ],
+    "niceToHave": [
+      "Familiarity with ransomware ecosystems and dark web monitoring",
+      "Ability to read assembly (x86/x64, ARM)",
+      "Published threat intelligence research or conference talks"
+    ],
+    "companyDescription": "Recorded Future is the world's largest intelligence company, delivering real-time threat intelligence that helps security teams act decisively and reduce risk across the full attack surface.",
+    "companySize": "1,500+ employees",
+    "companyIndustry": "Threat Intelligence",
+    "domain": "Threat Intelligence"
+  },
+  {
+    "id": 6,
+    "title": "Identity Security Architect",
+    "company": "Okta",
+    "logo": "OK",
+    "accent": "bg-cyan-100 text-cyan-700",
+    "location": "Remote • Global",
+    "remote": "Remote",
+    "type": "Full-time",
+    "tags": [
+      "IAM",
+      "Zero Trust",
+      "OAuth",
+      "SAML",
+      "PAM"
+    ],
+    "posted": "2d ago",
+    "description": "Okta is hiring an Identity Security Architect to design next-generation identity security solutions. You'll work with enterprise customers to implement Zero Trust architectures anchored in strong identity, navigating complex multi-cloud and hybrid directory landscapes. Your role bridges the gap between product capability and real-world enterprise constraints — translating customer risk into actionable identity architecture decisions. You'll be a key voice in shaping Okta's approach to emerging identity threats like session hijacking, MFA bypass, and machine identity sprawl.",
+    "responsibilities": [
+      "Architect enterprise IAM solutions using Okta's platform and partner technologies",
+      "Lead customer workshops on Zero Trust, passwordless, and privileged access",
+      "Design identity governance frameworks and PAM strategies",
+      "Collaborate with product teams to influence the identity security roadmap",
+      "Present at customer briefings, conferences, and internal enablement"
+    ],
+    "requirements": [
+      "6+ years of identity and access management experience",
+      "Expert-level knowledge of OAuth 2.0, OIDC, SAML, and SCIM",
+      "Experience with PAM solutions (CyberArk, BeyondTrust)",
+      "Understanding of Zero Trust principles and NIST 800-207",
+      "Strong presentation and stakeholder management skills"
+    ],
+    "niceToHave": [
+      "Okta Certified Architect or Professional certification",
+      "Experience with identity threat detection and response (ITDR)",
+      "Background in financial services or healthcare sectors"
+    ],
+    "companyDescription": "Okta is the leading identity platform that enables organizations to securely connect the right people to the right technologies at the right time.",
+    "companySize": "6,000+ employees",
+    "companyIndustry": "Identity & Access Management",
+    "domain": "Identity & Access"
+  },
+  {
+    "id": 7,
+    "title": "DevSecOps Engineer",
+    "company": "Razorpay",
+    "logo": "RZ",
+    "accent": "bg-teal-100 text-teal-700",
+    "location": "Bangalore, India",
+    "remote": "Hybrid",
+    "type": "Full-time",
+    "tags": [
+      "CI/CD",
+      "Kubernetes",
+      "SAST",
+      "Docker",
+      "Terraform"
+    ],
+    "posted": "4d ago",
+    "description": "Razorpay is building a world-class security engineering team. As a DevSecOps Engineer, you'll embed security into our fast-moving engineering org — from code commit to production deployment — without becoming a bottleneck to velocity. You'll build security tooling that developers actually use, automate compliance checks that used to take weeks, and ensure every container and microservice ships with a defensible security baseline. This is a high-trust role with direct influence over how security scales across one of India's most critical payment platforms.",
+    "responsibilities": [
+      "Integrate security tooling into GitHub Actions and Jenkins CI/CD pipelines",
+      "Manage container security scanning and Kubernetes policy enforcement",
+      "Implement secrets management using Vault and cloud-native KMS",
+      "Build developer security dashboards and vulnerability tracking workflows",
+      "Conduct security architecture reviews for new services"
+    ],
+    "requirements": [
+      "3+ years of DevOps or DevSecOps experience",
+      "Hands-on with Docker, Kubernetes, and Helm",
+      "Experience with SAST tools (Semgrep, SonarQube) and SCA (Snyk, Dependabot)",
+      "Strong scripting skills in Python, Bash, or Go",
+      "Familiarity with PCI-DSS or SOC 2 compliance requirements"
+    ],
+    "niceToHave": [
+      "CKS (Certified Kubernetes Security Specialist)",
+      "Experience with eBPF-based runtime security (Falco, Tetragon)",
+      "Prior fintech or payments domain experience"
+    ],
+    "companyDescription": "Razorpay is India's leading full-stack financial solutions company, building payment and business banking solutions for over 8 million businesses.",
+    "companySize": "3,000+ employees",
+    "companyIndustry": "Fintech",
+    "domain": "DevSecOps"
+  },
+  {
+    "id": 8,
+    "title": "Incident Response Lead",
+    "company": "IBM Security",
+    "logo": "IB",
+    "accent": "bg-slate-100 text-slate-700",
+    "location": "New York, NY",
+    "remote": "On-site",
+    "type": "Full-time",
+    "tags": [
+      "DFIR",
+      "Forensics",
+      "Threat Hunting",
+      "EnCase",
+      "Volatility"
+    ],
+    "posted": "3d ago",
+    "description": "IBM Security's X-Force IR team is looking for an Incident Response Lead to manage complex breach investigations and help clients recover from sophisticated cyberattacks. You'll lead a team of analysts on high-pressure engagements where decisions made in the first 48 hours define the outcome. Engagements span ransomware recovery, nation-state intrusion campaigns, and insider threat cases across industries like critical infrastructure, healthcare, and financial services. Outside active incidents, you'll build the playbooks and capability frameworks that elevate our entire IR practice.",
+    "responsibilities": [
+      "Lead end-to-end incident response engagements for enterprise and government clients",
+      "Coordinate forensic evidence collection and chain of custody procedures",
+      "Perform memory forensics, disk imaging, and log analysis",
+      "Communicate incident status and recommendations to C-level executives",
+      "Develop IR playbooks and contribute to the X-Force knowledge base"
+    ],
+    "requirements": [
+      "5+ years of incident response or digital forensics experience",
+      "Proficiency with forensic tools (EnCase, FTK, Volatility, Plaso)",
+      "Strong understanding of Windows, Linux, and cloud forensics",
+      "Experience managing teams during live incident scenarios",
+      "GCFE, GCFA, or GCFR certification preferred"
+    ],
+    "niceToHave": [
+      "Experience with ransomware negotiation and recovery workflows",
+      "Law enforcement or government security background",
+      "Published DFIR research or conference talks (SANS, FIRST)"
+    ],
+    "companyDescription": "IBM Security offers one of the most advanced and integrated portfolios of enterprise security products and services. IBM X-Force is a threat-sharing platform enabling the security community to combat cyberattacks.",
+    "companySize": "280,000+ employees",
+    "companyIndustry": "Technology / Consulting",
+    "domain": "Incident Response"
+  },
+  {
+    "id": 9,
+    "title": "Red Team Lead",
+    "company": "Microsoft",
+    "logo": "MS",
+    "accent": "bg-blue-100 text-blue-700",
+    "location": "Remote • US/EU",
+    "remote": "Remote",
+    "type": "Full-time",
+    "tags": [
+      "Red Team",
+      "Active Directory",
+      "C2 Frameworks",
+      "CRTO",
+      "Evasion"
+    ],
+    "posted": "1d ago",
+    "description": "Microsoft's Security Response Center is hiring a Red Team Lead to drive adversarial simulation programs across Azure and enterprise products. You'll emulate nation-state actors, develop custom tradecraft, and directly influence product security improvements at a scale that affects billions of users. This role sits at the intersection of offensive research and product hardening — your attack paths become the test cases that Blue Teams and product groups use to close gaps before real adversaries find them. You'll operate with significant autonomy and direct access to engineering leadership.",
+    "responsibilities": [
+      "Lead full-scope red team operations against Microsoft cloud and on-prem infrastructure",
+      "Develop novel attack techniques and custom offensive tooling",
+      "Collaborate with Blue Team to validate detection coverage",
+      "Present attack narratives and risk impact to senior leadership",
+      "Mentor junior red teamers and grow team capability"
+    ],
+    "requirements": [
+      "6+ years of offensive security or red team experience",
+      "CRTO, OSEP, or CRTE certification required",
+      "Expert-level Active Directory attack and evasion skills",
+      "Experience with C2 frameworks (Cobalt Strike, Havoc, Sliver)",
+      "Ability to develop custom BOFs or shellcode loaders"
+    ],
+    "niceToHave": [
+      "Experience with Azure-specific attack paths (AADInternals, ROADtools)",
+      "Published research at DEF CON, Black Hat, or OffSec Village",
+      "Prior experience in a FAANG or government red team"
+    ],
+    "companyDescription": "Microsoft is the world's leading software and cloud company. Its Security Response Center (MSRC) protects customers and the broader ecosystem from sophisticated cyber threats.",
+    "companySize": "220,000+ employees",
+    "companyIndustry": "Technology",
+    "domain": "Offensive Security"
+  },
+  {
+    "id": 10,
+    "title": "Vulnerability Researcher",
+    "company": "Google Project Zero",
+    "logo": "GP",
+    "accent": "bg-red-100 text-red-700",
+    "location": "Remote • Global",
+    "remote": "Remote",
+    "type": "Full-time",
+    "tags": [
+      "Fuzzing",
+      "Exploit Dev",
+      "CVE",
+      "Binary Analysis",
+      "C/C++"
+    ],
+    "posted": "6d ago",
+    "description": "Google Project Zero is looking for a world-class vulnerability researcher to find zero-day bugs in the most widely-deployed software. You'll have unparalleled freedom to research anything — browsers, kernels, hypervisors, and more — with a mandate to make the entire internet safer, not just Google's products. Your work will be published, credited, and read by every major security team on the planet. This is one of the few roles where the quality of a single research finding can change the security trajectory of software used by billions.",
+    "responsibilities": [
+      "Discover and exploit high-impact zero-day vulnerabilities in popular software",
+      "Develop proof-of-concept exploits to demonstrate real-world impact",
+      "Responsibly disclose findings and work with vendors on patches",
+      "Publish research findings on the Project Zero blog",
+      "Build tooling that advances the security research community"
+    ],
+    "requirements": [
+      "Deep expertise in binary exploitation (heap, stack, kernel)",
+      "Proficiency in C, C++, and Python for exploit development",
+      "Track record of CVEs or public vulnerability research",
+      "Experience with fuzzing frameworks (AFL++, libFuzzer, syzkaller)",
+      "Strong understanding of CPU architecture and OS internals"
+    ],
+    "niceToHave": [
+      "Pwn2Own or Pwnie Award history",
+      "Experience with browser engine internals (V8, JavaScriptCore)",
+      "Published papers at IEEE S&P, USENIX Security, or CCS"
+    ],
+    "companyDescription": "Google Project Zero is an elite team of security researchers dedicated to finding and fixing zero-day vulnerabilities that threaten the entire internet ecosystem.",
+    "companySize": "180,000+ employees",
+    "companyIndustry": "Technology",
+    "domain": "Offensive Security"
+  },
+  {
+    "id": 11,
+    "title": "Security Operations Manager",
+    "company": "Zscaler",
+    "logo": "ZS",
+    "accent": "bg-sky-100 text-sky-700",
+    "location": "San Jose, CA",
+    "remote": "Hybrid",
+    "type": "Full-time",
+    "tags": [
+      "SOC",
+      "SIEM",
+      "Incident Response",
+      "Team Leadership",
+      "KPIs"
+    ],
+    "posted": "2d ago",
+    "description": "Zscaler is hiring a Security Operations Manager to lead a 15-person SOC team protecting our zero trust cloud platform. You'll drive operational excellence, define SLAs, and work directly with CISO leadership on security strategy for one of the most globally distributed security platforms in existence. This is a people-first leadership role — you'll spend as much energy developing analysts as you do on incident response, building a team known for both technical depth and operational maturity. You'll have a direct line to product and engineering teams to close the loop between what attacks look like and how we detect them.",
+    "responsibilities": [
+      "Lead day-to-day operations of a 24x7 SOC handling thousands of daily alerts",
+      "Define and track SOC KPIs, SLAs, and MTTR/MTTD metrics",
+      "Own the incident escalation process and manage high-severity incidents",
+      "Hire, mentor, and develop Tier 1-3 analyst talent",
+      "Work with detection engineering to improve alert fidelity"
+    ],
+    "requirements": [
+      "5+ years of SOC experience with 2+ years in a leadership role",
+      "Hands-on experience with SIEM platforms (Splunk, Sentinel, Chronicle)",
+      "Proven track record managing distributed security teams",
+      "Strong understanding of threat actor TTPs and detection frameworks",
+      "CISM or CISSP preferred"
+    ],
+    "niceToHave": [
+      "Experience in a cloud-native or SaaS security environment",
+      "Background building SOC from the ground up",
+      "Familiarity with SOAR platforms (Palo Alto XSOAR, Splunk SOAR)"
+    ],
+    "companyDescription": "Zscaler is the leader in cloud-native zero trust security, protecting thousands of enterprises and government agencies by securing users, workloads, and IoT devices from the internet.",
+    "companySize": "7,000+ employees",
+    "companyIndustry": "Cybersecurity / Zero Trust",
+    "domain": "Blue Team / SOC"
+  },
+  {
+    "id": 12,
+    "title": "GRC Analyst",
+    "company": "Deloitte Cyber",
+    "logo": "DC",
+    "accent": "bg-green-100 text-green-700",
+    "location": "Chicago, IL",
+    "remote": "Hybrid",
+    "type": "Full-time",
+    "tags": [
+      "ISO 27001",
+      "SOC 2",
+      "Risk Management",
+      "NIST",
+      "Audit"
+    ],
+    "posted": "3d ago",
+    "description": "Deloitte Cyber is seeking a GRC Analyst to help Fortune 500 clients build and mature their security governance programs. You'll conduct risk assessments, manage compliance audits, and deliver actionable remediation roadmaps that translate regulatory complexity into practical security improvements. Client engagements span regulated industries including healthcare, financial services, and federal contracting — environments where compliance isn't optional and the cost of a control gap is measured in millions. You'll operate as a trusted advisor, often being the person in the room who connects the dots between an audit finding and the board-level risk conversation.",
+    "responsibilities": [
+      "Conduct information security risk assessments across client environments",
+      "Lead ISO 27001, SOC 2 Type II, and NIST CSF audit engagements",
+      "Develop security policies, procedures, and control frameworks",
+      "Prepare executive risk reports and board-level presentations",
+      "Support clients through regulatory compliance (GDPR, HIPAA, PCI-DSS)"
+    ],
+    "requirements": [
+      "3+ years of GRC, audit, or compliance experience",
+      "Strong knowledge of ISO 27001, SOC 2, NIST CSF, and CIS Controls",
+      "Experience conducting third-party vendor risk assessments",
+      "Excellent written and verbal communication skills",
+      "CISA, CRISC, or ISO 27001 Lead Auditor certification preferred"
+    ],
+    "niceToHave": [
+      "Big-4 consulting background",
+      "Experience with GRC platforms (ServiceNow GRC, Archer, OneTrust)",
+      "Industry-specific compliance knowledge (FedRAMP, HITRUST)"
+    ],
+    "companyDescription": "Deloitte Cyber is one of the world's largest cybersecurity practices, helping organizations manage cyber risk, respond to threats, and build resilient security programs at scale.",
+    "companySize": "415,000+ employees",
+    "companyIndustry": "Professional Services",
+    "domain": "Governance & Compliance"
+  }
+]

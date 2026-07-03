@@ -6,8 +6,8 @@ node_modules/
 # Build output
 dist/
 build/
-out/
-.next/
+flow
+pentrack
 
 # Environment
 .env
@@ -46,9 +46,3 @@ prisma/migrations/dev_*
 # Misc
 *.tsbuildinfo
 .eslintcache
-.vercel
-*.pem
-
-# Dev scratch files
-combined-*.txt
-folder-structure.txt
