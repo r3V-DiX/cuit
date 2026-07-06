@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { useToast } from "@/components/ui/Toast";
@@ -94,20 +94,74 @@ export default function ProfilePage() {
   const [editingBasics, setEditingBasics] = useState(false);
   const [basicsBuffer, setBasicsBuffer] = useState(basics);
 
-  function saveBasics() {
+  const getCsrfToken = () => {
+    if (typeof document === "undefined") return "";
+    const match = document.cookie.match(/csrf_token=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : "";
+  };
+
+  async function saveBasics() {
     if (!basicsBuffer.name.trim()) {
       toast({ type: "error", message: "Name is required" });
       return;
     }
-    setBasics(basicsBuffer);
-    setEditingBasics(false);
-    toast({ type: "success", message: "Profile updated" });
+    try {
+      const body: any = {
+        title: basicsBuffer.title || "",
+      };
+      if (basicsBuffer.linkedin) body.linkedin = basicsBuffer.linkedin.startsWith("http") ? basicsBuffer.linkedin : `https://${basicsBuffer.linkedin}`;
+      if (basicsBuffer.github) body.github = basicsBuffer.github.startsWith("http") ? basicsBuffer.github : `https://${basicsBuffer.github}`;
+      if (basicsBuffer.portfolio) body.portfolio = basicsBuffer.portfolio.startsWith("http") ? basicsBuffer.portfolio : `https://${basicsBuffer.portfolio}`;
+
+      const response = await fetch("/api/profile/basic-info", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (response.ok) {
+        setBasics(basicsBuffer);
+        setEditingBasics(false);
+        toast({ type: "success", message: "Profile updated" });
+      } else {
+        const errData = await response.json();
+        toast({ type: "error", message: "Failed to update profile", description: errData.message || "Invalid input values" });
+      }
+    } catch (error) {
+      toast({ type: "error", message: "Network error", description: "Failed to save profile changes" });
+    }
   }
 
-  // Bio
   const [editingBio, setEditingBio] = useState(false);
   const [bio, setBio] = useState("Security practitioner with 5+ years in offensive security. Specialize in web app pentesting and red team operations. OSCP certified. Active on HackTheBox (Pro Hacker rank).");
   const [bioBuffer, setBioBuffer] = useState(bio);
+
+  async function saveBio() {
+    try {
+      const response = await fetch("/api/profile/summary", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: JSON.stringify({ summary: bioBuffer }),
+      });
+
+      if (response.ok) {
+        setBio(bioBuffer);
+        setEditingBio(false);
+        toast({ type: "success", message: "Bio updated" });
+      } else {
+        const errData = await response.json();
+        toast({ type: "error", message: "Failed to update bio", description: errData.message || "Invalid input values" });
+      }
+    } catch (error) {
+      toast({ type: "error", message: "Network error", description: "Failed to save bio changes" });
+    }
+  }
 
   // Skills
   const [skills, setSkills] = useState(SEED_SKILLS);
@@ -346,6 +400,80 @@ export default function ProfilePage() {
     });
   }
 
+  useEffect(() => {
+    async function loadProfile() {
+      try {
+        const response = await fetch("/api/profile");
+        if (response.ok) {
+          const result = await response.json();
+          if (result.data) {
+            const data = result.data;
+            const b = data.basicInfo || {};
+            const initialBasics = {
+              name: [b.firstName, b.lastName].filter(Boolean).join(" ") || "User",
+              title: b.title || "",
+              location: b.location?.displayName || "",
+              phone: b.phone || "",
+              linkedin: b.linkedin || "",
+              github: b.github || "",
+              portfolio: b.portfolio || "",
+              twitter: "",
+            };
+            setBasics(initialBasics);
+            setBasicsBuffer(initialBasics);
+
+            if (data.summary) {
+              setBio(data.summary);
+              setBioBuffer(data.summary);
+            }
+            if (data.skills && Array.isArray(data.skills)) {
+              setSkills(data.skills.map((s: any) => s.skill?.name || s.name).filter(Boolean));
+            }
+            if (data.experiences && Array.isArray(data.experiences)) {
+              setExperience(data.experiences.map((e: any) => ({
+                id: e.id,
+                role: e.role,
+                company: e.companyName,
+                period: `${e.startDate ? new Date(e.startDate).getFullYear() : ""} – ${e.endDate ? new Date(e.endDate).getFullYear() : "Present"}`,
+                desc: e.description || "",
+              })));
+            }
+            if (data.certifications && Array.isArray(data.certifications)) {
+              setCerts(data.certifications.map((c: any) => ({
+                id: c.id,
+                name: c.certification?.name || c.name || "",
+                issuer: c.certification?.organization || c.issuer || "",
+                year: c.year || "",
+                badge: "bg-blue-50 text-blue-700 border-blue-200",
+              })));
+            }
+            if (data.ctfProfiles && Array.isArray(data.ctfProfiles)) {
+              setCtfList(data.ctfProfiles.map((c: any) => ({
+                id: c.id,
+                platform: c.platform,
+                handle: c.handle,
+                rank: c.rank || "Hacker",
+                rankColor: "text-green-700 bg-green-50 border-green-200",
+                url: c.profileUrl || "",
+              })));
+            }
+            if (data.education && Array.isArray(data.education)) {
+              setEducation(data.education.map((e: any) => ({
+                id: e.id,
+                degree: e.degree || "",
+                school: e.schoolName || "",
+                startYear: e.startDate ? String(new Date(e.startDate).getFullYear()) : "",
+                endYear: e.endDate ? String(new Date(e.endDate).getFullYear()) : "Present",
+                desc: e.description || "",
+              })));
+            }
+          }
+        }
+      } catch (err) {}
+    }
+    loadProfile();
+  }, []);
+
   // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <>
@@ -582,11 +710,7 @@ export default function ProfilePage() {
                         />
                         <div className="flex gap-2">
                           <button
-                            onClick={() => {
-                              setBio(bioBuffer);
-                              setEditingBio(false);
-                              toast({ type: "success", message: "Bio updated" });
-                            }}
+                            onClick={saveBio}
                             className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors"
                           >
                             <Check className="w-3 h-3" /> Save

@@ -12,360 +12,428 @@
 //   - crypto.createHash calls replaced by shared hashToken
 
 import {
-    Injectable,
-    UnauthorizedException,
-    NotFoundException,
-} from '@nestjs/common';
-import { PrismaService } from '@cykruit/prisma';
-import { AppLogger } from '@cykruit/logger';
-import { HashService } from '@cykruit/common';
-import { AuditService, AuditAction } from '@cykruit/audit';
-import { SessionType, DeviceType } from '@prisma/client';
+  Injectable,
+  UnauthorizedException,
+  NotFoundException,
+} from "@nestjs/common";
+import { PrismaService } from "@cykruit/prisma";
+import { AppLogger } from "@cykruit/logger";
+import { HashService } from "@cykruit/common";
+import { AuditService, AuditAction } from "@cykruit/audit";
+import { SessionType, DeviceType } from "@prisma/client";
 import {
-    generateRawToken,
-    hashToken,
-    resolveSessionExpiry,
-    generateDeviceFingerprint,
-    compareFingerprints,
-} from '@cykruit/auth-core';
-import type { Request } from 'express';
+  generateRawToken,
+  hashToken,
+  resolveSessionExpiry,
+  generateDeviceFingerprint,
+  compareFingerprints,
+} from "@cykruit/auth-core";
+import type { Request } from "express";
 
 const SESSION_ROTATION_INTERVAL_MS = 15 * 60 * 1000;
 const MAX_SESSIONS_PER_DEVICE_TYPE = 10;
 
 @Injectable()
 export class SessionService {
-    constructor(
-        private readonly prisma: PrismaService,
-        private readonly hashService: HashService,
-        private readonly auditService: AuditService,
-        private readonly logger: AppLogger,
-    ) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly hashService: HashService,
+    private readonly auditService: AuditService,
+    private readonly logger: AppLogger,
+  ) {}
 
-    // ── Create ───────────────────────────────────────────────────
+  // ── Create ───────────────────────────────────────────────────
 
-    async createSession(
-        userId: string,
-        rememberMe: boolean,
-        userAgent: string,
-        ipAddress: string,
-        req?: Request,
-    ): Promise<string> {
-        const rawToken = generateRawToken(64);
-        const hashedToken = hashToken(rawToken);
+  async createSession(
+    userId: string,
+    rememberMe: boolean,
+    userAgent: string,
+    ipAddress: string,
+    req?: Request,
+  ): Promise<string> {
+    const rawToken = generateRawToken(64);
+    const hashedToken = hashToken(rawToken);
 
-        const deviceType = this.resolveDeviceType(userAgent);
-        const expiresAt = resolveSessionExpiry(rememberMe);
+    const deviceType = this.resolveDeviceType(userAgent);
+    const expiresAt = resolveSessionExpiry(rememberMe);
 
-        const fingerprint = req ? generateDeviceFingerprint(req) : null;
+    const fingerprint = req ? generateDeviceFingerprint(req) : null;
 
-        await this.enforceSessionLimit(userId, deviceType);
+    await this.enforceSessionLimit(userId, deviceType);
 
-        await this.prisma.session.create({
-            data: {
-                userId,
-                token: hashedToken,
-                userAgent,
-                ipAddress,
-                deviceType,
-                sessionType: SessionType.COOKIE,
-                expiresAt,
-                isActive: true,
-                lastActivity: new Date(),
-                lastRotatedAt: new Date(),
-                ...(fingerprint ? { deviceFingerprint: fingerprint.hash } : {}),
-            },
-        });
+    await this.prisma.session.create({
+      data: {
+        userId,
+        token: hashedToken,
+        userAgent,
+        ipAddress,
+        deviceType,
+        sessionType: SessionType.COOKIE,
+        expiresAt,
+        isActive: true,
+        lastActivity: new Date(),
+        lastRotatedAt: new Date(),
+        ...(fingerprint ? { deviceFingerprint: fingerprint.hash } : {}),
+      },
+    });
 
-        return rawToken;
+    return rawToken;
+  }
+
+  // ── Validate & Rotate ────────────────────────────────────────
+
+  async validateAndRotateSession(
+    rawToken: string,
+    userAgent: string,
+    ipAddress: string,
+    req?: Request,
+  ): Promise<{ userId: string; newToken?: string }> {
+    const hashedToken = hashToken(rawToken);
+
+    const session = await this.prisma.session.findFirst({
+      where: { token: hashedToken, isActive: true },
+    });
+
+    if (!session)
+      throw new UnauthorizedException("Session not found or expired");
+
+    if (session.expiresAt && new Date() > session.expiresAt) {
+      await this.prisma.session.update({
+        where: { id: session.id },
+        data: { isActive: false, revokedAt: new Date(), revokedBy: "expiry" },
+      });
+
+      this.auditService.log(
+        AuditAction.SESSION_EXPIRED,
+        "FAILURE",
+        session.userId,
+        {
+          ip: ipAddress,
+          userAgent,
+          sessionId: session.id,
+        },
+      );
+
+      throw new UnauthorizedException("Session expired");
     }
 
-    // ── Validate & Rotate ────────────────────────────────────────
-
-    async validateAndRotateSession(
-        rawToken: string,
-        userAgent: string,
-        ipAddress: string,
-        req?: Request,
-    ): Promise<{ userId: string; newToken?: string }> {
-        const hashedToken = hashToken(rawToken);
-
-        const session = await this.prisma.session.findFirst({
-            where: { token: hashedToken, isActive: true },
-        });
-
-        if (!session) throw new UnauthorizedException('Session not found or expired');
-
-        if (session.expiresAt && new Date() > session.expiresAt) {
-            await this.prisma.session.update({
-                where: { id: session.id },
-                data: { isActive: false, revokedAt: new Date(), revokedBy: 'expiry' },
-            });
-
-            this.auditService.log(AuditAction.SESSION_EXPIRED, 'FAILURE', session.userId, {
-                ip: ipAddress, userAgent, sessionId: session.id,
-            });
-
-            throw new UnauthorizedException('Session expired');
-        }
-
-        // ── UA binding check ──────────────────────────────────────
-        if (session.sessionType === SessionType.COOKIE && session.userAgent !== userAgent) {
-            this.logger.warn(
-                `[SESSION_UA_MISMATCH] uid:${session.userId} sessionId:${session.id}`,
-                'SessionService',
-            );
-        }
-
-        // ── Device fingerprint check ──────────────────────────────
-        const storedFingerprint = (session as any).deviceFingerprint;
-        if (storedFingerprint && req) {
-            const currentFp = generateDeviceFingerprint(req);
-            const comparison = compareFingerprints(storedFingerprint, currentFp.hash);
-
-            if (!comparison.match) {
-                this.logger.warn(
-                    `[FINGERPRINT_MISMATCH] uid:${session.userId} sessionId:${session.id} confidence:${comparison.confidence}`,
-                    'SessionService',
-                );
-
-                this.auditService.log(
-                    'SESSION_FINGERPRINT_MISMATCH' as any,
-                    'FAILURE',
-                    session.userId,
-                    { ip: ipAddress, userAgent, sessionId: session.id },
-                    { confidence: comparison.confidence },
-                );
-
-                // ✅ BLOCK on low confidence — completely different browser/device
-                // Medium confidence = minor browser update, allow through
-                if (comparison.confidence === 'low') {
-                    await this.prisma.session.update({
-                        where: { id: session.id },
-                        data: {
-                            isActive: false,
-                            revokedAt: new Date(),
-                            revokedBy: 'fingerprint_mismatch',
-                        },
-                    });
-                    throw new UnauthorizedException(
-                        'Session invalidated — device mismatch detected. Please login again.',
-                    );
-                }
-            }
-        }
-
-        // ── IP change log ─────────────────────────────────────────
-        if (session.ipAddress !== ipAddress) {
-            this.logger.warn(
-                `[SESSION_IP_CHANGE] uid:${session.userId} prev:${session.ipAddress} now:${ipAddress}`,
-                'SessionService',
-            );
-        }
-
-        // ── Rotation ──────────────────────────────────────────────
-        const shouldRotate =
-            !session.lastRotatedAt ||
-            Date.now() - session.lastRotatedAt.getTime() > SESSION_ROTATION_INTERVAL_MS;
-
-        if (shouldRotate) {
-            const newRawToken = generateRawToken(64);
-            const newHashedToken = hashToken(newRawToken);
-
-            await this.prisma.session.update({
-                where: { id: session.id },
-                data: {
-                    token: newHashedToken,
-                    lastRotatedAt: new Date(),
-                    lastActivity: new Date(),
-                    ipAddress,
-                },
-            });
-
-            this.auditService.log(AuditAction.SESSION_ROTATED, 'SUCCESS', session.userId, {
-                ip: ipAddress, userAgent, sessionId: session.id,
-            });
-
-            return { userId: session.userId, newToken: newRawToken };
-        }
-
-        await this.prisma.session.update({
-            where: { id: session.id },
-            data: { lastActivity: new Date(), ipAddress },
-        });
-
-        return { userId: session.userId };
+    // ── UA binding check ──────────────────────────────────────
+    if (
+      session.sessionType === SessionType.COOKIE &&
+      session.userAgent !== userAgent
+    ) {
+      this.logger.warn(
+        `[SESSION_UA_MISMATCH] uid:${session.userId} sessionId:${session.id}`,
+        "SessionService",
+      );
     }
 
-    // ── Validate (implements ISessionValidator for AuthCoreModule) ─
+    // ── Device fingerprint check ──────────────────────────────
+    const storedFingerprint = (session as any).deviceFingerprint;
+    if (storedFingerprint && req) {
+      const currentFp = generateDeviceFingerprint(req);
+      const comparison = compareFingerprints(storedFingerprint, currentFp.hash);
 
-    async validateSession(
-        rawToken: string,
-        ipAddress?: string,
-        userAgent?: string,
-        req?: Request, // ✅ now accepted and passed through
-    ): Promise<{ user: any; newToken?: string }> {
-        const { userId, newToken } = await this.validateAndRotateSession(
-            rawToken,
-            userAgent || 'unknown',
-            ipAddress || 'unknown',
-            req, // ✅ passed down so fingerprint check runs
+      if (!comparison.match) {
+        this.logger.warn(
+          `[FINGERPRINT_MISMATCH] uid:${session.userId} sessionId:${session.id} confidence:${comparison.confidence}`,
+          "SessionService",
         );
 
-        const user = await this.prisma.user.findUnique({ where: { id: userId } });
-        if (!user) throw new UnauthorizedException('User not found');
+        this.auditService.log(
+          "SESSION_FINGERPRINT_MISMATCH" as any,
+          "FAILURE",
+          session.userId,
+          { ip: ipAddress, userAgent, sessionId: session.id },
+          { confidence: comparison.confidence },
+        );
 
-        return { user, newToken };
-    }
-
-    // ── Delete (logout) ───────────────────────────────────────────
-
-    async deleteSession(rawToken: string): Promise<void> {
-        const hashedToken = hashToken(rawToken);
-
-        await this.prisma.session.updateMany({
-            where: { token: hashedToken, isActive: true },
-            data: { isActive: false, revokedAt: new Date(), revokedBy: 'user_logout' },
-        });
-    }
-
-    // ── Revoke by ID ──────────────────────────────────────────────
-
-    async revokeSession(
-        sessionId: string,
-        requestingUserId: string,
-        reqCtx?: { ip?: string; userAgent?: string },
-    ): Promise<void> {
-        const session = await this.prisma.session.findUnique({ where: { id: sessionId } });
-
-        if (!session) throw new NotFoundException('Session not found');
-        if (session.userId !== requestingUserId)
-            throw new UnauthorizedException('Cannot revoke another user\'s session');
-
-        await this.prisma.session.update({
-            where: { id: sessionId },
-            data: { isActive: false, revokedAt: new Date(), revokedBy: 'user_revoke' },
-        });
-
-        this.auditService.log(AuditAction.SESSION_REVOKED, 'SUCCESS', requestingUserId, {
-            ...reqCtx, sessionId,
-        }, { revokedSessionId: sessionId, deviceType: session.deviceType });
-    }
-
-    // ── Revoke all others ─────────────────────────────────────────
-
-    async revokeAllOtherSessions(
-        userId: string,
-        currentSessionToken: string,
-        reqCtx?: { ip?: string; userAgent?: string },
-    ): Promise<number> {
-        const hashedCurrent = hashToken(currentSessionToken);
-
-        const result = await this.prisma.session.updateMany({
-            where: { userId, isActive: true, token: { not: hashedCurrent } },
-            data: { isActive: false, revokedAt: new Date(), revokedBy: 'user_revoke_all' },
-        });
-
-        this.auditService.log(AuditAction.SESSION_REVOKED_ALL, 'SUCCESS', userId, reqCtx, {
-            revokedCount: result.count,
-        });
-
-        return result.count;
-    }
-
-    // ── Delete all ────────────────────────────────────────────────
-
-    async deleteAllUserSessions(userId: string): Promise<void> {
-        await this.prisma.session.updateMany({
-            where: { userId, isActive: true },
-            data: { isActive: false, revokedAt: new Date(), revokedBy: 'logout_all' },
-        });
-    }
-
-    // ── List with isCurrent ───────────────────────────────────────
-
-    async listUserSessions(userId: string, currentToken: string) {
-        const hashedCurrent = currentToken ? hashToken(currentToken) : null;
-
-        const sessions = await this.prisma.session.findMany({
-            where: { userId, isActive: true },
-            select: {
-                id: true,
-                userAgent: true,
-                ipAddress: true,
-                deviceType: true,
-                sessionType: true,
-                deviceName: true,
-                platform: true,
-                appVersion: true,
-                createdAt: true,
-                lastActivity: true,
-                expiresAt: true,
-                token: true,
+        // ✅ BLOCK on low confidence — completely different browser/device
+        // Medium confidence = minor browser update, allow through
+        if (comparison.confidence === "low") {
+          await this.prisma.session.update({
+            where: { id: session.id },
+            data: {
+              isActive: false,
+              revokedAt: new Date(),
+              revokedBy: "fingerprint_mismatch",
             },
-            orderBy: { lastActivity: 'desc' },
-        });
-
-        return sessions.map((s) => ({
-            id: s.id,
-            userAgent: s.userAgent,
-            ipAddress: s.ipAddress,
-            deviceType: s.deviceType,
-            sessionType: s.sessionType,
-            deviceName: s.deviceName,
-            platform: s.platform,
-            appVersion: s.appVersion,
-            createdAt: s.createdAt,
-            lastActivity: s.lastActivity,
-            expiresAt: s.expiresAt,
-            isCurrent: hashedCurrent ? s.token === hashedCurrent : false,
-        }));
-    }
-
-    // ── isTokenForSession ─────────────────────────────────────────
-
-    async isTokenForSession(rawToken: string, sessionId: string): Promise<boolean> {
-        const hashedToken = hashToken(rawToken);
-        const session = await this.prisma.session.findUnique({ where: { id: sessionId } });
-        if (!session) return false;
-        return session.token === hashedToken;
-    }
-
-    // ── Push token update ─────────────────────────────────────────
-
-    async updatePushToken(sessionId: string, userId: string, pushToken: string): Promise<void> {
-        const session = await this.prisma.session.findUnique({ where: { id: sessionId } });
-        if (!session) throw new NotFoundException('Session not found');
-        if (session.userId !== userId)
-            throw new UnauthorizedException('Cannot update another user\'s session');
-
-        await this.prisma.session.update({
-            where: { id: sessionId },
-            data: { pushToken },
-        });
-    }
-
-    // ── Private helpers ───────────────────────────────────────────
-
-    private async enforceSessionLimit(userId: string, deviceType: DeviceType): Promise<void> {
-        const sessions = await this.prisma.session.findMany({
-            where: { userId, deviceType, isActive: true },
-            orderBy: { createdAt: 'asc' },
-        });
-
-        if (sessions.length >= MAX_SESSIONS_PER_DEVICE_TYPE) {
-            await this.prisma.session.update({
-                where: { id: sessions[0].id },
-                data: { isActive: false, revokedAt: new Date(), revokedBy: 'session_limit' },
-            });
+          });
+          throw new UnauthorizedException(
+            "Session invalidated — device mismatch detected. Please login again.",
+          );
         }
+      }
     }
 
-    private resolveDeviceType(userAgent: string): DeviceType {
-        const ua = (userAgent || '').toLowerCase();
-        if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone'))
-            return DeviceType.MOBILE;
-        if (ua.includes('tablet') || ua.includes('ipad')) return DeviceType.TABLET;
-        return DeviceType.WEB;
+    // ── IP change log ─────────────────────────────────────────
+    if (session.ipAddress !== ipAddress) {
+      this.logger.warn(
+        `[SESSION_IP_CHANGE] uid:${session.userId} prev:${session.ipAddress} now:${ipAddress}`,
+        "SessionService",
+      );
     }
+
+    // ── Rotation ──────────────────────────────────────────────
+    const shouldRotate =
+      !session.lastRotatedAt ||
+      Date.now() - session.lastRotatedAt.getTime() >
+        SESSION_ROTATION_INTERVAL_MS;
+
+    if (shouldRotate) {
+      const newRawToken = generateRawToken(64);
+      const newHashedToken = hashToken(newRawToken);
+
+      await this.prisma.session.update({
+        where: { id: session.id },
+        data: {
+          token: newHashedToken,
+          lastRotatedAt: new Date(),
+          lastActivity: new Date(),
+          ipAddress,
+        },
+      });
+
+      this.auditService.log(
+        AuditAction.SESSION_ROTATED,
+        "SUCCESS",
+        session.userId,
+        {
+          ip: ipAddress,
+          userAgent,
+          sessionId: session.id,
+        },
+      );
+
+      return { userId: session.userId, newToken: newRawToken };
+    }
+
+    await this.prisma.session.update({
+      where: { id: session.id },
+      data: { lastActivity: new Date(), ipAddress },
+    });
+
+    return { userId: session.userId };
+  }
+
+  // ── Validate (implements ISessionValidator for AuthCoreModule) ─
+
+  async validateSession(
+    rawToken: string,
+    ipAddress?: string,
+    userAgent?: string,
+    req?: Request, // ✅ now accepted and passed through
+  ): Promise<{ user: any; newToken?: string }> {
+    const { userId, newToken } = await this.validateAndRotateSession(
+      rawToken,
+      userAgent || "unknown",
+      ipAddress || "unknown",
+      req, // ✅ passed down so fingerprint check runs
+    );
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException("User not found");
+
+    return { user, newToken };
+  }
+
+  // ── Delete (logout) ───────────────────────────────────────────
+
+  async deleteSession(rawToken: string): Promise<void> {
+    const hashedToken = hashToken(rawToken);
+
+    await this.prisma.session.updateMany({
+      where: { token: hashedToken, isActive: true },
+      data: {
+        isActive: false,
+        revokedAt: new Date(),
+        revokedBy: "user_logout",
+      },
+    });
+  }
+
+  // ── Revoke by ID ──────────────────────────────────────────────
+
+  async revokeSession(
+    sessionId: string,
+    requestingUserId: string,
+    reqCtx?: { ip?: string; userAgent?: string },
+  ): Promise<void> {
+    const session = await this.prisma.session.findUnique({
+      where: { id: sessionId },
+    });
+
+    if (!session) throw new NotFoundException("Session not found");
+    if (session.userId !== requestingUserId)
+      throw new UnauthorizedException("Cannot revoke another user's session");
+
+    await this.prisma.session.update({
+      where: { id: sessionId },
+      data: {
+        isActive: false,
+        revokedAt: new Date(),
+        revokedBy: "user_revoke",
+      },
+    });
+
+    this.auditService.log(
+      AuditAction.SESSION_REVOKED,
+      "SUCCESS",
+      requestingUserId,
+      {
+        ...reqCtx,
+        sessionId,
+      },
+      { revokedSessionId: sessionId, deviceType: session.deviceType },
+    );
+  }
+
+  // ── Revoke all others ─────────────────────────────────────────
+
+  async revokeAllOtherSessions(
+    userId: string,
+    currentSessionToken: string,
+    reqCtx?: { ip?: string; userAgent?: string },
+  ): Promise<number> {
+    const hashedCurrent = hashToken(currentSessionToken);
+
+    const result = await this.prisma.session.updateMany({
+      where: { userId, isActive: true, token: { not: hashedCurrent } },
+      data: {
+        isActive: false,
+        revokedAt: new Date(),
+        revokedBy: "user_revoke_all",
+      },
+    });
+
+    this.auditService.log(
+      AuditAction.SESSION_REVOKED_ALL,
+      "SUCCESS",
+      userId,
+      reqCtx,
+      {
+        revokedCount: result.count,
+      },
+    );
+
+    return result.count;
+  }
+
+  // ── Delete all ────────────────────────────────────────────────
+
+  async deleteAllUserSessions(userId: string): Promise<void> {
+    await this.prisma.session.updateMany({
+      where: { userId, isActive: true },
+      data: { isActive: false, revokedAt: new Date(), revokedBy: "logout_all" },
+    });
+  }
+
+  // ── List with isCurrent ───────────────────────────────────────
+
+  async listUserSessions(userId: string, currentToken: string) {
+    const hashedCurrent = currentToken ? hashToken(currentToken) : null;
+
+    const sessions = await this.prisma.session.findMany({
+      where: { userId, isActive: true },
+      select: {
+        id: true,
+        userAgent: true,
+        ipAddress: true,
+        deviceType: true,
+        sessionType: true,
+        deviceName: true,
+        platform: true,
+        appVersion: true,
+        createdAt: true,
+        lastActivity: true,
+        expiresAt: true,
+        token: true,
+      },
+      orderBy: { lastActivity: "desc" },
+    });
+
+    return sessions.map((s) => ({
+      id: s.id,
+      userAgent: s.userAgent,
+      ipAddress: s.ipAddress,
+      deviceType: s.deviceType,
+      sessionType: s.sessionType,
+      deviceName: s.deviceName,
+      platform: s.platform,
+      appVersion: s.appVersion,
+      createdAt: s.createdAt,
+      lastActivity: s.lastActivity,
+      expiresAt: s.expiresAt,
+      isCurrent: hashedCurrent ? s.token === hashedCurrent : false,
+    }));
+  }
+
+  // ── isTokenForSession ─────────────────────────────────────────
+
+  async isTokenForSession(
+    rawToken: string,
+    sessionId: string,
+  ): Promise<boolean> {
+    const hashedToken = hashToken(rawToken);
+    const session = await this.prisma.session.findUnique({
+      where: { id: sessionId },
+    });
+    if (!session) return false;
+    return session.token === hashedToken;
+  }
+
+  // ── Push token update ─────────────────────────────────────────
+
+  async updatePushToken(
+    sessionId: string,
+    userId: string,
+    pushToken: string,
+  ): Promise<void> {
+    const session = await this.prisma.session.findUnique({
+      where: { id: sessionId },
+    });
+    if (!session) throw new NotFoundException("Session not found");
+    if (session.userId !== userId)
+      throw new UnauthorizedException("Cannot update another user's session");
+
+    await this.prisma.session.update({
+      where: { id: sessionId },
+      data: { pushToken },
+    });
+  }
+
+  // ── Private helpers ───────────────────────────────────────────
+
+  private async enforceSessionLimit(
+    userId: string,
+    deviceType: DeviceType,
+  ): Promise<void> {
+    const sessions = await this.prisma.session.findMany({
+      where: { userId, deviceType, isActive: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (sessions.length >= MAX_SESSIONS_PER_DEVICE_TYPE) {
+      await this.prisma.session.update({
+        where: { id: sessions[0].id },
+        data: {
+          isActive: false,
+          revokedAt: new Date(),
+          revokedBy: "session_limit",
+        },
+      });
+    }
+  }
+
+  private resolveDeviceType(userAgent: string): DeviceType {
+    const ua = (userAgent || "").toLowerCase();
+    if (
+      ua.includes("mobile") ||
+      ua.includes("android") ||
+      ua.includes("iphone")
+    )
+      return DeviceType.MOBILE;
+    if (ua.includes("tablet") || ua.includes("ipad")) return DeviceType.TABLET;
+    return DeviceType.DESKTOP;
+  }
 }

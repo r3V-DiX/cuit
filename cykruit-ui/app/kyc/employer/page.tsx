@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { useRouter } from "next/navigation";
 
 type Step = 1 | 2 | 3;
 
@@ -40,6 +41,7 @@ const STEPS = [
 
 export default function EmployerKYCPage() {
   const [step, setStep] = useState<Step>(1);
+  const router = useRouter();
   const { openModal } = useModal();
   const { toast } = useToast();
 
@@ -49,8 +51,28 @@ export default function EmployerKYCPage() {
       title: "Sign out?",
       description: "You'll need to sign back in to continue verification.",
       confirmLabel: "Sign out",
-      onConfirm: () => {
-        toast({ type: "info", message: "Signed out successfully" });
+      onConfirm: async () => {
+        try {
+          const csrfCookie = document.cookie
+            .split("; ")
+            .find((row) => row.startsWith("csrf_token="));
+          const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
+
+          const response = await fetch("/api/auth/logout", {
+            method: "POST",
+            headers: {
+              "x-csrf-token": csrfToken,
+            },
+          });
+          if (response.ok) {
+            toast({ type: "success", message: "Logged out successfully" });
+            router.push("/login");
+          } else {
+            toast({ type: "error", message: "Logout failed" });
+          }
+        } catch (error) {
+          toast({ type: "error", message: "Logout request failed" });
+        }
       },
     });
   }

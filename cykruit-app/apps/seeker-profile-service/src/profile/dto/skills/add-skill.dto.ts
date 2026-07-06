@@ -1,11 +1,23 @@
 // apps/seeker-profile-service/src/profile/dto/skills/add-skill.dto.ts
 
-import { IsString, IsNotEmpty, IsEnum, IsOptional, IsInt, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+} from "class-validator";
 
-enum SkillProficiency { BEGINNER = 'Beginner', INTERMEDIATE = 'Intermediate', EXPERT = 'Expert' }
+enum SkillProficiency {
+  BEGINNER = "Beginner",
+  INTERMEDIATE = "Intermediate",
+  EXPERT = "Expert",
+}
 
 export class AddSkillDto {
-    @IsString() @IsNotEmpty() skillId: string;
-    @IsEnum(SkillProficiency) proficiency: SkillProficiency;
-    @IsOptional() @IsInt() @Min(0) @Max(50) yearsOfExperience?: number;
+  @IsString() @IsNotEmpty() skillId: string;
+  @IsEnum(SkillProficiency) proficiency: SkillProficiency;
+  @IsOptional() @IsInt() @Min(0) @Max(50) yearsOfExperience?: number;
 }

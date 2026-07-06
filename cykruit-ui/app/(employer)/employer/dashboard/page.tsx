@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
@@ -43,6 +44,25 @@ const QUICK_LINKS = [
 ];
 
 export default function EmployerDashboardPage() {
+  const [displayName, setDisplayName] = useState("Employer");
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const response = await fetch("/api/auth/me");
+        if (response.ok) {
+          const result = await response.json();
+          if (result.data?.firstName) {
+            setDisplayName(result.data.firstName);
+          }
+        }
+      } catch (error) {
+        // Silent catch for guest fallback
+      }
+    }
+    fetchUser();
+  }, []);
+
   return (
     <>
       <EmployerTopbar title="Dashboard" />
@@ -52,8 +72,7 @@ export default function EmployerDashboardPage() {
           {/* Greeting */}
           <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5 flex items-center justify-between gap-6 flex-wrap">
             <div>
-              {/* TODO: derive from session */}
-              <h1 className="text-xl font-bold text-slate-900 leading-snug">Good morning, CyberShield Inc. 👋</h1>
+              <h1 className="text-xl font-bold text-slate-900 leading-snug">Good morning, {displayName}</h1>
               <p className="text-sm text-slate-500 mt-0.5">Here's your hiring overview for today</p>
             </div>
             <Link

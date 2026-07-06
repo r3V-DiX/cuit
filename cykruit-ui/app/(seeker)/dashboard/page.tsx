@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import {
@@ -68,7 +69,57 @@ const QUICK_LINKS: { label: string; href: string; icon: React.ReactNode }[] = [
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const profilePct = 78;
+  const [userName, setUserName] = useState("User");
+  const [profilePct, setProfilePct] = useState(0);
+  const [profileChecks, setProfileChecks] = useState([
+    { label: "Experience",     done: false },
+    { label: "Skills",         done: false },
+    { label: "Certifications", done: false },
+    { label: "CTF Profile",    done: false },
+    { label: "Portfolio link", done: false },
+  ]);
+
+  useEffect(() => {
+    async function fetchUserAndProfile() {
+      try {
+        const userRes = await fetch("/api/auth/me");
+        if (userRes.ok) {
+          const userResult = await userRes.json();
+          if (userResult.data?.firstName) {
+            setUserName(userResult.data.firstName);
+          }
+        }
+
+        const profileRes = await fetch("/api/profile");
+        if (profileRes.ok) {
+          const profileResult = await profileRes.json();
+          if (profileResult.data) {
+            const data = profileResult.data;
+            const hasExp = Array.isArray(data.experiences) && data.experiences.length > 0;
+            const hasSkills = Array.isArray(data.skills) && data.skills.length > 0;
+            const hasCerts = Array.isArray(data.certifications) && data.certifications.length > 0;
+            const hasCtf = Array.isArray(data.ctfProfiles) && data.ctfProfiles.length > 0;
+            const hasPortfolio = !!data.basicInfo?.portfolio;
+
+            const checks = [
+              { label: "Experience",     done: hasExp },
+              { label: "Skills",         done: hasSkills },
+              { label: "Certifications", done: hasCerts },
+              { label: "CTF Profile",    done: hasCtf },
+              { label: "Portfolio link", done: hasPortfolio },
+            ];
+            setProfileChecks(checks);
+
+            const doneCount = checks.filter((c) => c.done).length;
+            setProfilePct(Math.round((doneCount / checks.length) * 100));
+          }
+        }
+      } catch (error) {
+        // Silent catch for guest fallback
+      }
+    }
+    fetchUserAndProfile();
+  }, []);
 
   // SVG ring params
   const r = 38;
@@ -84,9 +135,8 @@ export default function DashboardPage() {
           {/* ── Greeting banner ──────────────────────────────────────────────── */}
           <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5 flex items-center justify-between gap-6 flex-wrap">
             <div>
-              {/* TODO: derive from session */}
-              <h1 className="text-xl font-bold text-slate-900 leading-snug">Good morning, Aryan 👋</h1>
-              <p className="text-sm text-slate-500 mt-0.5">Here's your job search overview</p>
+              <h1 className="text-xl font-bold text-slate-900 leading-snug">Good morning, {userName}</h1>
+              <p className="text-sm text-slate-500 mt-0.5">Here is your job search overview</p>
             </div>
 
             {/* Profile completion inline card */}
@@ -251,7 +301,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="space-y-1.5 flex-1">
-                  {PROFILE_CHECKS.map(({ label, done }) => (
+                  {profileChecks.map(({ label, done }) => (
                     <div key={label} className="flex items-center gap-2">
                       {done
                         ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />

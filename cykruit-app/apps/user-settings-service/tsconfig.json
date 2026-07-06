@@ -2,8 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "baseUrl": "../..",
-    "outDir": "../../dist/apps/auth-service",
-    "rootDir": "src",
+    "outDir": "../../dist/apps/user-settings-service",
+    "rootDir": "../..",
     "paths": {
       "@cykruit/prisma": ["libs/prisma/src/index.ts"],
       "@cykruit/config": ["libs/config/src/index.ts"],

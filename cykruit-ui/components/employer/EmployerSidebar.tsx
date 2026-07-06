@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Briefcase, Users, Building2, Bell,
   Settings, Shield, ChevronLeft, ChevronRight, LogOut, PlusCircle, MessageSquare,
@@ -27,6 +27,7 @@ export default function EmployerSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { openModal } = useModal();
   const { toast } = useToast();
 
@@ -36,8 +37,28 @@ export default function EmployerSidebar() {
       title: "Sign out?",
       description: "You'll need to sign back in to access your account.",
       confirmLabel: "Sign out",
-      onConfirm: () => {
-        toast({ type: "info", message: "Signed out successfully" });
+      onConfirm: async () => {
+        try {
+          const csrfCookie = document.cookie
+            .split("; ")
+            .find((row) => row.startsWith("csrf_token="));
+          const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
+
+          const response = await fetch("/api/auth/logout", {
+            method: "POST",
+            headers: {
+              "x-csrf-token": csrfToken,
+            },
+          });
+          if (response.ok) {
+            toast({ type: "success", message: "Logged out successfully" });
+            router.push("/login");
+          } else {
+            toast({ type: "error", message: "Logout failed" });
+          }
+        } catch (error) {
+          toast({ type: "error", message: "Logout request failed" });
+        }
       },
     });
   }

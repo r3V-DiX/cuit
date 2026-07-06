@@ -27,6 +27,44 @@ const cyberIcons = [
 async function fetchJobs(params: {
   q: string; spec: string; type: string; mode: string; page: number; limit: number;
 }): Promise<{ data: Job[]; total: number; totalPages: number }> {
+  try {
+    const { q, spec, type, mode, page, limit } = params;
+    const url = new URL("/api/public/jobs", window.location.origin);
+    if (q) url.searchParams.set("search", q);
+    if (type && type !== "All") {
+      url.searchParams.set("jobType", type.toUpperCase().replace("-", "_"));
+    }
+    if (mode && mode !== "All") {
+      url.searchParams.set("workMode", mode.toUpperCase().replace("-", "_"));
+    }
+    url.searchParams.set("page", String(page));
+    url.searchParams.set("limit", String(limit));
+
+    const res = await fetch(url.toString());
+    if (res.ok) {
+      const result = await res.json();
+      if (result.data) {
+        const mapped = result.data.map((job: any) => ({
+          id: job.id,
+          title: job.jobTitle,
+          company: job.employer?.companyName || "Unknown Company",
+          location: job.location?.displayName || "Remote",
+          type: job.jobType,
+          remote: job.workMode,
+          description: job.description || "",
+          logo: job.employer?.companyName?.[0] || "C",
+          accent: "bg-blue-100 text-blue-800",
+          posted: new Date(job.publishedAt || Date.now()).toLocaleDateString(),
+          tags: job.skills?.map((s: any) => s.name) || [],
+          domain: job.role?.name || "Cybersecurity",
+        }));
+        return { data: mapped, total: result.total, totalPages: result.totalPages };
+      }
+    }
+  } catch (error) {
+    // Fallback to mock data below
+  }
+
   const { q, spec, type, mode, page, limit } = params;
   const filtered = ALL_JOBS.filter((job) => {
     const query = q.toLowerCase();

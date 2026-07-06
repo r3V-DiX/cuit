@@ -50,3 +50,10 @@ prisma/migrations/dev_*
 # Dev scratch files
 combined-*.txt
 folder-structure.txt
+
+# Compiled TypeScript in source directories
+libs/**/*.js
+libs/**/*.d.ts
+apps/**/*.js
+apps/**/*.d.ts
+

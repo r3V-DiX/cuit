@@ -3,7 +3,7 @@
   "compilerOptions": {
     "baseUrl": "../..",
     "outDir": "../../dist/apps/employer-service",
-    "rootDir": "src",
+    "rootDir": "../..",
     "paths": {
       "@cykruit/prisma": ["libs/prisma/src/index.ts"],
       "@cykruit/config": ["libs/config/src/index.ts"],

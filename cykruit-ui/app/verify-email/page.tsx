@@ -1,25 +1,65 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Shield, CheckCircle2, XCircle, Loader2, ArrowRight } from "lucide-react";
 
 type Status = "verifying" | "success" | "failed";
 
+function VerifyEmailContent({ status, setStatus }: { status: Status; setStatus: (s: Status) => void }) {
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+
+  useEffect(() => {
+    if (!token) {
+      setStatus("failed");
+      return;
+    }
+
+    let isMounted = true;
+
+    async function verify() {
+      try {
+        const response = await fetch("/api/auth/verify-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ token }),
+        });
+        if (!response.ok) {
+          throw new Error("Verification failed");
+        }
+        if (isMounted) {
+          setStatus("success");
+        }
+      } catch (err) {
+        if (isMounted) {
+          setStatus("failed");
+        }
+      }
+    }
+
+    verify();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token, setStatus]);
+
+  return null;
+}
+
 export default function VerifyEmailPage() {
   const [status, setStatus] = useState<Status>("verifying");
 
-  // Simulate token verification on mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // Mock: always succeeds. Real impl reads `?token=` from URL and hits API.
-      setStatus("success");
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center relative overflow-hidden px-4 py-12">
+      <Suspense fallback={null}>
+        <VerifyEmailContent status={status} setStatus={setStatus} />
+      </Suspense>
+
       {/* Grid background */}
       <div className="absolute inset-0 pointer-events-none" style={{
         backgroundImage: "linear-gradient(rgba(59,130,246,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.06) 1px, transparent 1px)",

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Shield, Eye, EyeOff, ArrowRight, User, ChevronLeft, Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 
 function getPasswordStrength(p: string): { score: number; label: string; color: string; bars: string } {
@@ -30,6 +31,7 @@ export default function SeekerRegisterPage() {
   const [agreed,    setAgreed]    = useState(false);
   const [loading,   setLoading]   = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const strength = getPasswordStrength(password);
 
@@ -41,9 +43,34 @@ export default function SeekerRegisterPage() {
     if (password !== confirm)  { toast({ type: "error", message: "Passwords do not match" }); return; }
     if (!agreed) { toast({ type: "error", message: "You must agree to the Terms of Service and Privacy Policy" }); return; }
     setLoading(true);
-    await new Promise((res) => setTimeout(res, 1200));
-    toast({ type: "success", message: "Account created!", description: "Welcome to Cykruit." });
-    setLoading(false);
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          password,
+          confirmPassword: confirm,
+          role: "SEEKER",
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to create account");
+      }
+      toast({ type: "success", message: "Account created!", description: "Please check your email to verify your account." });
+      setTimeout(() => {
+        router.push("/verify-email/check");
+      }, 1500);
+    } catch (error: any) {
+      toast({ type: "error", message: error.message || "Registration failed" });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

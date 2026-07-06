@@ -54,6 +54,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/employer-service/tsconfig.build.json"
       }
+    },
+    "public-service": {
+      "type": "application",
+      "root": "apps/public-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/public-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/public-service/tsconfig.build.json"
+      }
     }
   }
 }

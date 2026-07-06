@@ -25,10 +25,46 @@ export default function LoginPage() {
       return;
     }
     setLoading(true);
-    // TODO: POST /api/auth/login
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    toast({ type: "success", message: "Signed in successfully" });
-    setLoading(false);
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to authenticate");
+      }
+      toast({ type: "success", message: "Signed in successfully" });
+      const role = result.data?.role;
+      if (role === "EMPLOYER") {
+        router.push("/employer/dashboard");
+      } else {
+        router.push("/dashboard");
+      }
+    } catch (error: any) {
+      toast({ type: "error", message: error.message || "Authentication failed" });
+    } finally {
+      setLoading(false);
+    }
+  }  async function handleGoogleSignIn() {
+    try {
+      const response = await fetch("/api/auth/google?role=SEEKER");
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data?.url) {
+          window.location.href = result.data.url;
+        } else {
+          toast({ type: "error", message: "Failed to get Google sign-in URL" });
+        }
+      } else {
+        toast({ type: "error", message: "Google auth service unavailable" });
+      }
+    } catch (err) {
+      toast({ type: "error", message: "Failed to connect to authentication server" });
+    }
   }
 
   return (
@@ -227,7 +263,7 @@ export default function LoginPage() {
 
             <button
               type="button"
-              onClick={() => toast({ type: "info", message: "Google sign-in coming soon" })}
+              onClick={handleGoogleSignIn}
               className="w-full h-11 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-3 shadow-sm"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">

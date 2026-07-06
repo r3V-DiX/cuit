@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
@@ -14,7 +15,64 @@ import { use } from "react";
 
 export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const job = jobs.find((j) => j.id === Number(id));
+  const [job, setJob] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadJob() {
+      try {
+        const response = await fetch(`/api/public/jobs/${id}`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result) {
+            setJob({
+              id: result.id,
+              title: result.jobTitle,
+              company: result.employer?.companyName || "Unknown Company",
+              location: result.location?.displayName || "Remote",
+              type: result.jobType,
+              remote: result.workMode,
+              description: result.description || "",
+              logo: result.employer?.companyName?.[0] || "C",
+              accent: "bg-blue-100 text-blue-800",
+              posted: new Date(result.publishedAt || Date.now()).toLocaleDateString(),
+              tags: result.skills?.map((s: any) => s.name) || [],
+              domain: result.role?.name || "Cybersecurity",
+              responsibilities: [],
+              requirements: result.certifications?.map((c: any) => c.name) || [],
+              niceToHave: [],
+              companyDescription: result.employer?.about || "",
+              companyIndustry: result.employer?.industry || "",
+              companySize: result.employer?.companySize || "",
+            });
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (err) {
+        // Fallback to mock data below
+      }
+
+      // Mock fallback
+      const mockJob = jobs.find((j) => j.id === Number(id) || j.title.toLowerCase().replace(/\s+/g, "-") === id);
+      setJob(mockJob || null);
+      setLoading(false);
+    }
+    loadJob();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <main className="min-h-screen bg-slate-50 flex items-center justify-center">
+          <p className="text-slate-400 text-sm">Loading job details...</p>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
   if (!job) notFound();
 
   const related = jobs.filter((j) => j.id !== job.id && j.domain === job.domain).slice(0, 3);
@@ -67,7 +125,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 mt-3">
-                  {job.tags.map((tag) => (
+                  {job.tags.map((tag: string) => (
                     <span key={tag} className="px-2.5 py-1 text-[11px] font-mono font-medium text-slate-600 bg-slate-100 rounded-lg">
                       {tag}
                     </span>
@@ -107,7 +165,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <section className="bg-white rounded-2xl border border-slate-200 p-6">
                 <h2 className="text-sm font-semibold text-slate-900 mb-3">Responsibilities</h2>
                 <ul className="space-y-2.5">
-                  {job.responsibilities.map((r, i) => (
+                  {job.responsibilities.map((r: string, i: number) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
                       <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
                       {r}
@@ -120,7 +178,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <section className="bg-white rounded-2xl border border-slate-200 p-6">
                 <h2 className="text-sm font-semibold text-slate-900 mb-3">Requirements</h2>
                 <ul className="space-y-2.5">
-                  {job.requirements.map((r, i) => (
+                  {job.requirements.map((r: string, i: number) => (
                     <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
                       <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
                       {r}
@@ -134,8 +192,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 <section className="bg-white rounded-2xl border border-slate-200 p-6">
                   <h2 className="text-sm font-semibold text-slate-900 mb-3">Nice to Have</h2>
                   <ul className="space-y-2.5">
-                    {job.niceToHave.map((r, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-sm text-slate-500">
+                    {job.niceToHave.map((r: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2.5 text-sm text-slate-500 font-mono">
                         <span className="w-4 h-4 rounded-full border-2 border-slate-200 shrink-0 mt-0.5" />
                         {r}
                       </li>

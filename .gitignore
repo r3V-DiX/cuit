@@ -1,0 +1,10 @@
+.idea/
+*.swp
+*.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+.agents/
+.codex/
+.vscode/

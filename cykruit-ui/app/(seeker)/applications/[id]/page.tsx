@@ -62,6 +62,7 @@ export default function ApplicationDetailPage() {
   const activeStep = isTerminal ? -1 : STATUS_CFG[app.status].step;
 
   function withdraw() {
+    if (!app) return;
     openModal({
       variant: "danger",
       title: "Withdraw application?",

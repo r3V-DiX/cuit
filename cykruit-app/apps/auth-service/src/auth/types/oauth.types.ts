@@ -5,37 +5,37 @@
 // Two import paths for the same type causes subtle mismatches in strict TS environments
 // Now: all files import OAuthProvider directly from '@prisma/client' — single source of truth
 
-import { UserRole } from '@prisma/client';
-export { OAuthProvider } from '@prisma/client';
+import { UserRole } from "@prisma/client";
+export { OAuthProvider } from "@prisma/client";
 
 export interface OAuthUserData {
-    providerId: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    profileImage?: string;
-    provider: import('@prisma/client').OAuthProvider;
+  providerId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  profileImage?: string;
+  provider: import("@prisma/client").OAuthProvider;
 }
 
 export interface OAuthState {
-    role: UserRole;
-    timestamp: number;
-    nonce: string;
-    redirectUrl?: string;
+  role: UserRole;
+  timestamp: number;
+  nonce: string;
+  redirectUrl?: string;
 }
 
 export interface OAuthLoginResult {
-    user: any;
-    sessionToken: string;
-    isNewUser: boolean;
-    linkedAccount: boolean;
+  user: any;
+  sessionToken: string;
+  isNewUser: boolean;
+  linkedAccount: boolean;
 }
 
 export interface OAuthTokenResponse {
-    access_token: string;
-    token_type: string;
-    expires_in?: number;
-    refresh_token?: string;
-    scope?: string;
-    id_token?: string;
+  access_token: string;
+  token_type: string;
+  expires_in?: number;
+  refresh_token?: string;
+  scope?: string;
+  id_token?: string;
 }

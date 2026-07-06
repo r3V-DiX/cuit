@@ -1,9 +1,9 @@
 // libs/mail/src/templates/verification.template.ts
-import { baseTemplate } from './base.template';
-import { cyberButton } from './cyber-button.template';
+import { baseTemplate } from "./base.template";
+import { cyberButton } from "./cyber-button.template";
 
 export const verificationTemplate = (verifyUrl: string): string =>
-    baseTemplate(`
+  baseTemplate(`
     <div style="text-align:center;margin-bottom:30px;">
       <div style="font-size:48px;margin-bottom:16px;">✉️</div>
       <h2 style="margin:0 0 10px 0;font-size:26px;font-weight:700;color:#1B3C8B;">Verify Your Email</h2>
@@ -14,7 +14,7 @@ export const verificationTemplate = (verifyUrl: string): string =>
       Thanks for signing up! Please click the button below to verify your email address and activate your account.
     </p>
 
-    ${cyberButton('Verify My Email', verifyUrl)}
+    ${cyberButton("Verify My Email", verifyUrl)}
 
     <div style="background:#f1f5f9;border-radius:8px;padding:16px;margin:24px 0;border-left:4px solid #1B3C8B;">
       <p style="margin:0;font-size:13px;color:#475569;">
