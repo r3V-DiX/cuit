@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
@@ -11,7 +11,7 @@ import {
   CheckCircle2, Eye, XCircle, Send, X, AlertCircle,
   Clock, MessageSquare,
 } from "lucide-react";
-import type { AppStatus } from "../data";
+import type { AppStatus, Application } from "../data";
 import { SEED } from "../data";
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -39,7 +39,13 @@ export default function ApplicationDetailPage() {
   const { toast } = useToast();
   const { openModal } = useModal();
 
-  const [apps, setApps] = useState(SEED);
+  const [apps, setApps] = useState<Application[]>([]);
+
+  useEffect(() => {
+    const local = JSON.parse(localStorage.getItem("cykruit_applications") || "[]");
+    setApps(local);
+  }, []);
+
   const app = apps.find((a) => String(a.id) === String(id));
 
   if (!app) {
@@ -69,7 +75,15 @@ export default function ApplicationDetailPage() {
       description: `You are about to withdraw your application for "${app.role}" at ${app.company}. This cannot be undone.`,
       confirmLabel: "Withdraw",
       onConfirm: () => {
-        setApps((prev) => prev.map((a) => a.id === app.id ? {
+        const local = JSON.parse(localStorage.getItem("cykruit_applications") || "[]");
+        const nextLocal = local.map((a: any) => String(a.id) === String(app.id) ? {
+          ...a,
+          status: "Withdrawn",
+          timeline: [...a.timeline, { date: "Today", event: "Application withdrawn" }]
+        } : a);
+        localStorage.setItem("cykruit_applications", JSON.stringify(nextLocal));
+
+        setApps((prev) => prev.map((a) => String(a.id) === String(app.id) ? {
           ...a,
           status: "Withdrawn" as AppStatus,
           timeline: [...a.timeline, { date: "Today", event: "Application withdrawn" }],

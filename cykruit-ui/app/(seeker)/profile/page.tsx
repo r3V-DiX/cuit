@@ -66,28 +66,67 @@ export default function ProfilePage() {
   // Photo
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
-  function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
       toast({ type: "error", message: "Image too large", description: "Please upload an image under 2 MB." });
       return;
     }
-    const url = URL.createObjectURL(file);
-    setPhotoUrl(url);
-    toast({ type: "success", message: "Photo updated" });
+    
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/profile/image", {
+        method: "PATCH",
+        headers: {
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: formData,
+      });
+
+      if (res.ok) {
+        toast({ type: "success", message: "Photo updated" });
+        loadProfile();
+      } else {
+        toast({ type: "error", message: "Failed to upload photo" });
+      }
+    } catch (err) {
+      toast({ type: "error", message: "Error uploading photo" });
+    }
     e.target.value = "";
   }
 
+  async function deletePhoto() {
+    try {
+      const res = await fetch("/api/profile/image", {
+        method: "DELETE",
+        headers: {
+          "x-csrf-token": getCsrfToken(),
+        },
+      });
+      if (res.ok) {
+        toast({ type: "success", message: "Photo removed" });
+        loadProfile();
+      } else {
+        toast({ type: "error", message: "Failed to remove photo" });
+      }
+    } catch (err) {
+      toast({ type: "error", message: "Error removing photo" });
+    }
+  }
+
   // Basic details
-  type BasicDetails = { name: string; title: string; location: string; phone: string; linkedin: string; github: string; portfolio: string; twitter: string };
+  type BasicDetails = { name: string; email: string; title: string; location: string; phone: string; linkedin: string; github: string; portfolio: string; twitter: string };
   const [basics, setBasics] = useState<BasicDetails>({
-    name: "Aryan Mehta",
-    title: "Senior Penetration Tester",
-    location: "Mumbai, India",
-    phone: "+91 98765 43210",
-    linkedin: "linkedin.com/in/aryanmehta",
-    github: "github.com/aryan-htb",
+    name: "User",
+    email: "",
+    title: "",
+    location: "",
+    phone: "",
+    linkedin: "",
+    github: "",
     portfolio: "",
     twitter: "",
   });
@@ -106,7 +145,13 @@ export default function ProfilePage() {
       return;
     }
     try {
+      const nameParts = basicsBuffer.name.trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
       const body: any = {
+        firstName,
+        lastName,
         title: basicsBuffer.title || "",
       };
       if (basicsBuffer.linkedin) body.linkedin = basicsBuffer.linkedin.startsWith("http") ? basicsBuffer.linkedin : `https://${basicsBuffer.linkedin}`;
@@ -136,7 +181,7 @@ export default function ProfilePage() {
   }
 
   const [editingBio, setEditingBio] = useState(false);
-  const [bio, setBio] = useState("Security practitioner with 5+ years in offensive security. Specialize in web app pentesting and red team operations. OSCP certified. Active on HackTheBox (Pro Hacker rank).");
+  const [bio, setBio] = useState("");
   const [bioBuffer, setBioBuffer] = useState(bio);
 
   async function saveBio() {
@@ -164,29 +209,76 @@ export default function ProfilePage() {
   }
 
   // Skills
-  const [skills, setSkills] = useState(SEED_SKILLS);
+  const [skills, setSkills] = useState<{ id: string; name: string }[]>([]);
   const [newSkill, setNewSkill] = useState("");
 
-  function addSkill() {
+  async function addSkill() {
     const trimmed = newSkill.trim();
     if (!trimmed) return;
-    if (skills.includes(trimmed)) {
+    if (skills.some((s) => s.name.toLowerCase() === trimmed.toLowerCase())) {
       toast({ type: "warning", message: "Already added", description: `"${trimmed}" is already in your skills.` });
       return;
     }
-    setSkills([...skills, trimmed]);
-    setNewSkill("");
-    toast({ type: "success", message: "Skill added", description: `"${trimmed}" added to your profile.` });
+
+    try {
+      const searchRes = await fetch(`/api/profile/skills/search?query=${encodeURIComponent(trimmed)}`);
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        const found = searchData.data?.skills?.[0];
+        if (!found) {
+          toast({ type: "warning", message: "Skill not found", description: `"${trimmed}" is not a recognized skill. Try "Pentesting" or "Python".` });
+          return;
+        }
+
+        const addRes = await fetch("/api/profile/skills", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-csrf-token": getCsrfToken(),
+          },
+          body: JSON.stringify({
+            skillId: found.id,
+            proficiency: "Intermediate",
+            yearsOfExperience: 2,
+          }),
+        });
+
+        if (addRes.ok) {
+          toast({ type: "success", message: "Skill added", description: `"${found.name}" added to your profile.` });
+          setNewSkill("");
+          loadProfile();
+        } else {
+          const err = await addRes.json();
+          toast({ type: "error", message: "Failed to add skill", description: err.message });
+        }
+      }
+    } catch (err) {
+      toast({ type: "error", message: "Error searching skill catalog" });
+    }
   }
 
-  function removeSkill(skill: string) {
-    setSkills(skills.filter((s) => s !== skill));
-    toast({ type: "info", message: "Skill removed", description: `"${skill}" was removed.` });
+  async function removeSkill(id: string, name: string) {
+    try {
+      const res = await fetch(`/api/profile/skills/${id}`, {
+        method: "DELETE",
+        headers: {
+          "x-csrf-token": getCsrfToken(),
+        },
+      });
+      if (res.ok) {
+        toast({ type: "info", message: "Skill removed", description: `"${name}" was removed.` });
+        loadProfile();
+      } else {
+        toast({ type: "error", message: "Failed to remove skill" });
+      }
+    } catch (err) {
+      toast({ type: "error", message: "Error removing skill" });
+    }
   }
 
   // Experience
-  type Exp = { id: number; role: string; company: string; period: string; desc: string };
-  const [experience, setExperience] = useState<Exp[]>(SEED_EXPERIENCE);
+  type Exp = { id: string; role: string; company: string; period: string; desc: string };
+  const [experience, setExperience] = useState<Exp[]>([]);
   const [editingExp, setEditingExp] = useState<Exp | null>(null);
   const [addingExp, setAddingExp] = useState(false);
   const currentYear = new Date().getFullYear();
@@ -215,7 +307,7 @@ export default function ProfilePage() {
     setEditingExp(exp);
     setAddingExp(true);
   }
-  function saveExp() {
+  async function saveExp() {
     if (!expForm.role.trim() || !expForm.company.trim()) {
       toast({ type: "error", message: "Missing fields", description: "Role and company are required." });
       return;
@@ -224,33 +316,73 @@ export default function ProfilePage() {
       toast({ type: "error", message: "Missing start year", description: "Please select a start year." });
       return;
     }
-    const period = expFormToPeriod(expForm);
-    if (editingExp) {
-      setExperience(experience.map((e) => (e.id === editingExp.id ? { ...editingExp, role: expForm.role, company: expForm.company, period, desc: expForm.desc } : e)));
-      toast({ type: "success", message: "Experience updated" });
-    } else {
-      setExperience([{ id: Date.now(), role: expForm.role, company: expForm.company, period, desc: expForm.desc }, ...experience]);
-      toast({ type: "success", message: "Experience added" });
+
+    const payload = {
+      title: expForm.role,
+      company: expForm.company,
+      location: "Remote",
+      startDate: `${expForm.startYear}-01`,
+      endDate: expForm.endYear === "Present" ? undefined : `${expForm.endYear}-01`,
+      current: expForm.endYear === "Present",
+      description: expForm.desc.length >= 5 ? expForm.desc : "Security Role",
+      tools: ["Cybersecurity"],
+    };
+
+    try {
+      const url = editingExp ? `/api/profile/experiences/${editingExp.id}` : "/api/profile/experiences";
+      const method = editingExp ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        toast({ type: "success", message: editingExp ? "Experience updated" : "Experience added" });
+        loadProfile();
+        setAddingExp(false);
+        setEditingExp(null);
+      } else {
+        const err = await res.json();
+        toast({ type: "error", message: "Failed to save experience", description: err.message });
+      }
+    } catch (err) {
+      toast({ type: "error", message: "Error saving experience" });
     }
-    setAddingExp(false);
-    setEditingExp(null);
   }
-  function deleteExp(id: number) {
+  async function deleteExp(id: string) {
     openModal({
       variant: "danger",
       title: "Delete experience?",
       description: "This entry will be permanently removed from your profile.",
       confirmLabel: "Delete",
-      onConfirm: () => {
-        setExperience(experience.filter((e) => e.id !== id));
-        toast({ type: "success", message: "Experience removed" });
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/profile/experiences/${id}`, {
+            method: "DELETE",
+            headers: {
+              "x-csrf-token": getCsrfToken(),
+            },
+          });
+          if (res.ok) {
+            toast({ type: "success", message: "Experience removed" });
+            loadProfile();
+          } else {
+            toast({ type: "error", message: "Failed to remove experience" });
+          }
+        } catch (err) {
+          toast({ type: "error", message: "Error removing experience" });
+        }
       },
     });
   }
 
   // Education
-  type Edu = { id: number; degree: string; school: string; startYear: string; endYear: string; desc: string };
-  const [education, setEducation] = useState<Edu[]>(SEED_EDUCATION);
+  type Edu = { id: string; degree: string; school: string; startYear: string; endYear: string; desc: string };
+  const [education, setEducation] = useState<Edu[]>([]);
   const [editingEdu, setEditingEdu] = useState<Edu | null>(null);
   const [addingEdu, setAddingEdu] = useState(false);
   const [eduForm, setEduForm] = useState({ degree: "", school: "", startYear: "", endYear: "", desc: "" });
@@ -265,103 +397,220 @@ export default function ProfilePage() {
     setEditingEdu(edu);
     setAddingEdu(true);
   }
-  function saveEdu() {
+  async function saveEdu() {
     if (!eduForm.degree.trim() || !eduForm.school.trim()) {
       toast({ type: "error", message: "Missing fields", description: "Degree and school are required." });
       return;
     }
-    if (editingEdu) {
-      setEducation(education.map((e) => (e.id === editingEdu.id ? { ...editingEdu, ...eduForm } : e)));
-      toast({ type: "success", message: "Education updated" });
-    } else {
-      setEducation([{ id: Date.now(), ...eduForm }, ...education]);
-      toast({ type: "success", message: "Education added" });
+    
+    const payload = {
+      degree: eduForm.degree,
+      instituteName: eduForm.school,
+      startDate: eduForm.startYear || `${new Date().getFullYear()}`,
+      endDate: eduForm.endYear === "Present" || !eduForm.endYear ? undefined : eduForm.endYear,
+      description: eduForm.desc || undefined,
+    };
+
+    try {
+      const url = editingEdu ? `/api/profile/education/${editingEdu.id}` : "/api/profile/education";
+      const method = editingEdu ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        toast({ type: "success", message: editingEdu ? "Education updated" : "Education added" });
+        loadProfile();
+        setAddingEdu(false);
+        setEditingEdu(null);
+      } else {
+        const err = await res.json();
+        toast({ type: "error", message: "Failed to save education", description: err.message });
+      }
+    } catch (err) {
+      toast({ type: "error", message: "Error saving education" });
     }
-    setAddingEdu(false);
-    setEditingEdu(null);
   }
-  function deleteEdu(id: number) {
+  async function deleteEdu(id: string) {
     openModal({
       variant: "danger",
       title: "Remove education?",
       description: "This entry will be permanently removed from your profile.",
       confirmLabel: "Remove",
-      onConfirm: () => {
-        setEducation(education.filter((e) => e.id !== id));
-        toast({ type: "success", message: "Education removed" });
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/profile/education/${id}`, {
+            method: "DELETE",
+            headers: {
+              "x-csrf-token": getCsrfToken(),
+            },
+          });
+          if (res.ok) {
+            toast({ type: "success", message: "Education removed" });
+            loadProfile();
+          } else {
+            toast({ type: "error", message: "Failed to remove education" });
+          }
+        } catch (err) {
+          toast({ type: "error", message: "Error removing education" });
+        }
       },
     });
   }
 
   // Certifications
-  type Cert = { id: number; name: string; issuer: string; year: string; badge: string };
-  const [certs, setCerts] = useState<Cert[]>(SEED_CERTS);
+  type Cert = { id: string; name: string; issuer: string; year: string; badge: string };
+  const [certs, setCerts] = useState<Cert[]>([]);
   const [addingCert, setAddingCert] = useState(false);
   const [certForm, setCertForm] = useState({ name: "", issuer: "", year: "" });
 
-  function saveCert() {
+  async function saveCert() {
     if (!certForm.name.trim() || !certForm.issuer.trim()) {
       toast({ type: "error", message: "Missing fields", description: "Name and issuer are required." });
       return;
     }
-    const badges = [
-      "bg-blue-50 text-blue-700 border-blue-200",
-      "bg-purple-50 text-purple-700 border-purple-200",
-      "bg-amber-50 text-amber-700 border-amber-200",
-      "bg-emerald-50 text-emerald-700 border-emerald-200",
-    ];
-    setCerts([...certs, { id: Date.now(), ...certForm, badge: badges[certs.length % badges.length] }]);
-    setAddingCert(false);
-    setCertForm({ name: "", issuer: "", year: "" });
-    toast({ type: "success", message: "Certification added" });
+    
+    try {
+      const searchRes = await fetch(`/api/profile/certifications/search?query=${encodeURIComponent(certForm.name)}`);
+      if (searchRes.ok) {
+        const searchData = await searchRes.json();
+        const found = searchData.data?.certifications?.[0];
+        if (!found) {
+          toast({ type: "warning", message: "Certification not found", description: "Please use a standard certification like OSCP, CEH, or CISSP." });
+          return;
+        }
+        
+        const issueDate = certForm.year ? `${certForm.year}-01` : `${new Date().getFullYear()}-01`;
+        const addRes = await fetch("/api/profile/certifications", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-csrf-token": getCsrfToken(),
+          },
+          body: JSON.stringify({
+            certificationId: found.id,
+            issueDate,
+          }),
+        });
+        
+        if (addRes.ok) {
+          toast({ type: "success", message: "Certification added" });
+          loadProfile();
+          setAddingCert(false);
+          setCertForm({ name: "", issuer: "", year: "" });
+        } else {
+          const err = await addRes.json();
+          toast({ type: "error", message: "Failed to add certification", description: err.message });
+        }
+      }
+    } catch (err) {
+      toast({ type: "error", message: "Error searching certification catalog" });
+    }
   }
-  function deleteCert(id: number, name: string) {
+  async function deleteCert(id: string, name: string) {
     openModal({
       variant: "danger",
       title: `Remove "${name}"?`,
       description: "This certification will be removed from your profile.",
       confirmLabel: "Remove",
-      onConfirm: () => {
-        setCerts(certs.filter((c) => c.id !== id));
-        toast({ type: "success", message: "Certification removed" });
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/profile/certifications/${id}`, {
+            method: "DELETE",
+            headers: {
+              "x-csrf-token": getCsrfToken(),
+            },
+          });
+          if (res.ok) {
+            toast({ type: "success", message: "Certification removed" });
+            loadProfile();
+          } else {
+            toast({ type: "error", message: "Failed to remove certification" });
+          }
+        } catch (err) {
+          toast({ type: "error", message: "Error removing certification" });
+        }
       },
     });
   }
 
   // CTF
-  type CTFEntry = { id: number; platform: string; handle: string; rank: string; rankColor: string; url: string };
-  const [ctfList, setCtfList] = useState<CTFEntry[]>(SEED_CTF);
+  type CTFEntry = { id: string; platform: string; handle: string; rank: string; rankColor: string; url: string };
+  const [ctfList, setCtfList] = useState<CTFEntry[]>([]);
   const [addingCtf, setAddingCtf] = useState(false);
   const [ctfForm, setCtfForm] = useState({ platform: "", handle: "", rank: "", url: "" });
 
-  function saveCtf() {
+  async function saveCtf() {
     if (!ctfForm.platform.trim() || !ctfForm.handle.trim()) {
       toast({ type: "error", message: "Missing fields", description: "Platform and handle are required." });
       return;
     }
-    setCtfList([...ctfList, { id: Date.now(), ...ctfForm, rankColor: "text-slate-700 bg-slate-50 border-slate-200" }]);
-    setAddingCtf(false);
-    setCtfForm({ platform: "", handle: "", rank: "", url: "" });
-    toast({ type: "success", message: "CTF profile added" });
+    
+    const payload = {
+      platform: ctfForm.platform,
+      username: ctfForm.handle,
+      profileUrl: ctfForm.url || "https://hackthebox.com",
+      rank: ctfForm.rank || undefined,
+    };
+
+    try {
+      const res = await fetch("/api/profile/ctf-profiles", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        toast({ type: "success", message: "CTF profile added" });
+        loadProfile();
+        setAddingCtf(false);
+        setCtfForm({ platform: "", handle: "", rank: "", url: "" });
+      } else {
+        const err = await res.json();
+        toast({ type: "error", message: "Failed to add CTF profile", description: err.message });
+      }
+    } catch (err) {
+      toast({ type: "error", message: "Error saving CTF profile" });
+    }
   }
-  function deleteCtf(id: number, platform: string) {
+  async function deleteCtf(id: string, platform: string) {
     openModal({
       variant: "danger",
       title: `Remove ${platform}?`,
       description: "This profile will be removed.",
       confirmLabel: "Remove",
-      onConfirm: () => {
-        setCtfList(ctfList.filter((c) => c.id !== id));
-        toast({ type: "success", message: "CTF profile removed" });
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/profile/ctf-profiles/${id}`, {
+            method: "DELETE",
+            headers: {
+              "x-csrf-token": getCsrfToken(),
+            },
+          });
+          if (res.ok) {
+            toast({ type: "success", message: "CTF profile removed" });
+            loadProfile();
+          } else {
+            toast({ type: "error", message: "Failed to remove CTF profile" });
+          }
+        } catch (err) {
+          toast({ type: "error", message: "Error removing CTF profile" });
+        }
       },
     });
   }
 
   // Resume
-  type ResumeEntry = { id: number; label: string; fileName: string; size: string; date: string };
-  const [resumes, setResumes] = useState<ResumeEntry[]>([
-    { id: 1, label: "General Application", fileName: "Aryan_Mehta_Resume.pdf", size: "320 KB", date: "3 weeks ago" },
-  ]);
+  type ResumeEntry = { id: string; label: string; fileName: string; size: string; date: string };
+  const [resumes, setResumes] = useState<ResumeEntry[]>([]);
   const [addingResume, setAddingResume] = useState(false);
   const [resumeLabel, setResumeLabel] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -376,101 +625,172 @@ export default function ProfilePage() {
     setAddingResume(true);
   }
 
-  function saveResume() {
+  async function saveResume() {
     if (!pendingFile) return;
-    const label = resumeLabel.trim() || pendingFile.name.replace(/\.pdf$/i, "");
-    const sizekb = Math.round(pendingFile.size / 1024);
-    setResumes([...resumes, { id: Date.now(), label, fileName: pendingFile.name, size: `${sizekb} KB`, date: "just now" }]);
-    setPendingFile(null);
-    setAddingResume(false);
-    setResumeLabel("");
-    toast({ type: "success", message: "Resume added", description: `"${label}" has been saved.` });
+
+    const formData = new FormData();
+    formData.append("file", pendingFile);
+
+    try {
+      const res = await fetch("/api/profile/resumes", {
+        method: "POST",
+        headers: {
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: formData,
+      });
+
+      if (res.ok) {
+        toast({ type: "success", message: "Resume added" });
+        loadProfile();
+        setPendingFile(null);
+        setAddingResume(false);
+        setResumeLabel("");
+      } else {
+        const err = await res.json();
+        toast({ type: "error", message: "Failed to add resume", description: err.message });
+      }
+    } catch (err) {
+      toast({ type: "error", message: "Error uploading resume" });
+    }
   }
 
-  function removeResume(id: number, label: string) {
+  async function removeResume(id: string, label: string) {
     openModal({
       variant: "danger",
       title: `Remove "${label}"?`,
       description: "This resume will be permanently removed.",
       confirmLabel: "Remove",
-      onConfirm: () => {
-        setResumes(resumes.filter((r) => r.id !== id));
-        toast({ type: "success", message: "Resume removed" });
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/profile/resumes/${id}`, {
+            method: "DELETE",
+            headers: {
+              "x-csrf-token": getCsrfToken(),
+            },
+          });
+          if (res.ok) {
+            toast({ type: "success", message: "Resume removed" });
+            loadProfile();
+          } else {
+            toast({ type: "error", message: "Failed to remove resume" });
+          }
+        } catch (err) {
+          toast({ type: "error", message: "Error removing resume" });
+        }
       },
     });
   }
 
-  useEffect(() => {
-    async function loadProfile() {
+  async function loadProfile() {
+    try {
+      let userEmail = "";
       try {
-        const response = await fetch("/api/profile");
-        if (response.ok) {
-          const result = await response.json();
-          if (result.data) {
-            const data = result.data;
-            const b = data.basicInfo || {};
-            const initialBasics = {
-              name: [b.firstName, b.lastName].filter(Boolean).join(" ") || "User",
-              title: b.title || "",
-              location: b.location?.displayName || "",
-              phone: b.phone || "",
-              linkedin: b.linkedin || "",
-              github: b.github || "",
-              portfolio: b.portfolio || "",
-              twitter: "",
-            };
-            setBasics(initialBasics);
-            setBasicsBuffer(initialBasics);
-
-            if (data.summary) {
-              setBio(data.summary);
-              setBioBuffer(data.summary);
-            }
-            if (data.skills && Array.isArray(data.skills)) {
-              setSkills(data.skills.map((s: any) => s.skill?.name || s.name).filter(Boolean));
-            }
-            if (data.experiences && Array.isArray(data.experiences)) {
-              setExperience(data.experiences.map((e: any) => ({
-                id: e.id,
-                role: e.role,
-                company: e.companyName,
-                period: `${e.startDate ? new Date(e.startDate).getFullYear() : ""} – ${e.endDate ? new Date(e.endDate).getFullYear() : "Present"}`,
-                desc: e.description || "",
-              })));
-            }
-            if (data.certifications && Array.isArray(data.certifications)) {
-              setCerts(data.certifications.map((c: any) => ({
-                id: c.id,
-                name: c.certification?.name || c.name || "",
-                issuer: c.certification?.organization || c.issuer || "",
-                year: c.year || "",
-                badge: "bg-blue-50 text-blue-700 border-blue-200",
-              })));
-            }
-            if (data.ctfProfiles && Array.isArray(data.ctfProfiles)) {
-              setCtfList(data.ctfProfiles.map((c: any) => ({
-                id: c.id,
-                platform: c.platform,
-                handle: c.handle,
-                rank: c.rank || "Hacker",
-                rankColor: "text-green-700 bg-green-50 border-green-200",
-                url: c.profileUrl || "",
-              })));
-            }
-            if (data.education && Array.isArray(data.education)) {
-              setEducation(data.education.map((e: any) => ({
-                id: e.id,
-                degree: e.degree || "",
-                school: e.schoolName || "",
-                startYear: e.startDate ? String(new Date(e.startDate).getFullYear()) : "",
-                endYear: e.endDate ? String(new Date(e.endDate).getFullYear()) : "Present",
-                desc: e.description || "",
-              })));
-            }
+        const meRes = await fetch("/api/auth/me");
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          if (meData.data?.email) {
+            userEmail = meData.data.email;
           }
         }
-      } catch (err) {}
+      } catch (e) {}
+
+      const response = await fetch("/api/profile");
+      if (response.ok) {
+        const result = await response.json();
+        if (result.data) {
+          const data = result.data;
+          const b = data.basicInfo || {};
+          const initialBasics = {
+            name: [b.firstName, b.lastName].filter(Boolean).join(" ") || "User",
+            email: userEmail,
+            title: b.title || "",
+            location: b.location?.displayName || b.location?.city || "",
+            phone: b.phone || "",
+            linkedin: b.linkedin || "",
+            github: b.github || "",
+            portfolio: b.portfolio || "",
+            twitter: "",
+          };
+          setBasics(initialBasics);
+          setBasicsBuffer(initialBasics);
+
+          if (b.profileImage) {
+            setPhotoUrl(b.profileImage);
+          } else {
+            setPhotoUrl(null);
+          }
+
+          if (data.summary) {
+            setBio(data.summary);
+            setBioBuffer(data.summary);
+          }
+          if (data.skills && Array.isArray(data.skills)) {
+            setSkills(data.skills.map((s: any) => ({
+              id: s.id,
+              name: s.skill?.name || s.name
+            })).filter((s: any) => s.name));
+          }
+          if (data.experiences && Array.isArray(data.experiences)) {
+            setExperience(data.experiences.map((e: any) => ({
+              id: e.id,
+              role: e.role,
+              company: e.companyName,
+              period: `${e.startDate ? new Date(e.startDate).getFullYear() : ""} – ${e.endDate ? new Date(e.endDate).getFullYear() : "Present"}`,
+              desc: e.description || "",
+            })));
+          }
+          if (data.certifications && Array.isArray(data.certifications)) {
+            setCerts(data.certifications.map((c: any) => ({
+              id: c.id,
+              name: c.certification?.name || c.name || "",
+              issuer: c.certification?.organization || c.issuer || "",
+              year: c.issueDate ? String(new Date(c.issueDate).getFullYear()) : "",
+              badge: "bg-blue-50 text-blue-700 border-blue-200",
+            })));
+          }
+          if (data.ctfProfiles && Array.isArray(data.ctfProfiles)) {
+            setCtfList(data.ctfProfiles.map((c: any) => ({
+              id: c.id,
+              platform: c.platform,
+              handle: c.username || c.handle,
+              rank: c.rank || "Hacker",
+              rankColor: "text-green-700 bg-green-50 border-green-200",
+              url: c.profileUrl || "",
+            })));
+          }
+          if (data.education && Array.isArray(data.education)) {
+            setEducation(data.education.map((e: any) => ({
+              id: e.id,
+              degree: e.degree || "",
+              school: e.schoolName || "",
+              startYear: e.startDate ? String(new Date(e.startDate).getFullYear()) : "",
+              endYear: e.endDate ? String(new Date(e.endDate).getFullYear()) : "Present",
+              desc: e.description || "",
+            })));
+          }
+        }
+      }
+
+      const resumeRes = await fetch("/api/profile/resumes");
+      if (resumeRes.ok) {
+        const resumeData = await resumeRes.json();
+        if (resumeData.data) {
+          setResumes(resumeData.data.resumes.map((r: any) => ({
+            id: r.id,
+            label: r.fileName.replace(/\.pdf$/i, ""),
+            fileName: r.fileName,
+            size: `${Math.round(r.size / 1024)} KB`,
+            date: r.updatedAt ? new Date(r.updatedAt).toLocaleDateString() : "Just now",
+          })));
+        }
+      }
+    } catch (err) {
+      console.error(err);
     }
+  }
+
+  useEffect(() => {
     loadProfile();
   }, []);
 
@@ -603,7 +923,7 @@ export default function ProfilePage() {
                         <div>
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Email address</label>
                           <div className="relative">
-                            <input value="aryan.mehta@email.com" disabled className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 text-sm cursor-not-allowed select-none" />
+                            <input value={basicsBuffer.email || ""} disabled className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 text-sm cursor-not-allowed select-none" />
                             <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-300 pointer-events-none" />
                           </div>
                         </div>
@@ -646,7 +966,7 @@ export default function ProfilePage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
                           { label: "Full name", value: basics.name },
-                          { label: "Email address", value: "aryan.mehta@email.com", locked: true },
+                          { label: "Email address", value: basics.email, locked: true },
                           { label: "Job title", value: basics.title },
                           { label: "Phone", value: basics.phone },
                           { label: "Location", value: basics.location },
@@ -730,12 +1050,12 @@ export default function ProfilePage() {
                     <div className="flex flex-wrap gap-2 mb-3">
                       {skills.map((skill) => (
                         <span
-                          key={skill}
+                          key={skill.id}
                           className="group flex items-center gap-1.5 text-xs font-mono text-slate-600 bg-slate-100 hover:bg-red-50 hover:text-red-600 px-2.5 py-1 rounded-lg transition-colors cursor-default"
                         >
-                          {skill}
-                          <button onClick={() => removeSkill(skill)} className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <X className="w-3 h-3" />
+                          {skill.name}
+                          <button onClick={() => removeSkill(skill.id, skill.name)} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         </span>
                       ))}

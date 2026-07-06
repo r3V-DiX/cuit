@@ -6,6 +6,7 @@ import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { jobs } from "@/lib/jobs-data";
+import { useToast } from "@/components/ui/Toast";
 import {
   MapPin, Clock, Briefcase, ArrowLeft, ArrowRight,
   CheckCircle2, Shield, ChevronRight, Bookmark, Send,
@@ -15,8 +16,11 @@ import { use } from "react";
 
 export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { toast } = useToast();
   const [job, setJob] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isApplied, setIsApplied] = useState(false);
 
   useEffect(() => {
     async function loadJob() {
@@ -60,6 +64,93 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     }
     loadJob();
   }, [id]);
+
+  useEffect(() => {
+    if (job) {
+      const saved = JSON.parse(localStorage.getItem("cykruit_saved_jobs") || "[]");
+      setIsSaved(saved.some((s: any) => String(s.id) === String(job.id)));
+      const applied = JSON.parse(localStorage.getItem("cykruit_applications") || "[]");
+      setIsApplied(applied.some((a: any) => String(a.jobId) === String(job.id)));
+    }
+  }, [job]);
+
+  function handleSave() {
+    if (!job) return;
+    const saved = JSON.parse(localStorage.getItem("cykruit_saved_jobs") || "[]");
+    if (isSaved) {
+      const next = saved.filter((s: any) => String(s.id) !== String(job.id));
+      localStorage.setItem("cykruit_saved_jobs", JSON.stringify(next));
+      setIsSaved(false);
+      toast({ type: "info", message: "Job removed", description: `"${job.title}" removed from Saved.` });
+    } else {
+      saved.push(job);
+      localStorage.setItem("cykruit_saved_jobs", JSON.stringify(saved));
+      setIsSaved(true);
+
+      // Push notification to localStorage
+      const notifications = JSON.parse(localStorage.getItem("cykruit_notifications") || "[]");
+      const newNotif = {
+        id: Date.now(),
+        type: "job_match",
+        title: "Job saved",
+        body: `You saved "${job.title}" at ${job.company}.`,
+        time: "Just now",
+        timeTs: Date.now(),
+        read: false,
+        link: "/saved",
+        meta: job.company
+      };
+      notifications.unshift(newNotif);
+      localStorage.setItem("cykruit_notifications", JSON.stringify(notifications));
+
+      toast({ type: "success", message: "Job saved", description: `"${job.title}" added to Saved.` });
+    }
+  }
+
+  function handleApply() {
+    if (!job) return;
+    if (isApplied) {
+      toast({ type: "warning", message: "Already applied", description: "You have already applied for this role." });
+      return;
+    }
+    const applied = JSON.parse(localStorage.getItem("cykruit_applications") || "[]");
+    const newApp = {
+      id: `app-${Date.now()}`,
+      jobId: job.id,
+      role: job.title,
+      company: job.company,
+      location: job.location,
+      type: job.type,
+      applied: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+      status: "Applied",
+      resume: "General Application",
+      coverNote: "Excited about this opportunity. Let's talk!",
+      timeline: [
+        { date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), event: "Application submitted" }
+      ]
+    };
+    applied.push(newApp);
+    localStorage.setItem("cykruit_applications", JSON.stringify(applied));
+
+    // Push notification to localStorage
+    const notifications = JSON.parse(localStorage.getItem("cykruit_notifications") || "[]");
+    const newNotif = {
+      id: Date.now(),
+      type: "application",
+      title: "Application submitted",
+      body: `You successfully submitted your application for "${job.title}" at ${job.company}.`,
+      time: "Just now",
+      timeTs: Date.now(),
+      read: false,
+      link: `/applications/${newApp.id}`,
+      meta: job.company,
+    };
+    notifications.unshift(newNotif);
+    localStorage.setItem("cykruit_notifications", JSON.stringify(notifications));
+
+    setIsApplied(true);
+    toast({ type: "success", message: "Application submitted", description: `Applied to "${job.title}" at ${job.company}!` });
+  }
 
   if (loading) {
     return (
@@ -135,11 +226,25 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
               {/* CTA buttons */}
               <div className="flex sm:flex-col gap-2 shrink-0">
-                <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20">
-                  <Send className="w-4 h-4" /> Apply Now
+                <button
+                  onClick={handleApply}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer ${
+                    isApplied
+                      ? "bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed"
+                      : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20"
+                  }`}
+                >
+                  <Send className="w-4 h-4" /> {isApplied ? "Applied" : "Apply Now"}
                 </button>
-                <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-colors">
-                  <Bookmark className="w-4 h-4" /> Save
+                <button
+                  onClick={handleSave}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border text-sm font-semibold transition-colors cursor-pointer ${
+                    isSaved
+                      ? "border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100/50"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300"
+                  }`}
+                >
+                  <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current" : ""}`} /> {isSaved ? "Saved" : "Save"}
                 </button>
               </div>
             </div>
@@ -211,11 +316,25 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <div className="bg-white rounded-2xl border border-slate-200 p-5">
                 <p className="text-sm font-semibold text-slate-900 mb-1">Ready to apply?</p>
                 <p className="text-xs text-slate-500 mb-4">Submit your application directly to {job.company}.</p>
-                <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20">
-                  <Send className="w-4 h-4" /> Apply Now
+                <button
+                  onClick={handleApply}
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer ${
+                    isApplied
+                      ? "bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed"
+                      : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20"
+                  }`}
+                >
+                  <Send className="w-4 h-4" /> {isApplied ? "Applied" : "Apply Now"}
                 </button>
-                <button className="mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors">
-                  <Bookmark className="w-4 h-4" /> Save Job
+                <button
+                  onClick={handleSave}
+                  className={`mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-colors cursor-pointer ${
+                    isSaved
+                      ? "border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100/50"
+                      : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current" : ""}`} /> {isSaved ? "Saved" : "Save Job"}
                 </button>
               </div>
 

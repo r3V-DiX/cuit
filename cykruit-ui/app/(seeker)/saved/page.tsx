@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { useToast } from "@/components/ui/Toast";
@@ -113,12 +113,30 @@ export default function SavedPage() {
   const { toast } = useToast();
   const { openModal } = useModal();
 
-  const [jobs, setJobs] = useState<SavedJob[]>(SEED);
+  const [jobs, setJobs] = useState<SavedJob[]>([]);
   const [search, setSearch] = useState("");
   const [modeFilter, setModeFilter] = useState<WorkMode | "All">("All");
   const [typeFilter, setTypeFilter] = useState("All");
   const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    const local = JSON.parse(localStorage.getItem("cykruit_saved_jobs") || "[]");
+    setJobs(local.map((j: any) => ({
+      id: String(j.id),
+      role: j.title || j.role,
+      company: j.company,
+      location: j.location,
+      mode: j.remote || j.mode || "Remote",
+      type: j.type,
+      domain: j.domain,
+      tags: j.tags || [],
+      saved: "Just now",
+      savedTs: Date.now(),
+      urgent: false,
+      description: j.description || "",
+    })));
+  }, []);
 
   // ── Computed ─────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -143,6 +161,10 @@ export default function SavedPage() {
 
   // ── Actions ───────────────────────────────────────────────────────────────────
   function unsave(job: SavedJob) {
+    const saved = JSON.parse(localStorage.getItem("cykruit_saved_jobs") || "[]");
+    const nextSaved = saved.filter((j: any) => String(j.id) !== String(job.id));
+    localStorage.setItem("cykruit_saved_jobs", JSON.stringify(nextSaved));
+
     setJobs((prev) => prev.filter((j) => j.id !== job.id));
     toast({ type: "info", message: "Job removed", description: `"${job.role}" at ${job.company} was unsaved.` });
   }
@@ -152,8 +174,8 @@ export default function SavedPage() {
       variant: "danger",
       title: "Clear all saved jobs?",
       description: "All saved jobs will be removed. You can re-save them from the jobs page.",
-      confirmLabel: "Clear all",
       onConfirm: () => {
+        localStorage.removeItem("cykruit_saved_jobs");
         setJobs([]);
         toast({ type: "info", message: "Saved jobs cleared" });
       },

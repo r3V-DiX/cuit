@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { useToast } from "@/components/ui/Toast";
@@ -182,16 +182,25 @@ export default function NotificationsPage() {
   const { toast } = useToast();
   const { openModal } = useModal();
 
-  const [notifs, setNotifs] = useState<Notification[]>(SEED);
+  const [notifs, setNotifs] = useState<Notification[]>([]);
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+
+  useEffect(() => {
+    const local = localStorage.getItem("cykruit_notifications");
+    if (local) {
+      setNotifs(JSON.parse(local));
+    } else {
+      setNotifs([]);
+    }
+  }, []);
 
   // ── Computed ─────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     let list = notifs;
     if (activeTab !== "all") list = list.filter((n) => n.type === activeTab);
     if (showUnreadOnly) list = list.filter((n) => !n.read);
-    return list.sort((a, b) => b.timeTs - a.timeTs);
+    return [...list].sort((a, b) => b.timeTs - a.timeTs);
   }, [notifs, activeTab, showUnreadOnly]);
 
   const unreadCount = useMemo(() => notifs.filter((n) => !n.read).length, [notifs]);
@@ -203,7 +212,11 @@ export default function NotificationsPage() {
 
   // ── Actions ───────────────────────────────────────────────────────────────────
   function markRead(id: number) {
-    setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+    setNotifs((prev) => {
+      const next = prev.map((n) => n.id === id ? { ...n, read: true } : n);
+      localStorage.setItem("cykruit_notifications", JSON.stringify(next));
+      return next;
+    });
   }
 
   function markAllRead() {
@@ -213,7 +226,11 @@ export default function NotificationsPage() {
       description: `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""} will be marked as read.`,
       confirmLabel: "Mark all read",
       onConfirm: () => {
-        setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+        setNotifs((prev) => {
+          const next = prev.map((n) => ({ ...n, read: true }));
+          localStorage.setItem("cykruit_notifications", JSON.stringify(next));
+          return next;
+        });
         toast({ type: "success", message: "All notifications marked as read" });
       },
     });
@@ -227,7 +244,11 @@ export default function NotificationsPage() {
       description: notif ? `"${notif.title}" will be permanently removed.` : "This notification will be permanently removed.",
       confirmLabel: "Delete",
       onConfirm: () => {
-        setNotifs((prev) => prev.filter((n) => n.id !== id));
+        setNotifs((prev) => {
+          const next = prev.filter((n) => n.id !== id);
+          localStorage.setItem("cykruit_notifications", JSON.stringify(next));
+          return next;
+        });
         toast({ type: "info", message: "Notification deleted" });
       },
     });
@@ -240,6 +261,7 @@ export default function NotificationsPage() {
       description: "All notifications will be permanently removed.",
       confirmLabel: "Clear all",
       onConfirm: () => {
+        localStorage.removeItem("cykruit_notifications");
         setNotifs([]);
         toast({ type: "info", message: "All notifications cleared" });
       },
@@ -252,7 +274,11 @@ export default function NotificationsPage() {
       toast({ type: "info", message: "No read notifications to clear" });
       return;
     }
-    setNotifs((prev) => prev.filter((n) => !n.read));
+    setNotifs((prev) => {
+      const next = prev.filter((n) => !n.read);
+      localStorage.setItem("cykruit_notifications", JSON.stringify(next));
+      return next;
+    });
     toast({ type: "success", message: `${count} read notification${count > 1 ? "s" : ""} cleared` });
   }
 

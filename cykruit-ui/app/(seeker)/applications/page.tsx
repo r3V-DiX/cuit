@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import {
   MapPin, Clock, Search, X, ChevronRight,
   ArrowUpDown, CheckCircle2, Eye, XCircle, Send, Inbox,
 } from "lucide-react";
-import type { AppStatus } from "./data";
+import type { AppStatus, Application } from "./data";
 import { SEED } from "./data";
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -25,7 +25,12 @@ const TABS: (AppStatus | "All")[] = ["All", "Applied", "Under Review", "Shortlis
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ApplicationsPage() {
-  const apps = SEED;
+  const [apps, setApps] = useState<Application[]>([]);
+
+  useEffect(() => {
+    const local = JSON.parse(localStorage.getItem("cykruit_applications") || "[]");
+    setApps(local);
+  }, []);
   const [activeTab, setActiveTab] = useState<AppStatus | "All">("All");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"newest" | "oldest">("newest");

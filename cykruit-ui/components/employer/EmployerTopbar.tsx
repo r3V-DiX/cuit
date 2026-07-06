@@ -1,10 +1,48 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 
 export default function EmployerTopbar({ title }: { title: string }) {
-  const hasUnread = true;
+  const [hasUnread, setHasUnread] = useState(false);
+  const [initials, setInitials] = useState("U");
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const result = await res.json();
+          if (result.data) {
+            const user = result.data;
+            const first = user.firstName || "";
+            const last = user.lastName || "";
+            const init = (first[0] || "") + (last[0] || "");
+            setInitials(init || "U");
+            if (user.profileImage) {
+              setProfileImage(user.profileImage);
+            }
+          }
+        }
+      } catch (err) {
+        // Fallback silently
+      }
+
+      try {
+        const notifRes = await fetch("/api/notifications/unread-count");
+        if (notifRes.ok) {
+          const notifResult = await notifRes.json();
+          setHasUnread(!!notifResult.data?.count);
+        }
+      } catch (err) {
+        // Graceful fallback
+      }
+    }
+    loadUser();
+  }, []);
+
   return (
     <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6 shrink-0">
       <h1 className="text-base font-semibold text-slate-900">{title}</h1>
@@ -20,10 +58,13 @@ export default function EmployerTopbar({ title }: { title: string }) {
 
         <Link
           href="/employer/company"
-          className="w-9 h-9 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm hover:opacity-90 transition-opacity"
+          className="w-9 h-9 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm hover:opacity-90 transition-opacity overflow-hidden"
         >
-          {/* TODO: derive from session */}
-          <span className="text-xs font-bold text-white">CS</span>
+          {profileImage ? (
+            <img src={profileImage} alt="User Avatar" className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-xs font-bold text-white">{initials}</span>
+          )}
         </Link>
       </div>
     </header>

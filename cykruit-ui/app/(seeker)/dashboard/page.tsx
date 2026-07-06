@@ -17,11 +17,12 @@ import {
   Activity,
   ChevronRight,
   Send,
+  X,
 } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type AppStatus = "Applied" | "Under Review" | "Shortlisted";
+type AppStatus = "Applied" | "Under Review" | "Shortlisted" | "Rejected" | "Withdrawn";
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 
@@ -29,6 +30,8 @@ const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }> = 
   Applied:        { color: "text-blue-700 bg-blue-50 border-blue-200",    icon: <Send className="w-3 h-3" />         },
   "Under Review": { color: "text-amber-700 bg-amber-50 border-amber-200", icon: <Eye className="w-3 h-3" />          },
   Shortlisted:    { color: "text-green-700 bg-green-50 border-green-200", icon: <CheckCircle2 className="w-3 h-3" /> },
+  Rejected:       { color: "text-red-700 bg-red-50 border-red-200",       icon: <XCircle className="w-3 h-3" />      },
+  Withdrawn:      { color: "text-slate-500 bg-slate-50 border-slate-200", icon: <X className="w-3 h-3" />            },
 };
 
 // ─── Seed data ─────────────────────────────────────────────────────────────────
@@ -78,6 +81,14 @@ export default function DashboardPage() {
     { label: "CTF Profile",    done: false },
     { label: "Portfolio link", done: false },
   ]);
+  const [recentApps, setRecentApps] = useState<any[]>([]);
+  const [recommendedJobs, setRecommendedJobs] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    applied: 0,
+    shortlisted: 0,
+    views: 14,
+    saved: 0,
+  });
 
   useEffect(() => {
     async function fetchUserAndProfile() {
@@ -113,6 +124,40 @@ export default function DashboardPage() {
             const doneCount = checks.filter((c) => c.done).length;
             setProfilePct(Math.round((doneCount / checks.length) * 100));
           }
+        }
+
+        const localApps = JSON.parse(localStorage.getItem("cykruit_applications") || "[]");
+        const localSaved = JSON.parse(localStorage.getItem("cykruit_saved_jobs") || "[]");
+
+        setRecentApps(localApps.slice(0, 3));
+
+        setStats({
+          applied: localApps.length,
+          shortlisted: localApps.filter((a: any) => a.status === "Shortlisted").length,
+          views: 14,
+          saved: localSaved.length,
+        });
+
+        try {
+          const jobsRes = await fetch("/api/public/jobs?limit=3");
+          if (jobsRes.ok) {
+            const jobsData = await jobsRes.json();
+            if (jobsData.data && jobsData.data.length > 0) {
+              setRecommendedJobs(jobsData.data.map((j: any, index: number) => ({
+                id: j.id,
+                role: j.jobTitle,
+                company: j.employer?.companyName || "Unknown Company",
+                match: 94 - (index * 7),
+                matchColor: index < 2 ? "text-green-700 bg-green-50 border-green-200" : "text-amber-700 bg-amber-50 border-amber-200",
+              })));
+            } else {
+              setRecommendedJobs(RECOMMENDED_JOBS);
+            }
+          } else {
+            setRecommendedJobs(RECOMMENDED_JOBS);
+          }
+        } catch (e) {
+          setRecommendedJobs(RECOMMENDED_JOBS);
         }
       } catch (error) {
         // Silent catch for guest fallback
@@ -168,7 +213,7 @@ export default function DashboardPage() {
             {[
               {
                 label:    "Total Applied",
-                value:    6,
+                value:    stats.applied,
                 href:     "/applications",
                 iconBg:   "bg-blue-50 text-blue-600",
                 numColor: "text-blue-600",
@@ -176,7 +221,7 @@ export default function DashboardPage() {
               },
               {
                 label:    "Shortlisted",
-                value:    1,
+                value:    stats.shortlisted,
                 href:     "/applications",
                 iconBg:   "bg-green-50 text-green-600",
                 numColor: "text-green-600",
@@ -185,7 +230,7 @@ export default function DashboardPage() {
               {
                 label:    "Profile Views",
                 sublabel: "this week",
-                value:    14,
+                value:    stats.views,
                 href:     "/profile",
                 iconBg:   "bg-violet-50 text-violet-600",
                 numColor: "text-violet-600",
@@ -193,7 +238,7 @@ export default function DashboardPage() {
               },
               {
                 label:    "Saved Jobs",
-                value:    5,
+                value:    stats.saved,
                 href:     "/saved",
                 iconBg:   "bg-amber-50 text-amber-600",
                 numColor: "text-amber-600",
@@ -238,8 +283,8 @@ export default function DashboardPage() {
               </div>
 
               <div className="divide-y divide-slate-100">
-                {RECENT_APPS.map((app) => {
-                  const cfg = STATUS_CFG[app.status];
+                {recentApps.map((app) => {
+                  const cfg = STATUS_CFG[app.status as AppStatus];
                   return (
                     <div
                       key={app.id}
@@ -345,7 +390,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="divide-y divide-slate-100">
-                {RECOMMENDED_JOBS.map((job) => (
+                {recommendedJobs.map((job) => (
                   <div
                     key={job.id}
                     className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-slate-50/60 transition-colors group"

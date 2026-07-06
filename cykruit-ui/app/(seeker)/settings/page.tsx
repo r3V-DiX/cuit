@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
@@ -94,11 +94,11 @@ export default function SettingsPage() {
   const { openModal } = useModal();
   const [activeTab, setActiveTab] = useState("account");
 
-  // ── Auth method (mock: flip this to false to simulate password-based user) ──
-  const [googleAuth] = useState(true);
+  // ── Auth method ──
+  const [googleAuth, setGoogleAuth] = useState(false);
 
   // ── Account / preferences ─────────────────────────────────────────────────
-  const LOCKED = { name: "Aryan Mehta", email: "aryan.mehta@email.com" };
+  const [lockedUser, setLockedUser] = useState({ name: "User", email: "user@email.com" });
 
   const [prefs, setPrefs] = useState({
     location: "Mumbai, India",
@@ -110,10 +110,11 @@ export default function SettingsPage() {
   });
   const [prefsBuffer, setPrefsBuffer] = useState(prefs);
 
-  function savePrefs() {
-    setPrefs(prefsBuffer);
-    toast({ type: "success", message: "Preferences saved", description: "Your job preferences have been updated." });
-  }
+  const getCsrfToken = () => {
+    if (typeof window === "undefined") return "";
+    const match = document.cookie.match(/csrf_token=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : "";
+  };
 
   // ── Notification preferences ──────────────────────────────────────────────
   const [notifPrefs, setNotifPrefs] = useState({
@@ -126,8 +127,162 @@ export default function SettingsPage() {
     pushNotifs: false,
   });
 
-  function saveNotifPrefs() {
-    toast({ type: "success", message: "Notification preferences saved" });
+  // ── Privacy ───────────────────────────────────────────────────────────────
+  const [privacy, setPrivacy] = useState({
+    profileVisible: true,
+    showOpenToWork: true,
+  });
+
+  useEffect(() => {
+    async function loadAllSettings() {
+      try {
+        const meRes = await fetch("/api/auth/me");
+        if (meRes.ok) {
+          const userResult = await meRes.json();
+          if (userResult.data) {
+            const user = userResult.data;
+            setLockedUser({
+              name: [user.firstName, user.lastName].filter(Boolean).join(" ") || "User",
+              email: user.email || "",
+            });
+            setGoogleAuth(user.provider === "GOOGLE" || user.provider === "GITHUB" || !user.hasPassword);
+          }
+        }
+
+        const settingsRes = await fetch("/api/settings");
+        if (settingsRes.ok) {
+          const settingsResult = await settingsRes.json();
+          if (settingsResult.data) {
+            const data = settingsResult.data;
+            const gen = data.general || {};
+            const notif = data.notifications || {};
+            
+            const newPrefs = {
+              location: "",
+              phone: "",
+              desiredRole: gen.desiredRole || "Penetration Tester",
+              workMode: gen.preferredWorkModes?.[0] ? (gen.preferredWorkModes[0] === "ONSITE" ? "On-site" : gen.preferredWorkModes[0][0] + gen.preferredWorkModes[0].slice(1).toLowerCase()) : "Remote",
+              noticePeriod: gen.availableFrom ? "2 weeks" : "Immediate",
+              openToWork: gen.jobSearchStatus === "ACTIVELY_LOOKING",
+            };
+            setPrefs(newPrefs);
+            setPrefsBuffer(newPrefs);
+
+            setNotifPrefs({
+              jobMatches: !!notif.jobAlerts?.jobAlert?.email,
+              appUpdates: !!notif.applications?.applicationStatus?.email,
+              profileViews: false,
+              weeklyDigest: notif.jobAlerts?.jobAlert?.frequency === "WEEKLY",
+              announcements: false,
+              emailNotifs: !!notif.global?.enableEmail,
+              pushNotifs: !!notif.global?.enableInApp,
+            });
+
+            setPrivacy({
+              profileVisible: gen.profileVisibility === "PUBLIC",
+              showOpenToWork: gen.jobSearchStatus === "ACTIVELY_LOOKING",
+            });
+          }
+        }
+
+        const profileRes = await fetch("/api/profile");
+        if (profileRes.ok) {
+          const profileResult = await profileRes.json();
+          if (profileResult.data) {
+            const basics = profileResult.data.basicInfo || {};
+            const phoneVal = basics.phone || "";
+            const locVal = basics.location ? [basics.location.city, basics.location.country].filter(Boolean).join(", ") : "";
+            
+            setPrefs((prev) => {
+              const updated = { ...prev, phone: phoneVal, location: locVal, desiredRole: basics.title || prev.desiredRole };
+              setPrefsBuffer(updated);
+              return updated;
+            });
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    loadAllSettings();
+  }, []);
+
+  async function savePrefs() {
+    try {
+      const rawMode = prefsBuffer.workMode;
+      const workModeMapped = rawMode === "On-site" ? "ONSITE" : rawMode.toUpperCase();
+      const modes = workModeMapped === "ANY" ? ["REMOTE", "HYBRID", "ONSITE"] : [workModeMapped];
+
+      const settingsRes = await fetch("/api/settings/general", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: JSON.stringify({
+          jobSearchStatus: prefsBuffer.openToWork ? "ACTIVELY_LOOKING" : "OPEN",
+          preferredWorkModes: modes,
+        }),
+      });
+
+      let locObj = null;
+      if (prefsBuffer.location) {
+        const parts = prefsBuffer.location.split(",").map(p => p.trim());
+        locObj = {
+          city: parts[0] || "",
+          country: parts[1] || parts[0] || "",
+        };
+      }
+      
+      const profileRes = await fetch("/api/profile/basic-info", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: JSON.stringify({
+          location: locObj,
+          title: prefsBuffer.desiredRole,
+        }),
+      });
+
+      if (settingsRes.ok && profileRes.ok) {
+        setPrefs(prefsBuffer);
+        toast({ type: "success", message: "Preferences saved", description: "Your job preferences have been updated." });
+      } else {
+        toast({ type: "error", message: "Failed to save preferences" });
+      }
+    } catch (err) {
+      toast({ type: "error", message: "Error saving preferences" });
+    }
+  }
+
+  async function saveNotifPrefs() {
+    try {
+      const res = await fetch("/api/settings/notifications", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: JSON.stringify({
+          enableEmail: notifPrefs.emailNotifs,
+          enableInApp: notifPrefs.pushNotifs,
+          jobAlert_email: notifPrefs.jobMatches,
+          jobAlert_inApp: notifPrefs.jobMatches,
+          applicationStatus_email: notifPrefs.appUpdates,
+          applicationStatus_inApp: notifPrefs.appUpdates,
+          jobAlert_frequency: notifPrefs.weeklyDigest ? "WEEKLY" : "INSTANT",
+        }),
+      });
+      if (res.ok) {
+        toast({ type: "success", message: "Notification preferences saved" });
+      } else {
+        toast({ type: "error", message: "Failed to save notifications" });
+      }
+    } catch (err) {
+      toast({ type: "error", message: "Error saving notifications" });
+    }
   }
 
   // ── Password ──────────────────────────────────────────────────────────────
@@ -136,7 +291,7 @@ export default function SettingsPage() {
 
   const strength = passwordStrength(pwForm.newPw);
 
-  function changePassword() {
+  async function changePassword() {
     if (!pwForm.current) { toast({ type: "error", message: "Enter your current password" }); return; }
     if (pwForm.newPw.length < 8) { toast({ type: "error", message: "Password too short", description: "Must be at least 8 characters." }); return; }
     if (pwForm.newPw !== pwForm.confirm) { toast({ type: "error", message: "Passwords don't match" }); return; }
@@ -146,34 +301,78 @@ export default function SettingsPage() {
       description: "You will be signed out of all other sessions after changing your password.",
       variant: "info",
       confirmLabel: "Yes, change it",
-      onConfirm: () => {
-        // TODO: POST /api/auth/change-password
-        setPwForm({ current: "", newPw: "", confirm: "" });
-        toast({ type: "success", message: "Password updated", description: "You've been signed out of other sessions." });
+      onConfirm: async () => {
+        try {
+          const res = await fetch("/api/auth/change-password", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "x-csrf-token": getCsrfToken(),
+            },
+            body: JSON.stringify({
+              currentPassword: pwForm.current,
+              newPassword: pwForm.newPw,
+            }),
+          });
+          if (res.ok) {
+            setPwForm({ current: "", newPw: "", confirm: "" });
+            toast({ type: "success", message: "Password updated", description: "You've been signed out of other sessions." });
+          } else {
+            const errResult = await res.json();
+            toast({ type: "error", message: errResult.message || "Failed to update password" });
+          }
+        } catch (err) {
+          toast({ type: "error", message: "Error updating password" });
+        }
       },
     });
   }
 
-  // ── Privacy ───────────────────────────────────────────────────────────────
-  const [privacy, setPrivacy] = useState({
-    profileVisible: true,
-    showOpenToWork: true,
-  });
-
-  function savePrivacy() {
-    toast({ type: "success", message: "Privacy settings saved" });
+  async function savePrivacy() {
+    try {
+      const res = await fetch("/api/settings/general", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: JSON.stringify({
+          profileVisibility: privacy.profileVisible ? "PUBLIC" : "PRIVATE",
+        }),
+      });
+      if (res.ok) {
+        toast({ type: "success", message: "Privacy settings saved" });
+      } else {
+        toast({ type: "error", message: "Failed to save privacy settings" });
+      }
+    } catch (err) {
+      toast({ type: "error", message: "Error saving privacy settings" });
+    }
   }
 
-  function deleteAccount() {
+  async function deleteAccount() {
     openModal({
       variant: "danger",
       title: "Delete your account?",
       description: "All your data — profile, applications, saved jobs, and notifications — will be permanently deleted. This cannot be undone.",
       confirmLabel: "Delete my account",
-      onConfirm: () => {
-        // TODO: DELETE /api/user/account
-        toast({ type: "error", message: "Account deleted", description: "Your account has been scheduled for deletion.", duration: 6000 });
-        // TODO: redirect to /login after API call
+      onConfirm: async () => {
+        try {
+          const res = await fetch("/api/auth/account", {
+            method: "DELETE",
+            headers: {
+              "x-csrf-token": getCsrfToken(),
+            },
+          });
+          if (res.ok) {
+            toast({ type: "error", message: "Account deleted", description: "Your account has been deleted.", duration: 6000 });
+            window.location.href = "/login";
+          } else {
+            toast({ type: "error", message: "Failed to delete account" });
+          }
+        } catch (err) {
+          toast({ type: "error", message: "Error deleting account" });
+        }
       },
     });
   }
@@ -214,7 +413,7 @@ export default function SettingsPage() {
                     <div>
                       <label className={labelCls}>Full Name</label>
                       <div className="relative">
-                        <input value={LOCKED.name} disabled className={inputDisabled} />
+                        <input value={lockedUser.name} disabled className={inputDisabled} />
                         <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300 pointer-events-none" />
                       </div>
                       <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1"><Info className="w-3 h-3" /> Managed by your account</p>
@@ -222,7 +421,7 @@ export default function SettingsPage() {
                     <div>
                       <label className={labelCls}>Email Address</label>
                       <div className="relative">
-                        <input value={LOCKED.email} disabled className={inputDisabled} />
+                        <input value={lockedUser.email} disabled className={inputDisabled} />
                         <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300 pointer-events-none" />
                       </div>
                       <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1"><Info className="w-3 h-3" /> Managed by your account</p>
@@ -323,7 +522,7 @@ export default function SettingsPage() {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-slate-800">Email</p>
-                          <p className="text-xs text-slate-400">{LOCKED.email}</p>
+                          <p className="text-xs text-slate-400">{lockedUser.email}</p>
                         </div>
                       </div>
                       <Toggle on={notifPrefs.emailNotifs} onChange={(v) => setNotifPrefs({ ...notifPrefs, emailNotifs: v })} />
@@ -467,7 +666,7 @@ export default function SettingsPage() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-slate-800">Google</p>
-                        <p className="text-xs text-slate-400">{googleAuth ? LOCKED.email : "Not connected"}</p>
+                        <p className="text-xs text-slate-400">{googleAuth ? lockedUser.email : "Not connected"}</p>
                       </div>
                     </div>
                     {googleAuth ? (
