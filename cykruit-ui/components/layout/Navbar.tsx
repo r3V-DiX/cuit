@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, X, Shield } from "lucide-react";
+import { Menu, X, Shield, User } from "lucide-react";
 import Button from "@/components/ui/Button";
 
 const navLinks = [
@@ -13,6 +13,27 @@ const navLinks = [
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const result = await res.json();
+          if (result.success && result.data) {
+            setUser(result.data);
+          }
+        }
+      } catch (err) {
+        // ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUser();
+  }, []);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-bg-darkest border-b border-white/8 shadow-sm shadow-black/20">
@@ -40,12 +61,25 @@ export default function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <Button href="/login" variant="ghost" size="sm">
-            Sign In
-          </Button>
-          <Button href="/register" variant="primary" size="sm">
-            Get Started
-          </Button>
+          {loading ? (
+            <div className="w-20 h-8 animate-pulse bg-white/10 rounded-lg"></div>
+          ) : user ? (
+            <Link href={user.userType === "EMPLOYER" ? "/employer/dashboard" : "/dashboard"} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors border border-white/10 group">
+              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                <User className="w-4 h-4" />
+              </div>
+              <span className="text-sm font-semibold text-white group-hover:text-blue-200 transition-colors">Dashboard</span>
+            </Link>
+          ) : (
+            <>
+              <Button href="/login" variant="ghost" size="sm">
+                Sign In
+              </Button>
+              <Button href="/register" variant="primary" size="sm">
+                Get Started
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Toggle */}
@@ -73,8 +107,16 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-white/8">
-              <Button href="/login" variant="secondary" size="md" fullWidth>Sign In</Button>
-              <Button href="/register" variant="primary" size="md" fullWidth>Get Started</Button>
+              {loading ? (
+                <div className="w-full h-10 animate-pulse bg-white/10 rounded-xl"></div>
+              ) : user ? (
+                <Button href={user.userType === "EMPLOYER" ? "/employer/dashboard" : "/dashboard"} variant="primary" size="md" fullWidth>Dashboard</Button>
+              ) : (
+                <>
+                  <Button href="/login" variant="secondary" size="md" fullWidth>Sign In</Button>
+                  <Button href="/register" variant="primary" size="md" fullWidth>Get Started</Button>
+                </>
+              )}
             </div>
           </div>
         </div>

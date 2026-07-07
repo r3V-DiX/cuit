@@ -39,14 +39,55 @@ export default function ApplicationDetailPage() {
   const { toast } = useToast();
   const { openModal } = useModal();
 
-  const [apps, setApps] = useState<Application[]>([]);
+  const [app, setApp] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const local = JSON.parse(localStorage.getItem("cykruit_applications") || "[]");
-    setApps(local);
-  }, []);
+    async function fetchApp() {
+      try {
+        const res = await fetch(`/api/seeker/applications/${id}`);
+        if (res.ok) {
+          const resJson = await res.json();
+          const data = resJson.data;
+          setApp({
+            id: data.id,
+            role: data.job.jobTitle,
+            company: data.job.employer.companyName,
+            location: data.job.locationType || data.job.location || "Remote",
+            type: data.job.jobType || "Full-time",
+            applied: new Date(data.appliedAt).toLocaleDateString(),
+            status: data.status === "APPLIED" ? "Applied"
+              : data.status === "UNDER_REVIEW" ? "Under Review"
+              : data.status === "SHORTLISTED" ? "Shortlisted"
+              : data.status === "REJECTED" ? "Rejected"
+              : data.status === "WITHDRAWN" ? "Withdrawn"
+              : "Applied",
+            resume: data.resume?.fileName || "Resume.pdf",
+            coverNote: data.screeningAnswers ? JSON.stringify(data.screeningAnswers) : "",
+            timeline: data.statusHistory?.length > 0 ? data.statusHistory.map((h: any) => ({
+              date: new Date(h.changedAt).toLocaleDateString(),
+              event: `Status changed to ${h.newStatus}`,
+              note: h.reason || ""
+            })) : [{ date: new Date(data.appliedAt).toLocaleDateString(), event: "Application submitted" }]
+          });
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchApp();
+  }, [id]);
 
-  const app = apps.find((a) => String(a.id) === String(id));
+  if (loading) {
+    return (
+      <>
+        <SeekerTopbar title="Application" />
+        <main className="flex-1 flex items-center justify-center p-6 text-slate-400">Loading...</main>
+      </>
+    );
+  }
 
   if (!app) {
     return (
@@ -67,29 +108,33 @@ export default function ApplicationDetailPage() {
   const isTerminal = app.status === "Rejected" || app.status === "Withdrawn";
   const activeStep = isTerminal ? -1 : STATUS_CFG[app.status].step;
 
-  function withdraw() {
+  async function withdraw() {
     if (!app) return;
     openModal({
       variant: "danger",
       title: "Withdraw application?",
       description: `You are about to withdraw your application for "${app.role}" at ${app.company}. This cannot be undone.`,
       confirmLabel: "Withdraw",
-      onConfirm: () => {
-        const local = JSON.parse(localStorage.getItem("cykruit_applications") || "[]");
-        const nextLocal = local.map((a: any) => String(a.id) === String(app.id) ? {
-          ...a,
-          status: "Withdrawn",
-          timeline: [...a.timeline, { date: "Today", event: "Application withdrawn" }]
-        } : a);
-        localStorage.setItem("cykruit_applications", JSON.stringify(nextLocal));
-
-        setApps((prev) => prev.map((a) => String(a.id) === String(app.id) ? {
-          ...a,
-          status: "Withdrawn" as AppStatus,
-          timeline: [...a.timeline, { date: "Today", event: "Application withdrawn" }],
-        } : a));
-        toast({ type: "info", message: "Application withdrawn", description: `${app.role} at ${app.company}` });
-        router.push("/applications");
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/seeker/applications/${app.id}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason: "Withdrawn by user" })
+          });
+          if (res.ok) {
+            setApp((prev: any) => ({
+              ...prev,
+              status: "Withdrawn",
+              timeline: [{ date: new Date().toLocaleDateString(), event: "Application withdrawn", note: "" }, ...prev.timeline],
+            }));
+            toast({ type: "info", message: "Application withdrawn", description: `${app.role} at ${app.company}` });
+          } else {
+            toast({ type: "error", message: "Failed to withdraw" });
+          }
+        } catch (err) {
+          toast({ type: "error", message: "Network error" });
+        }
       },
     });
   }

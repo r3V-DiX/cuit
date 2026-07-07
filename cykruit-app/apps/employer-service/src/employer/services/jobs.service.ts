@@ -172,7 +172,7 @@ export class JobsService {
     async update(userId: string, jobId: string, dto: UpdateJobDto) {
         const { job } = await this.resolveJobForEmployer(userId, jobId);
 
-        if (job.status !== JobStatus.DRAFT && job.status !== JobStatus.REJECTED) {
+        if (job.status === JobStatus.CLOSED || job.status === JobStatus.EXPIRED) {
             throw new BadRequestException(JobErrorCodes.JOB_NOT_EDITABLE);
         }
 

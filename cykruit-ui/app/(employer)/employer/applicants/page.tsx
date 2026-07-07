@@ -1,57 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Search, ChevronRight, CheckCircle2, Clock, XCircle, Send, Eye,
-  Users, ChevronDown, Sparkles,
+  Users, ChevronDown, Sparkles, AlertCircle
 } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
-type AppStatus = "New" | "Shortlisted" | "Interview" | "Rejected";
+type AppStatus = "APPLIED" | "UNDER_REVIEW" | "SHORTLISTED" | "INTERVIEW" | "OFFERED" | "REJECTED" | "HIRED" | "WITHDRAWN" | "New" | "Shortlisted" | "Interview" | "Rejected";
 
 const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }> = {
   New:        { color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Send         className="w-3 h-3" /> },
   Shortlisted:{ color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3 h-3" /> },
   Interview:  { color: "text-violet-700 bg-violet-50 border-violet-200", icon: <Clock        className="w-3 h-3" /> },
   Rejected:   { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle      className="w-3 h-3" /> },
+  APPLIED:    { color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Send         className="w-3 h-3" /> },
+  UNDER_REVIEW:{ color: "text-amber-700 bg-amber-50 border-amber-200",    icon: <Eye className="w-3 h-3" /> },
+  SHORTLISTED:{ color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3 h-3" /> },
+  INTERVIEW:  { color: "text-violet-700 bg-violet-50 border-violet-200", icon: <Clock        className="w-3 h-3" /> },
+  OFFERED:    { color: "text-emerald-700 bg-emerald-50 border-emerald-200", icon: <CheckCircle2 className="w-3 h-3" /> },
+  HIRED:      { color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3 h-3" /> },
+  REJECTED:   { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle      className="w-3 h-3" /> },
+  WITHDRAWN:  { color: "text-slate-700 bg-slate-50 border-slate-200",    icon: <XCircle      className="w-3 h-3" /> },
 };
 
-const APPLICANTS: {
-  id: number; name: string; role: string; jobId: number;
-  location: string; experience: string; status: AppStatus;
-  applied: string; skills: string[];
-}[] = [
-  { id: 1, name: "Aryan Mehta",     role: "Senior Penetration Tester", jobId: 1, location: "Mumbai, IN",    experience: "5 yrs", status: "Shortlisted", applied: "2h ago",  skills: ["Burp Suite", "OSCP", "Python"]    },
-  { id: 2, name: "Priya Sharma",    role: "Cloud Security Engineer",   jobId: 2, location: "Bangalore, IN", experience: "4 yrs", status: "Interview",   applied: "5h ago",  skills: ["AWS", "Terraform", "CSSP"]        },
-  { id: 3, name: "Rohan Das",       role: "SOC Analyst II",            jobId: 3, location: "Delhi, IN",     experience: "3 yrs", status: "New",         applied: "1d ago",  skills: ["Splunk", "QRadar", "SIEM"]        },
-  { id: 4, name: "Neha Kulkarni",   role: "Senior Penetration Tester", jobId: 1, location: "Pune, IN",      experience: "6 yrs", status: "New",         applied: "1d ago",  skills: ["Metasploit", "Kali", "GPEN"]      },
-  { id: 5, name: "Vikram Singh",    role: "Red Team Operator",         jobId: 3, location: "Hyderabad, IN", experience: "7 yrs", status: "Shortlisted", applied: "2d ago",  skills: ["C2 Frameworks", "AD", "OPSEC"]    },
-  { id: 6, name: "Ananya Roy",      role: "Cloud Security Engineer",   jobId: 2, location: "Chennai, IN",   experience: "3 yrs", status: "Rejected",    applied: "3d ago",  skills: ["GCP", "Docker", "Kubernetes"]     },
-  { id: 7, name: "Karan Joshi",     role: "AppSec Engineer",           jobId: 4, location: "Remote",        experience: "4 yrs", status: "New",         applied: "3d ago",  skills: ["SAST", "DAST", "Secure SDLC"]    },
-  { id: 8, name: "Shreya Nair",     role: "Senior Penetration Tester", jobId: 1, location: "Kolkata, IN",   experience: "5 yrs", status: "Interview",   applied: "4d ago",  skills: ["Web App", "API Testing", "OSWP"] },
-];
-
-const STATUS_FILTERS: (AppStatus | "All")[] = ["All", "New", "Shortlisted", "Interview", "Rejected"];
-
-const JOB_OPTIONS = [
-  { label: "All Jobs",                  value: "all" },
-  { label: "Senior Penetration Tester", value: "1"   },
-  { label: "Cloud Security Engineer",   value: "2"   },
-  { label: "Red Team Operator",         value: "3"   },
-  { label: "AppSec Engineer",           value: "4"   },
-];
+const STATUS_FILTERS: (AppStatus | "All")[] = ["All", "APPLIED", "UNDER_REVIEW", "SHORTLISTED", "INTERVIEW", "REJECTED"];
 
 export default function ApplicantsPage() {
   const [statusFilter, setStatusFilter] = useState<AppStatus | "All">("All");
   const [jobFilter, setJobFilter]       = useState("all");
   const [search, setSearch]             = useState("");
   const [aiRank, setAiRank]             = useState(false);
+  const [applicants, setApplicants]     = useState<any[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [jobOptions, setJobOptions]     = useState<{label: string, value: string}[]>([{ label: "All Jobs", value: "all" }]);
+  const { toast } = useToast();
 
-  const filtered = APPLICANTS.filter((a) => {
+  useEffect(() => {
+    async function fetchApplicants() {
+      try {
+        const res = await fetch("/api/employer/applications");
+        if (res.ok) {
+          const data = await res.json();
+          const items = data.data?.items || data.items || [];
+          setApplicants(items);
+          
+          // Dynamically populate job options from the fetched applications
+          const jobsMap = new Map<string, string>();
+          items.forEach((app: any) => {
+            if (app.job) jobsMap.set(app.job.id, app.job.jobTitle);
+          });
+          const options = Array.from(jobsMap.entries()).map(([id, title]) => ({ label: title, value: id }));
+          setJobOptions([{ label: "All Jobs", value: "all" }, ...options]);
+        } else {
+          toast({ type: "error", message: "Failed to load applications" });
+        }
+      } catch (err) {
+        toast({ type: "error", message: "Failed to fetch applications" });
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchApplicants();
+  }, [toast]);
+
+  const filtered = applicants.filter((a) => {
     const matchStatus = statusFilter === "All" || a.status === statusFilter;
-    const matchJob    = jobFilter    === "all" || String(a.jobId) === jobFilter;
-    const matchSearch = !search || a.name.toLowerCase().includes(search.toLowerCase()) || a.role.toLowerCase().includes(search.toLowerCase());
+    const matchJob    = jobFilter    === "all" || a.jobId === jobFilter;
+    const name = `${a.jobSeeker?.firstName || ""} ${a.jobSeeker?.lastName || ""}`.trim();
+    const role = a.job?.jobTitle || "";
+    const matchSearch = !search || name.toLowerCase().includes(search.toLowerCase()) || role.toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchJob && matchSearch;
   });
 
@@ -61,10 +81,11 @@ export default function ApplicantsPage() {
       <main className="flex-1 overflow-y-auto p-6">
 
         {/* Summary stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-          {(["New", "Shortlisted", "Interview", "Rejected"] as AppStatus[]).map((s) => {
-            const count = APPLICANTS.filter((a) => a.status === s).length;
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
+          {(["APPLIED", "UNDER_REVIEW", "SHORTLISTED", "INTERVIEW", "REJECTED"] as AppStatus[]).map((s) => {
+            const count = applicants.filter((a) => a.status === s).length;
             const cfg   = STATUS_CFG[s];
+            if (!cfg) return null;
             return (
               <button
                 key={s}
@@ -75,7 +96,7 @@ export default function ApplicantsPage() {
               >
                 <div>
                   <p className="text-2xl font-bold text-slate-900 leading-none">{count}</p>
-                  <p className="text-xs text-slate-500 font-medium mt-1.5">{s}</p>
+                  <p className="text-[10px] text-slate-500 font-bold mt-1.5 uppercase">{s.replace("_", " ")}</p>
                 </div>
                 <span className={`inline-flex items-center justify-center w-9 h-9 rounded-xl border ${cfg.color}`}>
                   {cfg.icon}
@@ -121,8 +142,8 @@ export default function ApplicantsPage() {
           {/* Job filter */}
           <div className="relative">
             <select value={jobFilter} onChange={(e) => setJobFilter(e.target.value)}
-              className="appearance-none bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-medium focus:outline-none focus:border-blue-400 pr-8 shadow-sm cursor-pointer">
-              {JOB_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              className="appearance-none bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 font-medium focus:outline-none focus:border-blue-400 pr-8 shadow-sm cursor-pointer max-w-[200px] truncate">
+              {jobOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
             <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
           </div>
@@ -143,7 +164,11 @@ export default function ApplicantsPage() {
 
         {/* Table */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center py-16">
+              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <Users className="w-8 h-8 text-slate-200 mb-3" />
               <p className="text-slate-500 font-medium text-sm">No applicants match your filters</p>
@@ -168,43 +193,54 @@ export default function ApplicantsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filtered.map((a) => {
-                  const cfg = STATUS_CFG[a.status];
+                  const cfg = STATUS_CFG[a.status as AppStatus] || STATUS_CFG["New"];
+                  const name = `${a.jobSeeker?.firstName || "Unknown"} ${a.jobSeeker?.lastName || ""}`.trim();
+                  const role = a.job?.jobTitle || "Unknown Role";
+                  const skills = a.skills || [];
+                  const experience = a.experience || "N/A";
+                  const appliedDate = new Date(a.appliedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                  
                   return (
                     <tr key={a.id} className="hover:bg-slate-50/60 transition-colors group">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl bg-slate-100 group-hover:bg-blue-50 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0 transition-colors">
-                            {a.name[0]}
+                            {name[0] || "?"}
                           </div>
                           <div>
-                            <p className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{a.name}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">{a.location}</p>
+                            <p className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">{name}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">{a.jobSeeker?.location || "Remote"}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3.5 text-slate-600 hidden md:table-cell">
-                        <p className="font-medium truncate max-w-[180px]">{a.role}</p>
+                        <p className="font-medium truncate max-w-[180px]">{role}</p>
                       </td>
                       <td className="px-4 py-3.5 hidden lg:table-cell">
                         <div className="flex flex-wrap gap-1">
-                          {a.skills.slice(0, 2).map((s) => (
-                            <span key={s} className="px-2 py-0.5 text-[10px] font-mono text-slate-600 bg-slate-100 rounded-md">{s}</span>
-                          ))}
-                          {a.skills.length > 2 && <span className="px-2 py-0.5 text-[10px] font-mono text-slate-400 bg-slate-50 rounded-md">+{a.skills.length - 2}</span>}
+                          {skills.length > 0 ? (
+                            <>
+                              {skills.slice(0, 2).map((s: string) => (
+                                <span key={s} className="px-2 py-0.5 text-[10px] font-mono text-slate-600 bg-slate-100 rounded-md">{s}</span>
+                              ))}
+                              {skills.length > 2 && <span className="px-2 py-0.5 text-[10px] font-mono text-slate-400 bg-slate-50 rounded-md">+{skills.length - 2}</span>}
+                            </>
+                          ) : (
+                            <span className="text-xs text-slate-400">-</span>
+                          )}
                         </div>
                       </td>
-                      <td className="px-4 py-3.5 text-slate-500 text-xs hidden sm:table-cell">{a.experience}</td>
+                      <td className="px-4 py-3.5 text-slate-500 text-xs hidden sm:table-cell">{experience}</td>
                       <td className="px-4 py-3.5">
                         <span className={`inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2.5 py-1 rounded-lg border ${cfg.color}`}>
-                          {cfg.icon}{a.status}
+                          {cfg.icon}{(a.status as string).replace("_", " ")}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-slate-400 font-mono hidden sm:table-cell">{a.applied}</td>
+                      <td className="px-4 py-3.5 text-xs text-slate-400 font-mono hidden sm:table-cell">{appliedDate}</td>
                       {aiRank && (
                         <td className="px-4 py-3.5 text-center">
                           {(() => {
-                            const scores = [91, 84, 67, 78, 88, 42, 73, 85];
-                            const score = scores[(a.id - 1) % scores.length];
+                            const score = a.aiScore ? Math.round(a.aiScore * 100) : 0;
                             return (
                               <span className={`text-xs font-bold font-mono px-2.5 py-1 rounded-lg border ${score >= 80 ? "text-green-700 bg-green-50 border-green-200" : score >= 60 ? "text-amber-700 bg-amber-50 border-amber-200" : "text-rose-600 bg-rose-50 border-rose-200"}`}>
                                 {score}%
@@ -227,7 +263,7 @@ export default function ApplicantsPage() {
           )}
         </div>
 
-        <p className="text-xs font-mono text-slate-400 mt-3">{filtered.length} of {APPLICANTS.length} applicants shown</p>
+        <p className="text-xs font-mono text-slate-400 mt-3">{filtered.length} of {applicants.length} applicants shown</p>
       </main>
     </>
   );

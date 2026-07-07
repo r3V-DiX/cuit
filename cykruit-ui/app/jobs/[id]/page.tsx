@@ -5,7 +5,6 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { jobs } from "@/lib/jobs-data";
 import { useToast } from "@/components/ui/Toast";
 import {
   MapPin, Clock, Briefcase, ArrowLeft, ArrowRight,
@@ -21,6 +20,20 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
   const [isApplied, setIsApplied] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const result = await res.json();
+          if (result.success && result.data) setUser(result.data);
+        }
+      } catch (err) {}
+    };
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     async function loadJob() {
@@ -28,38 +41,35 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         const response = await fetch(`/api/public/jobs/${id}`);
         if (response.ok) {
           const result = await response.json();
-          if (result) {
+          if (result && result.data) {
+            const jobData = result.data;
             setJob({
-              id: result.id,
-              title: result.jobTitle,
-              company: result.employer?.companyName || "Unknown Company",
-              location: result.location?.displayName || "Remote",
-              type: result.jobType,
-              remote: result.workMode,
-              description: result.description || "",
-              logo: result.employer?.companyName?.[0] || "C",
+              id: jobData.id,
+              title: jobData.jobTitle,
+              company: jobData.employer?.companyName || "Unknown Company",
+              location: jobData.location?.displayName || "Remote",
+              type: jobData.jobType,
+              remote: jobData.workMode,
+              description: jobData.description || "",
+              logo: jobData.employer?.companyName?.[0] || "C",
               accent: "bg-blue-100 text-blue-800",
-              posted: new Date(result.publishedAt || Date.now()).toLocaleDateString(),
-              tags: result.skills?.map((s: any) => s.name) || [],
-              domain: result.role?.name || "Cybersecurity",
+              posted: new Date(jobData.publishedAt || Date.now()).toLocaleDateString(),
+              tags: jobData.skills?.map((s: any) => s.name) || [],
+              domain: jobData.role?.name || "Cybersecurity",
               responsibilities: [],
-              requirements: result.certifications?.map((c: any) => c.name) || [],
+              requirements: jobData.certifications?.map((c: any) => c.name) || [],
               niceToHave: [],
-              companyDescription: result.employer?.about || "",
-              companyIndustry: result.employer?.industry || "",
-              companySize: result.employer?.companySize || "",
+              companyDescription: jobData.employer?.about || "",
+              companyIndustry: jobData.employer?.industry || "",
+              companySize: jobData.employer?.companySize || "",
             });
             setLoading(false);
             return;
           }
         }
       } catch (err) {
-        // Fallback to mock data below
+        console.error("Failed to load job", err);
       }
-
-      // Mock fallback
-      const mockJob = jobs.find((j) => j.id === Number(id) || j.title.toLowerCase().replace(/\s+/g, "-") === id);
-      setJob(mockJob || null);
       setLoading(false);
     }
     loadJob();
@@ -107,49 +117,33 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     }
   }
 
-  function handleApply() {
+  async function handleApply() {
     if (!job) return;
     if (isApplied) {
       toast({ type: "warning", message: "Already applied", description: "You have already applied for this role." });
       return;
     }
-    const applied = JSON.parse(localStorage.getItem("cykruit_applications") || "[]");
-    const newApp = {
-      id: `app-${Date.now()}`,
-      jobId: job.id,
-      role: job.title,
-      company: job.company,
-      location: job.location,
-      type: job.type,
-      applied: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
-      status: "Applied",
-      resume: "General Application",
-      coverNote: "Excited about this opportunity. Let's talk!",
-      timeline: [
-        { date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), event: "Application submitted" }
-      ]
-    };
-    applied.push(newApp);
-    localStorage.setItem("cykruit_applications", JSON.stringify(applied));
 
-    // Push notification to localStorage
-    const notifications = JSON.parse(localStorage.getItem("cykruit_notifications") || "[]");
-    const newNotif = {
-      id: Date.now(),
-      type: "application",
-      title: "Application submitted",
-      body: `You successfully submitted your application for "${job.title}" at ${job.company}.`,
-      time: "Just now",
-      timeTs: Date.now(),
-      read: false,
-      link: `/applications/${newApp.id}`,
-      meta: job.company,
-    };
-    notifications.unshift(newNotif);
-    localStorage.setItem("cykruit_notifications", JSON.stringify(notifications));
+    try {
+      const res = await fetch(`/api/seeker/jobs/${job.id}/apply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          coverLetter: "Excited about this opportunity. Let's talk!",
+          useAiScoring: true,
+        }),
+      });
 
-    setIsApplied(true);
-    toast({ type: "success", message: "Application submitted", description: `Applied to "${job.title}" at ${job.company}!` });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.error?.message || "Failed to apply");
+      }
+
+      setIsApplied(true);
+      toast({ type: "success", message: "Application submitted", description: `Applied to "${job.title}" at ${job.company}!` });
+    } catch (err: any) {
+      toast({ type: "error", message: "Application failed", description: err.message || "An unexpected error occurred." });
+    }
   }
 
   if (loading) {
@@ -166,7 +160,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
   if (!job) notFound();
 
-  const related = jobs.filter((j) => j.id !== job.id && j.domain === job.domain).slice(0, 3);
+  // No mock data available to show related jobs, we could fetch from API but for now keeping it empty.
+  const related: any[] = [];
 
   return (
     <>
@@ -226,16 +221,18 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
               {/* CTA buttons */}
               <div className="flex sm:flex-col gap-2 shrink-0">
-                <button
-                  onClick={handleApply}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer ${
-                    isApplied
-                      ? "bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed"
-                      : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20"
-                  }`}
-                >
-                  <Send className="w-4 h-4" /> {isApplied ? "Applied" : "Apply Now"}
-                </button>
+                {user?.userType !== "EMPLOYER" && (
+                  <button
+                    onClick={handleApply}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer ${
+                      isApplied
+                        ? "bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed"
+                        : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20"
+                    }`}
+                  >
+                    <Send className="w-4 h-4" /> {isApplied ? "Applied" : "Apply Now"}
+                  </button>
+                )}
                 <button
                   onClick={handleSave}
                   className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border text-sm font-semibold transition-colors cursor-pointer ${
@@ -314,18 +311,26 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
               {/* Apply card */}
               <div className="bg-white rounded-2xl border border-slate-200 p-5">
-                <p className="text-sm font-semibold text-slate-900 mb-1">Ready to apply?</p>
-                <p className="text-xs text-slate-500 mb-4">Submit your application directly to {job.company}.</p>
-                <button
-                  onClick={handleApply}
-                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer ${
-                    isApplied
-                      ? "bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed"
-                      : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20"
-                  }`}
-                >
-                  <Send className="w-4 h-4" /> {isApplied ? "Applied" : "Apply Now"}
-                </button>
+                <p className="text-sm font-semibold text-slate-900 mb-1">
+                  {user?.userType === "EMPLOYER" ? "Employer Access" : "Ready to apply?"}
+                </p>
+                <p className="text-xs text-slate-500 mb-4">
+                  {user?.userType === "EMPLOYER" 
+                    ? "Employers cannot apply for jobs." 
+                    : `Submit your application directly to ${job.company}.`}
+                </p>
+                {user?.userType !== "EMPLOYER" && (
+                  <button
+                    onClick={handleApply}
+                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer ${
+                      isApplied
+                        ? "bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed"
+                        : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20"
+                    }`}
+                  >
+                    <Send className="w-4 h-4" /> {isApplied ? "Applied" : "Apply Now"}
+                  </button>
+                )}
                 <button
                   onClick={handleSave}
                   className={`mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-colors cursor-pointer ${
@@ -387,7 +392,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     </div>
                   ))}
                 </div>
-                <p className="text-[11px] text-violet-500">Sign in to see your personalized match</p>
+                {!user && (
+                  <p className="text-[11px] text-violet-500">Sign in to see your personalized match</p>
+                )}
               </div>
 
               {/* Job details */}
