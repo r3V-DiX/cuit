@@ -5,6 +5,8 @@ import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { inferDomain } from "@/lib/jobs-data";
 import { Save, Send, ChevronDown, Plus, X, ArrowLeft, CheckCircle2, Circle, Sparkles, GripVertical, ToggleLeft, AlignLeft, ListChecks, Trash2, Wand2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
 
 const JOB_TYPES   = ["Full-time", "Part-time", "Contract", "Internship"];
 const REMOTE_TYPES = ["Remote", "On-site", "Hybrid"];
@@ -145,6 +147,9 @@ function ListInput({
 }
 
 export default function PostJobPage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [publishing, setPublishing]     = useState(false);
   const [title, setTitle]               = useState("");
   const [domain, setDomain]             = useState("");
   const [type, setType]                 = useState("");
@@ -222,6 +227,183 @@ export default function PostJobPage() {
     single:  { label: "Single Choice", icon: <ListChecks  className="w-3.5 h-3.5" />, color: "text-violet-700 bg-violet-50 border-violet-200" },
     boolean: { label: "True / False",  icon: <ToggleLeft  className="w-3.5 h-3.5" />, color: "text-green-700 bg-green-50 border-green-200"  },
   };
+
+  async function handlePublish() {
+    if (!title.trim()) {
+      toast({ type: "error", message: "Job title is required" });
+      return;
+    }
+    if (!type) {
+      toast({ type: "error", message: "Job type is required" });
+      return;
+    }
+    if (!level) {
+      toast({ type: "error", message: "Experience level is required" });
+      return;
+    }
+    if (!remote) {
+      toast({ type: "error", message: "Work mode is required" });
+      return;
+    }
+    if (!location.trim()) {
+      toast({ type: "error", message: "Location is required" });
+      return;
+    }
+
+    setPublishing(true);
+    try {
+      const csrfCookie = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("csrf_token="));
+      const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
+
+      const typeMap: Record<string, string> = {
+        "Full-time": "FULL_TIME",
+        "Part-time": "PART_TIME",
+        "Contract": "CONTRACT",
+        "Internship": "INTERNSHIP"
+      };
+
+      const modeMap: Record<string, string> = {
+        "Remote": "REMOTE",
+        "On-site": "ON_SITE",
+        "Hybrid": "HYBRID"
+      };
+
+      const levelMap: Record<string, string> = {
+        "Junior (0–2 yrs)": "JUNIOR",
+        "Mid-level (2–5 yrs)": "MID_LEVEL",
+        "Senior (5–8 yrs)": "SENIOR",
+        "Lead (8+ yrs)": "LEAD",
+        "Manager (8+ yrs)": "MANAGER"
+      };
+
+      const res = await fetch("/api/employer/jobs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
+        body: JSON.stringify({
+          jobTitle: title.trim(),
+          jobType: typeMap[type],
+          workMode: modeMap[remote],
+          experienceLevel: levelMap[level],
+          description: description.trim() || undefined,
+          applicationType: "INTERNAL",
+          screeningQuestions: questions.length > 0 ? questions.map(q => ({
+            type: q.type.toUpperCase(),
+            question: q.question,
+            options: q.options,
+            required: q.required
+          })) : undefined,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.message || "Failed to create job");
+      }
+
+      const jobId = result.data?.id;
+      if (!jobId) {
+        throw new Error("Job ID not returned from server");
+      }
+
+      const submitRes = await fetch(`/api/employer/jobs/${jobId}/submit`, {
+        method: "POST",
+        headers: {
+          "x-csrf-token": csrfToken,
+        },
+      });
+
+      if (!submitRes.ok) {
+        const submitResult = await submitRes.json();
+        throw new Error(submitResult.message || "Failed to publish job");
+      }
+
+      toast({ type: "success", message: "Job published successfully!" });
+      router.push("/employer/jobs");
+    } catch (err: any) {
+      toast({ type: "error", message: err.message || "Something went wrong" });
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  async function handleSaveDraft() {
+    if (!title.trim()) {
+      toast({ type: "error", message: "Job title is required" });
+      return;
+    }
+    if (!type || !level || !remote || !location.trim()) {
+      toast({ type: "error", message: "Please fill in all required fields marked with * to save a draft" });
+      return;
+    }
+
+    setPublishing(true);
+    try {
+      const csrfCookie = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("csrf_token="));
+      const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
+
+      const typeMap: Record<string, string> = {
+        "Full-time": "FULL_TIME",
+        "Part-time": "PART_TIME",
+        "Contract": "CONTRACT",
+        "Internship": "INTERNSHIP"
+      };
+
+      const modeMap: Record<string, string> = {
+        "Remote": "REMOTE",
+        "On-site": "ON_SITE",
+        "Hybrid": "HYBRID"
+      };
+
+      const levelMap: Record<string, string> = {
+        "Junior (0–2 yrs)": "JUNIOR",
+        "Mid-level (2–5 yrs)": "MID_LEVEL",
+        "Senior (5–8 yrs)": "SENIOR",
+        "Lead (8+ yrs)": "LEAD",
+        "Manager (8+ yrs)": "MANAGER"
+      };
+
+      const res = await fetch("/api/employer/jobs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
+        body: JSON.stringify({
+          jobTitle: title.trim(),
+          jobType: typeMap[type],
+          workMode: modeMap[remote],
+          experienceLevel: levelMap[level],
+          description: description.trim() || undefined,
+          applicationType: "INTERNAL",
+          screeningQuestions: questions.length > 0 ? questions.map(q => ({
+            type: q.type.toUpperCase(),
+            question: q.question,
+            options: q.options,
+            required: q.required
+          })) : undefined,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.message || "Failed to save draft");
+      }
+
+      toast({ type: "success", message: "Draft saved successfully!" });
+      router.push("/employer/jobs");
+    } catch (err: any) {
+      toast({ type: "error", message: err.message || "Something went wrong" });
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   return (
     <>
@@ -488,10 +670,23 @@ export default function PostJobPage() {
             </section>
 
             <div className="flex items-center gap-3 pb-6">
-              <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 cursor-pointer">
-                <Send className="w-4 h-4" /> Publish Job
+              <button
+                onClick={handlePublish}
+                disabled={publishing}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shadow-blue-500/20 cursor-pointer"
+              >
+                {publishing ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                Publish Job
               </button>
-              <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer">
+              <button
+                onClick={handleSaveDraft}
+                disabled={publishing}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
                 <Save className="w-4 h-4" /> Save as Draft
               </button>
             </div>
@@ -557,8 +752,17 @@ export default function PostJobPage() {
             </div>
 
             {/* Quick publish */}
-            <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 cursor-pointer">
-              <Send className="w-4 h-4" /> Publish Job
+            <button
+              onClick={handlePublish}
+              disabled={publishing}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shadow-blue-500/20 cursor-pointer"
+            >
+              {publishing ? (
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              Publish Job
             </button>
           </div>
 

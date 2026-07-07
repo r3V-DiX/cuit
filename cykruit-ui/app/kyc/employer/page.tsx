@@ -65,6 +65,11 @@ export default function EmployerKYCPage() {
             },
           });
           if (response.ok) {
+            localStorage.removeItem("cykruit_applications");
+            localStorage.removeItem("cykruit_saved_jobs");
+            localStorage.removeItem("cykruit_messages");
+            localStorage.removeItem("cykruit_notifications");
+            localStorage.removeItem("cykruit_employer_notifications");
             toast({ type: "success", message: "Logged out successfully" });
             router.push("/login");
           } else {

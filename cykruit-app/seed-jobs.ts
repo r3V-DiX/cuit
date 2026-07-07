@@ -52,7 +52,7 @@ async function seedJobs() {
   ];
 
   for (const job of jobs) {
-    await prisma.job.create({ data: job });
+    await prisma.job.create({ data: job as any });
   }
 
   console.log("Seeded 3 jobs successfully!");

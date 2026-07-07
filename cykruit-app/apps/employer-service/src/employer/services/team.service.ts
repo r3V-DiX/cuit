@@ -120,16 +120,19 @@ export class TeamService {
         const appUrl = this.configService.get<string>('APP_URL') ?? 'http://localhost:3000';
         const inviteUrl = `${appUrl}/employer/accept-invite?token=${encodeURIComponent(rawToken)}`;
 
-        const roleLabel = dto.role === EmployerMemberRole.HIRING_MANAGER ? 'Hiring Manager' : 'Recruiter';
-        await this.mailService.sendEmployerInvite(dto.email, {
-            inviteeName: existingUserWithEmail?.firstName ?? '',
-            inviterName,
-            companyName: employer.companyName,
-            companyLogo: employer.companyLogo ?? null,
-            assignedRole: roleLabel as 'Hiring Manager' | 'Recruiter',
-            inviteUrl,
-            expiresInHours: 72,
-        });
+        // Send invite email — non-throwing; logged inside MailService.
+        await this.mailService.sendEmployerInvite(
+            dto.email,
+            {
+                inviteeName: 'Hiring Professional',
+                inviterName,
+                companyName: employer.companyName,
+                companyLogo: employer.companyLogo || null,
+                assignedRole: dto.role === EmployerMemberRole.HIRING_MANAGER ? 'Hiring Manager' : 'Recruiter',
+                inviteUrl,
+                expiresInHours: 168,
+            }
+        );
 
         // Publish event for in-app notification if invitee has an account
         this.eventPublisher.publish(

@@ -64,7 +64,7 @@ export default function SeekerRegisterPage() {
       }
       toast({ type: "success", message: "Account created!", description: "Please check your email to verify your account." });
       setTimeout(() => {
-        router.push("/verify-email/check");
+        router.push("/verify-email/check?email=" + encodeURIComponent(email));
       }, 1500);
     } catch (error: any) {
       toast({ type: "error", message: error.message || "Registration failed" });

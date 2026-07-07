@@ -50,8 +50,7 @@ export class CompanyRepository {
         return this.prisma.employer.findUnique({ where: { slug } });
     }
 
-    async create(data: {
-        userId: string;
+    async create(userId: string, data: {
         companyName: string;
         companyType: any;
         industry: any;
@@ -61,7 +60,12 @@ export class CompanyRepository {
         companyWebsite?: string;
         contactEmail?: string;
     }) {
-        return this.prisma.employer.create({ data });
+        return this.prisma.employer.create({
+            data: {
+                userId,
+                ...data,
+            },
+        });
     }
 
     async update(id: string, data: Record<string, any>) {

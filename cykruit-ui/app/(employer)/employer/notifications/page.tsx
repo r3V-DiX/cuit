@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
@@ -43,19 +43,41 @@ const FILTER_OPTIONS: { id: Filter; label: string }[] = [
 ];
 
 export default function EmployerNotificationsPage() {
-  const [notifs, setNotifs] = useState(INITIAL_NOTIFS);
+  const [notifs, setNotifs] = useState<any[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
+
+  useEffect(() => {
+    const local = localStorage.getItem("cykruit_employer_notifications");
+    if (local) {
+      setNotifs(JSON.parse(local));
+    } else {
+      localStorage.setItem("cykruit_employer_notifications", JSON.stringify(INITIAL_NOTIFS));
+      setNotifs(INITIAL_NOTIFS);
+    }
+  }, []);
 
   const unreadCount = notifs.filter((n) => !n.read).length;
 
   function markAllRead() {
-    setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifs((prev) => {
+      const next = prev.map((n) => ({ ...n, read: true }));
+      localStorage.setItem("cykruit_employer_notifications", JSON.stringify(next));
+      return next;
+    });
   }
   function markRead(id: number) {
-    setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+    setNotifs((prev) => {
+      const next = prev.map((n) => n.id === id ? { ...n, read: true } : n);
+      localStorage.setItem("cykruit_employer_notifications", JSON.stringify(next));
+      return next;
+    });
   }
   function dismiss(id: number) {
-    setNotifs((prev) => prev.filter((n) => n.id !== id));
+    setNotifs((prev) => {
+      const next = prev.filter((n) => n.id !== id);
+      localStorage.setItem("cykruit_employer_notifications", JSON.stringify(next));
+      return next;
+    });
   }
 
   const shown = notifs.filter((n) => {
@@ -107,7 +129,7 @@ export default function EmployerNotificationsPage() {
             ) : (
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm divide-y divide-slate-100">
                 {shown.map((n) => {
-                  const cfg = TYPE_CFG[n.type];
+                  const cfg = TYPE_CFG[n.type as NotifType];
                   const Inner = (
                     <div className={`flex items-start gap-4 px-5 py-4 transition-colors group ${!n.read ? "bg-blue-50/40" : "hover:bg-slate-50/60"}`}>
                       <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 mt-0.5 ${cfg.color}`}>

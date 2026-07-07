@@ -18,5 +18,7 @@ tsConfigPaths.register({
         '@cykruit/ai': [path.join(root, 'libs/ai/src/index.ts')],
         '@cykruit/rate-limit': [path.join(root, 'libs/rate-limit/src/index.ts')],
         '@cykruit/audit': [path.join(root, 'libs/audit/src/index.ts')],
+        '@cykruit/permissions': [path.join(root, 'libs/permissions/src/index.ts')],
+        '@cykruit/events': [path.join(root, 'libs/events/src/index.ts')],
     },
 });

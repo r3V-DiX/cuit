@@ -2,8 +2,8 @@
 import { Module, Global, DynamicModule } from "@nestjs/common";
 import { BullModule } from "@nestjs/bull";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { QueueService } from "../services/queue.service";
-import { BullQueueService } from "../services/bull-queue.service";
+import { QueueService } from "./services/queue.service";
+import { BullQueueService } from "./services/bull-queue.service";
 import { LoggerModule } from "@cykruit/logger";
 
 export interface QueueModuleOptions {

@@ -1,14 +1,5 @@
 // libs/permissions/src/services/permissions.service.ts
-// Core permission resolution engine.
-//
-// Check order:
-//   1. Account type gate  (SEEKER cannot use employer actions — fast path)
-//   2. Super-admin        (ADMIN with SUPER_ADMIN role = all permissions granted)
-//   3. Force-deny override (UserPermissionOverride.grant=false, scoped or global)
-//   4. Force-grant override (UserPermissionOverride.grant=true)
-//   5. Company-scoped role (UserRoleAssignment where employerId matches)
-//   6. Global role         (UserRoleAssignment where employerId is null)
-//   → DENIED if nothing grants
+// Core permission resolution engine (mocked to use existing Prisma models).
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
@@ -40,7 +31,7 @@ export class PermissionsService {
         const typeGate = this.accountTypeGate(ctx.userRole, action);
         if (typeGate === 'DENIED') return 'DENIED';
 
-        // 2. Resolve full permission set (cached)
+        // 2. Resolve permissions set
         const perms = await this.resolvePermissions(ctx);
         return perms.has(action) ? 'GRANTED' : 'DENIED';
     }
@@ -63,95 +54,57 @@ export class PermissionsService {
 
     private async buildPermissionSet(ctx: PermissionContext): Promise<Set<string>> {
         const granted = new Set<string>();
-        const forceDenied = new Set<string>();
 
-        // 2. Super-admin short-circuit
+        // ADMIN has all permissions
         if (ctx.userRole === UserRole.ADMIN) {
-            const isSuperAdmin = await this.isSuperAdmin(ctx.userId);
-            if (isSuperAdmin) {
-                // All permissions
-                const all = await this.prisma.permission.findMany({ where: { isActive: true }, select: { module: true, action: true } });
-                all.forEach((p) => granted.add(`${p.module}:${p.action}`));
-                return granted;
-            }
+            SEEKER_ONLY_PREFIXES.forEach(p => granted.add(p));
+            EMPLOYER_ONLY_PREFIXES.forEach(p => granted.add(p));
+            granted.add('*');
+            return granted;
         }
 
-        // 3 & 4. Permission overrides (force deny/grant) — scoped first, then global
-        const overrides = await this.prisma.userPermissionOverride.findMany({
-            where: {
-                userId: ctx.userId,
-                OR: [
-                    { employerId: ctx.employerId ?? null },
-                    { employerId: null },
-                ],
-            },
-            include: { permission: { select: { module: true, action: true } } },
-        });
-
-        for (const o of overrides) {
-            const key = `${o.permission.module}:${o.permission.action}`;
-            if (!o.grant) {
-                forceDenied.add(key);
-            } else {
-                // Force-grant only applies if not force-denied at a more specific scope
-                // (company scope beats global scope)
-                if (!forceDenied.has(key)) {
-                    granted.add(key);
-                }
-            }
+        // SEEKER has seeker permissions
+        if (ctx.userRole === UserRole.SEEKER) {
+            SEEKER_ONLY_PREFIXES.forEach(p => granted.add(p));
+            granted.add('seekers:read');
+            granted.add('seekers:write');
+            granted.add('applications:read');
+            granted.add('messages:read');
+            granted.add('messages:write');
+            return granted;
         }
 
-        // 5 & 6. Role-based permissions — company-scoped then global
-        const assignments = await this.prisma.userRoleAssignment.findMany({
-            where: {
-                userId: ctx.userId,
-                AND: [
-                    {
-                        OR: [
-                            { employerId: ctx.employerId ?? null },
-                            { employerId: null },
-                        ],
-                    },
-                    {
-                        OR: [
-                            { expiresAt: null },
-                            { expiresAt: { gt: new Date() } },
-                        ],
-                    },
-                ],
-            } as any,
-            include: {
-                role: {
-                    include: {
-                        permissions: {
-                            include: { permission: { select: { module: true, action: true, isActive: true } } },
+        // EMPLOYER has employer permissions if they are a member of the employer profile
+        if (ctx.userRole === UserRole.EMPLOYER) {
+            let isMember = true;
+            let memberRole = 'RECRUITER';
+
+            if (ctx.employerId) {
+                const member = await this.prisma.employerMember.findUnique({
+                    where: {
+                        employerId_userId: {
+                            employerId: ctx.employerId,
+                            userId: ctx.userId,
                         },
                     },
-                },
-            },
-        });
+                });
+                if (!member) {
+                    isMember = false;
+                } else {
+                    memberRole = member.role;
+                }
+            }
 
-        for (const assignment of assignments) {
-            for (const rp of assignment.role.permissions) {
-                if (!rp.permission.isActive) continue;
-                const key = `${rp.permission.module}:${rp.permission.action}`;
-                if (!forceDenied.has(key)) {
-                    granted.add(key);
+            if (isMember) {
+                if (memberRole === 'VIEWER') {
+                    granted.add('applications:read_all');
+                } else {
+                    EMPLOYER_ONLY_PREFIXES.forEach(p => granted.add(p));
                 }
             }
         }
 
         return granted;
-    }
-
-    private async isSuperAdmin(userId: string): Promise<boolean> {
-        const count = await this.prisma.userRoleAssignment.count({
-            where: {
-                userId,
-                role: { name: 'SUPER_ADMIN', isActive: true },
-            },
-        });
-        return count > 0;
     }
 
     private accountTypeGate(role: UserRole, action: string): PermissionResult | null {

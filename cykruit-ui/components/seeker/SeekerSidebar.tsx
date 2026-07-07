@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -16,18 +16,54 @@ const navItems = [
   { label: "Profile",       href: "/profile",       icon: User            },
   { label: "Applications",  href: "/applications",  icon: FileText        },
   { label: "Saved Jobs",    href: "/saved",         icon: Bookmark        },
-  { label: "Messages",      href: "/messages",      icon: MessageSquare, badge: 3 },
-  { label: "Notifications", href: "/notifications", icon: Bell, badge: 4 },
+  { label: "Messages",      href: "/messages",      icon: MessageSquare },
+  { label: "Notifications", href: "/notifications", icon: Bell },
   { label: "Settings",      href: "/settings",      icon: Settings       },
 ];
 
 export default function SeekerSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadMsgs, setUnreadMsgs] = useState(0);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
   const pathname = usePathname();
   const router = useRouter();
   const { openModal } = useModal();
   const { toast } = useToast();
+
+  useEffect(() => {
+    function updateCounts() {
+      try {
+        const msgs = localStorage.getItem("cykruit_messages");
+        if (msgs) {
+          const parsed = JSON.parse(msgs);
+          const count = parsed.reduce((sum: number, c: any) => sum + (c.seekerUnread || 0), 0);
+          setUnreadMsgs(count);
+        } else {
+          setUnreadMsgs(0);
+        }
+      } catch (e) {
+        setUnreadMsgs(0);
+      }
+
+      try {
+        const notifs = localStorage.getItem("cykruit_notifications");
+        if (notifs) {
+          const parsed = JSON.parse(notifs);
+          const count = parsed.filter((n: any) => !n.read).length;
+          setUnreadNotifs(count);
+        } else {
+          setUnreadNotifs(0);
+        }
+      } catch (e) {
+        setUnreadNotifs(0);
+      }
+    }
+
+    updateCounts();
+    const interval = setInterval(updateCounts, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   function handleSignOut() {
     openModal({
@@ -49,6 +85,11 @@ export default function SeekerSidebar() {
             },
           });
           if (response.ok) {
+            localStorage.removeItem("cykruit_applications");
+            localStorage.removeItem("cykruit_saved_jobs");
+            localStorage.removeItem("cykruit_messages");
+            localStorage.removeItem("cykruit_notifications");
+            localStorage.removeItem("cykruit_employer_notifications");
             toast({ type: "success", message: "Logged out successfully" });
             router.push("/login");
           } else {
@@ -95,11 +136,14 @@ export default function SeekerSidebar() {
 
         {/* Nav */}
         <nav className="flex-1 py-4 px-2 flex flex-col gap-0.5 overflow-y-auto">
-          {navItems.map(({ label, href, icon: Icon, badge }) => {
+          {navItems.map(({ label, href, icon: Icon }) => {
             const active =
               pathname === href ||
               (href !== "/dashboard" && pathname.startsWith(href));
             const isCollapsed = !forMobile && collapsed;
+            let badge = undefined;
+            if (label === "Messages") badge = unreadMsgs > 0 ? unreadMsgs : undefined;
+            if (label === "Notifications") badge = unreadNotifs > 0 ? unreadNotifs : undefined;
             return (
               <Link
                 key={href}

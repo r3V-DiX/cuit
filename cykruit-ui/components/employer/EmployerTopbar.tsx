@@ -31,13 +31,16 @@ export default function EmployerTopbar({ title }: { title: string }) {
       }
 
       try {
-        const notifRes = await fetch("/api/notifications/unread-count");
-        if (notifRes.ok) {
-          const notifResult = await notifRes.json();
-          setHasUnread(!!notifResult.data?.count);
+        const notifs = localStorage.getItem("cykruit_employer_notifications");
+        if (notifs) {
+          const parsed = JSON.parse(notifs);
+          const count = parsed.filter((n: any) => !n.read).length;
+          setHasUnread(count > 0);
+        } else {
+          setHasUnread(false);
         }
       } catch (err) {
-        // Graceful fallback
+        setHasUnread(false);
       }
     }
     loadUser();

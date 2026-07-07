@@ -28,6 +28,10 @@ export function parseTimeToMs(time: string): number {
  *           authProviders (google / github).
  */
 export function formatUserResponse(user: any) {
+  const hasPassword = user.password && user.password !== "";
+  const oauthProviders = user.userOAuthProviders || [];
+  const primaryProvider = oauthProviders.length > 0 ? oauthProviders[0].provider : null;
+
   return {
     id: user.id,
     email: user.email,
@@ -37,6 +41,8 @@ export function formatUserResponse(user: any) {
     status: user.status,
     phone: user.phone ?? null,
     profileImage: user.profileImage ?? null,
+    hasPassword: !!hasPassword,
+    provider: primaryProvider,
   };
 }
 

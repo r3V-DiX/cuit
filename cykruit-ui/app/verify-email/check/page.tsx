@@ -1,19 +1,65 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Shield, Mail, ArrowRight, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 
-export default function CheckEmailPage() {
+function CheckEmailContent() {
   const [resending, setResending] = useState(false);
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const email = searchParams.get("email");
+
+  useEffect(() => {
+    if (!email) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/auth/check-verification?email=${encodeURIComponent(email)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.isVerified) {
+            clearInterval(interval);
+            toast({ type: "success", message: "Email verified successfully!", description: "Please sign in to continue." });
+            router.push("/login?verified=true");
+          }
+        }
+      } catch (err) {
+        // Ignore errors during polling
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [email, router, toast]);
 
   async function resend() {
+    if (!email) {
+      toast({ type: "error", message: "Email address not found" });
+      return;
+    }
+
     setResending(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setResending(false);
-    toast({ type: "success", message: "Verification email resent", description: "Check your inbox and spam folder" });
+    try {
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to resend verification email");
+      }
+
+      toast({ type: "success", message: "Verification email resent", description: "Check your inbox and spam folder" });
+    } catch (err: any) {
+      toast({ type: "error", message: err.message || "Something went wrong" });
+    } finally {
+      setResending(false);
+    }
   }
 
   return (
@@ -104,5 +150,13 @@ export default function CheckEmailPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function CheckEmailPage() {
+  return (
+    <Suspense fallback={null}>
+      <CheckEmailContent />
+    </Suspense>
   );
 }
