@@ -6,7 +6,7 @@ import { AppLogger } from '@cykruit/logger';
 import { MailService } from '@cykruit/mail';
 import { EmailFrequency } from '@prisma/client';
 import { NotificationRepository } from '../repositories/notification.repository';
-import { NOTIFICATION_QUEUE, } from '../notification.module';
+import { NOTIFICATION_QUEUE } from '../constants';
 import { NOTIFICATION_JOBS } from '../services/notification.service';
 
 interface SendEmailJobData {

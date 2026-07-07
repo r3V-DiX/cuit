@@ -1,35 +1,19 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Save, ChevronDown, Plus, X, ArrowLeft,
   Users, Eye, CheckCircle2, Sparkles, Wand2,
 } from "lucide-react";
 import { inferDomain } from "@/lib/jobs-data";
+import { useToast } from "@/components/ui/Toast";
 
 const JOB_TYPES    = ["Full-time", "Part-time", "Contract", "Internship"];
 const REMOTE_TYPES = ["Remote", "On-site", "Hybrid"];
 const LEVELS       = ["Junior (0–2 yrs)", "Mid-level (2–5 yrs)", "Senior (5–8 yrs)", "Lead (8+ yrs)", "Manager (8+ yrs)"];
-
-// Seed data — replace with real fetch by id
-const SEED = {
-  title:           "Senior Penetration Tester",
-  domain:          "Offensive Security",
-  type:            "Full-time",
-  level:           "Senior",
-  remote:          "Remote",
-  location:        "Remote",
-  description:     "We are looking for an experienced penetration tester to join our red team. You will conduct assessments across web, mobile, and cloud environments.",
-  responsibilities:["Conduct penetration tests on web and mobile applications", "Write detailed technical reports", "Collaborate with the blue team on remediation"],
-  requirements:    ["3+ years of penetration testing experience", "Proficiency with Burp Suite, Metasploit, and custom exploits"],
-  niceToHave:      ["OSCP or GPEN certification", "Bug bounty track record"],
-  tags:            ["Burp Suite", "OSCP", "Python", "AWS", "Red Team"],
-  applicants:      12,
-  views:           340,
-  status:          "Active" as const,
-};
 
 function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
@@ -38,6 +22,7 @@ function SelectField({ label, value, onChange, options }: { label: string; value
       <div className="relative">
         <select value={value} onChange={(e) => onChange(e.target.value)}
           className="w-full appearance-none bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 pr-8 cursor-pointer">
+          <option value="">Select…</option>
           {options.map((o) => <option key={o} value={o}>{o}</option>)}
         </select>
         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -74,7 +59,7 @@ function TagInput({ label, tags, onChange }: { label: string; tags: string[]; on
         {tags.map((t) => (
           <span key={t} className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-mono font-medium rounded-lg border border-blue-200">
             {t}
-            <button onClick={() => onChange(tags.filter((x) => x !== t))} className="hover:text-blue-900"><X className="w-3 h-3" /></button>
+            <button type="button" onClick={() => onChange(tags.filter((x) => x !== t))} className="hover:text-blue-900"><X className="w-3 h-3" /></button>
           </span>
         ))}
         <input value={input} onChange={(e) => setInput(e.target.value)}
@@ -86,48 +71,57 @@ function TagInput({ label, tags, onChange }: { label: string; tags: string[]; on
   );
 }
 
-function ListInput({ label, items, onChange, placeholder }: {
-  label: string; items: string[]; onChange: (i: string[]) => void; placeholder?: string;
-}) {
-  function update(idx: number, val: string) { const next = [...items]; next[idx] = val; onChange(next); }
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold text-slate-700">{label}</label>
-      <div className="space-y-2">
-        {items.map((item, idx) => (
-          <div key={idx} className="flex items-center gap-2">
-            <input value={item} onChange={(e) => update(idx, e.target.value)} placeholder={placeholder}
-              className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10" />
-            <button onClick={() => onChange(items.filter((_, i) => i !== idx))}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0 cursor-pointer">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))}
-        <button onClick={() => onChange([...items, ""])}
-          className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer">
-          <Plus className="w-3.5 h-3.5" /> Add item
-        </button>
-      </div>
-    </div>
-  );
-}
-
 export default function JobEditPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id: _id } = use(params);
+  const { id } = use(params);
+  const router = useRouter();
+  const { toast } = useToast();
 
-  const [title, setTitle]             = useState(SEED.title);
-  const [domain, setDomain]           = useState(SEED.domain);
-  const [type, setType]               = useState(SEED.type);
-  const [level, setLevel]             = useState(SEED.level);
-  const [remote, setRemote]           = useState(SEED.remote);
-  const [location, setLocation]       = useState(SEED.location);
-  const [description, setDescription] = useState(SEED.description);
-  const [responsibilities, setResp]   = useState(SEED.responsibilities);
-  const [requirements, setReqs]       = useState(SEED.requirements);
-  const [niceToHave, setNice]         = useState(SEED.niceToHave);
-  const [tags, setTags]               = useState(SEED.tags);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [initialJob, setInitialJob] = useState<any>(null);
+
+  const [title, setTitle]             = useState("");
+  const [domain, setDomain]           = useState("");
+  const [type, setType]               = useState("");
+  const [level, setLevel]             = useState("");
+  const [remote, setRemote]           = useState("");
+  const [location, setLocation]       = useState("");
+  const [description, setDescription] = useState("");
+  const [tags, setTags]               = useState<string[]>([]);
   const [tagsGenerating, setTagsGenerating] = useState(false);
+
+  useEffect(() => {
+    const fetchJob = async () => {
+      try {
+        const res = await fetch(`/api/employer/jobs/${id}`);
+        const result = await res.json();
+        const rawJob = result.data || result;
+        if (rawJob && rawJob.id) {
+            setInitialJob(rawJob);
+            setTitle(rawJob.jobTitle || "");
+            setDomain(rawJob.role?.name || "Cybersecurity");
+            
+            const typeStr = rawJob.jobType?.replace("_", "-").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()) || "Full-time";
+            setType(typeStr);
+
+            const modeMapInv: Record<string, string> = { "REMOTE": "Remote", "ONSITE": "On-site", "HYBRID": "Hybrid" };
+            setRemote(modeMapInv[rawJob.workMode] || "Remote");
+
+            const levelMapInv: Record<string, string> = { "ENTRY": "Junior (0–2 yrs)", "MID": "Mid-level (2–5 yrs)", "SENIOR": "Senior (5–8 yrs)" };
+            setLevel(levelMapInv[rawJob.experienceLevel] || "Mid-level (2–5 yrs)");
+
+            setLocation(rawJob.location?.displayName || "Remote");
+            setDescription(rawJob.description || "");
+            setTags(rawJob.skills?.map((s: any) => s.skill.name) || []);
+        }
+      } catch (e: any) {
+        toast({ type: "error", message: "Failed to load job" });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchJob();
+  }, [id]);
 
   function generateAITags() {
     setTagsGenerating(true);
@@ -142,13 +136,90 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
     }, 1200);
   }
 
+  async function handleSave() {
+    if (!title.trim()) {
+      toast({ type: "error", message: "Job title is required" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const csrfCookie = document.cookie.split("; ").find((row) => row.startsWith("csrf_token="));
+      const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
+
+      const typeMap: Record<string, string> = {
+        "Full-time": "FULL_TIME",
+        "Part-time": "PART_TIME",
+        "Contract": "CONTRACT",
+        "Internship": "INTERNSHIP"
+      };
+
+      const modeMap: Record<string, string> = {
+        "Remote": "REMOTE",
+        "On-site": "ONSITE",
+        "Hybrid": "HYBRID"
+      };
+
+      const levelMap: Record<string, string> = {
+        "Junior (0–2 yrs)": "ENTRY",
+        "Mid-level (2–5 yrs)": "MID",
+        "Senior (5–8 yrs)": "SENIOR",
+        "Lead (8+ yrs)": "SENIOR",
+        "Manager (8+ yrs)": "SENIOR"
+      };
+
+      const res = await fetch(`/api/employer/jobs/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
+        body: JSON.stringify({
+          jobTitle: title.trim(),
+          jobType: typeMap[type],
+          workMode: modeMap[remote],
+          experienceLevel: levelMap[level],
+          description: description.trim() || undefined,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.message || "Failed to save job");
+      }
+
+      toast({ type: "success", message: "Job updated successfully!" });
+      router.push(`/employer/jobs/${id}`);
+    } catch (err: any) {
+      toast({ type: "error", message: err.message || "Something went wrong" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <>
+        <EmployerTopbar title="Edit Job" />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <span className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-3" />
+            <p className="text-slate-500 font-medium text-sm">Loading…</p>
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  const status = initialJob?.status || "DRAFT";
+  const statusDisplay = status === "APPROVED" ? "Active" : status === "PENDING" ? "Pending" : status === "DRAFT" ? "Draft" : "Closed";
+
   return (
     <>
       <EmployerTopbar title="Edit Job" />
       <main className="flex-1 overflow-y-auto p-6">
 
-        <Link href="/employer/jobs" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors mb-5">
-          <ArrowLeft className="w-4 h-4" /> Back to My Jobs
+        <Link href={`/employer/jobs/${id}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors mb-5">
+          <ArrowLeft className="w-4 h-4" /> Back to Job Details
         </Link>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
@@ -199,19 +270,6 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
             </section>
 
             <section className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="text-sm font-bold text-slate-900 mb-4">Responsibilities</h2>
-              <ListInput label="What will this person do?" items={responsibilities} onChange={setResp} placeholder="Add a responsibility…" />
-            </section>
-
-            <section className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="text-sm font-bold text-slate-900 mb-4">Requirements</h2>
-              <div className="flex flex-col gap-4">
-                <ListInput label="Must-have requirements" items={requirements} onChange={setReqs} placeholder="Add a requirement…" />
-                <ListInput label="Nice to have" items={niceToHave} onChange={setNice} placeholder="Add a nice-to-have…" />
-              </div>
-            </section>
-
-            <section className="bg-white rounded-2xl border border-slate-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-bold text-slate-900">Skills & Tags</h2>
                 <button
@@ -235,11 +293,8 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
             </section>
 
             <div className="flex items-center gap-3 pb-6">
-              <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 cursor-pointer">
-                <Save className="w-4 h-4" /> Save Changes
-              </button>
-              <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-rose-200 text-rose-600 text-sm font-semibold hover:bg-rose-50 transition-colors cursor-pointer">
-                Close Job
+              <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 cursor-pointer disabled:opacity-70">
+                <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Changes"}
               </button>
             </div>
           </div>
@@ -252,45 +307,29 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Performance</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="flex flex-col items-center justify-center py-3 px-2 bg-slate-50 rounded-xl border border-slate-100">
-                  <p className="text-2xl font-bold text-slate-900">{SEED.applicants}</p>
+                  <p className="text-2xl font-bold text-slate-900">{initialJob?._count?.applications || 0}</p>
                   <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1"><Users className="w-3 h-3" /> Applicants</p>
                 </div>
                 <div className="flex flex-col items-center justify-center py-3 px-2 bg-slate-50 rounded-xl border border-slate-100">
-                  <p className="text-2xl font-bold text-slate-900">{SEED.views}</p>
+                  <p className="text-2xl font-bold text-slate-900">{initialJob?.viewCount || 0}</p>
                   <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1"><Eye className="w-3 h-3" /> Views</p>
                 </div>
               </div>
               <div className="mt-3 flex items-center justify-between">
-                <span className="text-[10px] font-mono font-semibold px-2.5 py-1 rounded-lg border text-green-700 bg-green-50 border-green-200 flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3" /> {SEED.status}
+                <span className={`text-[10px] font-mono font-semibold px-2.5 py-1 rounded-lg border flex items-center gap-1
+                   ${statusDisplay === "Active" ? "text-green-700 bg-green-50 border-green-200" 
+                     : statusDisplay === "Draft" ? "text-slate-500 bg-slate-50 border-slate-200" 
+                     : "text-amber-700 bg-amber-50 border-amber-200"}`}>
+                  <CheckCircle2 className="w-3 h-3" /> {statusDisplay}
                 </span>
-                <Link href="/employer/applicants" className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                <Link href={`/employer/jobs/${id}/applicants`} className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">
                   View applicants →
                 </Link>
               </div>
             </div>
 
-            {/* Status control */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5">
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Listing Status</h3>
-              <div className="flex flex-col gap-2">
-                {(["Active", "Draft", "Closed"] as const).map((s) => (
-                  <button key={s}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                      SEED.status === s
-                        ? s === "Active" ? "bg-green-50 border-green-300 text-green-700" : "bg-slate-100 border-slate-300 text-slate-700"
-                        : "border-slate-200 text-slate-400 hover:bg-slate-50"
-                    }`}
-                  >
-                    <span className={`w-2 h-2 rounded-full ${s === "Active" ? "bg-green-500" : s === "Draft" ? "bg-slate-400" : "bg-rose-400"}`} />
-                    {s}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Quick save */}
-            <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 cursor-pointer">
+            <button onClick={handleSave} disabled={saving} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 cursor-pointer disabled:opacity-70">
               <Save className="w-4 h-4" /> Save Changes
             </button>
           </div>

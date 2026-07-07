@@ -1,8 +1,7 @@
 "use client";
-
-import { useState } from "react";
+// Fetches dynamic job details from the API
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
-import { use } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   ChevronLeft, Edit3, MapPin, Briefcase, Users, Eye,
@@ -10,13 +9,14 @@ import {
   Sparkles, MessageSquare, BarChart2, Calendar,
 } from "lucide-react";
 
-type JobStatus  = "Active" | "Draft" | "Closed";
+type JobStatus  = "Active" | "Pending" | "Draft" | "Closed";
 type AppStatus  = "New" | "Shortlisted" | "Interview" | "Rejected";
 
 const JOB_STATUS_CFG: Record<JobStatus, { color: string; icon: React.ReactNode }> = {
-  Active: { color: "text-green-700 bg-green-50 border-green-200", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-  Draft:  { color: "text-slate-500 bg-slate-50 border-slate-200", icon: <Clock        className="w-3.5 h-3.5" /> },
-  Closed: { color: "text-rose-700 bg-rose-50 border-rose-200",    icon: <XCircle      className="w-3.5 h-3.5" /> },
+  Active:  { color: "text-green-700 bg-green-50 border-green-200", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
+  Pending: { color: "text-amber-700 bg-amber-50 border-amber-200", icon: <Clock        className="w-3.5 h-3.5" /> },
+  Draft:   { color: "text-slate-500 bg-slate-50 border-slate-200", icon: <Clock        className="w-3.5 h-3.5" /> },
+  Closed:  { color: "text-rose-700 bg-rose-50 border-rose-200",    icon: <XCircle      className="w-3.5 h-3.5" /> },
 };
 
 const APP_STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }> = {
@@ -26,83 +26,76 @@ const APP_STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }
   Rejected:    { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle      className="w-3 h-3" /> },
 };
 
-const JOBS: {
-  id: number; title: string; domain: string; type: string; location: string;
-  experience: string; posted: string; status: JobStatus;
-  views: number; description: string; skills: string[];
-}[] = [
-  {
-    id: 1, title: "Senior Penetration Tester", domain: "Offensive Security", type: "Full-time",
-    location: "Remote", experience: "4–7 years",
-    posted: "Jun 19, 2025", status: "Active", views: 340,
-    description: "We are looking for a skilled penetration tester to join our red team. You will conduct web application, network, and social engineering assessments for enterprise clients. OSCP or equivalent required.",
-    skills: ["Burp Suite", "Metasploit", "Python", "OSCP", "Network Pentesting", "Web App Testing", "Active Directory", "Report Writing"],
-  },
-  {
-    id: 2, title: "Cloud Security Engineer", domain: "Cloud Security", type: "Full-time",
-    location: "New York", experience: "3–6 years",
-    posted: "Jun 17, 2025", status: "Active", views: 210,
-    description: "Secure our multi-cloud environment across AWS, Azure, and GCP. You will own CSPM tooling, cloud incident response, and developer security enablement.",
-    skills: ["AWS", "Azure", "GCP", "Terraform", "CSPM", "IAM", "Container Security", "CSSP"],
-  },
-  {
-    id: 3, title: "Red Team Operator", domain: "Offensive Security", type: "Contract",
-    location: "Remote", experience: "5+ years",
-    posted: "Jun 15, 2025", status: "Active", views: 180,
-    description: "Execute full-scope red team engagements simulating nation-state and APT adversaries. Must have experience with C2 frameworks and living-off-the-land techniques.",
-    skills: ["C2 Frameworks", "Active Directory", "OPSEC", "Cobalt Strike", "Custom Malware", "CRTO", "OPSEC"],
-  },
-  {
-    id: 4, title: "AppSec Engineer", domain: "Application Security", type: "Full-time",
-    location: "Bangalore", experience: "3–5 years",
-    posted: "Jun 22, 2025", status: "Draft", views: 0,
-    description: "Embed with product engineering teams to shift security left. Own SAST/DAST tooling, threat model new features, and run secure code review.",
-    skills: ["SAST", "DAST", "Secure SDLC", "Threat Modeling", "Code Review", "OWASP", "API Security"],
-  },
-  {
-    id: 5, title: "SOC Analyst Tier 2", domain: "Blue Team / SOC", type: "Full-time",
-    location: "London", experience: "2–4 years",
-    posted: "Jun 8, 2025", status: "Closed", views: 520,
-    description: "Analyze and escalate security alerts from SIEM, coordinate with IR team, and tune detection rules. Comfortable with Splunk SPL required.",
-    skills: ["Splunk", "QRadar", "SIEM", "SOAR", "Threat Hunting", "Incident Triage", "Python"],
-  },
-];
-
+// Hardcoded for now until applicants API is ready
 const ALL_APPLICANTS: {
-  id: number; name: string; jobId: number; location: string;
+  id: number; name: string; jobId: string; location: string;
   experience: string; status: AppStatus; applied: string; skills: string[];
-}[] = [
-  { id: 1,  name: "Aryan Mehta",     jobId: 1, location: "Mumbai, IN",    experience: "5 yrs", status: "Shortlisted", applied: "2h ago",  skills: ["Burp Suite", "OSCP", "Python"]       },
-  { id: 2,  name: "Priya Sharma",    jobId: 2, location: "Bangalore, IN", experience: "4 yrs", status: "Interview",   applied: "5h ago",  skills: ["AWS", "Terraform", "CSSP"]           },
-  { id: 3,  name: "Rohan Das",       jobId: 3, location: "Delhi, IN",     experience: "3 yrs", status: "New",         applied: "1d ago",  skills: ["Splunk", "QRadar", "SIEM"]           },
-  { id: 4,  name: "Neha Kulkarni",   jobId: 1, location: "Pune, IN",      experience: "6 yrs", status: "New",         applied: "1d ago",  skills: ["Metasploit", "Kali", "GPEN"]         },
-  { id: 5,  name: "Vikram Singh",    jobId: 3, location: "Hyderabad, IN", experience: "7 yrs", status: "Shortlisted", applied: "2d ago",  skills: ["C2 Frameworks", "AD", "OPSEC"]       },
-  { id: 6,  name: "Ananya Roy",      jobId: 2, location: "Chennai, IN",   experience: "3 yrs", status: "Rejected",    applied: "3d ago",  skills: ["GCP", "Docker", "Kubernetes"]        },
-  { id: 7,  name: "Karan Joshi",     jobId: 4, location: "Remote",        experience: "4 yrs", status: "New",         applied: "3d ago",  skills: ["SAST", "DAST", "Secure SDLC"]       },
-  { id: 8,  name: "Shreya Nair",     jobId: 1, location: "Kolkata, IN",   experience: "5 yrs", status: "Interview",   applied: "4d ago",  skills: ["Web App", "API Testing", "OSWP"]    },
-  { id: 9,  name: "Dev Malhotra",    jobId: 1, location: "Gurgaon, IN",   experience: "4 yrs", status: "New",         applied: "5d ago",  skills: ["OSCP", "Burp Suite", "Nmap"]        },
-  { id: 10, name: "Sana Sheikh",     jobId: 2, location: "Hyderabad, IN", experience: "5 yrs", status: "New",         applied: "5d ago",  skills: ["AWS Security", "GuardDuty", "IAM"]  },
-  { id: 11, name: "Rahul Verma",     jobId: 1, location: "Noida, IN",     experience: "5 yrs", status: "Rejected",    applied: "6d ago",  skills: ["Kali", "Nessus", "Nmap"]            },
-  { id: 12, name: "Tanvi Rao",       jobId: 1, location: "Pune, IN",      experience: "6 yrs", status: "New",         applied: "1w ago",  skills: ["PNPT", "Python", "AD Attacks"]      },
-  { id: 13, name: "Aditya Kumar",    jobId: 3, location: "Bangalore, IN", experience: "6 yrs", status: "New",         applied: "1w ago",  skills: ["C2", "Cobalt Strike", "Pivoting"]   },
-  { id: 14, name: "Meera Iyer",      jobId: 5, location: "London, UK",    experience: "3 yrs", status: "Shortlisted", applied: "2w ago",  skills: ["Splunk", "SOAR", "SIEM"]            },
-  { id: 15, name: "James O'Brien",   jobId: 5, location: "Manchester, UK",experience: "4 yrs", status: "Interview",   applied: "2w ago",  skills: ["QRadar", "Threat Hunt", "Python"]   },
-  { id: 16, name: "Sophie Carter",   jobId: 5, location: "London, UK",    experience: "2 yrs", status: "Rejected",    applied: "2w ago",  skills: ["SIEM", "Alert Triage", "Elastic"]   },
-  { id: 17, name: "Liam Hughes",     jobId: 5, location: "Edinburgh, UK", experience: "3 yrs", status: "New",         applied: "2w ago",  skills: ["Splunk", "CrowdStrike", "EDR"]      },
-  { id: 18, name: "Imogen Walsh",    jobId: 5, location: "Birmingham, UK",experience: "3 yrs", status: "New",         applied: "2w ago",  skills: ["IBM QRadar", "CSOC", "LogRhythm"]   },
-];
-
-const AI_SCORES: Record<number, number> = { 1:91, 2:84, 3:67, 4:78, 5:88, 6:42, 7:73, 8:85, 9:76, 10:69, 11:54, 12:82, 13:79, 14:90, 15:83, 16:47, 17:71, 18:65 };
+}[] = [];
+const AI_SCORES: Record<number, number> = {};
 
 const STATUS_FILTERS: (AppStatus | "All")[] = ["All", "New", "Shortlisted", "Interview", "Rejected"];
 
 export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const job = JOBS.find((j) => String(j.id) === id);
-
+  
+  const [job, setJob] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<AppStatus | "All">("All");
   const [search, setSearch] = useState("");
   const [aiRank, setAiRank] = useState(false);
+
+  useEffect(() => {
+    const fetchJob = async () => {
+      try {
+        const res = await fetch(`/api/employer/jobs/${id}`);
+        const result = await res.json();
+        const rawJob = result.data || result;
+        if (rawJob && rawJob.id) {
+           const statusMap: Record<string, JobStatus> = {
+              "APPROVED": "Active",
+              "PENDING": "Pending",
+              "DRAFT": "Draft",
+              "CLOSED": "Closed",
+              "REJECTED": "Closed",
+              "EXPIRED": "Closed"
+            };
+            const mapped = {
+              id: rawJob.id,
+              title: rawJob.jobTitle,
+              domain: rawJob.role?.name || "Cybersecurity",
+              type: rawJob.jobType?.replace("_", "-").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()) || "Full-time",
+              location: rawJob.location?.displayName || "Remote",
+              experience: rawJob.experienceLevel || "Mid-level",
+              posted: new Date(rawJob.createdAt).toLocaleDateString(),
+              status: statusMap[rawJob.status] || "Draft",
+              views: rawJob.viewCount || 0,
+              description: rawJob.description || "No description provided.",
+              skills: rawJob.skills?.map((s: any) => s.skill.name) || [],
+            };
+            setJob(mapped);
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchJob();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <>
+        <EmployerTopbar title="Job Detail" />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <span className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-3" />
+            <p className="text-slate-500 font-medium text-sm">Loading job…</p>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   if (!job) {
     return (
@@ -120,7 +113,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   }
 
   const jobApplicants = ALL_APPLICANTS.filter((a) => a.jobId === job.id);
-  const jcfg = JOB_STATUS_CFG[job.status];
+  const jcfg = JOB_STATUS_CFG[job.status as JobStatus] || JOB_STATUS_CFG.Draft;
 
   const filtered = jobApplicants.filter((a) => {
     const matchStatus = statusFilter === "All" || a.status === statusFilter;
@@ -139,18 +132,16 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       <EmployerTopbar title="Job Detail" />
       <main className="flex-1 overflow-y-auto p-6 space-y-5">
 
-        {/* Back */}
         <Link href="/employer/jobs"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors">
           <ChevronLeft className="w-3.5 h-3.5" /> Back to My Jobs
         </Link>
 
-        {/* ── Job header card ── */}
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="flex items-start gap-4">
               <div className="w-14 h-14 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-xl font-bold text-blue-600 shrink-0">
-                {job.title[0]}
+                {job.title?.[0]}
               </div>
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
@@ -176,7 +167,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
               <Link href={`/employer/jobs/${job.id}/edit`}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors">
@@ -189,21 +179,18 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             </div>
           </div>
 
-          {/* Description */}
-          <p className="mt-5 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-4">
+          <p className="mt-5 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-4 whitespace-pre-wrap">
             {job.description}
           </p>
 
-          {/* Skills */}
           <div className="mt-4 flex flex-wrap gap-1.5">
-            {job.skills.map((s) => (
+            {job.skills?.map((s: string) => (
               <span key={s} className="px-2.5 py-1 text-[11px] font-mono text-slate-600 bg-slate-100 border border-slate-200 rounded-lg">
                 {s}
               </span>
             ))}
           </div>
 
-          {/* Meta row */}
           <div className="mt-5 pt-4 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-xs text-slate-400">Experience</p>
@@ -224,7 +211,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           </div>
         </div>
 
-        {/* ── Applicant breakdown stats ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {(["New", "Shortlisted", "Interview", "Rejected"] as AppStatus[]).map((s) => {
             const count = countByStatus(s);
@@ -249,7 +235,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           })}
         </div>
 
-        {/* ── AI ranking banner ── */}
         <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all ${aiRank ? "bg-violet-50 border-violet-200" : "bg-white border-slate-200"}`}>
           <div className="w-8 h-8 rounded-xl bg-violet-100 border border-violet-200 flex items-center justify-center shrink-0">
             <Sparkles className="w-4 h-4 text-violet-600" />
@@ -267,10 +252,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           </button>
         </div>
 
-        {/* ── Filters + applicants table ── */}
         <div className="space-y-4">
-
-          {/* Filters row */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 flex-1 max-w-xs shadow-sm">
               <Users className="w-4 h-4 text-slate-400 shrink-0" />
@@ -296,7 +278,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             </div>
           </div>
 
-          {/* Table */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
             {sorted.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">

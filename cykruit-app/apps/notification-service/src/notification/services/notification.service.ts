@@ -3,9 +3,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
+import { NOTIFICATION_QUEUE } from '../constants';
 import { NotificationRepository, CreateNotificationInput } from '../repositories/notification.repository';
 import { NotificationListQueryDto } from '../dto/notification-query.dto';
-import { NOTIFICATION_QUEUE } from '../notification.module';
 
 /** Job names inside the notification-email Bull queue */
 export const NOTIFICATION_JOBS = {

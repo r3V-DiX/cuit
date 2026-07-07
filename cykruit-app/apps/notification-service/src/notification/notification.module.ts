@@ -28,8 +28,8 @@ import { DigestSchedulerService } from './services/digest-scheduler.service';
 import { NotificationRepository } from './repositories/notification.repository';
 import { EmailDigestProcessor } from './processors/email-digest.processor';
 import { DomainEventProcessor } from './processors/domain-event.processor';
-
-export const NOTIFICATION_QUEUE = 'notification-email';
+import { NOTIFICATION_QUEUE } from './constants';
+export { NOTIFICATION_QUEUE };
 
 @Injectable()
 export class NotificationSessionValidator implements ISessionValidator {

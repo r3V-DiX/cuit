@@ -266,16 +266,16 @@ export default function PostJobPage() {
 
       const modeMap: Record<string, string> = {
         "Remote": "REMOTE",
-        "On-site": "ON_SITE",
+        "On-site": "ONSITE",
         "Hybrid": "HYBRID"
       };
 
       const levelMap: Record<string, string> = {
-        "Junior (0–2 yrs)": "JUNIOR",
-        "Mid-level (2–5 yrs)": "MID_LEVEL",
+        "Junior (0–2 yrs)": "ENTRY",
+        "Mid-level (2–5 yrs)": "MID",
         "Senior (5–8 yrs)": "SENIOR",
-        "Lead (8+ yrs)": "LEAD",
-        "Manager (8+ yrs)": "MANAGER"
+        "Lead (8+ yrs)": "SENIOR",
+        "Manager (8+ yrs)": "SENIOR"
       };
 
       const res = await fetch("/api/employer/jobs", {
@@ -290,7 +290,7 @@ export default function PostJobPage() {
           workMode: modeMap[remote],
           experienceLevel: levelMap[level],
           description: description.trim() || undefined,
-          applicationType: "INTERNAL",
+          applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
             type: q.type.toUpperCase(),
             question: q.question,
@@ -357,16 +357,16 @@ export default function PostJobPage() {
 
       const modeMap: Record<string, string> = {
         "Remote": "REMOTE",
-        "On-site": "ON_SITE",
+        "On-site": "ONSITE",
         "Hybrid": "HYBRID"
       };
 
       const levelMap: Record<string, string> = {
-        "Junior (0–2 yrs)": "JUNIOR",
-        "Mid-level (2–5 yrs)": "MID_LEVEL",
+        "Junior (0–2 yrs)": "ENTRY",
+        "Mid-level (2–5 yrs)": "MID",
         "Senior (5–8 yrs)": "SENIOR",
-        "Lead (8+ yrs)": "LEAD",
-        "Manager (8+ yrs)": "MANAGER"
+        "Lead (8+ yrs)": "SENIOR",
+        "Manager (8+ yrs)": "SENIOR"
       };
 
       const res = await fetch("/api/employer/jobs", {
@@ -381,7 +381,7 @@ export default function PostJobPage() {
           workMode: modeMap[remote],
           experienceLevel: levelMap[level],
           description: description.trim() || undefined,
-          applicationType: "INTERNAL",
+          applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
             type: q.type.toUpperCase(),
             question: q.question,
