@@ -1,0 +1,54 @@
+{
+  "name": "cykruit-admin-api",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Cykruit Admin Backend — separate deployable, maps to admin-api.cykruit.com",
+  "license": "MIT",
+  "scripts": {
+    "start": "ts-node -r ./tsconfig-paths-bootstrap.js src/main.ts",
+    "start:dev": "ts-node-dev --respawn -r ./tsconfig-paths-bootstrap.js src/main.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start:prod": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "prisma generate --schema=../cykruit-app/prisma/schema.prisma",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "lint": "eslint \"src/**/*.ts\" --fix"
+  },
+  "engines": {
+    "npm": ">=10.0.0",
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@nestjs-modules/ioredis": "^2.0.2",
+    "@nestjs/axios": "^4.0.1",
+    "@nestjs/bull": "^11.0.4",
+    "@nestjs/common": "^11.1.6",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.6",
+    "@nestjs/platform-express": "^11.1.6",
+    "@nestjs/schedule": "^6.1.1",
+    "@prisma/client": "^6.16.2",
+    "axios": "^1.18.1",
+    "bull": "^4.16.5",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.7.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.0",
+    "@types/compression": "^1.8.1",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.18.0",
+    "prettier": "^3.6.2",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.2"
+  }
+}

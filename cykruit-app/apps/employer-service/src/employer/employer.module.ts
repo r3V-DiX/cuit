@@ -3,6 +3,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import type { Request } from 'express';
 
 import { PrismaModule, PrismaService } from '@cykruit/prisma';
@@ -12,11 +13,11 @@ import { UploadModule } from '@cykruit/upload';
 import { AuditModule } from '@cykruit/audit';
 import { RateLimitModule } from '@cykruit/rate-limit';
 import { PermissionsModule } from '@cykruit/permissions';
+import { EventsModule } from '@cykruit/events';
 import {
     AuthCoreModule,
     ISessionValidator,
     ISessionValidationResult,
-    SESSION_VALIDATOR,
     hashToken,
 } from '@cykruit/auth-core';
 
@@ -25,18 +26,22 @@ import { CompanyController } from './controllers/company.controller';
 import { KycController } from './controllers/kyc.controller';
 import { JobsController } from './controllers/jobs.controller';
 import { TeamController } from './controllers/team.controller';
+import { ApplicationsController } from './controllers/applications.controller';
 
 // Services
 import { CompanyService } from './services/company.service';
 import { KycService } from './services/kyc.service';
 import { JobsService } from './services/jobs.service';
 import { TeamService } from './services/team.service';
+import { EmployerApplicationsService } from './services/applications.service';
+import { JobExpiryService } from './services/job-expiry.service';
 
 // Repositories
 import { CompanyRepository } from './repositories/company.repository';
 import { KycRepository } from './repositories/kyc.repository';
 import { JobsRepository } from './repositories/jobs.repository';
 import { TeamRepository } from './repositories/team.repository';
+import { EmployerApplicationsRepository } from './repositories/applications.repository';
 
 /**
  * EmployerSessionValidator validates bearer/cookie session tokens from the
@@ -98,6 +103,8 @@ export class EmployerSessionValidator implements ISessionValidator {
         AuditModule,
         RateLimitModule,
         PermissionsModule,
+        ScheduleModule.forRoot(),
+        EventsModule.forPublisher(),
         AuthCoreModule.forRoot({
             sessionValidatorClass: EmployerSessionValidator,
             imports: [PrismaModule, ConfigModule],
@@ -109,6 +116,7 @@ export class EmployerSessionValidator implements ISessionValidator {
         KycController,
         JobsController,
         TeamController,
+        ApplicationsController,
     ],
     providers: [
         CompanyService,
@@ -119,6 +127,9 @@ export class EmployerSessionValidator implements ISessionValidator {
         JobsRepository,
         TeamService,
         TeamRepository,
+        EmployerApplicationsService,
+        EmployerApplicationsRepository,
+        JobExpiryService,
         EmployerSessionValidator,
     ],
     exports: [CompanyService],

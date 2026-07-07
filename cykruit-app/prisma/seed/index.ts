@@ -5,6 +5,7 @@ import { seedCertifications } from './certifications.seed';
 import { seedInstitutes } from './institutes.seed';
 import { seedRoles } from './roles.seed';
 import { seedAdmins } from './admins.seed';
+import { seedSubscriptionPackages } from './subscriptions.seed';
 
 const prisma = new PrismaClient();
 
@@ -47,6 +48,12 @@ async function main() {
         await seedAdmins(prisma);
     } catch (e) {
         console.error('❌ Admins seeding failed:', e);
+    }
+
+    try {
+        await seedSubscriptionPackages(prisma);
+    } catch (e) {
+        console.error('❌ Subscription packages seeding failed:', e);
     }
 
     console.log('\n================================================');

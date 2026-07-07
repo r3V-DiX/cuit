@@ -1,0 +1,308 @@
+// apps/notification-service/src/notification/processors/domain-event.processor.ts
+
+import { Process, Processor } from '@nestjs/bull';
+import type { Job } from 'bull';
+import { AppLogger } from '@cykruit/logger';
+import { PrismaService } from '@cykruit/prisma';
+import {
+    DOMAIN_EVENTS_QUEUE,
+    DOMAIN_EVENT_JOB,
+    DomainEvent,
+    DomainEventType,
+} from '@cykruit/events';
+import { NotificationType, DeliveryChannel } from '@prisma/client';
+import { NotificationService } from '../services/notification.service';
+
+@Processor(DOMAIN_EVENTS_QUEUE)
+export class DomainEventProcessor {
+    constructor(
+        private readonly notificationService: NotificationService,
+        private readonly prisma: PrismaService,
+        private readonly logger: AppLogger,
+    ) {}
+
+    @Process(DOMAIN_EVENT_JOB)
+    async handle(job: Job<DomainEvent>): Promise<void> {
+        const event = job.data;
+        this.logger.log(
+            `[DomainEventProcessor] Processing ${event.type} (${event.eventId}) from ${event.sourceService}`,
+            'DomainEventProcessor',
+        );
+
+        try {
+            await this.route(event);
+        } catch (err) {
+            this.logger.error(
+                `[DomainEventProcessor] Failed to process ${event.type} (${event.eventId})`,
+                err,
+                'DomainEventProcessor',
+            );
+            throw err; // Rethrow — Bull will retry
+        }
+    }
+
+    /** Fetch email + firstName for a userId. Returns nulls if user not found. */
+    private async userContact(userId: string): Promise<{ email: string; firstName: string } | null> {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true, firstName: true },
+        });
+        return user ? { email: user.email, firstName: user.firstName } : null;
+    }
+
+    private async route(event: DomainEvent): Promise<void> {
+        switch (event.type) {
+
+            // ── Application events ────────────────────────────────────────────
+
+            case DomainEventType.APPLICATION_SUBMITTED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.NEW_APPLICANT,
+                    title: 'New Application Received',
+                    message: `${p.seekerName} applied for "${p.jobTitle}"`,
+                    actionUrl: `/employer/jobs/${p.jobId}/applications/${p.applicationId}`,
+                    relatedEntityType: 'Application',
+                    relatedEntityId: p.applicationId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
+            case DomainEventType.APPLICATION_STATUS_CHANGED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.seekerId);
+                await this.notificationService.emit({
+                    userId: p.seekerId,
+                    type: NotificationType.APPLICATION_STATUS,
+                    title: 'Application Update',
+                    message: `Your application for "${p.jobTitle}" has been updated to ${p.newStatus.toLowerCase().replace('_', ' ')}`,
+                    actionUrl: `/applications/${p.applicationId}`,
+                    relatedEntityType: 'Application',
+                    relatedEntityId: p.applicationId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
+            case DomainEventType.APPLICATION_WITHDRAWN: {
+                // Seeker withdrew themselves — no notification needed
+                break;
+            }
+
+            // ── Job events ────────────────────────────────────────────────────
+
+            case DomainEventType.JOB_APPROVED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.JOB_APPROVAL,
+                    title: 'Job Approved',
+                    message: `Your job "${p.jobTitle}" has been approved and is now live`,
+                    actionUrl: `/employer/jobs/${p.jobId}`,
+                    relatedEntityType: 'Job',
+                    relatedEntityId: p.jobId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
+            case DomainEventType.JOB_REJECTED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.JOB_APPROVAL,
+                    title: 'Job Rejected',
+                    message: `Your job "${p.jobTitle}" was not approved: ${p.rejectionReason}`,
+                    actionUrl: `/employer/jobs/${p.jobId}`,
+                    relatedEntityType: 'Job',
+                    relatedEntityId: p.jobId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
+            case DomainEventType.JOB_EXPIRING_SOON: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.JOB_EXPIRY_ALERT,
+                    title: 'Job Expiring Soon',
+                    message: `"${p.jobTitle}" expires on ${new Date(p.expiresAt).toLocaleDateString()}. Reopen it to keep receiving applications.`,
+                    actionUrl: `/employer/jobs/${p.jobId}`,
+                    relatedEntityType: 'Job',
+                    relatedEntityId: p.jobId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
+            // ── KYC events ────────────────────────────────────────────────────
+
+            case DomainEventType.KYC_APPROVED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.KYC_APPROVED,
+                    title: 'Company Verified',
+                    message: `${p.companyName} has been verified. You can now post jobs.`,
+                    actionUrl: `/employer/company`,
+                    relatedEntityType: 'EmployerVerification',
+                    relatedEntityId: p.verificationId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
+            case DomainEventType.KYC_REJECTED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.KYC_REJECTED,
+                    title: 'Verification Unsuccessful',
+                    message: `${p.companyName} verification was rejected: ${p.rejectionReason}`,
+                    actionUrl: `/employer/kyc/resubmit`,
+                    relatedEntityType: 'EmployerVerification',
+                    relatedEntityId: p.verificationId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
+            // ── Team events ───────────────────────────────────────────────────
+
+            case DomainEventType.TEAM_INVITE_SENT: {
+                const p = event.payload as any;
+                if (p.invitedUserId) {
+                    const contact = await this.userContact(p.invitedUserId);
+                    await this.notificationService.emit({
+                        userId: p.invitedUserId,
+                        type: NotificationType.SYSTEM_ANNOUNCEMENT,
+                        title: 'Team Invitation',
+                        message: `You have been invited to join ${p.companyName} as ${p.role.toLowerCase()}`,
+                        actionUrl: `/employer/team/accept-invite?token=${p.inviteToken}`,
+                        relatedEntityType: 'Employer',
+                        relatedEntityId: p.employerId,
+                        deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                        sendEmail: true,
+                        userEmail: contact?.email,
+                        firstName: contact?.firstName,
+                    });
+                }
+                break;
+            }
+
+            // ── Account events ────────────────────────────────────────────────
+
+            case DomainEventType.ACCOUNT_SUSPENDED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.userId);
+                await this.notificationService.emit({
+                    userId: p.userId,
+                    type: NotificationType.SYSTEM_ANNOUNCEMENT,
+                    title: 'Account Suspended',
+                    message: p.reason
+                        ? `Your account has been suspended: ${p.reason}`
+                        : 'Your account has been suspended. Contact support for assistance.',
+                    actionUrl: `/support`,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
+            case DomainEventType.ACCOUNT_UNSUSPENDED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.userId);
+                await this.notificationService.emit({
+                    userId: p.userId,
+                    type: NotificationType.SYSTEM_ANNOUNCEMENT,
+                    title: 'Account Reinstated',
+                    message: 'Your account has been reinstated. Welcome back.',
+                    actionUrl: `/dashboard`,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
+            // ── Subscription events ───────────────────────────────────────────
+
+            case DomainEventType.SUBSCRIPTION_EXPIRED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.PLATFORM_ANNOUNCEMENT,
+                    title: 'Subscription Expired',
+                    message: `Your ${p.packageName} plan has expired. Contact us to renew.`,
+                    actionUrl: `/employer/subscription`,
+                    relatedEntityType: 'EmployerSubscription',
+                    relatedEntityId: p.subscriptionId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
+            case DomainEventType.SUBSCRIPTION_ASSIGNED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.PLATFORM_ANNOUNCEMENT,
+                    title: 'Plan Updated',
+                    message: `Your account has been assigned the ${p.packageName} plan`,
+                    actionUrl: `/employer/subscription`,
+                    relatedEntityType: 'EmployerSubscription',
+                    relatedEntityId: p.subscriptionId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
+            default:
+                this.logger.warn(
+                    `[DomainEventProcessor] Unhandled event type: ${(event as any).type}`,
+                    'DomainEventProcessor',
+                );
+        }
+    }
+}

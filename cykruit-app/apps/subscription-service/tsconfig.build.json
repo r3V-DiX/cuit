@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "../..",
+    "outDir": "../../dist/apps/subscription-service",
+    "rootDir": "src",
+    "paths": {
+      "@cykruit/prisma": ["libs/prisma/src/index.ts"],
+      "@cykruit/config": ["libs/config/src/index.ts"],
+      "@cykruit/context": ["libs/context/src/index.ts"],
+      "@cykruit/logger": ["libs/logger/src/index.ts"],
+      "@cykruit/common": ["libs/common/src/index.ts"],
+      "@cykruit/auth-core": ["libs/auth-core/src/index.ts"],
+      "@cykruit/mail": ["libs/mail/src/index.ts"],
+      "@cykruit/rate-limit": ["libs/rate-limit/src/index.ts"],
+      "@cykruit/permissions": ["libs/permissions/src/index.ts"],
+      "@cykruit/events": ["libs/events/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

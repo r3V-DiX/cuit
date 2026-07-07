@@ -24,7 +24,7 @@ export class TeamRepository {
                     },
                 },
             },
-            orderBy: { joinedAt: 'asc' },
+            orderBy: { createdAt: 'asc' },
         });
     }
 

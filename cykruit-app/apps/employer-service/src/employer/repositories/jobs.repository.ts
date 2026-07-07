@@ -2,7 +2,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
-import { JobStatus, Prisma } from '@prisma/client';
+import { ApplicationStatus, JobStatus, Prisma } from '@prisma/client';
 import { JobListQueryDto } from '../dto/job.dto';
 
 const JOB_DETAIL_INCLUDE = {
@@ -115,14 +115,27 @@ export class JobsRepository {
     }
 
     async close(id: string, reason: string) {
-        return this.prisma.job.update({
-            where: { id },
-            data: {
-                status: JobStatus.CLOSED,
-                closedReason: reason,
-                closedAt: new Date(),
-            },
-            include: JOB_DETAIL_INCLUDE,
+        return this.prisma.$transaction(async (tx) => {
+            const job = await tx.job.update({
+                where: { id },
+                data: {
+                    status: JobStatus.CLOSED,
+                    closedReason: reason,
+                    closedAt: new Date(),
+                },
+                include: JOB_DETAIL_INCLUDE,
+            });
+
+            // Withdraw all open applications so seekers are notified of closure
+            await tx.application.updateMany({
+                where: {
+                    jobId: id,
+                    status: { in: [ApplicationStatus.APPLIED, ApplicationStatus.UNDER_REVIEW] },
+                },
+                data: { status: ApplicationStatus.WITHDRAWN },
+            });
+
+            return job;
         });
     }
 

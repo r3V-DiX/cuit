@@ -16,6 +16,7 @@ datasource db {
 enum UserRole {
     SEEKER
     EMPLOYER
+    ADMIN
 }
 
 enum AccountStatus {
@@ -30,6 +31,7 @@ enum AccountStatus {
 enum TokenType {
     EMAIL_VERIFICATION // For verifying email after registration
     PASSWORD_RESET // For password reset flow
+    EMPLOYER_INVITE // For employer team invitations
 }
 
 enum DeviceType {
@@ -304,6 +306,7 @@ model User {
     locationPreferences LocationPreference[]
     userOAuthProviders  UserOAuthProvider[]
     authAuditLogs       AuthAuditLog[]
+    employerMemberships EmployerMember[]
 
     @@index([email])
     @@index([status])
@@ -1114,13 +1117,15 @@ model Employer {
     // RELATIONS
     // ============================================
     verifications       EmployerVerification[] // All verification attempts
-    officeLocations     OfficeLocation[] // NEW: Office locations ✅
-    benefits            CompanyBenefit[] // NEW: Company benefits ✅
-    teamMembers         TeamMember[] // NEW: Team members ✅
-    companyMedia        CompanyMedia[] // NEW: Company media gallery ✅
+    officeLocations     OfficeLocation[]
+    benefits            CompanyBenefit[]
+    teamMembers         TeamMember[]
+    companyMedia        CompanyMedia[]
     jobs                Job[]
     companyProfileViews CompanyProfileView[]
     settings            EmployerSettings?
+    members             EmployerMember[]
+    subscription        EmployerSubscription?
 
     @@index([slug])
     @@index([isVerified])
@@ -1850,4 +1855,85 @@ model UserOAuthProvider {
     @@index([userId])
     @@index([provider, providerId])
     @@map("user_oauth_providers")
+}
+
+// ==========================
+// EMPLOYER TEAM MODELS
+// ==========================
+
+enum EmployerMemberRole {
+    OWNER
+    HIRING_MANAGER
+    RECRUITER
+    VIEWER
+}
+
+model EmployerMember {
+    id         String             @id @default(uuid())
+    employerId String
+    employer   Employer           @relation(fields: [employerId], references: [id], onDelete: Cascade)
+    userId     String
+    user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+    role       EmployerMemberRole @default(RECRUITER)
+    invitedBy  String?            // userId of who invited this member
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([employerId, userId])
+    @@index([employerId])
+    @@index([userId])
+    @@map("employer_members")
+}
+
+// ==========================
+// SUBSCRIPTION MODELS
+// ==========================
+
+model SubscriptionPackage {
+    id          String  @id @default(uuid())
+    name        String  @unique
+    description String?
+    isActive    Boolean @default(true)
+
+    maxActiveJobs    Int     @default(5)
+    maxTeamMembers   Int     @default(3)
+    featuredJobSlots Int     @default(0)
+    aiScoringEnabled Boolean @default(false)
+
+    priceMonthly Decimal? @db.Decimal(10, 2)
+    priceYearly  Decimal? @db.Decimal(10, 2)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    subscriptions EmployerSubscription[]
+
+    @@index([isActive])
+    @@map("subscription_packages")
+}
+
+model EmployerSubscription {
+    id         String   @id @default(uuid())
+    employerId String   @unique
+    employer   Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+    packageId  String
+    package    SubscriptionPackage @relation(fields: [packageId], references: [id])
+
+    status    String   @default("ACTIVE") // ACTIVE | EXPIRED | CANCELLED
+    startedAt DateTime @default(now())
+    expiresAt DateTime?
+
+    // Cached usage counters — refreshed periodically, not authoritative for hard limits
+    currentActiveJobs    Int @default(0)
+    currentTeamMembers   Int @default(0)
+    usedFeaturedJobSlots Int @default(0)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([employerId])
+    @@index([status])
+    @@index([expiresAt])
+    @@map("employer_subscriptions")
 }

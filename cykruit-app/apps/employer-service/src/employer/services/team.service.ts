@@ -12,6 +12,7 @@ import { EmployerMemberRole } from '@prisma/client';
 import { PrismaService } from '@cykruit/prisma';
 import { HashService } from '@cykruit/common';
 import { MailService } from '@cykruit/mail';
+import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { CompanyRepository } from '../repositories/company.repository';
 import { TeamRepository } from '../repositories/team.repository';
 import {
@@ -51,6 +52,7 @@ export class TeamService {
         private readonly prisma: PrismaService,
         private readonly hashService: HashService,
         private readonly configService: ConfigService,
+        private readonly eventPublisher: EventPublisher,
     ) {}
 
     // ── Get Team ─────────────────────────────────────────────────
@@ -124,6 +126,20 @@ export class TeamService {
             inviterName,
             employer.companyName,
             inviteUrl,
+        );
+
+        // Publish event for in-app notification if invitee has an account
+        this.eventPublisher.publish(
+            DomainEventType.TEAM_INVITE_SENT,
+            {
+                inviteToken: rawToken,
+                employerId: employer.id,
+                companyName: employer.companyName,
+                invitedEmail: dto.email,
+                invitedUserId: existingUserWithEmail?.id,
+                role: dto.role,
+            },
+            'employer-service',
         );
 
         return { message: 'Invitation sent successfully.' };
@@ -234,6 +250,11 @@ export class TeamService {
             throw new NotFoundException('Member not found in your company.');
         }
 
+        // Cannot remove yourself via this endpoint.
+        if (targetMember.userId === userId) {
+            throw new BadRequestException('Cannot remove yourself from the team.');
+        }
+
         // Cannot remove the OWNER.
         if (targetMember.role === EmployerMemberRole.OWNER) {
             throw new BadRequestException(
@@ -244,8 +265,7 @@ export class TeamService {
         // HIRING_MANAGER can only remove RECRUITER-level members.
         if (
             requesterMember.role === EmployerMemberRole.HIRING_MANAGER &&
-            targetMember.role === EmployerMemberRole.HIRING_MANAGER &&
-            targetMember.userId !== userId
+            targetMember.role === EmployerMemberRole.HIRING_MANAGER
         ) {
             throw new ForbiddenException(
                 'HIRING_MANAGERs cannot remove other HIRING_MANAGERs.',

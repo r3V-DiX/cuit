@@ -1,0 +1,112 @@
+// admin-app/src/admin/repositories/kyc.repository.ts
+
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@cykruit/prisma';
+import { VerificationStatus, Prisma } from '@prisma/client';
+import { KycListQueryDto } from '../dto/kyc.dto';
+
+@Injectable()
+export class KycRepository {
+    constructor(private readonly prisma: PrismaService) {}
+
+    async findAll(query: KycListQueryDto): Promise<{ items: any[]; total: number }> {
+        const { page = 1, limit = 20, status } = query;
+        const skip = (page - 1) * limit;
+
+        const where: Prisma.EmployerVerificationWhereInput = {
+            isLatest: true,
+            ...(status ? { status } : {}),
+        };
+
+        const [items, total] = await this.prisma.$transaction([
+            this.prisma.employerVerification.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { submittedAt: 'desc' },
+                include: {
+                    employer: {
+                        select: {
+                            id: true,
+                            companyName: true,
+                            slug: true,
+                            companyLogo: true,
+                            contactEmail: true,
+                        },
+                    },
+                },
+            }),
+            this.prisma.employerVerification.count({ where }),
+        ]);
+
+        return { items, total };
+    }
+
+    async findById(id: string) {
+        return this.prisma.employerVerification.findUnique({
+            where: { id },
+            include: {
+                employer: {
+                    select: {
+                        id: true,
+                        companyName: true,
+                        slug: true,
+                        companyLogo: true,
+                        contactEmail: true,
+                        companyWebsite: true,
+                    },
+                },
+            },
+        });
+    }
+
+    // Atomically approve verification + mark employer verified in one transaction
+    async approveWithTransaction(id: string, employerId: string, adminId: string, adminNotes?: string) {
+        return this.prisma.$transaction(async (tx) => {
+            const updated = await tx.employerVerification.update({
+                where: { id },
+                data: {
+                    status: VerificationStatus.APPROVED,
+                    reviewedBy: adminId,
+                    reviewedAt: new Date(),
+                    adminNotes,
+                },
+            });
+            await tx.employer.update({
+                where: { id: employerId },
+                data: { isVerified: true },
+            });
+            return updated;
+        });
+    }
+
+    // Atomically reject verification + optionally revoke employer verification
+    async rejectWithTransaction(
+        id: string,
+        employerId: string,
+        adminId: string,
+        rejectionReason: string,
+        adminNotes?: string,
+        revokeVerification = false,
+    ) {
+        return this.prisma.$transaction(async (tx) => {
+            const updated = await tx.employerVerification.update({
+                where: { id },
+                data: {
+                    status: VerificationStatus.REJECTED,
+                    reviewedBy: adminId,
+                    reviewedAt: new Date(),
+                    rejectionReason,
+                    adminNotes,
+                },
+            });
+            if (revokeVerification) {
+                await tx.employer.update({
+                    where: { id: employerId },
+                    data: { isVerified: false },
+                });
+            }
+            return updated;
+        });
+    }
+}

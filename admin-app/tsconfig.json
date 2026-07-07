@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "target": "ES2021",
+    "module": "commonjs",
+    "lib": ["ES2021"],
+    "moduleResolution": "node",
+    "declaration": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@cykruit/prisma":      ["../cykruit-app/libs/prisma/src/index.ts"],
+      "@cykruit/config":      ["../cykruit-app/libs/config/src/index.ts"],
+      "@cykruit/context":     ["../cykruit-app/libs/context/src/index.ts"],
+      "@cykruit/logger":      ["../cykruit-app/libs/logger/src/index.ts"],
+      "@cykruit/common":      ["../cykruit-app/libs/common/src/index.ts"],
+      "@cykruit/auth-core":   ["../cykruit-app/libs/auth-core/src/index.ts"],
+      "@cykruit/mail":        ["../cykruit-app/libs/mail/src/index.ts"],
+      "@cykruit/audit":       ["../cykruit-app/libs/audit/src/index.ts"],
+      "@cykruit/rate-limit":  ["../cykruit-app/libs/rate-limit/src/index.ts"],
+      "@cykruit/permissions": ["../cykruit-app/libs/permissions/src/index.ts"],
+      "@cykruit/events":     ["../cykruit-app/libs/events/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

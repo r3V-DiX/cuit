@@ -46,6 +46,33 @@
         "tsConfigPath": "tsconfig.json"
       }
     },
+    "events": {
+      "type": "library",
+      "root": "libs/events",
+      "entryFile": "index",
+      "sourceRoot": "libs/events/src",
+      "compilerOptions": {
+        "tsConfigPath": "tsconfig.json"
+      }
+    },
+    "seeker-service": {
+      "type": "application",
+      "root": "apps/seeker-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/seeker-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/seeker-service/tsconfig.build.json"
+      }
+    },
+    "notification-service": {
+      "type": "application",
+      "root": "apps/notification-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/notification-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/notification-service/tsconfig.build.json"
+      }
+    },
     "employer-service": {
       "type": "application",
       "root": "apps/employer-service",
@@ -62,6 +89,15 @@
       "sourceRoot": "apps/public-service/src",
       "compilerOptions": {
         "tsConfigPath": "apps/public-service/tsconfig.build.json"
+      }
+    },
+    "subscription-service": {
+      "type": "application",
+      "root": "apps/subscription-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/subscription-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/subscription-service/tsconfig.build.json"
       }
     }
   }
