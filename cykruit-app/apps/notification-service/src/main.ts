@@ -102,7 +102,7 @@ async function bootstrap() {
     process.on('SIGTERM', async () => { await app.close(); process.exit(0); });
     process.on('SIGINT', async () => { await app.close(); process.exit(0); });
 
-    const port = process.env.NOTIFICATION_PORT || 4006;
+    const port = process.env.NOTIFICATION_PORT || 4007;
     const host = process.env.HOST || '0.0.0.0';
 
     await app.listen(port, host);

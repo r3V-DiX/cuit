@@ -46,6 +46,7 @@ export class CompanyService {
         const slug = await this.generateUniqueSlug(dto.companyName);
 
         const employer = await this.companyRepository.create({
+            userId,
             companyName: dto.companyName,
             companyType: dto.companyType,
             industry: dto.industry,

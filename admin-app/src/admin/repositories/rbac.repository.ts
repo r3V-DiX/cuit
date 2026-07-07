@@ -11,7 +11,7 @@ export class RbacRepository {
     // ── Roles ─────────────────────────────────────────────────────────────────
 
     async findAllRoles() {
-        return this.prisma.systemRole.findMany({
+        return this.prisma.rbacRole.findMany({
             orderBy: { createdAt: 'asc' },
             include: {
                 permissions: {
@@ -22,7 +22,7 @@ export class RbacRepository {
     }
 
     async findRoleById(id: string) {
-        return this.prisma.systemRole.findUnique({
+        return this.prisma.rbacRole.findUnique({
             where: { id },
             include: {
                 permissions: { include: { permission: true } },
@@ -31,7 +31,7 @@ export class RbacRepository {
     }
 
     async createRole(dto: CreateRoleDto) {
-        return this.prisma.systemRole.create({
+        return this.prisma.rbacRole.create({
             data: {
                 name: dto.name,
                 description: dto.description,
@@ -48,7 +48,7 @@ export class RbacRepository {
     }
 
     async updateRole(id: string, dto: UpdateRoleDto) {
-        return this.prisma.systemRole.update({
+        return this.prisma.rbacRole.update({
             where: { id },
             data: {
                 ...(dto.name !== undefined ? { name: dto.name } : {}),
@@ -117,9 +117,7 @@ export class RbacRepository {
         grantedBy: string,
         reason?: string,
         employerId?: string,
-        expiresAt?: Date,
     ) {
-        // Unique: [userId, permissionId, employerId] — employerId nullable
         return this.prisma.userPermissionOverride.upsert({
             where: {
                 userId_permissionId_employerId: {
@@ -128,8 +126,8 @@ export class RbacRepository {
                     employerId: employerId ?? null,
                 },
             },
-            create: { userId, permissionId, grant, grantedBy, reason, employerId, expiresAt },
-            update: { grant, grantedBy, reason, expiresAt },
+            create: { userId, permissionId, grant, grantedBy, reason, employerId },
+            update: { grant, grantedBy, reason },
         });
     }
 

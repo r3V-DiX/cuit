@@ -1,0 +1,253 @@
+version: '3.9'
+
+services:
+  # ── Infrastructure ──────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: cykruit_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rana
+      POSTGRES_DB: cykruit_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cykruit_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Microservices ───────────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ./cykruit-app
+      dockerfile: apps/auth-service/Dockerfile
+    container_name: cykruit_auth
+    restart: unless-stopped
+    env_file: ./cykruit-app/.env
+    environment:
+      AUTH_PORT: '4001'
+      DATABASE_URL: postgresql://postgres:rana@postgres:5432/cykruit_db
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+    ports:
+      - '4001:4001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  user-settings-service:
+    build:
+      context: ./cykruit-app
+      dockerfile: apps/user-settings-service/Dockerfile
+    container_name: cykruit_settings
+    restart: unless-stopped
+    env_file: ./cykruit-app/.env
+    environment:
+      SETTINGS_PORT: '4002'
+      DATABASE_URL: postgresql://postgres:rana@postgres:5432/cykruit_db
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+    ports:
+      - '4002:4002'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  seeker-profile-service:
+    build:
+      context: ./cykruit-app
+      dockerfile: apps/seeker-profile-service/Dockerfile
+    container_name: cykruit_seeker_profile
+    restart: unless-stopped
+    env_file: ./cykruit-app/.env
+    environment:
+      SEEKER_PROFILE_PORT: '4003'
+      DATABASE_URL: postgresql://postgres:rana@postgres:5432/cykruit_db
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+    ports:
+      - '4003:4003'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  employer-service:
+    build:
+      context: ./cykruit-app
+      dockerfile: apps/employer-service/Dockerfile
+    container_name: cykruit_employer
+    restart: unless-stopped
+    env_file: ./cykruit-app/.env
+    environment:
+      EMPLOYER_PORT: '4004'
+      DATABASE_URL: postgresql://postgres:rana@postgres:5432/cykruit_db
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+    ports:
+      - '4004:4004'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  seeker-service:
+    build:
+      context: ./cykruit-app
+      dockerfile: apps/seeker-service/Dockerfile
+    container_name: cykruit_seeker
+    restart: unless-stopped
+    env_file: ./cykruit-app/.env
+    environment:
+      SEEKER_PORT: '4005'
+      DATABASE_URL: postgresql://postgres:rana@postgres:5432/cykruit_db
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+    ports:
+      - '4005:4005'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  public-service:
+    build:
+      context: ./cykruit-app
+      dockerfile: apps/public-service/Dockerfile
+    container_name: cykruit_public
+    restart: unless-stopped
+    env_file: ./cykruit-app/.env
+    environment:
+      PUBLIC_PORT: '4006'
+      DATABASE_URL: postgresql://postgres:rana@postgres:5432/cykruit_db
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+    ports:
+      - '4006:4006'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  notification-service:
+    build:
+      context: ./cykruit-app
+      dockerfile: apps/notification-service/Dockerfile
+    container_name: cykruit_notification
+    restart: unless-stopped
+    env_file: ./cykruit-app/.env
+    environment:
+      NOTIFICATION_PORT: '4007'
+      DATABASE_URL: postgresql://postgres:rana@postgres:5432/cykruit_db
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+    ports:
+      - '4007:4007'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  subscription-service:
+    build:
+      context: ./cykruit-app
+      dockerfile: apps/subscription-service/Dockerfile
+    container_name: cykruit_subscription
+    restart: unless-stopped
+    env_file: ./cykruit-app/.env
+    environment:
+      SUBSCRIPTION_PORT: '4008'
+      DATABASE_URL: postgresql://postgres:rana@postgres:5432/cykruit_db
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+    ports:
+      - '4008:4008'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  gateway:
+    build:
+      context: ./cykruit-app
+      dockerfile: apps/gateway/Dockerfile
+    container_name: cykruit_gateway
+    restart: unless-stopped
+    env_file: ./cykruit-app/.env
+    environment:
+      GATEWAY_PORT: '5000'
+      AUTH_SERVICE_URL: http://auth-service:4001
+      SETTINGS_SERVICE_URL: http://user-settings-service:4002
+      SEEKER_PROFILE_SERVICE_URL: http://seeker-profile-service:4003
+      EMPLOYER_SERVICE_URL: http://employer-service:4004
+      SEEKER_SERVICE_URL: http://seeker-service:4005
+      PUBLIC_SERVICE_URL: http://public-service:4006
+      NOTIFICATION_SERVICE_URL: http://notification-service:4007
+      SUBSCRIPTION_SERVICE_URL: http://subscription-service:4008
+    ports:
+      - '5000:5000'
+    depends_on:
+      - auth-service
+      - user-settings-service
+      - seeker-profile-service
+      - employer-service
+      - seeker-service
+      - public-service
+      - notification-service
+      - subscription-service
+
+  admin-app:
+    build:
+      context: ./admin-app
+      dockerfile: Dockerfile
+    container_name: cykruit_admin
+    restart: unless-stopped
+    env_file: ./admin-app/.env
+    environment:
+      ADMIN_PORT: '4010'
+      DATABASE_URL: postgresql://postgres:rana@postgres:5432/cykruit_db
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      SUBSCRIPTION_SERVICE_URL: http://subscription-service:4008
+    ports:
+      - '4010:4010'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      subscription-service:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  redis_data:

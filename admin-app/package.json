@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start:prod": "node dist/main.js",
     "typecheck": "tsc --noEmit",
-    "prisma:generate": "prisma generate --schema=../cykruit-app/prisma/schema.prisma",
+    "prisma:generate": "node_modules/.bin/prisma generate --schema=../cykruit-app/prisma/schema.prisma",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint \"src/**/*.ts\" --fix"
   },
@@ -46,6 +46,7 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.18.0",
     "prettier": "^3.6.2",
+    "prisma": "^6.16.2",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "tsconfig-paths": "^4.2.0",

@@ -12,7 +12,6 @@ import { CommonModule } from '@cykruit/common';
 import { UploadModule } from '@cykruit/upload';
 import { AuditModule } from '@cykruit/audit';
 import { RateLimitModule } from '@cykruit/rate-limit';
-import { PermissionsModule } from '@cykruit/permissions';
 import { EventsModule } from '@cykruit/events';
 import {
     AuthCoreModule,
@@ -102,7 +101,6 @@ export class EmployerSessionValidator implements ISessionValidator {
         UploadModule,
         AuditModule,
         RateLimitModule,
-        PermissionsModule,
         ScheduleModule.forRoot(),
         EventsModule.forPublisher(),
         AuthCoreModule.forRoot({

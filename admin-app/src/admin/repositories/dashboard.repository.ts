@@ -24,7 +24,7 @@ export class DashboardRepository {
             this.prisma.user.count({ where: { role: UserRole.SEEKER, status: AccountStatus.ACTIVE } }),
             this.prisma.user.count({ where: { role: UserRole.EMPLOYER, status: AccountStatus.ACTIVE } }),
             this.prisma.job.count({ where: { status: JobStatus.APPROVED } }),
-            this.prisma.job.count({ where: { status: JobStatus.PENDING_APPROVAL } }),
+            this.prisma.job.count({ where: { status: JobStatus.PENDING } }),
             this.prisma.employerVerification.count({
                 where: { status: VerificationStatus.PENDING, isLatest: true },
             }),

@@ -51,6 +51,7 @@ export class CompanyRepository {
     }
 
     async create(data: {
+        userId: string;
         companyName: string;
         companyType: any;
         industry: any;

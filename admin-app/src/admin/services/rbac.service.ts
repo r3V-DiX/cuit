@@ -134,7 +134,6 @@ export class RbacService {
             adminId,
             dto.reason,
             dto.employerId,
-            dto.expiresAt,
         );
 
         this.auditLogger.log({

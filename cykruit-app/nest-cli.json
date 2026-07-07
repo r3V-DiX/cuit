@@ -99,6 +99,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/subscription-service/tsconfig.build.json"
       }
+    },
+    "gateway": {
+      "type": "application",
+      "root": "apps/gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/gateway/tsconfig.build.json"
+      }
     }
   }
 }

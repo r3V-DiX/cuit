@@ -306,7 +306,10 @@ model User {
     locationPreferences LocationPreference[]
     userOAuthProviders  UserOAuthProvider[]
     authAuditLogs       AuthAuditLog[]
-    employerMemberships EmployerMember[]
+    employerMemberships  EmployerMember[]
+    roleAssignments      UserRoleAssignment[]
+    permissionOverrides  UserPermissionOverride[]
+    auditLogs            AuditLog[]
 
     @@index([email])
     @@index([status])
@@ -1936,4 +1939,115 @@ model EmployerSubscription {
     @@index([status])
     @@index([expiresAt])
     @@map("employer_subscriptions")
+}
+
+// ==========================
+// General Audit Log (admin-app)
+// ==========================
+
+model AuditLog {
+    id         String   @id @default(uuid())
+    actorId    String
+    actor      User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+    actorRole  String   @default("ADMIN")
+    action     String
+    module     String
+    targetType String?
+    targetId   String?
+    oldData    Json?
+    newData    Json?
+    riskLevel  String   @default("LOW")
+    result     String
+    reason     String?
+    ipAddress  String?
+    metadata   Json?
+    createdAt  DateTime @default(now())
+
+    @@index([actorId])
+    @@index([module])
+    @@index([result])
+    @@index([riskLevel])
+    @@index([createdAt])
+    @@map("audit_logs")
+}
+
+// ==========================
+// RBAC (Permission System)
+// ==========================
+
+model Permission {
+    id          String   @id @default(uuid())
+    module      String
+    action      String
+    description String?
+    isActive    Boolean  @default(true)
+    createdAt   DateTime @default(now())
+
+    rolePermissions     RolePermission[]
+    userOverrides       UserPermissionOverride[]
+
+    @@unique([module, action])
+    @@index([isActive])
+    @@map("permissions")
+}
+
+model RbacRole {
+    id          String   @id @default(uuid())
+    name        String   @unique
+    description String?
+    isActive    Boolean  @default(true)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    permissions  RolePermission[]
+    assignments  UserRoleAssignment[]
+
+    @@map("rbac_roles")
+}
+
+
+model RolePermission {
+    id           String     @id @default(uuid())
+    roleId       String
+    role         RbacRole   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+    permissionId String
+    permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+    @@unique([roleId, permissionId])
+    @@map("role_permissions")
+}
+
+model UserRoleAssignment {
+    id         String    @id @default(uuid())
+    userId     String
+    user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    roleId     String
+    role       RbacRole  @relation(fields: [roleId], references: [id], onDelete: Cascade)
+    employerId String?
+    expiresAt  DateTime?
+    assignedBy String?
+    createdAt  DateTime  @default(now())
+
+    @@unique([userId, roleId, employerId])
+    @@index([userId])
+    @@index([employerId])
+    @@map("user_role_assignments")
+}
+
+model UserPermissionOverride {
+    id           String     @id @default(uuid())
+    userId       String
+    user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+    permissionId String
+    permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+    employerId   String?
+    grant        Boolean
+    grantedBy    String?
+    reason       String?
+    createdAt    DateTime   @default(now())
+
+    @@unique([userId, permissionId, employerId])
+    @@index([userId])
+    @@index([employerId])
+    @@map("user_permission_overrides")
 }
