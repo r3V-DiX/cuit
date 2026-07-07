@@ -208,6 +208,9 @@ export default function EmployersPage() {
                     Post a Job Free
                     <ArrowRight className="w-4 h-4" />
                   </Button>
+                  <Button href="/login" variant="outline-light" size="lg">
+                    Sign In
+                  </Button>
                   <Button href="/register" variant="outline-light" size="lg">
                     Book a Demo
                   </Button>
@@ -436,6 +439,9 @@ export default function EmployersPage() {
               <Button href="/register" variant="primary" size="lg">
                 Post a Job Free
                 <ArrowRight className="w-4 h-4" />
+              </Button>
+              <Button href="/login" variant="secondary" size="lg">
+                Sign In
               </Button>
               <Button href="/about" variant="secondary" size="lg">
                 Learn More About Us

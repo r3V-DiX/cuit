@@ -43,46 +43,35 @@ async function fetchJobs(params: {
     const res = await fetch(url.toString());
     if (res.ok) {
       const result = await res.json();
-      if (result.data) {
-        const mapped = result.data.map((job: any) => ({
-          id: job.id,
-          title: job.jobTitle,
-          company: job.employer?.companyName || "Unknown Company",
-          location: job.location?.displayName || "Remote",
-          type: job.jobType,
-          remote: job.workMode,
-          description: job.description || "",
-          logo: job.employer?.companyName?.[0] || "C",
-          accent: "bg-blue-100 text-blue-800",
-          posted: new Date(job.publishedAt || Date.now()).toLocaleDateString(),
-          tags: job.skills?.map((s: any) => s.name) || [],
-          domain: job.role?.name || "Cybersecurity",
-        }));
-        return { data: mapped, total: result.total, totalPages: result.totalPages };
-      }
+      
+      let rawJobs = [];
+      if (Array.isArray(result.data)) rawJobs = result.data;
+      else if (result.data && Array.isArray(result.data.jobs)) rawJobs = result.data.jobs;
+      else if (result.data && Array.isArray(result.data.data)) rawJobs = result.data.data;
+      else if (Array.isArray(result.jobs)) rawJobs = result.jobs;
+      else if (Array.isArray(result)) rawJobs = result;
+
+      const mapped = rawJobs.map((job: any) => ({
+        id: job.id,
+        title: job.jobTitle,
+        company: job.employer?.companyName || "Unknown Company",
+        location: job.location?.displayName || "Remote",
+        type: job.jobType,
+        remote: job.workMode,
+        description: job.description || "",
+        logo: job.employer?.companyName?.[0] || "C",
+        accent: "bg-blue-100 text-blue-800",
+        posted: new Date(job.publishedAt || Date.now()).toLocaleDateString(),
+        tags: job.skills?.map((s: any) => s.name) || [],
+        domain: job.role?.name || "Cybersecurity",
+      }));
+      return { data: mapped, total: result.total || result.data?.total || mapped.length, totalPages: result.totalPages || result.data?.totalPages || 1 };
     }
   } catch (error) {
-    // Fallback to mock data below
+    console.error("Failed to fetch jobs:", error);
   }
 
-  const { q, spec, type, mode, page, limit } = params;
-  const filtered = ALL_JOBS.filter((job) => {
-    const query = q.toLowerCase();
-    const matchSearch = !query ||
-      job.title.toLowerCase().includes(query) ||
-      job.company.toLowerCase().includes(query) ||
-      job.tags.some((t) => t.toLowerCase().includes(query));
-    return (
-      matchSearch &&
-      (spec === "All" || job.domain === spec) &&
-      (type === "All" || job.type === type) &&
-      (mode === "All" || job.remote === mode)
-    );
-  });
-  const total      = filtered.length;
-  const totalPages = Math.ceil(total / limit);
-  const data       = filtered.slice((page - 1) * limit, page * limit);
-  return { data, total, totalPages };
+  return { data: [], total: 0, totalPages: 0 };
 }
 
 export default function JobsPage() {
