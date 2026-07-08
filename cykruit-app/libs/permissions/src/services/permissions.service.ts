@@ -112,13 +112,13 @@ export class PermissionsService {
 
         if (role === UserRole.SEEKER) {
             for (const prefix of EMPLOYER_ONLY_PREFIXES) {
-                if (action.startsWith(prefix)) return 'DENIED';
+                if (action === prefix || action.startsWith(prefix + ':')) return 'DENIED';
             }
         }
 
         if (role === UserRole.EMPLOYER) {
             for (const prefix of SEEKER_ONLY_PREFIXES) {
-                if (action.startsWith(prefix)) return 'DENIED';
+                if (action === prefix || action.startsWith(prefix + ':')) return 'DENIED';
             }
         }
 

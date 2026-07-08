@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
@@ -10,73 +10,93 @@ import {
   ShieldCheck, AlertTriangle, ThumbsUp,
 } from "lucide-react";
 
-type AppStatus = "New" | "Shortlisted" | "Interview" | "Rejected";
+type AppStatus = "New" | "Shortlisted" | "Under Review" | "Rejected" | "Withdrawn";
 
 const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode; label: string }> = {
-  New:        { color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Send         className="w-3.5 h-3.5" />, label: "New"         },
-  Shortlisted:{ color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3.5 h-3.5" />, label: "Shortlisted" },
-  Interview:  { color: "text-violet-700 bg-violet-50 border-violet-200", icon: <Clock        className="w-3.5 h-3.5" />, label: "Interview"   },
-  Rejected:   { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle      className="w-3.5 h-3.5" />, label: "Rejected"    },
+  New:            { color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Send         className="w-3.5 h-3.5" />, label: "New"         },
+  "Under Review": { color: "text-violet-700 bg-violet-50 border-violet-200", icon: <Clock        className="w-3.5 h-3.5" />, label: "Under Review" },
+  Shortlisted:    { color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3.5 h-3.5" />, label: "Shortlisted" },
+  Rejected:       { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle      className="w-3.5 h-3.5" />, label: "Rejected"    },
+  Withdrawn:      { color: "text-slate-500 bg-slate-100 border-slate-200",   icon: <Minus        className="w-3.5 h-3.5" />, label: "Withdrawn"   },
 };
 
-const SEED = {
-  id: 1,
-  name: "Aryan Mehta",
-  role: "Senior Penetration Tester",
-  location: "Mumbai, India",
-  email: "aryan.mehta@example.com",
-  phone: "+91 98765 43210",
-  website: "aryanmehta.dev",
-  experience: "5 years",
-  status: "Shortlisted" as AppStatus,
-  applied: "2 hours ago",
-  summary: "Experienced penetration tester with 5+ years of hands-on expertise in web application, network, and mobile security. OSCP certified with a strong track record in bug bounty programs.",
-  skills: ["Burp Suite", "Metasploit", "Python", "OSCP", "GPEN", "AWS", "Web App Testing", "API Security"],
-  certifications: ["OSCP — Offensive Security", "CEH — EC-Council", "AWS Security Specialty"],
-  experience_list: [
-    { title: "Senior Security Analyst", company: "Wipro CyberSec",        duration: "2021 – Present", desc: "Led red team assessments and delivered detailed reports."  },
-    { title: "Penetration Tester",      company: "HackerOne (Bug Bounty)", duration: "2019 – 2021",   desc: "Reported 40+ critical and high severity bugs." },
-  ],
-  notes: "",
-};
-
-// AI analysis data (mock — replace with real API response)
-const AI_ANALYSIS = {
-  score: 84,
-  verdict: "Strong Match",
-  verdictColor: "text-green-700",
-  verdictBg: "bg-green-50 border-green-200",
-  recommendation: "Aryan is a strong fit for this role. His OSCP certification, 5 years of hands-on penetration testing, and proven bug bounty track record align closely with your requirements. Minor gaps in cloud security (AWS depth) and formal red team operations are worth exploring in the interview.",
-  dimensions: [
-    { label: "Skills match",       score: 90, icon: <TrendingUp   className="w-3.5 h-3.5" />, color: "bg-green-400",  textColor: "text-green-700"  },
-    { label: "Experience level",   score: 82, icon: <TrendingUp   className="w-3.5 h-3.5" />, color: "bg-green-400",  textColor: "text-green-700"  },
-    { label: "Certifications",     score: 88, icon: <TrendingUp   className="w-3.5 h-3.5" />, color: "bg-green-400",  textColor: "text-green-700"  },
-    { label: "Cloud experience",   score: 45, icon: <TrendingDown className="w-3.5 h-3.5" />, color: "bg-amber-400",  textColor: "text-amber-700"  },
-    { label: "Red team ops",       score: 60, icon: <Minus        className="w-3.5 h-3.5" />, color: "bg-amber-300",  textColor: "text-amber-600"  },
-  ],
-  strengths: [
-    "OSCP certified — directly matches job requirement",
-    "5 years experience exceeds the 3-year minimum",
-    "Active bug bounty track record shows real-world impact",
-    "Proficient in Burp Suite and Metasploit — core tools required",
-  ],
-  weaknesses: [
-    "Cloud security depth (AWS) is limited — role involves cloud assessments",
-    "No formal red team infrastructure experience mentioned",
-  ],
-  requiredSkillsMatched: ["Burp Suite", "OSCP", "Python", "Metasploit", "Web App Testing"],
-  requiredSkillsMissing: ["AWS Red Team", "Active Directory"],
-};
-
-const STATUS_FLOW: AppStatus[] = ["New", "Shortlisted", "Interview", "Rejected"];
+const STATUS_FLOW: AppStatus[] = ["New", "Under Review", "Shortlisted", "Rejected"];
 
 export default function ApplicantDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id: _id } = use(params);
-  const [status, setStatus] = useState<AppStatus>(SEED.status);
-  const [notes, setNotes]   = useState(SEED.notes);
+  const { id } = use(params);
+  const [app, setApp] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  
+  const [status, setStatus] = useState<AppStatus>("New");
+  const [notes, setNotes]   = useState("");
+
+  useEffect(() => {
+    async function fetchApp() {
+      try {
+        const res = await fetch(`/api/employer/applications/${id}`);
+        if (res.ok) {
+          const resJson = await res.json();
+          const data = resJson.data;
+          setApp(data);
+          
+          let mappedStatus: AppStatus = "New";
+          if (data.status === "UNDER_REVIEW") mappedStatus = "Under Review";
+          if (data.status === "SHORTLISTED") mappedStatus = "Shortlisted";
+          if (data.status === "REJECTED") mappedStatus = "Rejected";
+          if (data.status === "WITHDRAWN") mappedStatus = "Withdrawn";
+          setStatus(mappedStatus);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchApp();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <>
+        <EmployerTopbar title="Applicant Detail" />
+        <main className="flex-1 flex items-center justify-center text-slate-400">Loading...</main>
+      </>
+    );
+  }
+
+  if (!app) {
+    return (
+      <>
+        <EmployerTopbar title="Applicant Detail" />
+        <main className="flex-1 flex items-center justify-center text-slate-400">Applicant not found</main>
+      </>
+    );
+  }
 
   const cfg = STATUS_CFG[status];
-  const ai  = AI_ANALYSIS;
+  
+  // Format seeker profile data safely
+  const profile = app.seeker?.profile || {};
+  const user = app.seeker || {};
+  const name = `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || "Applicant";
+  
+  // AI score data safely parsed
+  const aiScoreData = app.aiScoreData || {};
+  const ai = {
+    score: app.aiScore || 0,
+    verdict: app.aiScore >= 80 ? "Strong Match" : app.aiScore >= 60 ? "Good Match" : "Weak Match",
+    verdictColor: app.aiScore >= 80 ? "text-green-700" : app.aiScore >= 60 ? "text-amber-700" : "text-rose-700",
+    verdictBg: app.aiScore >= 80 ? "bg-green-50 border-green-200" : app.aiScore >= 60 ? "bg-amber-50 border-amber-200" : "bg-rose-50 border-rose-200",
+    recommendation: aiScoreData.summary || "No AI recommendation available.",
+    dimensions: [
+      { label: "Skills match", score: aiScoreData.breakdown?.skills || 0, icon: <TrendingUp className="w-3.5 h-3.5" />, color: "bg-blue-400", textColor: "text-blue-700" },
+      { label: "Experience", score: aiScoreData.breakdown?.experience || 0, icon: <TrendingUp className="w-3.5 h-3.5" />, color: "bg-blue-400", textColor: "text-blue-700" },
+    ],
+    strengths: ["Matching skills found in profile"],
+    weaknesses: ["Missing some core requirements"],
+    requiredSkillsMatched: (profile.skills || []).map((s: any) => s.skill.name).slice(0, 5),
+    requiredSkillsMissing: []
+  };
 
   return (
     <>
@@ -91,11 +111,11 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
         <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-5">
           <div className="flex items-center gap-5 flex-wrap">
             <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-2xl font-bold text-blue-600 shrink-0">
-              {SEED.name[0]}
+              {name[0] || "?"}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-xl font-bold text-slate-900">{SEED.name}</h1>
+                <h1 className="text-xl font-bold text-slate-900">{name}</h1>
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-semibold font-mono ${cfg.color}`}>
                   {cfg.icon}{cfg.label}
                 </span>
@@ -104,13 +124,11 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                   <Sparkles className="w-3 h-3" /> {ai.score}% AI Match
                 </span>
               </div>
-              <p className="text-sm text-slate-500 mt-0.5">{SEED.role}</p>
+              <p className="text-sm text-slate-500 mt-0.5">{profile.headline || "Job Seeker"}</p>
               <div className="flex flex-wrap gap-4 mt-2.5 text-xs text-slate-500">
-                <span className="flex items-center gap-1.5"><MapPin    className="w-3.5 h-3.5 text-slate-400" />{SEED.location}</span>
-                <span className="flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5 text-slate-400" />{SEED.experience} experience</span>
-                <span className="flex items-center gap-1.5"><Mail      className="w-3.5 h-3.5 text-slate-400" />{SEED.email}</span>
-                <span className="flex items-center gap-1.5"><Phone     className="w-3.5 h-3.5 text-slate-400" />{SEED.phone}</span>
-                <span className="flex items-center gap-1.5"><Globe     className="w-3.5 h-3.5 text-slate-400" />{SEED.website}</span>
+                <span className="flex items-center gap-1.5"><MapPin    className="w-3.5 h-3.5 text-slate-400" />{profile.location || "Remote"}</span>
+                <span className="flex items-center gap-1.5"><Mail      className="w-3.5 h-3.5 text-slate-400" />{user.email}</span>
+                {profile.phone && <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-slate-400" />{profile.phone}</span>}
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
@@ -120,9 +138,11 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
               <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors cursor-pointer">
                 <MessageSquare className="w-4 h-4" /> Message
               </button>
-              <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors cursor-pointer">
-                <Download className="w-4 h-4" /> Resume
-              </button>
+              {app.resume && (
+                <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors cursor-pointer">
+                  <Download className="w-4 h-4" /> Resume
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -252,20 +272,23 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
             {/* Summary */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5">
               <h2 className="text-sm font-bold text-slate-900 mb-2">Summary</h2>
-              <p className="text-sm text-slate-600 leading-relaxed">{SEED.summary}</p>
+              <p className="text-sm text-slate-600 leading-relaxed">{profile.bio || "No summary provided."}</p>
             </div>
 
             {/* Skills */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5">
               <h2 className="text-sm font-bold text-slate-900 mb-3">Skills</h2>
               <div className="flex flex-wrap gap-2">
-                {SEED.skills.map((s) => (
-                  <span key={s} className={`px-2.5 py-1 text-xs font-mono font-medium rounded-lg border ${
-                    ai.requiredSkillsMatched.includes(s)
+                {(profile.skills || []).map((s: any) => (
+                  <span key={s.id} className={`px-2.5 py-1 text-xs font-mono font-medium rounded-lg border ${
+                    ai.requiredSkillsMatched.includes(s.skill.name)
                       ? "text-green-700 bg-green-50 border-green-200"
                       : "text-slate-700 bg-slate-100 border-slate-200"
-                  }`}>{s}</span>
+                  }`}>{s.skill.name}</span>
                 ))}
+                {(!profile.skills || profile.skills.length === 0) && (
+                  <p className="text-sm text-slate-500">No skills listed.</p>
+                )}
               </div>
               <p className="text-[10px] font-mono text-slate-400 mt-2.5">
                 <span className="text-green-600 font-semibold">Green</span> = matches job requirements
@@ -276,16 +299,19 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
             <div className="bg-white rounded-2xl border border-slate-200 p-5">
               <h2 className="text-sm font-bold text-slate-900 mb-3">Experience</h2>
               <div className="space-y-4">
-                {SEED.experience_list.map((e, i) => (
-                  <div key={i} className="flex gap-3">
+                {(profile.experience || []).map((e: any) => (
+                  <div key={e.id} className="flex gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 mt-2" />
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{e.title}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{e.company} · {e.duration}</p>
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">{e.desc}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{e.company} · {new Date(e.startDate).getFullYear()} – {e.isCurrent ? 'Present' : (e.endDate ? new Date(e.endDate).getFullYear() : '')}</p>
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">{e.description}</p>
                     </div>
                   </div>
                 ))}
+                {(!profile.experience || profile.experience.length === 0) && (
+                  <p className="text-sm text-slate-500">No experience listed.</p>
+                )}
               </div>
             </div>
 
@@ -293,11 +319,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
             <div className="bg-white rounded-2xl border border-slate-200 p-5">
               <h2 className="text-sm font-bold text-slate-900 mb-3">Certifications</h2>
               <div className="space-y-2">
-                {SEED.certifications.map((c, i) => (
-                  <div key={i} className="flex items-center gap-2.5 text-sm text-slate-700">
-                    <Award className="w-4 h-4 text-amber-500 shrink-0" />{c}
-                  </div>
-                ))}
+                <p className="text-sm text-slate-500">No certifications listed.</p>
               </div>
             </div>
 
@@ -313,10 +335,29 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                 {STATUS_FLOW.map((s) => {
                   const c = STATUS_CFG[s];
                   return (
-                    <button key={s} onClick={() => setStatus(s)}
+                    <button key={s} onClick={async () => {
+                        try {
+                          let backendStatus = "APPLIED";
+                          if (s === "Under Review") backendStatus = "UNDER_REVIEW";
+                          if (s === "Shortlisted") backendStatus = "SHORTLISTED";
+                          if (s === "Rejected") backendStatus = "REJECTED";
+                          
+                          const res = await fetch(`/api/employer/applications/${id}/status`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ status: backendStatus })
+                          });
+                          if (res.ok) {
+                            setStatus(s);
+                          }
+                        } catch (err) {
+                          console.error(err);
+                        }
+                      }}
+                      disabled={status === "Withdrawn"}
                       className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
                         status === s ? c.color + " shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300"
-                      }`}
+                      } ${status === "Withdrawn" ? "opacity-50 cursor-not-allowed" : ""}`}
                     >
                       {c.icon}{c.label}
                       {status === s && <CheckCircle2 className="w-3.5 h-3.5 ml-auto" />}
@@ -344,9 +385,9 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
             {/* Applied for */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5">
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Applied For</p>
-              <p className="text-sm font-semibold text-slate-900">{SEED.role}</p>
-              <p className="text-[10px] font-mono text-slate-400 mt-0.5">{SEED.applied}</p>
-              <Link href="/employer/jobs/1/edit" className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors mt-2">
+              <p className="text-sm font-semibold text-slate-900">{app.job?.jobTitle}</p>
+              <p className="text-[10px] font-mono text-slate-400 mt-0.5">{new Date(app.appliedAt).toLocaleDateString()}</p>
+              <Link href={`/employer/jobs/${app.jobId}/edit`} className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors mt-2">
                 View job posting <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>

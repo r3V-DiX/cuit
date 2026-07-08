@@ -61,6 +61,32 @@ export class EmployerApplicationsRepository {
         return { items, total };
     }
 
+    async findByEmployer(
+        employerId: string,
+        query: ApplicationListQueryDto,
+    ): Promise<{ items: any[]; total: number }> {
+        const { page = 1, limit = 20, status } = query;
+        const skip = (page - 1) * limit;
+
+        const where: Prisma.ApplicationWhereInput = {
+            job: { employerId },
+            ...(status ? { status } : {}),
+        };
+
+        const [items, total] = await this.prisma.$transaction([
+            this.prisma.application.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: [{ aiScore: { sort: 'desc', nulls: 'last' } }, { appliedAt: 'desc' }],
+                include: APPLICATION_INCLUDE,
+            }),
+            this.prisma.application.count({ where }),
+        ]);
+
+        return { items, total };
+    }
+
     async findByIdAndEmployer(id: string, employerId: string) {
         return this.prisma.application.findFirst({
             where: { id, job: { employerId } },

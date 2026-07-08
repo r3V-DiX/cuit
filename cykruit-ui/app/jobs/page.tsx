@@ -10,7 +10,7 @@ import {
   Shield, Terminal, Lock, Bug, Wifi, Eye, Cpu, Crosshair,
   Network, Binary, ChevronLeft, ChevronRight, Sparkles,
 } from "lucide-react";
-import { jobs as ALL_JOBS, domains, jobTypes, remoteTypes, type Job } from "@/lib/jobs-data";
+import { domains, jobTypes, remoteTypes, type Job } from "@/lib/jobs-data";
 import SearchBox from "@/components/ui/SearchBox";
 
 const JOBS_PER_PAGE = 9;
@@ -193,9 +193,6 @@ function JobsContent() {
                 Every role on Cykruit is hand-verified and specific to cybersecurity — no generic IT noise, no
                 recruiter spam. From red team operators to cloud security architects, find the role that actually
                 matches your skillset.
-              </p>
-              <p className="text-xs font-mono text-slate-400">
-                <span className="text-blue-600 font-semibold">{ALL_JOBS.length}</span> verified jobs · updated daily
               </p>
             </div>
           </div>

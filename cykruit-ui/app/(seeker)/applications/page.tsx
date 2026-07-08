@@ -28,8 +28,33 @@ export default function ApplicationsPage() {
   const [apps, setApps] = useState<Application[]>([]);
 
   useEffect(() => {
-    const local = JSON.parse(localStorage.getItem("cykruit_applications") || "[]");
-    setApps(local);
+    async function fetchApps() {
+      try {
+        const res = await fetch("/api/seeker/applications");
+        if (res.ok) {
+          const resJson = await res.json();
+          const items = resJson.data?.items || [];
+          const mapped = items.map((a: any) => ({
+            id: a.id,
+            role: a.job.jobTitle,
+            company: a.job.employer.companyName,
+            location: a.job.locationType || a.job.location || "Remote",
+            type: a.job.jobType || "Full-time",
+            applied: new Date(a.appliedAt).toLocaleDateString(),
+            status: a.status === "APPLIED" ? "Applied"
+              : a.status === "UNDER_REVIEW" ? "Under Review"
+              : a.status === "SHORTLISTED" ? "Shortlisted"
+              : a.status === "REJECTED" ? "Rejected"
+              : a.status === "WITHDRAWN" ? "Withdrawn"
+              : "Applied", // fallback
+          }));
+          setApps(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to fetch apps", err);
+      }
+    }
+    fetchApps();
   }, []);
   const [activeTab, setActiveTab] = useState<AppStatus | "All">("All");
   const [search, setSearch] = useState("");

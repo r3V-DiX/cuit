@@ -58,6 +58,19 @@ export class EmployerApplicationsService {
         };
     }
 
+    async listForEmployer(userId: string, query: ApplicationListQueryDto) {
+        const employer = await this.resolveEmployer(userId);
+
+        const { items, total } = await this.applicationsRepo.findByEmployer(employer.id, query);
+        const page = query.page ?? 1;
+        const limit = query.limit ?? 20;
+
+        return {
+            items,
+            meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+        };
+    }
+
     async getOne(userId: string, applicationId: string) {
         const employer = await this.resolveEmployer(userId);
         const application = await this.applicationsRepo.findByIdAndEmployer(applicationId, employer.id);
