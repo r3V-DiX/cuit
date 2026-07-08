@@ -140,7 +140,7 @@ export default function MyJobsPage() {
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.message || "Failed to delete job");
+        throw new Error(errData.error?.message || errData.message || "Failed to delete job");
       }
 
       toast({ type: "success", message: "Job draft deleted successfully" });

@@ -168,12 +168,12 @@ export default function ProfilePage() {
       });
 
       if (response.ok) {
-        setBasics(basicsBuffer);
+        loadProfile();
         setEditingBasics(false);
         toast({ type: "success", message: "Profile updated" });
       } else {
         const errData = await response.json();
-        toast({ type: "error", message: "Failed to update profile", description: errData.message || "Invalid input values" });
+        toast({ type: "error", message: "Failed to update profile", description: errData.error?.message || errData.message || "Invalid input values" });
       }
     } catch (error) {
       toast({ type: "error", message: "Network error", description: "Failed to save profile changes" });
@@ -320,12 +320,10 @@ export default function ProfilePage() {
     const payload = {
       title: expForm.role,
       company: expForm.company,
-      location: "Remote",
-      startDate: `${expForm.startYear}-01`,
-      endDate: expForm.endYear === "Present" ? undefined : `${expForm.endYear}-01`,
+      startDate: `${expForm.startYear}-01-01`,
+      endDate: expForm.endYear === "Present" ? undefined : `${expForm.endYear}-12-31`,
       current: expForm.endYear === "Present",
-      description: expForm.desc.length >= 5 ? expForm.desc : "Security Role",
-      tools: ["Cybersecurity"],
+      description: expForm.desc.trim() || undefined,
     };
 
     try {
@@ -406,8 +404,8 @@ export default function ProfilePage() {
     const payload = {
       degree: eduForm.degree,
       instituteName: eduForm.school,
-      startDate: eduForm.startYear || `${new Date().getFullYear()}`,
-      endDate: eduForm.endYear === "Present" || !eduForm.endYear ? undefined : eduForm.endYear,
+      startDate: eduForm.startYear ? `${eduForm.startYear}-01-01` : undefined,
+      endDate: eduForm.endYear === "Present" || !eduForm.endYear ? undefined : `${eduForm.endYear}-12-31`,
       description: eduForm.desc || undefined,
     };
 
@@ -916,7 +914,7 @@ export default function ProfilePage() {
                         </div>
                         <div>
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Job title</label>
-                          <input value={basicsBuffer.title} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, title: e.target.value })} placeholder="e.g. Senior Penetration Tester" className={field} />
+                          <input value={basicsBuffer.title} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, title: e.target.value })} placeholder="e.g. Senior Penetration Tester" maxLength={100} className={field} />
                         </div>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -929,13 +927,13 @@ export default function ProfilePage() {
                         </div>
                         <div>
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Phone number</label>
-                          <input value={basicsBuffer.phone} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, phone: e.target.value })} placeholder="+91 98765 43210" className={field} />
+                          <input value={basicsBuffer.phone} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, phone: e.target.value })} placeholder="+91 98765 43210" maxLength={20} className={field} />
                         </div>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Location</label>
-                          <input value={basicsBuffer.location} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, location: e.target.value })} placeholder="City, Country" className={field} />
+                          <input value={basicsBuffer.location} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, location: e.target.value })} placeholder="City, Country" maxLength={100} className={field} />
                         </div>
                       </div>
                       <div className="border-t border-slate-100 pt-4">
@@ -943,19 +941,19 @@ export default function ProfilePage() {
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0"><FaLinkedinIn className="w-3.5 h-3.5 text-blue-600" /></div>
-                            <input value={basicsBuffer.linkedin} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, linkedin: e.target.value })} placeholder="linkedin.com/in/username" className={field} />
+                            <input value={basicsBuffer.linkedin} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, linkedin: e.target.value })} placeholder="linkedin.com/in/username" maxLength={200} className={field} />
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0"><FaGithub className="w-3.5 h-3.5 text-slate-700" /></div>
-                            <input value={basicsBuffer.github} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, github: e.target.value })} placeholder="github.com/username" className={field} />
+                            <input value={basicsBuffer.github} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, github: e.target.value })} placeholder="github.com/username" maxLength={200} className={field} />
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0"><Globe className="w-3.5 h-3.5 text-emerald-600" /></div>
-                            <input value={basicsBuffer.portfolio} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, portfolio: e.target.value })} placeholder="yourportfolio.com (optional)" className={field} />
+                            <input value={basicsBuffer.portfolio} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, portfolio: e.target.value })} placeholder="yourportfolio.com (optional)" maxLength={200} className={field} />
                           </div>
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0"><FaXTwitter className="w-3.5 h-3.5 text-slate-800" /></div>
-                            <input value={basicsBuffer.twitter} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, twitter: e.target.value })} placeholder="x.com/username (optional)" className={field} />
+                            <input value={basicsBuffer.twitter} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, twitter: e.target.value })} placeholder="x.com/username (optional)" maxLength={200} className={field} />
                           </div>
                         </div>
                       </div>
@@ -1066,6 +1064,7 @@ export default function ProfilePage() {
                         onChange={(e) => setNewSkill(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && addSkill()}
                         placeholder="Add a skill..."
+                        maxLength={50}
                         className={`${field} h-9`}
                       />
                       <button onClick={addSkill} className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white transition-colors shrink-0">
@@ -1090,8 +1089,8 @@ export default function ProfilePage() {
                     <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/30 space-y-3">
                       <p className="text-xs font-semibold text-blue-700">{editingExp ? "Edit experience" : "New experience"}</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input value={expForm.role} onChange={(e) => setExpForm({ ...expForm, role: e.target.value })} placeholder="Job title *" className={field} />
-                        <input value={expForm.company} onChange={(e) => setExpForm({ ...expForm, company: e.target.value })} placeholder="Company *" className={field} />
+                        <input value={expForm.role} onChange={(e) => setExpForm({ ...expForm, role: e.target.value })} placeholder="Job title *" maxLength={100} className={field} />
+                        <input value={expForm.company} onChange={(e) => setExpForm({ ...expForm, company: e.target.value })} placeholder="Company *" maxLength={100} className={field} />
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
@@ -1115,7 +1114,7 @@ export default function ProfilePage() {
                           </div>
                         </div>
                       </div>
-                      <textarea value={expForm.desc} onChange={(e) => setExpForm({ ...expForm, desc: e.target.value })} placeholder="Description" rows={3} className={`${field} resize-none`} />
+                      <textarea value={expForm.desc} onChange={(e) => setExpForm({ ...expForm, desc: e.target.value })} placeholder="Description" rows={3} maxLength={1000} className={`${field} resize-none`} />
                       <div className="flex gap-2">
                         <button onClick={saveExp} className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors">
                           <Check className="w-3 h-3" /> {editingExp ? "Update" : "Save"}
@@ -1170,8 +1169,8 @@ export default function ProfilePage() {
                     <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/30 space-y-3">
                       <p className="text-xs font-semibold text-blue-700">{editingEdu ? "Edit education" : "New education"}</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input value={eduForm.degree} onChange={(e) => setEduForm({ ...eduForm, degree: e.target.value })} placeholder="Degree / qualification *" className={field} />
-                        <input value={eduForm.school} onChange={(e) => setEduForm({ ...eduForm, school: e.target.value })} placeholder="School / university *" className={field} />
+                        <input value={eduForm.degree} onChange={(e) => setEduForm({ ...eduForm, degree: e.target.value })} placeholder="Degree / qualification *" maxLength={150} className={field} />
+                        <input value={eduForm.school} onChange={(e) => setEduForm({ ...eduForm, school: e.target.value })} placeholder="School / university *" maxLength={150} className={field} />
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
@@ -1195,7 +1194,7 @@ export default function ProfilePage() {
                           </div>
                         </div>
                       </div>
-                      <textarea value={eduForm.desc} onChange={(e) => setEduForm({ ...eduForm, desc: e.target.value })} placeholder="Description (optional)" rows={3} className={`${field} resize-none`} />
+                      <textarea value={eduForm.desc} onChange={(e) => setEduForm({ ...eduForm, desc: e.target.value })} placeholder="Description (optional)" rows={3} maxLength={1000} className={`${field} resize-none`} />
                       <div className="flex gap-2">
                         <button onClick={saveEdu} className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors">
                           <Check className="w-3 h-3" /> {editingEdu ? "Update" : "Save"}
@@ -1255,10 +1254,10 @@ export default function ProfilePage() {
                     <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/30 space-y-3">
                       <p className="text-xs font-semibold text-blue-700">New certification</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input value={certForm.name} onChange={(e) => setCertForm({ ...certForm, name: e.target.value })} placeholder="Certification name *" className={field} />
-                        <input value={certForm.issuer} onChange={(e) => setCertForm({ ...certForm, issuer: e.target.value })} placeholder="Issuing body *" className={field} />
+                        <input value={certForm.name} onChange={(e) => setCertForm({ ...certForm, name: e.target.value })} placeholder="Certification name *" maxLength={150} className={field} />
+                        <input value={certForm.issuer} onChange={(e) => setCertForm({ ...certForm, issuer: e.target.value })} placeholder="Issuing body *" maxLength={100} className={field} />
                       </div>
-                      <input value={certForm.year} onChange={(e) => setCertForm({ ...certForm, year: e.target.value })} placeholder="Year (e.g. 2023)" className={field} />
+                      <input value={certForm.year} onChange={(e) => setCertForm({ ...certForm, year: e.target.value })} placeholder="Year (e.g. 2023)" maxLength={4} className={field} />
                       <div className="flex gap-2">
                         <button onClick={saveCert} className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors">
                           <Check className="w-3 h-3" /> Save
@@ -1310,12 +1309,12 @@ export default function ProfilePage() {
                     <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/30 space-y-3">
                       <p className="text-xs font-semibold text-blue-700">New CTF profile</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input value={ctfForm.platform} onChange={(e) => setCtfForm({ ...ctfForm, platform: e.target.value })} placeholder="Platform (e.g. HackTheBox) *" className={field} />
-                        <input value={ctfForm.handle} onChange={(e) => setCtfForm({ ...ctfForm, handle: e.target.value })} placeholder="Handle / username *" className={field} />
+                        <input value={ctfForm.platform} onChange={(e) => setCtfForm({ ...ctfForm, platform: e.target.value })} placeholder="Platform (e.g. HackTheBox) *" maxLength={50} className={field} />
+                        <input value={ctfForm.handle} onChange={(e) => setCtfForm({ ...ctfForm, handle: e.target.value })} placeholder="Handle / username *" maxLength={100} className={field} />
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input value={ctfForm.rank} onChange={(e) => setCtfForm({ ...ctfForm, rank: e.target.value })} placeholder="Rank / level" className={field} />
-                        <input value={ctfForm.url} onChange={(e) => setCtfForm({ ...ctfForm, url: e.target.value })} placeholder="Profile URL" className={field} />
+                        <input value={ctfForm.rank} onChange={(e) => setCtfForm({ ...ctfForm, rank: e.target.value })} placeholder="Rank / level" maxLength={50} className={field} />
+                        <input value={ctfForm.url} onChange={(e) => setCtfForm({ ...ctfForm, url: e.target.value })} placeholder="Profile URL" maxLength={200} className={field} />
                       </div>
                       <div className="flex gap-2">
                         <button onClick={saveCtf} className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors">

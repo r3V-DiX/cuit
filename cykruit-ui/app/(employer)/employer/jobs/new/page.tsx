@@ -302,7 +302,7 @@ export default function PostJobPage() {
 
       const result = await res.json();
       if (!res.ok) {
-        throw new Error(result.message || "Failed to create job");
+        throw new Error(result.error?.message || result.message || "Failed to create job");
       }
 
       const jobId = result.data?.id;
@@ -313,13 +313,14 @@ export default function PostJobPage() {
       const submitRes = await fetch(`/api/employer/jobs/${jobId}/submit`, {
         method: "POST",
         headers: {
+          "Content-Type": "application/json",
           "x-csrf-token": csrfToken,
         },
       });
 
       if (!submitRes.ok) {
         const submitResult = await submitRes.json();
-        throw new Error(submitResult.message || "Failed to publish job");
+        throw new Error(submitResult.error?.message || submitResult.message || "Failed to publish job");
       }
 
       toast({ type: "success", message: "Job published successfully!" });
@@ -393,7 +394,7 @@ export default function PostJobPage() {
 
       const result = await res.json();
       if (!res.ok) {
-        throw new Error(result.message || "Failed to save draft");
+        throw new Error(result.error?.message || result.message || "Failed to save draft");
       }
 
       toast({ type: "success", message: "Draft saved successfully!" });

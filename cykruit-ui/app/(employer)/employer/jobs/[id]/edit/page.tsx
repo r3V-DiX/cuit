@@ -184,7 +184,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
 
       const result = await res.json();
       if (!res.ok) {
-        throw new Error(result.message || "Failed to save job");
+        throw new Error(result.error?.message || result.message || "Failed to save job");
       }
 
       toast({ type: "success", message: "Job updated successfully!" });

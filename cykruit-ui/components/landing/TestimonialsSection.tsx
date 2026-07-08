@@ -1,5 +1,6 @@
 import { Star, Quote } from "lucide-react";
 
+// Edit this array to update testimonials — no DB migration needed for marketing copy
 const testimonials = [
   {
     name: "Arjun Mehta",
@@ -46,14 +47,9 @@ const testimonials = [
 export default function TestimonialsSection() {
   return (
     <section className="py-16 bg-white border-t border-slate-200 relative overflow-hidden">
-      {/* Dot grid */}
       <div className="absolute inset-0 bg-grid opacity-40 pointer-events-none" />
-
-      {/* Glow lines */}
       <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-blue-400/50 to-transparent" />
       <div className="absolute bottom-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-blue-400/50 to-transparent" />
-
-      {/* Section corner brackets */}
       <div className="absolute top-5 left-5 w-6 h-6 border-t-2 border-l-2 border-blue-200 pointer-events-none" />
       <div className="absolute top-5 right-5 w-6 h-6 border-t-2 border-r-2 border-blue-200 pointer-events-none" />
       <div className="absolute bottom-5 left-5 w-6 h-6 border-b-2 border-l-2 border-blue-200 pointer-events-none" />
@@ -77,10 +73,7 @@ export default function TestimonialsSection() {
               key={name}
               className="group relative p-6 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 flex flex-col gap-4 overflow-hidden"
             >
-              {/* Top accent bar */}
               <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-blue-400/0 via-blue-500/70 to-blue-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-              {/* Card corner brackets */}
               <div className="absolute top-2.5 left-2.5 w-3 h-3 border-t border-l border-slate-200 group-hover:border-blue-300 transition-colors duration-200" />
               <div className="absolute top-2.5 right-2.5 w-3 h-3 border-t border-r border-slate-200 group-hover:border-blue-300 transition-colors duration-200" />
               <div className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b border-l border-slate-200 group-hover:border-blue-300 transition-colors duration-200" />

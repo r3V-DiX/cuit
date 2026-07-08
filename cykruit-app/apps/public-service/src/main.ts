@@ -18,6 +18,7 @@ import {
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import compression from "compression";
+import express from "express";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 
 function flattenValidationErrors(errors: ValidationError[]): string[] {
@@ -92,6 +93,8 @@ async function bootstrap() {
     exposedHeaders: ["Set-Cookie"],
   });
 
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(cookieParser());
   app.use(compression());
 

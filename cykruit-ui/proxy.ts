@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const sessionToken = request.cookies.get("session_token")?.value;
   const { pathname } = request.nextUrl;
+
+  // API routes returning 401 — pass through, let client handle redirect
+  if (pathname.startsWith("/api/")) {
+    return NextResponse.next();
+  }
 
   const protectedPrefixes = [
     "/dashboard",
@@ -19,7 +24,9 @@ export function middleware(request: NextRequest) {
   );
 
   if (isProtected && !sessionToken) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

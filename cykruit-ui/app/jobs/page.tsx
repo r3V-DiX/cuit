@@ -29,10 +29,11 @@ async function fetchJobs(params: {
 }): Promise<{ data: Job[]; total: number; totalPages: number }> {
   try {
     const { q, spec, type, mode, page, limit } = params;
-    const url = new URL("/api/public/jobs", window.location.origin);
+    const base = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    const url = new URL("/api/public/jobs", base);
     if (q) url.searchParams.set("search", q);
     if (type && type !== "All") {
-      url.searchParams.set("jobType", type.toUpperCase().replace("-", "_"));
+      url.searchParams.set("jobType", type.toUpperCase().replace(/-/g, "_"));
     }
     if (mode && mode !== "All") {
       url.searchParams.set("workMode", mode.toUpperCase().replace("-", "_"));
