@@ -1,6 +1,7 @@
 // apps/notification-service/src/main.ts
 
 import { NestFactory } from '@nestjs/core';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 import { AppLogger } from '@cykruit/logger';
 import { LoggerInterceptor } from '@cykruit/logger';
@@ -101,6 +102,8 @@ async function bootstrap() {
     app.useGlobalFilters(
         new GlobalExceptionFilter(logger, contextService, responseBuilder),
     );
+
+    app.useWebSocketAdapter(new IoAdapter(app));
 
     process.on('SIGTERM', async () => { await app.close(); process.exit(0); });
     process.on('SIGINT', async () => { await app.close(); process.exit(0); });

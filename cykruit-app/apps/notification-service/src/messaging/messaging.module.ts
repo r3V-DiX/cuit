@@ -17,6 +17,7 @@ import {
 import { MessagingController } from './controllers/messaging.controller';
 import { MessagingService } from './services/messaging.service';
 import { MessagingRepository } from './repositories/messaging.repository';
+import { MessagingGateway } from './gateways/messaging.gateway';
 
 @Injectable()
 export class MessagingSessionValidator implements ISessionValidator {
@@ -69,7 +70,7 @@ export class MessagingSessionValidator implements ISessionValidator {
         }),
     ],
     controllers: [MessagingController],
-    providers: [MessagingService, MessagingRepository, MessagingSessionValidator],
-    exports: [MessagingService],
+    providers: [MessagingService, MessagingRepository, MessagingSessionValidator, MessagingGateway],
+    exports: [MessagingService, MessagingGateway],
 })
 export class MessagingModule {}

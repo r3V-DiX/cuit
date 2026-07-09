@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { Send, Search, Briefcase, ChevronRight, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { useMessaging } from "@/hooks/useMessaging";
 
 type Message = {
   id: string;
@@ -221,6 +222,34 @@ export default function EmployerMessagesPage() {
   }, [active?.messages.length, activeId]);
 
   const totalUnread = convs.reduce((s, c) => s + c.employerUnread, 0);
+
+  const handleMessageNew = useCallback(({ conversationId, message }: { conversationId: string; message: any }) => {
+    setConvs((prev) =>
+      prev.map((c) => {
+        if (c.id !== conversationId) return c;
+        const newMsg: Message = {
+          id: message.id,
+          from: message.senderId === currentUserId ? "employer" : "seeker",
+          text: message.content,
+          time: formatTime(message.createdAt),
+          timeTs: new Date(message.createdAt).getTime(),
+        };
+        const alreadyExists = c.messages.some((m) => m.id === newMsg.id);
+        if (alreadyExists) return c;
+        return {
+          ...c,
+          messages: [...c.messages, newMsg],
+          employerUnread: c.id === activeId ? 0 : c.employerUnread + (newMsg.from === "seeker" ? 1 : 0),
+        };
+      })
+    );
+  }, [currentUserId, activeId]);
+
+  useMessaging({
+    conversationId: activeId || null,
+    onMessageNew: handleMessageNew,
+    enabled: !loading,
+  });
 
   function openConv(id: string) {
     selectConv(id);

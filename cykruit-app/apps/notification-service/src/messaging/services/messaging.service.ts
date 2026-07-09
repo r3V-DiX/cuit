@@ -1,11 +1,15 @@
 // apps/notification-service/src/messaging/services/messaging.service.ts
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { MessagingRepository } from '../repositories/messaging.repository';
+import { MessagingGateway } from '../gateways/messaging.gateway';
 
 @Injectable()
 export class MessagingService {
-    constructor(private readonly messagingRepository: MessagingRepository) {}
+    constructor(
+        private readonly messagingRepository: MessagingRepository,
+        @Optional() private readonly gateway?: MessagingGateway,
+    ) {}
 
     // ── List conversations ────────────────────────────────────────────────────
 
@@ -64,7 +68,15 @@ export class MessagingService {
             content,
         );
 
-        return this.formatMessage(message as any);
+        const formatted = this.formatMessage(message as any);
+
+        // Emit real-time event to all clients in the conversation room
+        this.gateway?.emitToConversation(conversationId, 'message:new', {
+            conversationId,
+            message: formatted,
+        });
+
+        return formatted;
     }
 
     // ── Mark conversation as read ─────────────────────────────────────────────
