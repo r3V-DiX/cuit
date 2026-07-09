@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Inject,
   ExecutionContext,
   HttpException,
   HttpStatus,
@@ -13,9 +14,9 @@ export class RateLimitGuard extends ThrottlerGuard {
   private readonly trustedProxyCount: number;
 
   constructor(
-    options: any,
-    storageService: ThrottlerStorage,
-    reflector: Reflector,
+    @Inject('THROTTLER:MODULE_OPTIONS') options: any,
+    @Inject(ThrottlerStorage) storageService: ThrottlerStorage,
+    @Inject(Reflector) reflector: Reflector,
   ) {
     super(options, storageService, reflector);
     const raw = process.env.TRUSTED_PROXY_COUNT ?? "0";

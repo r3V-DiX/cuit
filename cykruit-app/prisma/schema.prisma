@@ -16,7 +16,7 @@ datasource db {
 enum UserRole {
     SEEKER
     EMPLOYER
-    ADMIN
+    ADMIN // Reserved: employer-company admin (main app, future). NOT the admin console — console staff live in the Admin model.
 }
 
 enum AccountStatus {
@@ -1770,6 +1770,8 @@ model Admin {
     phone        String?
     profileImage String?
 
+    isActive Boolean @default(true) // Kill switch — blocks login and session validation
+
     lastLogin   DateTime?
     lastLoginIp String?
 
@@ -1780,6 +1782,8 @@ model Admin {
     auditLogs           AdminAuditLog[]
     verificationReviews EmployerVerification[] @relation("VerificationReviewer")
     sessions            AdminSession[]
+    roleAssignments     AdminRoleAssignment[]
+    permissionOverrides AdminPermissionOverride[]
 
     @@index([email])
     @@map("admins")
@@ -1809,9 +1813,14 @@ model AdminAuditLog {
     adminId String @db.Uuid
     admin   Admin  @relation(fields: [adminId], references: [id], onDelete: Cascade)
 
-    action     String // "APPROVED_VERIFICATION", "REJECTED_JOB", etc.
+    action     String // "kyc:review", "jobs:review", etc. (registry action or specific verb)
+    module     String  @default("") // "kyc", "jobs", "users", "rbac", "subscriptions", ...
     resource   String? // "EmployerVerification", "Job", "User", etc.
     resourceId String? // ID of the affected resource
+
+    riskLevel String  @default("LOW") // LOW | MEDIUM | HIGH | CRITICAL
+    result    String  @default("SUCCESS") // SUCCESS | FAILURE | DENIED
+    reason    String?
 
     ipAddress String?
     userAgent String?
@@ -1825,6 +1834,9 @@ model AdminAuditLog {
 
     @@index([adminId])
     @@index([action])
+    @@index([module])
+    @@index([riskLevel])
+    @@index([result])
     @@index([createdAt])
     @@index([resource, resourceId])
     @@map("admin_audit_logs")
@@ -2074,4 +2086,83 @@ model UserPermissionOverride {
     @@index([userId])
     @@index([employerId])
     @@map("user_permission_overrides")
+}
+
+// ==========================
+// Admin console RBAC — fully separated from the main-app RBAC set above.
+// FK target is Admin (console staff), never User. Global scope only (no employerId).
+// Catalog is seeded from admin-app/src/admin/rbac/permissions.registry.ts (npm run rbac:seed)
+// — never edit these rows by hand.
+// ==========================
+
+model AdminPermission {
+    id          String   @id @default(uuid())
+    module      String // "kyc", "jobs", "users", ...
+    action      String // "view", "review", "manage", ...
+    description String?
+    isActive    Boolean  @default(true)
+    createdAt   DateTime @default(now())
+
+    rolePermissions AdminRolePermission[]
+    adminOverrides  AdminPermissionOverride[]
+
+    @@unique([module, action])
+    @@index([isActive])
+    @@map("admin_permissions")
+}
+
+model AdminRbacRole {
+    id          String   @id @default(uuid())
+    name        String   @unique // system roles: super_admin | platform_admin | reviewer
+    description String?
+    isActive    Boolean  @default(true)
+    createdAt   DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    permissions AdminRolePermission[]
+    assignments AdminRoleAssignment[]
+
+    @@map("admin_rbac_roles")
+}
+
+model AdminRolePermission {
+    id           String          @id @default(uuid())
+    roleId       String
+    role         AdminRbacRole   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+    permissionId String
+    permission   AdminPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+    @@unique([roleId, permissionId])
+    @@map("admin_role_permissions")
+}
+
+model AdminRoleAssignment {
+    id         String        @id @default(uuid())
+    adminId    String        @db.Uuid
+    admin      Admin         @relation(fields: [adminId], references: [id], onDelete: Cascade)
+    roleId     String
+    role       AdminRbacRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+    expiresAt  DateTime?
+    assignedBy String?
+    createdAt  DateTime      @default(now())
+
+    @@unique([adminId, roleId])
+    @@index([adminId])
+    @@map("admin_role_assignments")
+}
+
+model AdminPermissionOverride {
+    id           String          @id @default(uuid())
+    adminId      String          @db.Uuid
+    admin        Admin           @relation(fields: [adminId], references: [id], onDelete: Cascade)
+    permissionId String
+    permission   AdminPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+    grant        Boolean // true = force grant, false = force deny (deny always wins)
+    grantedBy    String?
+    reason       String?
+    createdAt    DateTime        @default(now())
+
+    @@unique([adminId, permissionId])
+    @@index([adminId])
+    @@map("admin_permission_overrides")
 }
