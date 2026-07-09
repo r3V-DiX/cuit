@@ -33,7 +33,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
   useEffect(() => {
     async function fetchApp() {
       try {
-        const res = await fetch(`/api/employer/applications/${id}`);
+        const res = await fetch(`/api/employer/applications/${id}`, { credentials: "include" });
         if (res.ok) {
           const resJson = await res.json();
           const data = resJson.data;
@@ -344,6 +344,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                           
                           const res = await fetch(`/api/employer/applications/${id}/status`, {
                             method: "PATCH",
+                            credentials: "include",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ status: backendStatus })
                           });

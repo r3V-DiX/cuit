@@ -259,6 +259,7 @@ export default function EmployerSettingsPage() {
           "Content-Type": "application/json",
           "x-csrf-token": getCsrfToken(),
         },
+        credentials: "include",
         body: JSON.stringify({ password: deletePassword }),
       });
       if (res.ok) {

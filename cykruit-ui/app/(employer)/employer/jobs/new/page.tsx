@@ -284,6 +284,7 @@ export default function PostJobPage() {
           "Content-Type": "application/json",
           "x-csrf-token": csrfToken,
         },
+        credentials: "include",
         body: JSON.stringify({
           jobTitle: title.trim(),
           jobType: typeMap[type],
@@ -316,6 +317,7 @@ export default function PostJobPage() {
           "Content-Type": "application/json",
           "x-csrf-token": csrfToken,
         },
+        credentials: "include",
       });
 
       if (!submitRes.ok) {
@@ -372,6 +374,7 @@ export default function PostJobPage() {
 
       const res = await fetch("/api/employer/jobs", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           "x-csrf-token": csrfToken,

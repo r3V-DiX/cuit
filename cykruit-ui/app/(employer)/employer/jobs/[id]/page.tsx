@@ -47,7 +47,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   useEffect(() => {
     const fetchJob = async () => {
       try {
-        const res = await fetch(`/api/employer/jobs/${id}`);
+        const res = await fetch(`/api/employer/jobs/${id}`, { credentials: "include" });
         const result = await res.json();
         const rawJob = result.data || result;
         if (rawJob && rawJob.id) {

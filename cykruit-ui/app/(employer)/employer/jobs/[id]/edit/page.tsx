@@ -93,7 +93,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
   useEffect(() => {
     const fetchJob = async () => {
       try {
-        const res = await fetch(`/api/employer/jobs/${id}`);
+        const res = await fetch(`/api/employer/jobs/${id}`, { credentials: "include" });
         const result = await res.json();
         const rawJob = result.data || result;
         if (rawJob && rawJob.id) {
@@ -169,6 +169,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
 
       const res = await fetch(`/api/employer/jobs/${id}`, {
         method: "PATCH",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           "x-csrf-token": csrfToken,
