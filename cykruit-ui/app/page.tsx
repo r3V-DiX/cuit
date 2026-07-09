@@ -10,6 +10,12 @@ import Footer from "@/components/layout/Footer";
 
 const PUBLIC_URL = process.env.PUBLIC_SERVICE_URL || "http://127.0.0.1:4006";
 
+function trimDescription(desc?: string): string {
+  if (!desc) return "";
+  const introEnd = desc.search(/\n\n(responsibilities|requirements):/i);
+  return (introEnd > 0 ? desc.slice(0, introEnd) : desc).trim();
+}
+
 async function getFeaturedJobs(): Promise<FeaturedJob[]> {
   try {
     const res = await fetch(`${PUBLIC_URL}/public/jobs?limit=6`, {
@@ -18,7 +24,8 @@ async function getFeaturedJobs(): Promise<FeaturedJob[]> {
     if (!res.ok) return [];
     const body = await res.json();
     const raw = body?.data;
-    return Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+    const jobs: FeaturedJob[] = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+    return jobs.map((j) => ({ ...j, description: trimDescription((j as any).description) }));
   } catch {
     return [];
   }

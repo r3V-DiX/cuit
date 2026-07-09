@@ -66,6 +66,7 @@ export class JobsService {
           jobType: true,
           workMode: true,
           experienceLevel: true,
+          description: true,
           publishedAt: true,
           expiresAt: true,
           employer: {

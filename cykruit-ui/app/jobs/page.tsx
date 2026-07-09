@@ -62,20 +62,24 @@ async function fetchJobs(params: {
       else if (Array.isArray(result.jobs)) rawJobs = result.jobs;
       else if (Array.isArray(result)) rawJobs = result;
 
-      const mapped = rawJobs.map((job: any) => ({
+      const mapped = rawJobs.map((job: any) => {
+        const rawDesc: string = job.description || "";
+        const introEnd = rawDesc.search(/\n\n(responsibilities|requirements):/i);
+        const descSnippet = introEnd > 0 ? rawDesc.slice(0, introEnd).trim() : rawDesc.trim();
+        return {
         id: job.id,
         title: job.jobTitle,
         company: job.employer?.companyName || "Unknown Company",
         location: job.location?.displayName || "Remote",
         type: job.jobType,
         remote: job.workMode,
-        description: job.description || "",
+        description: descSnippet,
         logo: job.employer?.companyName?.[0] || "C",
         accent: "bg-blue-100 text-blue-800",
         posted: new Date(job.publishedAt || Date.now()).toLocaleDateString(),
         tags: job.skills?.map((s: any) => s.name) || [],
         domain: job.role?.name || "Cybersecurity",
-      }));
+        }; });
       return { data: mapped, total: result.total || result.data?.total || mapped.length, totalPages: result.totalPages || result.data?.totalPages || 1 };
     }
   } catch (error) {

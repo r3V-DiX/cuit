@@ -13,6 +13,33 @@ import {
 } from "lucide-react";
 import { use } from "react";
 
+function parseDescription(raw: string): {
+  intro: string;
+  responsibilities: string[];
+  requirements: string[];
+} {
+  if (!raw) return { intro: "", responsibilities: [], requirements: [] };
+
+  const lines = raw.split("\n");
+  let section: "intro" | "resp" | "req" = "intro";
+  const intro: string[] = [];
+  const resp: string[] = [];
+  const req: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^responsibilities:/i.test(trimmed)) { section = "resp"; continue; }
+    if (/^requirements:/i.test(trimmed)) { section = "req"; continue; }
+    if (!trimmed) continue;
+    const bullet = trimmed.replace(/^[-•*]\s*/, "");
+    if (section === "intro") intro.push(bullet);
+    else if (section === "resp") resp.push(bullet);
+    else req.push(bullet);
+  }
+
+  return { intro: intro.join(" "), responsibilities: resp, requirements: req };
+}
+
 function formatEnum(value: string): string {
   if (!value) return value;
   if (value === "SIZE_1000_PLUS") return "1000+";
@@ -53,6 +80,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           const result = await response.json();
           if (result && result.data) {
             const jobData = result.data;
+            const parsed = parseDescription(jobData.description || "");
             setJob({
               id: jobData.id,
               title: jobData.jobTitle,
@@ -60,14 +88,17 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               location: jobData.location?.displayName || "Remote",
               type: jobData.jobType,
               remote: jobData.workMode,
-              description: jobData.description || "",
+              description: parsed.intro || jobData.description || "",
               logo: jobData.employer?.companyName?.[0] || "C",
               accent: "bg-blue-100 text-blue-800",
               posted: new Date(jobData.publishedAt || Date.now()).toLocaleDateString(),
               tags: jobData.skills?.map((s: any) => s.name) || [],
               domain: jobData.role?.name || "Cybersecurity",
-              responsibilities: [],
-              requirements: jobData.certifications?.map((c: any) => c.name) || [],
+              responsibilities: parsed.responsibilities,
+              requirements: [
+                ...parsed.requirements,
+                ...(jobData.certifications?.map((c: any) => c.name) || []),
+              ],
               niceToHave: [],
               companyDescription: jobData.employer?.about || "",
               companyIndustry: jobData.employer?.industry || "",
