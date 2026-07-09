@@ -76,44 +76,48 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   }, [id]);
 
   useEffect(() => {
-    if (job) {
-      const saved = JSON.parse(localStorage.getItem("cykruit_saved_jobs") || "[]");
-      setIsSaved(saved.some((s: any) => String(s.id) === String(job.id)));
-      const applied = JSON.parse(localStorage.getItem("cykruit_applications") || "[]");
-      setIsApplied(applied.some((a: any) => String(a.jobId) === String(job.id)));
-    }
-  }, [job]);
+    if (!job || !user) return;
+    fetch(`/api/seeker/saved-jobs`, { credentials: "include" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((body) => {
+        const items = body?.data?.items ?? [];
+        setIsSaved(items.some((s: any) => s.job?.id === job.id));
+      })
+      .catch(() => {});
+    fetch(`/api/seeker/applications`, { credentials: "include" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((body) => {
+        const items = body?.data?.items ?? [];
+        setIsApplied(items.some((a: any) => a.jobId === job.id));
+      })
+      .catch(() => {});
+  }, [job, user]);
 
-  function handleSave() {
+  async function handleSave() {
     if (!job) return;
-    const saved = JSON.parse(localStorage.getItem("cykruit_saved_jobs") || "[]");
-    if (isSaved) {
-      const next = saved.filter((s: any) => String(s.id) !== String(job.id));
-      localStorage.setItem("cykruit_saved_jobs", JSON.stringify(next));
-      setIsSaved(false);
-      toast({ type: "info", message: "Job removed", description: `"${job.title}" removed from Saved.` });
-    } else {
-      saved.push(job);
-      localStorage.setItem("cykruit_saved_jobs", JSON.stringify(saved));
-      setIsSaved(true);
-
-      // Push notification to localStorage
-      const notifications = JSON.parse(localStorage.getItem("cykruit_notifications") || "[]");
-      const newNotif = {
-        id: Date.now(),
-        type: "job_match",
-        title: "Job saved",
-        body: `You saved "${job.title}" at ${job.company}.`,
-        time: "Just now",
-        timeTs: Date.now(),
-        read: false,
-        link: "/saved",
-        meta: job.company
-      };
-      notifications.unshift(newNotif);
-      localStorage.setItem("cykruit_notifications", JSON.stringify(notifications));
-
-      toast({ type: "success", message: "Job saved", description: `"${job.title}" added to Saved.` });
+    if (!user) {
+      toast({ type: "warning", message: "Sign in to save jobs" });
+      return;
+    }
+    try {
+      if (isSaved) {
+        const res = await fetch(`/api/seeker/jobs/${job.id}/save`, { method: "DELETE", credentials: "include" });
+        if (!res.ok) throw new Error();
+        setIsSaved(false);
+        toast({ type: "info", message: "Job removed", description: `"${job.title}" removed from Saved.` });
+      } else {
+        const res = await fetch(`/api/seeker/jobs/${job.id}/save`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({}),
+        });
+        if (!res.ok) throw new Error();
+        setIsSaved(true);
+        toast({ type: "success", message: "Job saved", description: `"${job.title}" added to Saved.` });
+      }
+    } catch {
+      toast({ type: "error", message: "Failed to update saved jobs" });
     }
   }
 

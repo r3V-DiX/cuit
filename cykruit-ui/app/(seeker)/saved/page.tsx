@@ -1,144 +1,86 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
 import {
   MapPin, Bookmark, ArrowRight, Clock, Search, X,
-  Briefcase, SlidersHorizontal, Inbox, ArrowUpDown,
+  Briefcase, SlidersHorizontal, Inbox, ArrowUpDown, Loader2,
 } from "lucide-react";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type WorkMode = "Remote" | "Hybrid" | "On-site";
 
 type SavedJob = {
   id: string;
+  jobId: string;
   role: string;
   company: string;
   location: string;
-  mode: WorkMode;
+  mode: string;
   type: string;
-  domain: string;
-  tags: string[];
-  saved: string;
+  skills: string[];
+  savedAt: string;
   savedTs: number;
-  urgent: boolean;
-  description: string;
 };
 
-// ─── Seed data ────────────────────────────────────────────────────────────────
-
-const SEED: SavedJob[] = [
-  {
-    id: "1",
-    role: "Senior Penetration Tester",
-    company: "CrowdStrike",
-    location: "Remote · US",
-    mode: "Remote",
-    type: "Full-time",
-    domain: "Offensive Security",
-    tags: ["Red Team", "OSCP", "Burp Suite", "Python"],
-    saved: "2d ago",
-    savedTs: Date.now() - 2 * 86400000,
-    urgent: false,
-    description: "Join CrowdStrike's elite red team conducting advanced adversarial simulations against enterprise clients across web, network, and cloud environments.",
-  },
-  {
-    id: "2",
-    role: "AppSec Engineer",
-    company: "Stripe",
-    location: "Hybrid · SF",
-    mode: "Hybrid",
-    type: "Full-time",
-    domain: "Application Security",
-    tags: ["AppSec", "SAST", "DAST", "Kotlin"],
-    saved: "3d ago",
-    savedTs: Date.now() - 3 * 86400000,
-    urgent: true,
-    description: "Help Stripe build world-class application security tooling. Work alongside engineers to embed security into the SDLC at scale.",
-  },
-  {
-    id: "3",
-    role: "Threat Intel Analyst",
-    company: "Recorded Future",
-    location: "Remote",
-    mode: "Remote",
-    type: "Contract",
-    domain: "Threat Intelligence",
-    tags: ["OSINT", "CTI", "Maltego", "MITRE ATT&CK"],
-    saved: "5d ago",
-    savedTs: Date.now() - 5 * 86400000,
-    urgent: false,
-    description: "Track threat actors and produce finished intelligence reports for Recorded Future's enterprise clients using the platform and open-source tooling.",
-  },
-  {
-    id: "4",
-    role: "DevSecOps Engineer",
-    company: "GitLab",
-    location: "Remote",
-    mode: "Remote",
-    type: "Full-time",
-    domain: "DevSecOps",
-    tags: ["DevSecOps", "Kubernetes", "Terraform", "CI/CD"],
-    saved: "1w ago",
-    savedTs: Date.now() - 7 * 86400000,
-    urgent: false,
-    description: "Own security automation across GitLab's CI/CD pipeline. Design and maintain SAST, DAST, container scanning, and secret detection integrations.",
-  },
-  {
-    id: "5",
-    role: "Cloud Security Architect",
-    company: "Palo Alto Networks",
-    location: "Hybrid · NYC",
-    mode: "Hybrid",
-    type: "Full-time",
-    domain: "Cloud Security",
-    tags: ["AWS", "Azure", "Prisma Cloud", "IAM"],
-    saved: "1w ago",
-    savedTs: Date.now() - 8 * 86400000,
-    urgent: true,
-    description: "Design security architecture for cloud-native workloads across AWS and Azure. Drive adoption of Prisma Cloud across enterprise customer environments.",
-  },
-];
-
-const MODES: (WorkMode | "All")[] = ["All", "Remote", "Hybrid", "On-site"];
+const MODES = ["All", "Remote", "Hybrid", "On-site"];
 const TYPES = ["All", "Full-time", "Contract", "Part-time"];
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+function formatSavedAt(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const d = Math.floor(diff / 86400000);
+  if (d === 0) return "Today";
+  if (d === 1) return "1d ago";
+  if (d < 7) return `${d}d ago`;
+  return `${Math.floor(d / 7)}w ago`;
+}
+
+function mapItem(item: any): SavedJob {
+  const j = item.job;
+  return {
+    id: item.id ?? `${item.seekerId}_${item.jobId}`,
+    jobId: j.id,
+    role: j.role?.name ?? "Unknown Role",
+    company: j.employer?.companyName ?? "Unknown Company",
+    location: j.location
+      ? [j.location.city, j.location.country].filter(Boolean).join(", ")
+      : "Remote",
+    mode: j.workMode ?? "Remote",
+    type: j.employmentType ?? "Full-time",
+    skills: (j.skills ?? []).map((s: any) => s.skill?.name ?? s.name).slice(0, 4),
+    savedAt: formatSavedAt(item.savedAt),
+    savedTs: new Date(item.savedAt).getTime(),
+  };
+}
 
 export default function SavedPage() {
   const { toast } = useToast();
   const { openModal } = useModal();
 
   const [jobs, setJobs] = useState<SavedJob[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [modeFilter, setModeFilter] = useState<WorkMode | "All">("All");
+  const [modeFilter, setModeFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
   const [sort, setSort] = useState<"newest" | "oldest">("newest");
   const [showFilters, setShowFilters] = useState(false);
 
-  useEffect(() => {
-    const local = JSON.parse(localStorage.getItem("cykruit_saved_jobs") || "[]");
-    setJobs(local.map((j: any) => ({
-      id: String(j.id),
-      role: j.title || j.role,
-      company: j.company,
-      location: j.location,
-      mode: j.remote || j.mode || "Remote",
-      type: j.type,
-      domain: j.domain,
-      tags: j.tags || [],
-      saved: "Just now",
-      savedTs: Date.now(),
-      urgent: false,
-      description: j.description || "",
-    })));
+  const fetchSaved = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/seeker/saved-jobs", { credentials: "include" });
+      if (!res.ok) throw new Error();
+      const body = await res.json();
+      setJobs((body?.data?.items ?? []).map(mapItem));
+    } catch {
+      toast({ type: "error", message: "Failed to load saved jobs" });
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // ── Computed ─────────────────────────────────────────────────────────────────
+  useEffect(() => { fetchSaved(); }, [fetchSaved]);
+
   const filtered = useMemo(() => {
     let list = jobs;
     if (search.trim()) {
@@ -147,7 +89,7 @@ export default function SavedPage() {
         (j) =>
           j.role.toLowerCase().includes(q) ||
           j.company.toLowerCase().includes(q) ||
-          j.tags.some((t) => t.toLowerCase().includes(q))
+          j.skills.some((t) => t.toLowerCase().includes(q))
       );
     }
     if (modeFilter !== "All") list = list.filter((j) => j.mode === modeFilter);
@@ -159,14 +101,18 @@ export default function SavedPage() {
 
   const hasActiveFilters = search || modeFilter !== "All" || typeFilter !== "All";
 
-  // ── Actions ───────────────────────────────────────────────────────────────────
-  function unsave(job: SavedJob) {
-    const saved = JSON.parse(localStorage.getItem("cykruit_saved_jobs") || "[]");
-    const nextSaved = saved.filter((j: any) => String(j.id) !== String(job.id));
-    localStorage.setItem("cykruit_saved_jobs", JSON.stringify(nextSaved));
-
-    setJobs((prev) => prev.filter((j) => j.id !== job.id));
-    toast({ type: "info", message: "Job removed", description: `"${job.role}" at ${job.company} was unsaved.` });
+  async function unsave(job: SavedJob) {
+    try {
+      const res = await fetch(`/api/seeker/jobs/${job.jobId}/save`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error();
+      setJobs((prev) => prev.filter((j) => j.jobId !== job.jobId));
+      toast({ type: "info", message: "Job removed", description: `"${job.role}" at ${job.company} was unsaved.` });
+    } catch {
+      toast({ type: "error", message: "Failed to unsave job" });
+    }
   }
 
   function clearAll() {
@@ -174,8 +120,10 @@ export default function SavedPage() {
       variant: "danger",
       title: "Clear all saved jobs?",
       description: "All saved jobs will be removed. You can re-save them from the jobs page.",
-      onConfirm: () => {
-        localStorage.removeItem("cykruit_saved_jobs");
+      onConfirm: async () => {
+        await Promise.all(jobs.map((j) =>
+          fetch(`/api/seeker/jobs/${j.jobId}/save`, { method: "DELETE", credentials: "include" })
+        ));
         setJobs([]);
         toast({ type: "info", message: "Saved jobs cleared" });
       },
@@ -188,7 +136,6 @@ export default function SavedPage() {
     setTypeFilter("All");
   }
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <>
       <SeekerTopbar title="Saved Jobs" />
@@ -197,14 +144,13 @@ export default function SavedPage() {
 
           {/* Toolbar */}
           <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
-            {/* Search + action row */}
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by role, company or tag…"
+                  placeholder="Search by role, company or skill…"
                   className="w-full h-9 pl-9 pr-9 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:border-blue-400 transition-all"
                 />
                 {search && (
@@ -232,7 +178,6 @@ export default function SavedPage() {
               </button>
             </div>
 
-            {/* Expandable filters */}
             {showFilters && (
               <div className="flex gap-4 pt-1 flex-wrap">
                 <div className="space-y-1.5">
@@ -289,8 +234,13 @@ export default function SavedPage() {
             )}
           </div>
 
-          {/* Job cards */}
-          {filtered.length === 0 ? (
+          {/* Loading */}
+          {loading ? (
+            <div className="flex items-center justify-center py-16 text-slate-400">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              <span className="text-sm">Loading saved jobs…</span>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-slate-400 bg-white rounded-2xl border border-slate-200">
               <Inbox className="w-8 h-8 mx-auto mb-3 opacity-30" />
               <p className="text-sm font-medium">
@@ -314,18 +264,12 @@ export default function SavedPage() {
                   className="group bg-white rounded-2xl border border-slate-200 hover:border-blue-200 hover:shadow-sm transition-all p-5"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    {/* Left: logo + info */}
                     <div className="flex items-start gap-4 min-w-0">
                       <div className="w-11 h-11 rounded-xl bg-slate-100 group-hover:bg-blue-50 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0 transition-colors">
                         {job.company[0]}
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-semibold text-slate-900">{job.role}</p>
-                          {job.urgent && (
-                            <span className="text-[10px] font-mono text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">URGENT</span>
-                          )}
-                        </div>
+                        <p className="text-sm font-semibold text-slate-900">{job.role}</p>
                         <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-400 flex-wrap">
                           <span className="font-medium text-slate-600">{job.company}</span>
                           <span>·</span>
@@ -334,16 +278,14 @@ export default function SavedPage() {
                           <span>·</span>
                           <span>{job.type}</span>
                         </div>
-                        <p className="text-xs text-slate-500 mt-1.5 leading-relaxed line-clamp-2">{job.description}</p>
                         <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-                          {job.tags.slice(0, 4).map((tag) => (
+                          {job.skills.map((tag) => (
                             <span key={tag} className="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">{tag}</span>
                           ))}
                         </div>
                       </div>
                     </div>
 
-                    {/* Right: unsave + saved time */}
                     <div className="flex flex-col items-end gap-2 shrink-0">
                       <button
                         onClick={(e) => { e.preventDefault(); unsave(job); }}
@@ -354,12 +296,11 @@ export default function SavedPage() {
                       </button>
                       <div className="flex items-center gap-1 text-[10px] text-slate-300">
                         <Clock className="w-3 h-3" />
-                        {job.saved}
+                        {job.savedAt}
                       </div>
                     </div>
                   </div>
 
-                  {/* Footer */}
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
                     <div className="flex items-center gap-2">
                       <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md border ${
@@ -367,10 +308,9 @@ export default function SavedPage() {
                         job.mode === "Hybrid" ? "text-blue-700 bg-blue-50 border-blue-200" :
                         "text-slate-600 bg-slate-100 border-slate-200"
                       }`}>{job.mode}</span>
-                      <span className="text-[10px] font-mono text-slate-400 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">{job.domain}</span>
                     </div>
                     <Link
-                      href={`/jobs/${job.id}`}
+                      href={`/jobs/${job.jobId}`}
                       className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                     >
                       View role <ArrowRight className="w-3.5 h-3.5" />
