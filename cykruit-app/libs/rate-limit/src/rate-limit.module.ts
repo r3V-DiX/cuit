@@ -72,6 +72,11 @@ const isDev = process.env.NODE_ENV === "development";
             ttl: 60_000,
             limit: isDev ? 10000 : 20,
           },
+          {
+            name: "public_search",
+            ttl: 60_000,
+            limit: isDev ? 10000 : 60,
+          },
         ],
       }),
     }),

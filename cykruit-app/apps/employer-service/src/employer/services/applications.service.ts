@@ -71,17 +71,19 @@ export class EmployerApplicationsService {
         };
     }
 
-    async getOne(userId: string, applicationId: string) {
+    async getOne(userId: string, applicationId: string, jobId?: string) {
         const employer = await this.resolveEmployer(userId);
         const application = await this.applicationsRepo.findByIdAndEmployer(applicationId, employer.id);
         if (!application) throw new NotFoundException('Application not found');
+        if (jobId && application.jobId !== jobId) throw new NotFoundException('Application not found');
         return application;
     }
 
-    async updateStatus(userId: string, applicationId: string, dto: UpdateApplicationStatusDto) {
+    async updateStatus(userId: string, applicationId: string, dto: UpdateApplicationStatusDto, jobId?: string) {
         const employer = await this.resolveEmployer(userId);
         const application = await this.applicationsRepo.findByIdAndEmployer(applicationId, employer.id);
         if (!application) throw new NotFoundException('Application not found');
+        if (jobId && application.jobId !== jobId) throw new NotFoundException('Application not found');
 
         if (EMPLOYER_FORBIDDEN_STATUSES.has(dto.status)) {
             throw new BadRequestException(`Cannot set status to ${dto.status}`);

@@ -49,9 +49,10 @@ export class ApplicationsController {
     @RequirePermission(ACTIONS.APPLICATIONS.READ_ALL)
     getOne(
         @CurrentUser() user: User,
+        @Param('jobId', ParseUUIDPipe) jobId: string,
         @Param('id', ParseUUIDPipe) id: string,
     ) {
-        return this.applicationsService.getOne(user.id, id);
+        return this.applicationsService.getOne(user.id, id, jobId);
     }
 
     // GET /employer/applications/:id
@@ -70,10 +71,11 @@ export class ApplicationsController {
     @RequirePermission(ACTIONS.APPLICATIONS.UPDATE_STATUS)
     updateStatus(
         @CurrentUser() user: User,
+        @Param('jobId', ParseUUIDPipe) jobId: string,
         @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: UpdateApplicationStatusDto,
     ) {
-        return this.applicationsService.updateStatus(user.id, id, dto);
+        return this.applicationsService.updateStatus(user.id, id, dto, jobId);
     }
 
     // PATCH /employer/applications/:id/status

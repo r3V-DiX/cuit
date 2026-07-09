@@ -15,6 +15,7 @@ import {
   OptionalAuthGuard,
   CurrentUser,
 } from "@cykruit/auth-core";
+import { RateLimit } from "@cykruit/rate-limit";
 import { User } from "@prisma/client";
 import { JobsService } from "./jobs.service";
 import { JobsQueryDto } from "./dto/jobs-query.dto";
@@ -26,6 +27,7 @@ export class JobsController {
   constructor(private readonly jobsService: JobsService) {}
 
   @Get()
+  @RateLimit({ public_search: { ttl: 60_000, limit: 60 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Browse all approved job listings" })
   @ApiResponse({ status: 200, description: "Paginated list of jobs." })
@@ -34,6 +36,7 @@ export class JobsController {
   }
 
   @Get(":slug")
+  @RateLimit({ public_search: { ttl: 60_000, limit: 60 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Get job details by slug" })
   @ApiParam({

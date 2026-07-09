@@ -95,7 +95,7 @@ export class AuthService {
       emailDomain: dto.email.split("@")[1],
     });
 
-    this.logger.log(`User registered: ${user.email}`, "AuthService");
+    this.logger.log(`User registered: uid=${user.id}`, "AuthService");
 
     try {
       const verifyUrl = `${this.configService.get("APP_URL")}/verify-email?token=${verificationToken}`;
@@ -106,7 +106,7 @@ export class AuthService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to send verification email to ${user.email}`,
+        `Failed to send verification email: uid=${user.id}`,
         error.stack,
         "AuthService",
       );
@@ -249,7 +249,7 @@ export class AuthService {
         data: { status: AccountStatus.ACTIVE, deactivatedAt: null },
       });
       this.logger.log(
-        `Account reactivated on login: ${user.email}`,
+        `Account reactivated on login: uid=${user.id}`,
         "AuthService",
       );
     }
@@ -261,7 +261,7 @@ export class AuthService {
         data: { status: AccountStatus.ACTIVE, deletionScheduledAt: null },
       });
       this.logger.log(
-        `Account deletion cancelled on login: ${user.email}`,
+        `Account deletion cancelled on login: uid=${user.id}`,
         "AuthService",
       );
 
@@ -331,7 +331,7 @@ export class AuthService {
       },
     );
 
-    this.logger.log(`User logged in: ${user.email}`, "AuthService");
+    this.logger.log(`User logged in: uid=${user.id}`, "AuthService");
 
     return {
       data: { user: formatUserResponse(user), sessionToken },
