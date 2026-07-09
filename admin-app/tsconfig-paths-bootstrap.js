@@ -15,7 +15,12 @@ tsConfigPaths.register({
         '@cykruit/auth-core':   [path.join(cykruitApp, 'libs/auth-core/src/index.ts')],
         '@cykruit/mail':        [path.join(cykruitApp, 'libs/mail/src/index.ts')],
         '@cykruit/audit':       [path.join(cykruitApp, 'libs/audit/src/index.ts')],
+        '@cykruit/events':      [path.join(cykruitApp, 'libs/events/src/index.ts')],
         '@cykruit/rate-limit':  [path.join(cykruitApp, 'libs/rate-limit/src/index.ts')],
         '@cykruit/permissions': [path.join(cykruitApp, 'libs/permissions/src/index.ts')],
+        'bcryptjs':             [path.join(cykruitApp, 'node_modules/bcryptjs/index.js')],
+        '@prisma/client':       [path.join(cykruitApp, 'node_modules/@prisma/client/index.js')],
+        '.prisma/client':       [path.join(cykruitApp, 'node_modules/.prisma/client/index.js')],
+        '@nestjs/*':            [path.join(root, 'node_modules/@nestjs/*')],
     },
 });

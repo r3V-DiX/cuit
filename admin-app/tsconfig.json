@@ -18,6 +18,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
+      "bcryptjs":             ["../cykruit-app/node_modules/bcryptjs/index.d.ts"],
       "@prisma/client":       ["../cykruit-app/node_modules/.prisma/client/index.d.ts"],
       ".prisma/client":       ["../cykruit-app/node_modules/.prisma/client/index.d.ts"],
       "@cykruit/prisma":      ["../cykruit-app/libs/prisma/src/index.ts"],
