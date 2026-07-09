@@ -95,8 +95,10 @@ export default function EmployerDashboardPage() {
           apiFetch("/api/employer/jobs").catch(() => ({ data: { items: [] } })),
           apiFetch("/api/employer/applications").catch(() => ({ data: { items: [] } })),
         ]);
-        const jobsArr: ApiJob[] = Array.isArray(jobsData) ? jobsData : (jobsData.data ?? jobsData.items ?? []);
-        const appsArr: ApiApplication[] = Array.isArray(appsData) ? appsData : (appsData.data ?? appsData.items ?? []);
+        const jobsRaw = jobsData.data;
+        const jobsArr: ApiJob[] = Array.isArray(jobsRaw) ? jobsRaw : (jobsRaw?.items ?? []);
+        const appsRaw = appsData.data;
+        const appsArr: ApiApplication[] = Array.isArray(appsRaw) ? appsRaw : (appsRaw?.items ?? []);
         setJobs(jobsArr);
         setApplications(appsArr);
       } catch {
