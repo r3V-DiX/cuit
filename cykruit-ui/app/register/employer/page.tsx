@@ -20,12 +20,28 @@ function getPasswordStrength(p: string): { score: number; label: string; color: 
   return               { score, label: "Strong", color: "bg-green-500",   bars: "text-green-600" };
 }
 
+const BLOCKED_DOMAINS = new Set([
+  "gmail.com","yahoo.com","hotmail.com","outlook.com","live.com","aol.com",
+  "icloud.com","me.com","mac.com","msn.com","ymail.com","rocketmail.com",
+  "inbox.com","mail.com","protonmail.com","proton.me","tutanota.com",
+  "tutamail.com","zoho.com","fastmail.com","hushmail.com","guerrillamail.com",
+  "tempmail.com","throwam.com","sharklasers.com","mailnull.com",
+  "yandex.com","yandex.ru","qq.com","163.com","126.com","rediffmail.com",
+  "gmx.com","gmx.net","web.de","libero.it",
+]);
+
+function isPersonalEmail(email: string): boolean {
+  const domain = email.split("@")[1]?.toLowerCase();
+  return !!domain && BLOCKED_DOMAINS.has(domain);
+}
+
 export default function EmployerRegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm,  setShowConfirm]  = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName,  setLastName]  = useState("");
   const [email,     setEmail]     = useState("");
+  const [emailError, setEmailError] = useState("");
   const [password,  setPassword]  = useState("");
   const [confirm,   setConfirm]   = useState("");
   const [agreed,    setAgreed]    = useState(false);
@@ -33,12 +49,25 @@ export default function EmployerRegisterPage() {
   const { toast } = useToast();
   const router = useRouter();
 
+  function handleEmailChange(val: string) {
+    setEmail(val);
+    if (val && val.includes("@") && isPersonalEmail(val)) {
+      setEmailError("Use a work email address (e.g. you@company.com). Personal email domains are not allowed.");
+    } else {
+      setEmailError("");
+    }
+  }
+
   const strength = getPasswordStrength(password);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!firstName.trim()) { toast({ type: "error", message: "First name is required" }); return; }
     if (!email.trim())     { toast({ type: "error", message: "Work email is required" }); return; }
+    if (isPersonalEmail(email)) {
+      setEmailError("Use a work email address (e.g. you@company.com). Personal email domains are not allowed.");
+      return;
+    }
     if (password.length < 8) { toast({ type: "error", message: "Password must be at least 8 characters" }); return; }
     if (password !== confirm)  { toast({ type: "error", message: "Passwords do not match" }); return; }
     if (!agreed) { toast({ type: "error", message: "You must agree to the Terms of Service and Privacy Policy" }); return; }
@@ -61,7 +90,12 @@ export default function EmployerRegisterPage() {
       });
       const result = await response.json();
       if (!response.ok) {
-        throw new Error(result.message || "Failed to create account");
+        const msg = result?.error?.message || result?.message || "Failed to create account";
+        if (result?.error?.code === "EMAIL_DOMAIN_NOT_ALLOWED") {
+          setEmailError(msg);
+          return;
+        }
+        throw new Error(msg);
       }
       toast({ type: "success", message: "Employer account created!", description: "Please check your email to verify your account." });
       setTimeout(() => {
@@ -221,8 +255,16 @@ export default function EmployerRegisterPage() {
 
               <div>
                 <label className="block text-[10px] font-mono text-slate-400 tracking-widest mb-1.5 uppercase">Work Email</label>
-                <input type="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-violet-400 focus:bg-white transition-all font-mono" />
+                <input type="email" placeholder="you@company.com" value={email} onChange={(e) => handleEmailChange(e.target.value)}
+                  className={`w-full h-10 px-3.5 rounded-xl bg-slate-50 border text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white transition-all font-mono ${
+                    emailError ? "border-rose-300 focus:border-rose-400" : "border-slate-200 focus:border-violet-400"
+                  }`} />
+                {emailError && (
+                  <p className="text-[11px] text-rose-500 mt-1.5 leading-snug">{emailError}</p>
+                )}
+                {!emailError && (
+                  <p className="text-[10px] text-slate-400 font-mono mt-1">Use your company email, not a personal one</p>
+                )}
               </div>
 
               {/* Password with strength */}

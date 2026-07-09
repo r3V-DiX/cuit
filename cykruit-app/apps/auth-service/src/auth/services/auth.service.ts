@@ -58,7 +58,7 @@ export class AuthService {
       const domain = getEmailDomain(dto.email);
       throw new ConflictException({
         code: "EMAIL_DOMAIN_NOT_ALLOWED",
-        message: `Employers cannot register with personal email domains like @${domain}.`,
+        message: `@${domain} is a personal email domain. Please use your company work email (e.g. you@yourcompany.com) to register as an employer.`,
       });
     }
 
