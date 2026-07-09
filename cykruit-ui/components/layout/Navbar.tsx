@@ -14,25 +14,23 @@ const navLinks = [
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const result = await res.json();
-          if (result.success && result.data) {
-            setUser(result.data);
-          }
-        }
-      } catch (err) {
-        // ignore
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUser();
+    // Only fetch if a session cookie is present — avoids skeleton flash for visitors
+    const hasSession = document.cookie.split(";").some((c) =>
+      c.trim().startsWith("csrf_token=")
+    );
+    if (!hasSession) return;
+
+    setLoading(true);
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((result) => {
+        if (result?.success && result?.data) setUser(result.data);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -62,7 +60,7 @@ export default function Navbar() {
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
           {loading ? (
-            <div className="w-20 h-8 animate-pulse bg-white/10 rounded-lg"></div>
+            <div className="w-28 h-8 animate-pulse bg-white/10 rounded-lg"></div>
           ) : user ? (
             <Link href={user.userType === "EMPLOYER" ? "/employer/dashboard" : "/dashboard"} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors border border-white/10 group">
               <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">

@@ -179,10 +179,11 @@ export default function EmployerMessagesPage() {
     const content = input.trim();
     setInput("");
     try {
+      const csrfToken = document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "";
       const res = await fetch(`/api/conversations/${active.id}/messages`, {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
         body: JSON.stringify({ content }),
       });
       if (!res.ok) {

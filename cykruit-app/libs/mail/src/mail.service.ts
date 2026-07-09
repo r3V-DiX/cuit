@@ -38,10 +38,7 @@ export class MailService {
   async sendVerificationEmail(email: string, verifyUrl: string): Promise<void> {
     try {
       if (process.env.NODE_ENV !== "production") {
-        this.logger.log(
-          `[DEV] Verification URL for ${email}: ${verifyUrl}`,
-          "MailService",
-        );
+        this.logger.debug(`[DEV] Verification email queued for ${email}`, "MailService");
       }
       const { error } = await this.resend.emails.send({
         from: `Cykruit <${this.fromEmail}>`,
@@ -69,10 +66,7 @@ export class MailService {
   async sendPasswordResetEmail(email: string, resetUrl: string): Promise<void> {
     try {
       if (process.env.NODE_ENV !== "production") {
-        this.logger.log(
-          `[DEV] Password Reset URL for ${email}: ${resetUrl}`,
-          "MailService",
-        );
+        this.logger.debug(`[DEV] Password reset email queued for ${email}`, "MailService");
       }
       const { error } = await this.resend.emails.send({
         from: `Cykruit <${this.fromEmail}>`,
@@ -213,7 +207,7 @@ export class MailService {
   ): Promise<void> {
     try {
       if (process.env.NODE_ENV !== "production") {
-        this.logger.log(`[DEV] OTP Code for ${to}: ${data.otp}`, "MailService");
+        this.logger.debug(`[DEV] OTP email queued for ${to}`, "MailService");
       }
       const { error } = await this.resend.emails.send({
         from: `Cykruit <${this.fromEmail}>`,
@@ -252,7 +246,7 @@ export class MailService {
     try {
       if (process.env.NODE_ENV !== "production") {
         this.logger.log(
-          `[DEV] Employer invite URL for ${to}: ${data.inviteUrl}`,
+          `[DEV] Employer invite email queued for ${to}`,
           "MailService",
         );
       }
@@ -300,7 +294,7 @@ export class MailService {
     try {
       if (process.env.NODE_ENV !== "production") {
         this.logger.log(
-          `[DEV] Join request dashboard URL for ${to}: ${data.dashboardUrl}`,
+          `[DEV] Join request email queued for ${to}`,
           "MailService",
         );
       }

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsInt, Min } from "class-validator";
+import { IsString, IsOptional, IsEnum, IsInt, Min, Max, MaxLength } from "class-validator";
 import { Type } from "class-transformer";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { JobType, WorkMode, ExperienceLevel } from "@prisma/client";
@@ -10,6 +10,7 @@ export class JobsQueryDto {
   })
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   search?: string;
 
   @ApiPropertyOptional({
@@ -75,5 +76,6 @@ export class JobsQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(100)
   limit?: number = 20;
 }

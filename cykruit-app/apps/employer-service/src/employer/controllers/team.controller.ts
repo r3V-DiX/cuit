@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import type { User } from '@prisma/client';
 import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
-import { RequirePermission, ACTIONS } from '@cykruit/permissions';
+import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
 import { TeamService } from '../services/team.service';
 import {
     InviteMemberDto,
@@ -25,7 +25,7 @@ import {
 } from '../dto/team.dto';
 
 @Controller('employer/team')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class TeamController {
     constructor(private readonly teamService: TeamService) {}
 

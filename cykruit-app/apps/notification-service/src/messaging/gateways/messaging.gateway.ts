@@ -13,13 +13,15 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { MessagingRepository } from '../repositories/messaging.repository';
 
 interface WsPayload {
     sub: string;
     email: string;
     role: string;
     type: string;
+    exp: number;
 }
 
 @Injectable()
@@ -33,6 +35,7 @@ interface WsPayload {
         credentials: true,
     },
     transports: ['websocket', 'polling'],
+    maxHttpBufferSize: 1e4, // 10 KB max WS frame
 })
 export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
@@ -41,7 +44,10 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
     private readonly logger = new Logger(MessagingGateway.name);
     private readonly userSockets = new Map<string, Set<string>>(); // userId → socketIds
 
-    constructor(private readonly configService: ConfigService) {}
+    constructor(
+        private readonly configService: ConfigService,
+        @Optional() private readonly messagingRepository?: MessagingRepository,
+    ) {}
 
     async handleConnection(client: Socket) {
         try {
@@ -54,8 +60,8 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
                 return;
             }
 
-            const secret =
-                this.configService.get<string>('JWT_SECRET') || 'your-secret-key';
+            const secret = this.configService.get<string>('JWT_SECRET');
+            if (!secret) throw new Error('JWT_SECRET not configured');
             const payload = jwt.verify(token, secret) as WsPayload;
 
             if (payload.type !== 'ws') {
@@ -65,6 +71,7 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
 
             client.data.userId = payload.sub;
             client.data.role = payload.role;
+            client.data.exp = payload.exp;
 
             if (!this.userSockets.has(payload.sub)) {
                 this.userSockets.set(payload.sub, new Set());
@@ -88,12 +95,31 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
     }
 
     @SubscribeMessage('join:conversation')
-    handleJoinConversation(
+    async handleJoinConversation(
         @ConnectedSocket() client: Socket,
         @MessageBody() data: { conversationId: string },
     ) {
-        if (!client.data?.userId) throw new WsException('Unauthorized');
-        if (!data?.conversationId) throw new WsException('conversationId required');
+        const userId = client.data?.userId;
+        if (!userId) throw new WsException('Unauthorized');
+        if (!data?.conversationId || typeof data.conversationId !== 'string' || data.conversationId.length > 36) {
+            throw new WsException('conversationId required');
+        }
+
+        // Verify token not expired (stateless re-check)
+        if (client.data.exp && Date.now() / 1000 > client.data.exp) {
+            client.disconnect();
+            throw new WsException('Token expired');
+        }
+
+        // CRITICAL: verify user is a participant in this conversation
+        if (this.messagingRepository) {
+            const conv = await this.messagingRepository.findConversationById(
+                data.conversationId,
+                userId,
+            );
+            if (!conv) throw new WsException('Forbidden');
+        }
+
         client.join(`conv:${data.conversationId}`);
         return { ok: true };
     }
@@ -103,7 +129,7 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
         @ConnectedSocket() client: Socket,
         @MessageBody() data: { conversationId: string },
     ) {
-        if (!data?.conversationId) return;
+        if (!data?.conversationId || typeof data.conversationId !== 'string') return;
         client.leave(`conv:${data.conversationId}`);
         return { ok: true };
     }

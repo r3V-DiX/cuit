@@ -74,7 +74,7 @@ export class SubscriptionSessionValidator implements ISessionValidator {
         AuthCoreModule.forRoot({
             sessionValidatorClass: SubscriptionSessionValidator,
             imports: [PrismaModule, ConfigModule],
-            enableCsrf: false,
+            enableCsrf: true,
         }),
     ],
     controllers: [

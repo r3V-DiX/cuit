@@ -109,7 +109,7 @@ export class AdminSessionValidator implements ISessionValidator {
         AuthCoreModule.forRoot({
             sessionValidatorClass: AdminSessionValidator,
             imports: [PrismaModule, ConfigModule],
-            enableCsrf: false,
+            enableCsrf: true,
         }),
     ],
     controllers: [

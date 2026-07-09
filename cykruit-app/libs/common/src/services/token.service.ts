@@ -24,8 +24,7 @@ export class TokenService {
     private prisma: PrismaService,
     private configService: ConfigService,
   ) {
-    this.jwtSecret =
-      this.configService.get<string>("JWT_SECRET") || "your-secret-key";
+    this.jwtSecret = this.configService.getOrThrow<string>("JWT_SECRET");
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
