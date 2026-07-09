@@ -21,7 +21,7 @@ const COMPANY_TYPES: { label: string; value: string }[] = [
   { label: "NGO / Non-Profit",         value: "NGO"                     },
   { label: "Educational Institution",  value: "EDUCATIONAL_INSTITUTION" },
   { label: "Government / PSU",         value: "NATIONALISED_BANK"       },
-  { label: "Others",                   value: "COOPERATIVE_SOCIETY"     },
+  { label: "Others",                   value: "OTHERS"                  },
 ];
 
 const INDUSTRIES: { label: string; value: string }[] = [
