@@ -13,6 +13,16 @@ import {
 } from "lucide-react";
 import { use } from "react";
 
+function formatEnum(value: string): string {
+  if (!value) return value;
+  if (value === "SIZE_1000_PLUS") return "1000+";
+  return value
+    .replace(/SIZE_(\d+)_(\d+)/, "$1–$2")
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { toast } = useToast();
@@ -127,6 +137,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
   async function handleApply() {
     if (!job) return;
+    if (!user) {
+      window.location.href = `/login?next=/jobs/${job.id}`;
+      return;
+    }
     if (isApplied) {
       toast({ type: "warning", message: "Already applied", description: "You have already applied for this role." });
       return;
@@ -209,10 +223,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     <MapPin className="w-4 h-4 text-slate-400" />{job.location}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 text-slate-400" />{job.type}
+                    <Clock className="w-4 h-4 text-slate-400" />{formatEnum(job.type)}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <Briefcase className="w-4 h-4 text-slate-400" />{job.remote}
+                    <Briefcase className="w-4 h-4 text-slate-400" />{formatEnum(job.remote)}
                   </span>
                   <span className="flex items-center gap-1.5 text-slate-400 font-mono text-xs">
                     Posted {job.posted}
@@ -273,30 +287,34 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               </section>
 
               {/* Responsibilities */}
-              <section className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h2 className="text-sm font-semibold text-slate-900 mb-3">Responsibilities</h2>
-                <ul className="space-y-2.5">
-                  {job.responsibilities.map((r: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
-                      <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                      {r}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              {job.responsibilities?.length > 0 && (
+                <section className="bg-white rounded-2xl border border-slate-200 p-6">
+                  <h2 className="text-sm font-semibold text-slate-900 mb-3">Responsibilities</h2>
+                  <ul className="space-y-2.5">
+                    {job.responsibilities.map((r: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
+                        <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
               {/* Requirements */}
-              <section className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h2 className="text-sm font-semibold text-slate-900 mb-3">Requirements</h2>
-                <ul className="space-y-2.5">
-                  {job.requirements.map((r: string, i: number) => (
-                    <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
-                      <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                      {r}
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              {job.requirements?.length > 0 && (
+                <section className="bg-white rounded-2xl border border-slate-200 p-6">
+                  <h2 className="text-sm font-semibold text-slate-900 mb-3">Requirements</h2>
+                  <ul className="space-y-2.5">
+                    {job.requirements.map((r: string, i: number) => (
+                      <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
+                        <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
               {/* Nice to have */}
               {job.niceToHave?.length > 0 && (
@@ -363,7 +381,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   </div>
                   <div className="flex items-center gap-2 text-xs text-slate-600">
                     <Users className="w-3.5 h-3.5 text-slate-400" />
-                    {job.companySize}
+                    {formatEnum(job.companySize)}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-slate-600">
                     <Globe className="w-3.5 h-3.5 text-slate-400" />
@@ -411,8 +429,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 <div className="space-y-2">
                   {[
                     { label: "Domain",         value: job.domain         },
-                    { label: "Type",           value: job.type           },
-                    { label: "Work Mode",      value: job.remote         },
+                    { label: "Type",           value: formatEnum(job.type)   },
+                    { label: "Work Mode",      value: formatEnum(job.remote) },
                     { label: "Location",       value: job.location       },
                     { label: "Posted",         value: job.posted         },
                   ].map(({ label, value }) => (

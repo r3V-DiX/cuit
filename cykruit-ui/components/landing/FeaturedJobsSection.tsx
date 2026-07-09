@@ -37,6 +37,7 @@ export interface FeaturedJob {
   slug?: string;
   jobType?: string;
   workMode?: string;
+  description?: string;
   publishedAt?: string;
   employer: {
     companyName: string;
@@ -48,6 +49,16 @@ export interface FeaturedJob {
   } | null;
   skills?: { id: string; name: string }[];
   certifications?: { id: string; name: string; organization?: string }[];
+}
+
+function formatEnum(value: string): string {
+  if (!value) return value;
+  if (value === "SIZE_1000_PLUS") return "1000+";
+  return value
+    .replace(/SIZE_(\d+)_(\d+)/, "$1–$2")
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 interface Props {
@@ -100,7 +111,7 @@ export default function FeaturedJobsSection({ jobs }: Props) {
                 ...(job.certifications?.slice(0, 1).map((c) => c.name) ?? []),
               ].slice(0, 3);
               const locationLabel = [
-                job.workMode,
+                job.workMode ? formatEnum(job.workMode) : null,
                 job.location?.displayName ?? job.location?.city,
               ]
                 .filter(Boolean)
@@ -143,10 +154,16 @@ export default function FeaturedJobsSection({ jobs }: Props) {
                     {job.jobType && (
                       <span className="flex items-center gap-1.5">
                         <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        {job.jobType}
+                        {formatEnum(job.jobType)}
                       </span>
                     )}
                   </div>
+
+                  {job.description && (
+                    <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                      {job.description}
+                    </p>
+                  )}
 
                   {tags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">

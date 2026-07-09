@@ -20,6 +20,16 @@ const cyberIcons = [
   Terminal, Shield, Crosshair, Network, Binary, Cpu,
 ];
 
+function formatEnum(value: string): string {
+  if (!value) return value;
+  if (value === "SIZE_1000_PLUS") return "1000+";
+  return value
+    .replace(/SIZE_(\d+)_(\d+)/, "$1–$2")
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // ── Data layer ─────────────────────────────────────────────────────────────
 // TODO: replace this with a real fetch when backend is ready:
 //   const res = await fetch(`/api/jobs?q=${q}&spec=${spec}&type=${type}&mode=${mode}&page=${page}&limit=${limit}`)
@@ -361,13 +371,15 @@ function JobsContent() {
                         <MapPin className="w-3.5 h-3.5 text-slate-400" />{job.location}
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />{job.type}
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />{formatEnum(job.type)}
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
-                      {job.description}
-                    </p>
+                    {job.description && (
+                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                        {job.description}
+                      </p>
+                    )}
 
                     <div className="flex flex-wrap gap-1.5">
                       {job.tags.slice(0, 4).map((tag) => (
