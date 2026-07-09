@@ -19,7 +19,7 @@ function trimDescription(desc?: string): string {
 async function getFeaturedJobs(): Promise<FeaturedJob[]> {
   try {
     const res = await fetch(`${PUBLIC_URL}/public/jobs?limit=6`, {
-      next: { revalidate: 300 },
+      cache: "no-store",
     });
     if (!res.ok) return [];
     const body = await res.json();
