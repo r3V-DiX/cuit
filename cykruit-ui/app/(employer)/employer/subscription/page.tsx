@@ -127,9 +127,9 @@ export default function SubscriptionPage() {
             .then((r) => (r.ok ? r.json() : null))
             .catch(() => null),
         ]);
-        if (subData)  setSubscription(subData);
-        if (usageData) setUsage(usageData);
-        if (pkgData)  setPackages(pkgData);
+        if (subData)  setSubscription(subData?.data ?? subData);
+        if (usageData) setUsage(usageData?.data ?? usageData);
+        if (pkgData)  setPackages(pkgData?.data ?? pkgData);
       } catch {
         // silently ignore; UI shows fallbacks
       } finally {

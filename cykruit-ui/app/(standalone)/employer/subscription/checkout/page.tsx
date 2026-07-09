@@ -89,9 +89,10 @@ function CheckoutContent() {
   const [plansLoading, setPlansLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/subscriptions/packages")
-      .then((r) => r.json())
-      .then((data: { id: string; name: string; price: number; billingCycle: string; features: string[]; isActive: boolean }[]) => {
+    fetch("/api/subscriptions/packages", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((body) => {
+        const data = Array.isArray(body) ? body : (body?.data ?? []);
         if (!Array.isArray(data) || data.length === 0) return;
         const mapped: Record<string, PlanShape> = {};
         data.forEach((pkg) => {

@@ -124,15 +124,20 @@ export default function EmployerSettingsPage() {
         ]);
         if (meRes.ok) {
           const me = await meRes.json();
-          setLocked({ name: me.name ?? me.fullName ?? "", email: me.email ?? "" });
+          const u = me?.data ?? me;
+          const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ");
+          setLocked({ name: fullName || u.name || u.fullName || "", email: u.email ?? "" });
         }
         if (settingsRes.ok) {
           const s = await settingsRes.json();
-          if (s.phone    !== undefined) setPhone(s.phone);
-          if (s.timezone !== undefined) setTimezone(s.timezone);
-          if (s.companySize   !== undefined) setCompanySize(s.companySize);
-          if (s.publicEmail   !== undefined) setPublicEmail(s.publicEmail);
-          if (s.notifications !== undefined) setNotifs((prev) => ({ ...prev, ...s.notifications }));
+          const d = s?.data ?? s;
+          const general = d?.general ?? d;
+          const notifs = d?.notifications;
+          if (general.phone    !== undefined) setPhone(general.phone);
+          if (general.timezone !== undefined) setTimezone(general.timezone);
+          if (general.companySize   !== undefined) setCompanySize(general.companySize);
+          if (general.publicEmail   !== undefined) setPublicEmail(general.publicEmail);
+          if (notifs !== undefined) setNotifs((prev) => ({ ...prev, ...notifs }));
         }
       } catch {
         // silent — fields remain at defaults

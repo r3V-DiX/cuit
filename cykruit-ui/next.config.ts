@@ -73,10 +73,6 @@ const nextConfig: NextConfig = {
         destination: `${SUBS_URL}/subscriptions/:path*`,
       },
       {
-        source: "/api/seeker/:path*",
-        destination: "http://127.0.0.1:4005/:path*",
-      },
-      {
         source: "/api/public/:path*",
         destination: `${PUBLIC_URL}/public/:path*`,
       },
