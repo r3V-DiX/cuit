@@ -1,18 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Shield, Eye, EyeOff, ArrowRight, ChevronLeft } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 
-export default function LoginPage() {
+function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next") ?? "";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -39,11 +41,8 @@ export default function LoginPage() {
       }
       toast({ type: "success", message: "Signed in successfully" });
       const role = result.data?.role;
-      if (role === "EMPLOYER") {
-        router.push("/employer/dashboard");
-      } else {
-        router.push("/dashboard");
-      }
+      const destination = nextPath || (role === "EMPLOYER" ? "/employer/dashboard" : "/dashboard");
+      router.push(destination);
     } catch (error: any) {
       toast({ type: "error", message: error.message || "Authentication failed" });
     } finally {
@@ -290,5 +289,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
