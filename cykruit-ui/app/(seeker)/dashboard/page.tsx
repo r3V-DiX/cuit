@@ -106,18 +106,22 @@ export default function DashboardPage() {
           const profileResult = await profileRes.json();
           if (profileResult.data) {
             const data = profileResult.data;
+            const hasBio = !!data.summary;
             const hasExp = Array.isArray(data.experiences) && data.experiences.length > 0;
+            const hasEdu = Array.isArray(data.education) && data.education.length > 0;
             const hasSkills = Array.isArray(data.skills) && data.skills.length > 0;
             const hasCerts = Array.isArray(data.certifications) && data.certifications.length > 0;
             const hasCtf = Array.isArray(data.ctfProfiles) && data.ctfProfiles.length > 0;
-            const hasPortfolio = !!data.basicInfo?.portfolio;
+            const hasResume = Array.isArray(data.resumes) && data.resumes.length > 0;
 
             const checks = [
+              { label: "Bio / Summary",  done: hasBio },
               { label: "Experience",     done: hasExp },
+              { label: "Education",      done: hasEdu },
               { label: "Skills",         done: hasSkills },
               { label: "Certifications", done: hasCerts },
               { label: "CTF Profile",    done: hasCtf },
-              { label: "Portfolio link", done: hasPortfolio },
+              { label: "Resume",         done: hasResume },
             ];
             setProfileChecks(checks);
 

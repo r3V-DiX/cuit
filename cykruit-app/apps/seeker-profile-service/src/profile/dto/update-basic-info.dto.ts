@@ -20,6 +20,7 @@ export class UpdateBasicInfoDto {
   @IsOptional() @IsString() firstName?: string;
   @IsOptional() @IsString() lastName?: string;
   @IsOptional() @IsString() title?: string;
+  @IsOptional() @IsString() phone?: string;
   @IsOptional() @IsUUID() locationId?: string;
   @IsOptional()
   @ValidateNested()

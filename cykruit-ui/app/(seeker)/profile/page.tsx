@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { useToast } from "@/components/ui/Toast";
@@ -11,10 +11,38 @@ import {
   GraduationCap, Globe, Camera, Lock, ChevronDown as ChevronDownIcon,
 } from "lucide-react";
 import { FaLinkedinIn, FaGithub, FaXTwitter } from "react-icons/fa6";
+import { Country, State, City } from "country-state-city";
+import Select from "react-select";
 
 // ─── Seed data ────────────────────────────────────────────────────────────────
 
-const SEED_SKILLS = ["Penetration Testing", "Burp Suite", "Metasploit", "OSCP", "Python", "Nmap", "AWS Security", "Red Team"];
+const selectStyles = {
+  control: (base: any) => ({
+    ...base,
+    backgroundColor: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: '0.75rem',
+    boxShadow: 'none',
+    minHeight: '2.5rem',
+    fontSize: '0.875rem',
+    '&:hover': { borderColor: '#cbd5e1' }
+  }),
+  option: (base: any, state: any) => ({
+    ...base,
+    backgroundColor: state.isFocused ? '#f1f5f9' : 'white',
+    color: '#334155',
+    fontSize: '0.875rem',
+    cursor: 'pointer'
+  }),
+  menu: (base: any) => ({
+    ...base,
+    borderRadius: '0.75rem',
+    overflow: 'hidden',
+    zIndex: 50
+  })
+};
+
+const DUMMY_PREFERENCES = ["Penetration Testing", "Burp Suite", "Metasploit", "OSCP", "Python", "Nmap", "AWS Security", "Red Team"];
 
 const SEED_EXPERIENCE = [
   { id: 1, role: "Senior Penetration Tester", company: "SecureLayer7", period: "Jan 2022 – Present", desc: "Led web application and network pentests for Fortune 500 clients. Authored 40+ detailed pentest reports." },
@@ -133,6 +161,53 @@ export default function ProfilePage() {
   const [editingBasics, setEditingBasics] = useState(false);
   const [basicsBuffer, setBasicsBuffer] = useState(basics);
 
+  const [countryName, setCountryName] = useState("");
+  const [stateName, setStateName] = useState("");
+  const [cityName, setCityName] = useState("");
+
+  const availableCountries = useMemo(() => Country.getAllCountries(), []);
+  const selectedCountry = useMemo(() => availableCountries.find(c => c.name === countryName), [countryName, availableCountries]);
+  const availableStates = useMemo(() => selectedCountry ? State.getStatesOfCountry(selectedCountry.isoCode) : [], [selectedCountry]);
+  const selectedState = useMemo(() => selectedCountry ? availableStates.find(s => s.name === stateName) : null, [selectedCountry, stateName, availableStates]);
+  const availableCities = useMemo(() => selectedState && selectedCountry ? City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode) : [], [selectedCountry, selectedState]);
+
+  useEffect(() => {
+    if (editingBasics) {
+      setBasicsBuffer(basics);
+      const loc = basics.location || "";
+      if (loc) {
+        const parts = loc.split(",").map(p => p.trim());
+        const cName = parts[parts.length - 1];
+        const country = Country.getAllCountries().find(c => c.name.toLowerCase() === cName?.toLowerCase());
+        if (country) {
+          setCountryName(country.name);
+          if (parts.length > 1) {
+             const sName = parts[parts.length - 2];
+             const state = State.getStatesOfCountry(country.isoCode).find(s => s.name.toLowerCase() === sName?.toLowerCase());
+             if (state) {
+               setStateName(state.name);
+               setCityName(parts.slice(0, parts.length - 2).join(", "));
+             } else {
+               setStateName("");
+               setCityName(parts.slice(0, parts.length - 1).join(", "));
+             }
+          } else {
+             setStateName("");
+             setCityName("");
+          }
+        } else {
+          setCountryName("");
+          setStateName("");
+          setCityName("");
+        }
+      }
+    } else {
+      setCountryName("");
+      setStateName("");
+      setCityName("");
+    }
+  }, [editingBasics, basics]);
+
   const getCsrfToken = () => {
     if (typeof document === "undefined") return "";
     const match = document.cookie.match(/csrf_token=([^;]+)/);
@@ -154,6 +229,14 @@ export default function ProfilePage() {
         lastName,
         title: basicsBuffer.title || "",
       };
+      if (basicsBuffer.phone !== undefined) body.phone = basicsBuffer.phone;
+      if (selectedCountry) {
+        body.location = {
+          country: selectedCountry.name,
+          state: selectedState?.name,
+          city: cityName || undefined,
+        };
+      }
       if (basicsBuffer.linkedin) body.linkedin = basicsBuffer.linkedin.startsWith("http") ? basicsBuffer.linkedin : `https://${basicsBuffer.linkedin}`;
       if (basicsBuffer.github) body.github = basicsBuffer.github.startsWith("http") ? basicsBuffer.github : `https://${basicsBuffer.github}`;
       if (basicsBuffer.portfolio) body.portfolio = basicsBuffer.portfolio.startsWith("http") ? basicsBuffer.portfolio : `https://${basicsBuffer.portfolio}`;
@@ -317,13 +400,16 @@ export default function ProfilePage() {
       return;
     }
 
+    const descText = expForm.desc.trim();
     const payload = {
       title: expForm.role,
       company: expForm.company,
-      startDate: `${expForm.startYear}-01-01`,
-      endDate: expForm.endYear === "Present" ? undefined : `${expForm.endYear}-12-31`,
+      location: "Remote",
+      startDate: `${expForm.startYear}-01`,
+      endDate: expForm.endYear === "Present" ? undefined : `${expForm.endYear}-12`,
       current: expForm.endYear === "Present",
-      description: expForm.desc.trim() || undefined,
+      description: descText.length >= 5 ? descText : descText + (descText ? " " : "") + "No description provided.",
+      tools: ["Not specified"],
     };
 
     try {
@@ -404,8 +490,8 @@ export default function ProfilePage() {
     const payload = {
       degree: eduForm.degree,
       instituteName: eduForm.school,
-      startDate: eduForm.startYear ? `${eduForm.startYear}-01-01` : undefined,
-      endDate: eduForm.endYear === "Present" || !eduForm.endYear ? undefined : `${eduForm.endYear}-12-31`,
+      startDate: eduForm.startYear ? eduForm.startYear : undefined,
+      endDate: eduForm.endYear === "Present" || !eduForm.endYear ? undefined : eduForm.endYear,
       description: eduForm.desc || undefined,
     };
 
@@ -793,6 +879,18 @@ export default function ProfilePage() {
   }, []);
 
   // ─── Render ──────────────────────────────────────────────────────────────────
+  const profileChecks = [
+    { label: "Bio / Summary", done: bio.length > 0 },
+    { label: "Experience", done: experience.length > 0 },
+    { label: "Education", done: education.length > 0 },
+    { label: "Skills", done: skills.length > 0 },
+    { label: "Certifications", done: certs.length > 0 },
+    { label: "CTF Profile", done: ctfList.length > 0 },
+    { label: "Resume", done: resumes.length > 0 },
+  ];
+  const doneCount = profileChecks.filter((c) => c.done).length;
+  const profilePct = Math.round((doneCount / profileChecks.length) * 100);
+
   return (
     <>
       <SeekerTopbar title="My Profile" />
@@ -820,7 +918,7 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span className="text-[10px] font-mono text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-md">OPEN TO WORK</span>
                 <span className="text-[10px] font-mono text-slate-400">
-                  Profile {Math.min(100, 15 + (bio.length > 0 ? 10 : 0) + Math.min(skills.length * 3, 15) + Math.min(experience.length * 12, 24) + Math.min(certs.length * 8, 16) + (resumes.length > 0 ? 10 : 0) + (education.length > 0 ? 10 : 0))}% complete
+                  Profile {profilePct}% complete
                 </span>
               </div>
             </div>
@@ -930,10 +1028,45 @@ export default function ProfilePage() {
                           <input value={basicsBuffer.phone} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, phone: e.target.value })} placeholder="+91 98765 43210" maxLength={20} className={field} />
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                          <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Location</label>
-                          <input value={basicsBuffer.location} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, location: e.target.value })} placeholder="City, Country" maxLength={100} className={field} />
+                          <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Country</label>
+                          <Select 
+                            options={availableCountries.map(c => ({ value: c.name, label: c.name }))}
+                            value={countryName ? { value: countryName, label: countryName } : null}
+                            onChange={(val: any) => { setCountryName(val?.value || ""); setStateName(""); setCityName(""); }}
+                            placeholder="Select Country"
+                            styles={selectStyles}
+                            isClearable
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">State/Region</label>
+                          <Select 
+                            options={availableStates.map(s => ({ value: s.name, label: s.name }))}
+                            value={stateName ? { value: stateName, label: stateName } : null}
+                            onChange={(val: any) => { setStateName(val?.value || ""); setCityName(""); }}
+                            isDisabled={!selectedCountry || availableStates.length === 0}
+                            placeholder="Select State"
+                            styles={selectStyles}
+                            isClearable
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">City</label>
+                          {availableCities.length > 0 ? (
+                            <Select 
+                              options={availableCities.map(c => ({ value: c.name, label: c.name }))}
+                              value={cityName ? { value: cityName, label: cityName } : null}
+                              onChange={(val: any) => setCityName(val?.value || "")}
+                              isDisabled={!selectedState}
+                              placeholder="Select City"
+                              styles={selectStyles}
+                              isClearable
+                            />
+                          ) : (
+                            <input value={cityName} onChange={(e) => setCityName(e.target.value)} placeholder="City name" disabled={!selectedCountry} maxLength={100} className={field} />
+                          )}
                         </div>
                       </div>
                       <div className="border-t border-slate-100 pt-4">

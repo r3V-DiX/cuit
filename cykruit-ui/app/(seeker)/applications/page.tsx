@@ -30,7 +30,7 @@ export default function ApplicationsPage() {
   useEffect(() => {
     async function fetchApps() {
       try {
-        const res = await fetch("/api/seeker/applications", { credentials: "include" });
+        const res = await fetch("/api/seeker/applications?limit=50", { credentials: "include" });
         if (res.ok) {
           const resJson = await res.json();
           const items = resJson.data?.items || [];
@@ -55,6 +55,8 @@ export default function ApplicationsPage() {
       }
     }
     fetchApps();
+    const interval = setInterval(fetchApps, 15000);
+    return () => clearInterval(interval);
   }, []);
   const [activeTab, setActiveTab] = useState<AppStatus | "All">("All");
   const [search, setSearch] = useState("");

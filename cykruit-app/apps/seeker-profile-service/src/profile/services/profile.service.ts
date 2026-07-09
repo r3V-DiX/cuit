@@ -121,12 +121,13 @@ export class ProfileService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      if (dto.firstName || dto.lastName) {
+      if (dto.firstName || dto.lastName || dto.phone !== undefined) {
         await tx.user.update({
           where: { id: userId },
           data: {
             ...(dto.firstName && { firstName: dto.firstName }),
             ...(dto.lastName && { lastName: dto.lastName }),
+            ...(dto.phone !== undefined && { phone: dto.phone === "" ? null : dto.phone }),
           },
         });
       }

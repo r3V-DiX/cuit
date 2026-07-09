@@ -68,7 +68,7 @@ export default function SavedPage() {
   const fetchSaved = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/seeker/saved-jobs", { credentials: "include" });
+      const res = await fetch("/api/seeker/saved-jobs?limit=50", { credentials: "include" });
       if (!res.ok) throw new Error();
       const body = await res.json();
       setJobs((body?.data?.items ?? []).map(mapItem));
