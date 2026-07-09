@@ -134,7 +134,10 @@ export class VerificationService {
     };
 
     const user = await this.authRepository.findUserByEmail(email);
-    if (!user || user.isEmailVerified) return genericResponse;
+    if (!user) return genericResponse;
+    if (user.isEmailVerified) {
+      return { message: "Your email is already verified. You can sign in.", alreadyVerified: true };
+    }
 
     const existing = await this.authRepository.findActiveVerificationToken(
       user.id,

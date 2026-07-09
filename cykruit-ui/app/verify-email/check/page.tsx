@@ -51,7 +51,14 @@ function CheckEmailContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to resend verification email");
+        throw new Error(data?.error?.message || data.message || "Failed to resend verification email");
+      }
+
+      const body = data?.data ?? data;
+      if (body?.alreadyVerified) {
+        toast({ type: "info", message: "Already verified", description: "Your email is already verified. Redirecting to sign in…" });
+        setTimeout(() => router.push("/login"), 1500);
+        return;
       }
 
       toast({ type: "success", message: "Verification email resent", description: "Check your inbox and spam folder" });
