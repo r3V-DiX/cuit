@@ -93,12 +93,14 @@ export default function EmployerDashboardPage() {
       setLoading(true);
       setError(false);
       try {
-        const [jobsRes, appsRes] = await Promise.all([
-          fetch("/api/employer/jobs", { credentials: "include" }),
-          fetch("/api/employer/applications", { credentials: "include" }),
+        const [jobsData, appsData] = await Promise.all([
+          fetch("/api/employer/jobs", { credentials: "include" })
+            .then((r) => (r.ok ? r.json() : { data: { items: [] } }))
+            .catch(() => ({ data: { items: [] } })),
+          fetch("/api/employer/applications", { credentials: "include" })
+            .then((r) => (r.ok ? r.json() : { data: { items: [] } }))
+            .catch(() => ({ data: { items: [] } })),
         ]);
-        if (!jobsRes.ok || !appsRes.ok) throw new Error("fetch failed");
-        const [jobsData, appsData] = await Promise.all([jobsRes.json(), appsRes.json()]);
         const jobsArr: ApiJob[] = Array.isArray(jobsData) ? jobsData : (jobsData.data ?? jobsData.items ?? []);
         const appsArr: ApiApplication[] = Array.isArray(appsData) ? appsData : (appsData.data ?? appsData.items ?? []);
         setJobs(jobsArr);

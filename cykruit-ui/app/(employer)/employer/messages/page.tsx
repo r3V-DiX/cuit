@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { Send, Search, Briefcase, ChevronRight, Loader2 } from "lucide-react";
+import { useToast } from "@/components/ui/Toast";
 
 type Message = {
   id: string;
@@ -93,6 +94,7 @@ function mapApiConv(conv: any, idx: number): Conversation {
 
 // Employer sees ALL conversations across all candidates
 export default function EmployerMessagesPage() {
+  const { toast } = useToast();
   const [convs, setConvs] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [input, setInput] = useState("");
@@ -182,7 +184,11 @@ export default function EmployerMessagesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content }),
       });
-      const data = res.ok ? await res.json() : null;
+      if (!res.ok) {
+        toast({ type: "error", message: "Failed to send message" });
+        return;
+      }
+      const data = await res.json();
       const savedMsg = data?.data ?? data;
       const newMsg: Message = {
         id: savedMsg?.id ?? String(Date.now()),

@@ -132,6 +132,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       const res = await fetch(`/api/seeker/jobs/${job.id}/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           coverLetter: "Excited about this opportunity. Let's talk!",
           useAiScoring: true,

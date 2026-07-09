@@ -30,7 +30,7 @@ export default function ApplicationsPage() {
   useEffect(() => {
     async function fetchApps() {
       try {
-        const res = await fetch("/api/seeker/applications");
+        const res = await fetch("/api/seeker/applications", { credentials: "include" });
         if (res.ok) {
           const resJson = await res.json();
           const items = resJson.data?.items || [];

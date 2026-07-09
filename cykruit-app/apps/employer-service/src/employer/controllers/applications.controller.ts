@@ -10,6 +10,7 @@ import {
     UseGuards,
     HttpCode,
     HttpStatus,
+    ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
@@ -48,7 +49,7 @@ export class ApplicationsController {
     @RequirePermission(ACTIONS.APPLICATIONS.READ_ALL)
     getOne(
         @CurrentUser() user: User,
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
     ) {
         return this.applicationsService.getOne(user.id, id);
     }
@@ -58,7 +59,7 @@ export class ApplicationsController {
     @RequirePermission(ACTIONS.APPLICATIONS.READ_ALL)
     getOneGlobal(
         @CurrentUser() user: User,
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
     ) {
         return this.applicationsService.getOne(user.id, id);
     }
@@ -69,7 +70,7 @@ export class ApplicationsController {
     @RequirePermission(ACTIONS.APPLICATIONS.UPDATE_STATUS)
     updateStatus(
         @CurrentUser() user: User,
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: UpdateApplicationStatusDto,
     ) {
         return this.applicationsService.updateStatus(user.id, id, dto);
@@ -81,7 +82,7 @@ export class ApplicationsController {
     @RequirePermission(ACTIONS.APPLICATIONS.UPDATE_STATUS)
     updateStatusGlobal(
         @CurrentUser() user: User,
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: UpdateApplicationStatusDto,
     ) {
         return this.applicationsService.updateStatus(user.id, id, dto);

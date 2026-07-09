@@ -67,7 +67,7 @@ export default function CompanyProfilePage() {
 
   useEffect(() => {
     fetch("/api/employer/company/me", { credentials: "include" })
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((d) => {
         setName(d.name ?? "");
         setIndustry(d.industry ?? "");
@@ -134,7 +134,8 @@ export default function CompanyProfilePage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setPerks((prev) => [...prev, { id: data.id, name: v }]);
+        const perkId = data?.data?.id ?? data?.id ?? undefined;
+        setPerks((prev) => [...prev, { id: perkId, name: v }]);
       } else {
         setPerks((prev) => [...prev, { name: v }]);
       }

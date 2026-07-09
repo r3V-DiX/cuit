@@ -116,14 +116,20 @@ export default function SubscriptionPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [subRes, usageRes, pkgRes] = await Promise.all([
-          fetch("/api/subscriptions/my", { credentials: "include" }),
-          fetch("/api/subscriptions/usage", { credentials: "include" }),
-          fetch("/api/subscriptions/packages", { credentials: "include" }),
+        const [subData, usageData, pkgData] = await Promise.all([
+          fetch("/api/subscriptions/my", { credentials: "include" })
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null),
+          fetch("/api/subscriptions/usage", { credentials: "include" })
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null),
+          fetch("/api/subscriptions/packages", { credentials: "include" })
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null),
         ]);
-        if (subRes.ok) setSubscription(await subRes.json());
-        if (usageRes.ok) setUsage(await usageRes.json());
-        if (pkgRes.ok) setPackages(await pkgRes.json());
+        if (subData)  setSubscription(subData);
+        if (usageData) setUsage(usageData);
+        if (pkgData)  setPackages(pkgData);
       } catch {
         // silently ignore; UI shows fallbacks
       } finally {

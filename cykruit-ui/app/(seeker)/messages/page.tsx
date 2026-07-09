@@ -153,7 +153,7 @@ export default function SeekerMessagesPage() {
     setConvs((prev) => prev.map((c) => c.id === id ? { ...c, seekerUnread: 0 } : c));
     try {
       const convRes = await fetch(`/api/conversations/${id}`, { credentials: "include" });
-      fetch(`/api/conversations/${id}/read`, { method: "PATCH", credentials: "include" });
+      fetch(`/api/conversations/${id}/read`, { method: "PATCH", credentials: "include" }).catch(() => {});
       if (convRes.ok) {
         const data = await convRes.json();
         const messages: Message[] = (data.data?.messages || []).map((msg: any) => ({

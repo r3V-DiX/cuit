@@ -96,7 +96,8 @@ export default function EmployerSettingsPage() {
   const getCsrfToken = () => {
     if (typeof window === "undefined") return "";
     const match = document.cookie.match(/csrf_token=([^;]+)/);
-    return match ? decodeURIComponent(match[1]) : "";
+    if (!match) { console.warn("[settings] csrf_token cookie absent — proceeding without it"); return ""; }
+    return decodeURIComponent(match[1]);
   };
 
   // Company basics

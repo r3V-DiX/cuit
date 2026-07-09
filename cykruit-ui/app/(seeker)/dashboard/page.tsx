@@ -93,7 +93,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchUserAndProfile() {
       try {
-        const userRes = await fetch("/api/auth/me");
+        const userRes = await fetch("/api/auth/me", { credentials: "include" });
         if (userRes.ok) {
           const userResult = await userRes.json();
           if (userResult.data?.firstName) {
@@ -101,7 +101,7 @@ export default function DashboardPage() {
           }
         }
 
-        const profileRes = await fetch("/api/profile");
+        const profileRes = await fetch("/api/profile", { credentials: "include" });
         if (profileRes.ok) {
           const profileResult = await profileRes.json();
           if (profileResult.data) {
@@ -126,16 +126,40 @@ export default function DashboardPage() {
           }
         }
 
-        const localApps = JSON.parse(localStorage.getItem("cykruit_applications") || "[]");
-        const localSaved = JSON.parse(localStorage.getItem("cykruit_saved_jobs") || "[]");
+        const [appsRes, savedRes] = await Promise.all([
+          fetch("/api/seeker/applications", { credentials: "include" }),
+          fetch("/api/seeker/saved-jobs", { credentials: "include" }),
+        ]);
 
-        setRecentApps(localApps.slice(0, 3));
+        let apiApps: any[] = [];
+        if (appsRes.ok) {
+          const appsData = await appsRes.json();
+          apiApps = (appsData.data?.items ?? []).map((a: any) => ({
+            id: a.id,
+            role: a.job?.jobTitle ?? "Unknown Role",
+            company: a.job?.employer?.companyName ?? "Unknown Company",
+            status: a.status === "APPLIED" ? "Applied"
+              : a.status === "UNDER_REVIEW" ? "Under Review"
+              : a.status === "SHORTLISTED" ? "Shortlisted"
+              : a.status === "REJECTED" ? "Rejected"
+              : a.status === "WITHDRAWN" ? "Withdrawn"
+              : "Applied",
+          }));
+        }
+
+        let savedCount = 0;
+        if (savedRes.ok) {
+          const savedData = await savedRes.json();
+          savedCount = (savedData.data?.items ?? []).length;
+        }
+
+        setRecentApps(apiApps.slice(0, 3));
 
         setStats({
-          applied: localApps.length,
-          shortlisted: localApps.filter((a: any) => a.status === "Shortlisted").length,
+          applied: apiApps.length,
+          shortlisted: apiApps.filter((a: any) => a.status === "Shortlisted").length,
           views: 14,
-          saved: localSaved.length,
+          saved: savedCount,
         });
 
         try {

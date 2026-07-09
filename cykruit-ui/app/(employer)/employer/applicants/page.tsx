@@ -41,7 +41,7 @@ export default function ApplicantsPage() {
   useEffect(() => {
     async function fetchApplicants() {
       try {
-        const res = await fetch("/api/employer/applications");
+        const res = await fetch("/api/employer/applications", { credentials: "include" });
         if (res.ok) {
           const data = await res.json();
           const items = data.data?.items || data.items || [];
@@ -67,8 +67,8 @@ export default function ApplicantsPage() {
   }, [toast]);
 
   const filtered = applicants.filter((a) => {
-    const matchStatus = statusFilter === "All" || a.status === statusFilter;
-    const matchJob    = jobFilter    === "all" || a.jobId === jobFilter;
+    const matchStatus = statusFilter === "All" || a?.status === statusFilter;
+    const matchJob    = jobFilter    === "all" || a?.jobId === jobFilter;
     const name = `${a.jobSeeker?.firstName || ""} ${a.jobSeeker?.lastName || ""}`.trim();
     const role = a.job?.jobTitle || "";
     const matchSearch = !search || name.toLowerCase().includes(search.toLowerCase()) || role.toLowerCase().includes(search.toLowerCase());
