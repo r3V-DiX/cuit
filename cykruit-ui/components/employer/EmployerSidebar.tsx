@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Briefcase, Users, Building2, Bell,
   Settings, Shield, ChevronLeft, ChevronRight, LogOut, PlusCircle, MessageSquare,
-  Menu, X, CreditCard,
+  Menu, X, CreditCard, Activity,
 } from "lucide-react";
 import { useModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
@@ -19,6 +19,7 @@ const navItems = [
   { label: "Post a Job",    href: "/employer/jobs/new",      icon: PlusCircle      },
   { label: "Applicants",    href: "/employer/applicants",    icon: Users           },
   { label: "Team",          href: "/employer/team",          icon: Shield          },
+  { label: "Activity",      href: "/employer/activity",      icon: Activity        },
   { label: "Messages",      href: "/employer/messages",      icon: MessageSquare   },
   { label: "Company",       href: "/employer/company",       icon: Building2       },
   { label: "Notifications", href: "/employer/notifications", icon: Bell },

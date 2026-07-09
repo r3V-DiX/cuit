@@ -27,6 +27,7 @@ import { KycController } from './controllers/kyc.controller';
 import { JobsController } from './controllers/jobs.controller';
 import { TeamController } from './controllers/team.controller';
 import { ApplicationsController } from './controllers/applications.controller';
+import { ActivityController } from './controllers/activity.controller';
 
 // Services
 import { CompanyService } from './services/company.service';
@@ -35,6 +36,7 @@ import { JobsService } from './services/jobs.service';
 import { TeamService } from './services/team.service';
 import { EmployerApplicationsService } from './services/applications.service';
 import { JobExpiryService } from './services/job-expiry.service';
+import { ActivityService } from './services/activity.service';
 
 // Repositories
 import { CompanyRepository } from './repositories/company.repository';
@@ -42,6 +44,7 @@ import { KycRepository } from './repositories/kyc.repository';
 import { JobsRepository } from './repositories/jobs.repository';
 import { TeamRepository } from './repositories/team.repository';
 import { EmployerApplicationsRepository } from './repositories/applications.repository';
+import { ActivityRepository } from './repositories/activity.repository';
 
 /**
  * EmployerSessionValidator validates bearer/cookie session tokens from the
@@ -117,6 +120,7 @@ export class EmployerSessionValidator implements ISessionValidator {
         JobsController,
         TeamController,
         ApplicationsController,
+        ActivityController,
     ],
     providers: [
         CompanyService,
@@ -130,6 +134,8 @@ export class EmployerSessionValidator implements ISessionValidator {
         EmployerApplicationsService,
         EmployerApplicationsRepository,
         JobExpiryService,
+        ActivityService,
+        ActivityRepository,
         EmployerSessionValidator,
     ],
     exports: [CompanyService],

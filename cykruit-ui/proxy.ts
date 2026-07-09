@@ -24,6 +24,7 @@ const EMPLOYER_PREFIXES = [
   "/employer/settings",
   "/employer/subscription",
   "/employer/team",
+  "/employer/activity",
   "/kyc",
 ];
 
