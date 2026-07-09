@@ -21,6 +21,7 @@ const AUTHED_PREFIXES = [
   "/employer/settings",
   "/employer/subscription",
   "/kyc",
+  "/admin",
 ];
 
 // Routes that authed users should not visit (auth pages)
