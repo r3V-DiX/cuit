@@ -124,7 +124,7 @@ export class VerificationService {
     dto: ResendVerificationDto,
     ip?: string,
     ua?: string,
-  ): Promise<{ message: string }> {
+  ): Promise<{ message: string; alreadyVerified?: boolean }> {
     const reqCtx = { ip, userAgent: ua };
     const email = dto.email;
 
