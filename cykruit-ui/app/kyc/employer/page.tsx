@@ -387,6 +387,12 @@ export default function EmployerKYCPage() {
                     Your documents are under review. We'll notify you within <span className="font-semibold text-slate-700">1–2 business days</span> once verification is complete.
                   </p>
                 </div>
+                <a
+                  href="/employer/dashboard"
+                  className="flex items-center gap-2 h-10 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors shadow-sm shadow-blue-500/20"
+                >
+                  Go to Dashboard
+                </a>
 
                 <div className="w-full max-w-sm bg-slate-50 rounded-2xl border border-slate-200 divide-y divide-slate-100 text-left mt-2">
                   {[

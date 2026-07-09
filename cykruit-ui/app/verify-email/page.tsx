@@ -126,18 +126,12 @@ export default function VerifyEmailPage() {
                 Your email address has been confirmed. You can now sign in to your account.
               </p>
 
-              <div className="mt-6 space-y-2.5">
+              <div className="mt-6">
                 <Link
-                  href="/dashboard"
+                  href="/login?verified=true"
                   className="flex items-center justify-center gap-2 w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors shadow-sm shadow-blue-500/20"
                 >
-                  Go to Dashboard <ArrowRight className="w-4 h-4" />
-                </Link>
-                <Link
-                  href="/login"
-                  className="flex items-center justify-center w-full h-11 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all"
-                >
-                  Sign In
+                  Sign in to your account <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             </>
