@@ -105,6 +105,8 @@ async function bootstrap() {
     process.on('SIGTERM', async () => { await app.close(); process.exit(0); });
     process.on('SIGINT', async () => { await app.close(); process.exit(0); });
 
+    app.setGlobalPrefix('seeker');
+
     const port = process.env.SEEKER_PORT || 4005;
     const host = process.env.HOST || '0.0.0.0';
 
