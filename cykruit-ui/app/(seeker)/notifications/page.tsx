@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { useToast } from "@/components/ui/Toast";
@@ -8,215 +8,130 @@ import { useModal } from "@/components/ui/Modal";
 import {
   Bell, BellOff, CheckCheck, Trash2, X,
   Briefcase, Sparkles, Eye, Shield, ChevronRight,
-  CheckCircle2, XCircle, Clock, Send, Inbox,
+  Clock, Inbox, Loader2,
 } from "lucide-react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type NotifType = "application" | "job_match" | "profile_view" | "system";
+type NotifType = "APPLICATION" | "JOB_MATCH" | "PROFILE_VIEW" | "SYSTEM" | string;
 
 type Notification = {
-  id: number;
+  id: string;
   type: NotifType;
   title: string;
-  body: string;
-  time: string;
-  timeTs: number;
-  read: boolean;
-  link?: string;
-  meta?: string; // company name, job title etc.
+  message: string;
+  isRead: boolean;
+  actionUrl?: string;
+  createdAt: string;
+  createdTs: number;
 };
-
-// ─── Seed ─────────────────────────────────────────────────────────────────────
-
-const SEED: Notification[] = [
-  {
-    id: 1,
-    type: "application",
-    title: "You've been shortlisted!",
-    body: "CrowdStrike moved your application for Senior Penetration Tester to the shortlist. A recruiter may reach out soon.",
-    time: "2h ago",
-    timeTs: Date.now() - 2 * 3600000,
-    read: false,
-    link: "/applications",
-    meta: "CrowdStrike",
-  },
-  {
-    id: 2,
-    type: "job_match",
-    title: "New job match: Red Team Lead",
-    body: "Microsoft posted a Red Team Lead role that matches your profile — OSCP, Red Team, Python. 92% match score.",
-    time: "5h ago",
-    timeTs: Date.now() - 5 * 3600000,
-    read: false,
-    link: "/jobs/9",
-    meta: "Microsoft · Remote",
-  },
-  {
-    id: 3,
-    type: "profile_view",
-    title: "A recruiter viewed your profile",
-    body: "Someone from Mandiant viewed your profile. Make sure your profile is complete to stand out.",
-    time: "Yesterday",
-    timeTs: Date.now() - 26 * 3600000,
-    read: false,
-    link: "/profile",
-    meta: "Mandiant",
-  },
-  {
-    id: 4,
-    type: "application",
-    title: "Application under review",
-    body: "Palo Alto Networks is reviewing your application for Cloud Security Engineer. You'll hear back within 5–7 business days.",
-    time: "2d ago",
-    timeTs: Date.now() - 2 * 86400000,
-    read: true,
-    link: "/applications",
-    meta: "Palo Alto Networks",
-  },
-  {
-    id: 5,
-    type: "job_match",
-    title: "3 new jobs match your profile",
-    body: "Okta, Zscaler, and IBM Security posted roles matching Offensive Security and Cloud Security in your preferred locations.",
-    time: "2d ago",
-    timeTs: Date.now() - 2.5 * 86400000,
-    read: false,
-    link: "/jobs",
-    meta: "3 new matches",
-  },
-  {
-    id: 6,
-    type: "system",
-    title: "Complete your profile to get more matches",
-    body: "Your profile is 72% complete. Add your education and portfolio link to improve your visibility to recruiters by 3×.",
-    time: "3d ago",
-    timeTs: Date.now() - 3 * 86400000,
-    read: true,
-    link: "/profile",
-  },
-  {
-    id: 7,
-    type: "application",
-    title: "Application not selected",
-    body: "Stripe has decided not to move forward with your application for AppSec Engineer. Keep applying — the right role is out there.",
-    time: "4d ago",
-    timeTs: Date.now() - 4 * 86400000,
-    read: true,
-    link: "/applications",
-    meta: "Stripe",
-  },
-  {
-    id: 8,
-    type: "profile_view",
-    title: "Your profile is gaining traction",
-    body: "5 recruiters viewed your profile this week — up 2× from last week. Your OSCP certification is a top search term.",
-    time: "5d ago",
-    timeTs: Date.now() - 5 * 86400000,
-    read: true,
-  },
-  {
-    id: 9,
-    type: "system",
-    title: "New feature: AI job matching",
-    body: "We've launched AI-powered job matching. Your profile is now automatically matched to new roles as they're posted.",
-    time: "1w ago",
-    timeTs: Date.now() - 7 * 86400000,
-    read: true,
-  },
-  {
-    id: 10,
-    type: "job_match",
-    title: "Saved job expiring soon",
-    body: "The AppSec Engineer role at Stripe you saved is closing in 2 days. Apply before the deadline.",
-    time: "1w ago",
-    timeTs: Date.now() - 8 * 86400000,
-    read: true,
-    link: "/saved",
-    meta: "Stripe · Hybrid · SF",
-  },
-];
-
-// ─── Config per type ──────────────────────────────────────────────────────────
 
 type TabFilter = "all" | NotifType;
 
-const TYPE_CFG: Record<NotifType, {
-  icon: React.ReactNode;
-  iconBg: string;
-  label: string;
-}> = {
-  application: {
+const TYPE_CFG: Record<string, { icon: React.ReactNode; iconBg: string; label: string }> = {
+  APPLICATION: {
     icon: <Briefcase className="w-4 h-4" />,
     iconBg: "bg-blue-50 text-blue-600 border-blue-100",
     label: "Applications",
   },
-  job_match: {
+  JOB_MATCH: {
     icon: <Sparkles className="w-4 h-4" />,
     iconBg: "bg-violet-50 text-violet-600 border-violet-100",
     label: "Job Matches",
   },
-  profile_view: {
+  PROFILE_VIEW: {
     icon: <Eye className="w-4 h-4" />,
     iconBg: "bg-amber-50 text-amber-600 border-amber-100",
     label: "Profile Activity",
   },
-  system: {
+  SYSTEM: {
     icon: <Shield className="w-4 h-4" />,
     iconBg: "bg-slate-100 text-slate-500 border-slate-200",
     label: "System",
   },
 };
 
+const FALLBACK_CFG = {
+  icon: <Bell className="w-4 h-4" />,
+  iconBg: "bg-slate-100 text-slate-500 border-slate-200",
+  label: "Other",
+};
+
 const TABS: { id: TabFilter; label: string }[] = [
   { id: "all", label: "All" },
-  { id: "application", label: "Applications" },
-  { id: "job_match", label: "Job Matches" },
-  { id: "profile_view", label: "Profile" },
-  { id: "system", label: "System" },
+  { id: "APPLICATION", label: "Applications" },
+  { id: "JOB_MATCH", label: "Job Matches" },
+  { id: "PROFILE_VIEW", label: "Profile" },
+  { id: "SYSTEM", label: "System" },
 ];
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
+function formatTime(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "Yesterday";
+  if (d < 7) return `${d}d ago`;
+  return `${Math.floor(d / 7)}w ago`;
+}
 
 export default function NotificationsPage() {
   const { toast } = useToast();
   const { openModal } = useModal();
 
   const [notifs, setNotifs] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
 
-  useEffect(() => {
-    const local = localStorage.getItem("cykruit_notifications");
-    if (local) {
-      setNotifs(JSON.parse(local));
-    } else {
-      setNotifs([]);
+  const fetchNotifs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/notifications?limit=50", { credentials: "include" });
+      if (!res.ok) throw new Error();
+      const body = await res.json();
+      setNotifs(
+        (body?.data?.items ?? []).map((n: any): Notification => ({
+          id: n.id,
+          type: n.type,
+          title: n.title,
+          message: n.message,
+          isRead: n.isRead,
+          actionUrl: n.actionUrl,
+          createdAt: n.createdAt,
+          createdTs: new Date(n.createdAt).getTime(),
+        }))
+      );
+    } catch {
+      toast({ type: "error", message: "Failed to load notifications" });
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  // ── Computed ─────────────────────────────────────────────────────────────────
+  useEffect(() => { fetchNotifs(); }, [fetchNotifs]);
+
   const filtered = useMemo(() => {
     let list = notifs;
     if (activeTab !== "all") list = list.filter((n) => n.type === activeTab);
-    if (showUnreadOnly) list = list.filter((n) => !n.read);
-    return [...list].sort((a, b) => b.timeTs - a.timeTs);
+    if (showUnreadOnly) list = list.filter((n) => !n.isRead);
+    return [...list].sort((a, b) => b.createdTs - a.createdTs);
   }, [notifs, activeTab, showUnreadOnly]);
 
-  const unreadCount = useMemo(() => notifs.filter((n) => !n.read).length, [notifs]);
-
+  const unreadCount = useMemo(() => notifs.filter((n) => !n.isRead).length, [notifs]);
   const tabCount = (tab: TabFilter) =>
     tab === "all"
-      ? notifs.filter((n) => !n.read).length
-      : notifs.filter((n) => n.type === tab && !n.read).length;
+      ? notifs.filter((n) => !n.isRead).length
+      : notifs.filter((n) => n.type === tab && !n.isRead).length;
 
-  // ── Actions ───────────────────────────────────────────────────────────────────
-  function markRead(id: number) {
-    setNotifs((prev) => {
-      const next = prev.map((n) => n.id === id ? { ...n, read: true } : n);
-      localStorage.setItem("cykruit_notifications", JSON.stringify(next));
-      return next;
-    });
+  async function markRead(id: string) {
+    try {
+      await fetch(`/api/notifications/${id}/read`, { method: "PATCH", credentials: "include" });
+      setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
+    } catch {
+      toast({ type: "error", message: "Failed to mark as read" });
+    }
   }
 
   function markAllRead() {
@@ -225,64 +140,55 @@ export default function NotificationsPage() {
       title: "Mark all as read?",
       description: `${unreadCount} unread notification${unreadCount !== 1 ? "s" : ""} will be marked as read.`,
       confirmLabel: "Mark all read",
-      onConfirm: () => {
-        setNotifs((prev) => {
-          const next = prev.map((n) => ({ ...n, read: true }));
-          localStorage.setItem("cykruit_notifications", JSON.stringify(next));
-          return next;
-        });
-        toast({ type: "success", message: "All notifications marked as read" });
+      onConfirm: async () => {
+        try {
+          await fetch("/api/notifications/read-all", { method: "PATCH", credentials: "include" });
+          setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
+          toast({ type: "success", message: "All notifications marked as read" });
+        } catch {
+          toast({ type: "error", message: "Failed to mark all as read" });
+        }
       },
     });
   }
 
-  function deleteNotif(id: number) {
+  function deleteNotif(id: string) {
     const notif = notifs.find((n) => n.id === id);
     openModal({
       variant: "danger",
       title: "Delete notification?",
       description: notif ? `"${notif.title}" will be permanently removed.` : "This notification will be permanently removed.",
       confirmLabel: "Delete",
-      onConfirm: () => {
-        setNotifs((prev) => {
-          const next = prev.filter((n) => n.id !== id);
-          localStorage.setItem("cykruit_notifications", JSON.stringify(next));
-          return next;
-        });
-        toast({ type: "info", message: "Notification deleted" });
-      },
-    });
-  }
-
-  function clearAll() {
-    openModal({
-      variant: "danger",
-      title: "Clear all notifications?",
-      description: "All notifications will be permanently removed.",
-      confirmLabel: "Clear all",
-      onConfirm: () => {
-        localStorage.removeItem("cykruit_notifications");
-        setNotifs([]);
-        toast({ type: "info", message: "All notifications cleared" });
+      onConfirm: async () => {
+        try {
+          await fetch(`/api/notifications/${id}`, { method: "DELETE", credentials: "include" });
+          setNotifs((prev) => prev.filter((n) => n.id !== id));
+          toast({ type: "info", message: "Notification deleted" });
+        } catch {
+          toast({ type: "error", message: "Failed to delete notification" });
+        }
       },
     });
   }
 
   function clearRead() {
-    const count = notifs.filter((n) => n.read).length;
-    if (count === 0) {
+    const readNotifs = notifs.filter((n) => n.isRead);
+    if (readNotifs.length === 0) {
       toast({ type: "info", message: "No read notifications to clear" });
       return;
     }
-    setNotifs((prev) => {
-      const next = prev.filter((n) => !n.read);
-      localStorage.setItem("cykruit_notifications", JSON.stringify(next));
-      return next;
+    Promise.all(
+      readNotifs.map((n) =>
+        fetch(`/api/notifications/${n.id}`, { method: "DELETE", credentials: "include" })
+      )
+    ).then(() => {
+      setNotifs((prev) => prev.filter((n) => !n.isRead));
+      toast({ type: "success", message: `${readNotifs.length} read notification${readNotifs.length > 1 ? "s" : ""} cleared` });
+    }).catch(() => {
+      toast({ type: "error", message: "Failed to clear read notifications" });
     });
-    toast({ type: "success", message: `${count} read notification${count > 1 ? "s" : ""} cleared` });
   }
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
   return (
     <>
       <SeekerTopbar title="Notifications" />
@@ -291,14 +197,12 @@ export default function NotificationsPage() {
 
           {/* Header bar */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="text-sm font-semibold text-slate-900">
-                {unreadCount > 0
-                  ? <><span className="text-blue-600">{unreadCount} unread</span> · {notifs.length} total</>
-                  : `${notifs.length} notifications`
-                }
-              </h2>
-            </div>
+            <h2 className="text-sm font-semibold text-slate-900">
+              {unreadCount > 0
+                ? <><span className="text-blue-600">{unreadCount} unread</span> · {notifs.length} total</>
+                : `${notifs.length} notifications`
+              }
+            </h2>
             <div className="flex items-center gap-2">
               {unreadCount > 0 && (
                 <button
@@ -342,7 +246,6 @@ export default function NotificationsPage() {
                 );
               })}
             </div>
-
             <button
               onClick={() => setShowUnreadOnly(!showUnreadOnly)}
               className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all shrink-0 ${
@@ -356,8 +259,13 @@ export default function NotificationsPage() {
             </button>
           </div>
 
-          {/* Notification list */}
-          {filtered.length === 0 ? (
+          {/* List */}
+          {loading ? (
+            <div className="flex items-center justify-center py-16 text-slate-400">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              <span className="text-sm">Loading notifications…</span>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-slate-400 bg-white rounded-2xl border border-slate-200">
               <BellOff className="w-8 h-8 mx-auto mb-3 opacity-30" />
               <p className="text-sm font-medium">
@@ -372,31 +280,25 @@ export default function NotificationsPage() {
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
               {filtered.map((notif) => {
-                const cfg = TYPE_CFG[notif.type];
+                const cfg = TYPE_CFG[notif.type] ?? FALLBACK_CFG;
                 return (
                   <div
                     key={notif.id}
-                    className={`group relative flex gap-4 px-5 py-4 transition-colors ${!notif.read ? "bg-blue-50/30" : "hover:bg-slate-50/50"}`}
+                    className={`group relative flex gap-4 px-5 py-4 transition-colors ${!notif.isRead ? "bg-blue-50/30" : "hover:bg-slate-50/50"}`}
                   >
-                    {/* Unread dot */}
-                    {!notif.read && (
+                    {!notif.isRead && (
                       <div className="absolute right-3 top-3 w-2 h-2 rounded-full bg-blue-500" />
                     )}
-
-                    {/* Icon */}
                     <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 mt-0.5 ${cfg.iconBg}`}>
                       {cfg.icon}
                     </div>
-
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className={`text-sm leading-snug ${!notif.read ? "font-semibold text-slate-900" : "font-medium text-slate-700"}`}>
+                        <p className={`text-sm leading-snug ${!notif.isRead ? "font-semibold text-slate-900" : "font-medium text-slate-700"}`}>
                           {notif.title}
                         </p>
-                        {/* Actions: appear on hover */}
                         <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {!notif.read && (
+                          {!notif.isRead && (
                             <button
                               onClick={() => markRead(notif.id)}
                               title="Mark as read"
@@ -414,22 +316,15 @@ export default function NotificationsPage() {
                           </button>
                         </div>
                       </div>
-
-                      {notif.meta && (
-                        <p className="text-[11px] font-mono text-slate-400 mt-0.5">{notif.meta}</p>
-                      )}
-
-                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">{notif.body}</p>
-
+                      <p className="text-xs text-slate-500 mt-1 leading-relaxed">{notif.message}</p>
                       <div className="flex items-center gap-3 mt-2">
                         <span className="flex items-center gap-1 text-[10px] text-slate-400">
                           <Clock className="w-3 h-3" />
-                          {notif.time}
+                          {formatTime(notif.createdAt)}
                         </span>
-
-                        {notif.link && (
+                        {notif.actionUrl && (
                           <Link
-                            href={notif.link}
+                            href={notif.actionUrl}
                             onClick={() => markRead(notif.id)}
                             className="flex items-center gap-0.5 text-[11px] font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                           >
@@ -441,18 +336,6 @@ export default function NotificationsPage() {
                   </div>
                 );
               })}
-            </div>
-          )}
-
-          {/* Clear all at bottom */}
-          {notifs.length > 0 && (
-            <div className="flex justify-center pt-1">
-              <button
-                onClick={clearAll}
-                className="text-xs text-slate-400 hover:text-red-500 transition-colors"
-              >
-                Clear all notifications
-              </button>
             </div>
           )}
 
