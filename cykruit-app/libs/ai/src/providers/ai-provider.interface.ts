@@ -1,8 +1,11 @@
 // libs/ai/providers/ai-provider.interface.ts
+import { AITaskTier } from "../constants/ai.constants";
+
 export interface AIGenerateOptions {
   maxTokens?: number;
   temperature?: number;
   topP?: number;
+  tier?: AITaskTier;
 }
 
 export interface AIGenerateResponse {
@@ -15,6 +18,12 @@ export abstract class AIProvider {
     prompt: string,
     options?: AIGenerateOptions,
   ): Promise<AIGenerateResponse>;
+
+  abstract generateStructured<T>(
+    prompt: string,
+    schema: any,
+    options?: AIGenerateOptions,
+  ): Promise<T>;
 
   abstract generateJobDescription(params: {
     jobTitle: string;

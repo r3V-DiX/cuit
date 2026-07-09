@@ -29,6 +29,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    proxyTimeout: 300000, // 5 minutes (300,000 ms)
+  },
   async headers() {
     return [
       {

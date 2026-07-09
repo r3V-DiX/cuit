@@ -2,47 +2,73 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { GeminiProvider } from "./providers/gemini.provider";
+import { OpenRouterProvider } from "./providers/openrouter.provider";
+import { OllamaProvider } from "./providers/ollama.provider";
+import { AWSBedrockProvider } from "./providers/bedrock.provider";
 import {
   AIProvider,
   AIGenerateOptions,
   AIGenerateResponse,
 } from "./providers/ai-provider.interface";
-import { AIProviderType } from "./constants/ai.constants";
+import { AITaskTier } from "./constants/ai.constants";
 
 @Injectable()
 export class AIService {
-  private provider: AIProvider;
-  private currentProvider: AIProviderType;
-
   constructor(
     private configService: ConfigService,
     private geminiProvider: GeminiProvider,
-  ) {
-    const providerType = this.configService.get<AIProviderType>(
-      "ai.provider",
-      AIProviderType.GEMINI,
-    );
-    this.setProvider(providerType);
-  }
+    private openRouterProvider: OpenRouterProvider,
+    private ollamaProvider: OllamaProvider,
+    private awsBedrockProvider: AWSBedrockProvider,
+  ) {}
 
-  setProvider(provider: AIProviderType) {
-    switch (provider) {
-      case AIProviderType.GEMINI:
-      default:
-        this.provider = this.geminiProvider;
-        this.currentProvider = provider;
+  private getProviderForTier(tier?: AITaskTier): AIProvider {
+    if (tier === AITaskTier.SMALL) {
+      if (this.configService.get<string>("USE_OLLAMA") === "true" || process.env.USE_OLLAMA === "true") {
+        return this.ollamaProvider;
+      }
+      return this.openRouterProvider;
     }
-  }
-
-  getCurrentProvider(): AIProviderType {
-    return this.currentProvider;
+    // Heavy tasks go to Bedrock, or fallback to Gemini if Bedrock is not configured
+    if (this.configService.get<string>("ai.bedrock.accessKeyId") || process.env.BEDROCK_AWS_ACCESS_KEY_ID) {
+      return this.awsBedrockProvider;
+    }
+    return this.geminiProvider;
   }
 
   async generate(
     prompt: string,
     options?: AIGenerateOptions,
   ): Promise<AIGenerateResponse> {
-    return this.provider.generate(prompt, options);
+    const provider = this.getProviderForTier(options?.tier);
+    try {
+      return await provider.generate(prompt, options);
+    } catch (error) {
+      if (provider !== this.geminiProvider) {
+        // Fallback to Gemini if primary fails
+        console.warn(`[AIService] ${provider.constructor.name} failed, falling back to GeminiProvider:`, error.message);
+        return this.geminiProvider.generate(prompt, options);
+      }
+      throw error;
+    }
+  }
+
+  async generateStructured<T>(
+    prompt: string,
+    schema: any,
+    options?: AIGenerateOptions,
+  ): Promise<T> {
+    const provider = this.getProviderForTier(options?.tier);
+    try {
+      return await provider.generateStructured<T>(prompt, schema, options);
+    } catch (error) {
+      if (provider !== this.geminiProvider) {
+        // Fallback to Gemini if primary fails
+        console.warn(`[AIService] ${provider.constructor.name} structured generation failed, falling back to GeminiProvider:`, error.message);
+        return this.geminiProvider.generateStructured<T>(prompt, schema, options);
+      }
+      throw error;
+    }
   }
 
   async generateJobDescription(params: {
@@ -53,10 +79,26 @@ export class AIService {
     requiredSkills?: string[];
     preferredCertifications?: string[];
   }): Promise<string> {
-    return this.provider.generateJobDescription(params);
+    // Heavy task, use Bedrock
+    if (this.configService.get<string>("ai.bedrock.accessKeyId") || process.env.BEDROCK_AWS_ACCESS_KEY_ID) {
+      try {
+        return await this.awsBedrockProvider.generateJobDescription(params);
+      } catch (error) {
+        console.warn(`[AIService] Bedrock generateJobDescription failed, falling back to Gemini:`, error.message);
+      }
+    }
+    return this.geminiProvider.generateJobDescription(params);
   }
 
   async extractTextFromPDF(pdfBuffer: Buffer): Promise<string> {
-    return this.provider.extractTextFromPDF(pdfBuffer);
+    // Heavy task, use Bedrock natively if available
+    if (this.configService.get<string>("ai.bedrock.accessKeyId") || process.env.BEDROCK_AWS_ACCESS_KEY_ID) {
+      try {
+        return await this.awsBedrockProvider.extractTextFromPDF(pdfBuffer);
+      } catch (error) {
+        console.warn(`[AIService] Bedrock PDF extract failed, falling back to Gemini:`, error.message);
+      }
+    }
+    return this.geminiProvider.extractTextFromPDF(pdfBuffer);
   }
 }

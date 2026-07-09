@@ -109,7 +109,7 @@ async function bootstrap() {
   );
 
   app.useGlobalInterceptors(new LoggerInterceptor(logger));
-  app.useGlobalInterceptors(new TimeoutInterceptor(30000));
+  app.useGlobalInterceptors(new TimeoutInterceptor(120000)); // Increased to 120s for AI endpoints
   app.useGlobalInterceptors(new ResponseInterceptor(responseBuilder));
 
   app.useGlobalFilters(

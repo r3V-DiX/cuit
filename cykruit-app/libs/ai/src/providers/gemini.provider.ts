@@ -1,7 +1,8 @@
-// libs/ai/providers/gemini.provider.ts
+// libs/ai/src/providers/gemini.provider.ts
 import { Injectable, BadRequestException, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import axios from "axios";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+import { HumanMessage } from "@langchain/core/messages";
 import {
   AIProvider,
   AIGenerateOptions,
@@ -12,19 +13,24 @@ import { AI_PROMPTS } from "../constants/ai.constants";
 @Injectable()
 export class GeminiProvider extends AIProvider {
   private readonly logger = new Logger(GeminiProvider.name);
-  private apiKey: string;
-  private baseUrl = "https://generativelanguage.googleapis.com/v1beta";
-  private modelName: string;
-
+  private model: ChatGoogleGenerativeAI;
+  
   constructor(private configService: ConfigService) {
     super();
-    this.apiKey = this.configService.get<string>("ai.gemini.apiKey");
-    this.modelName = this.configService.get<string>(
+    const apiKey = this.configService.get<string>("ai.gemini.apiKey");
+    const modelName = this.configService.get<string>(
       "ai.gemini.model",
       "gemini-2.5-flash",
     );
 
-    if (!this.apiKey) throw new Error("Gemini API key not configured");
+    if (!apiKey) {
+      this.logger.warn("Gemini API key not configured");
+    }
+    
+    this.model = new ChatGoogleGenerativeAI({
+      apiKey: apiKey || "dummy-key",
+      model: modelName,
+    });
   }
 
   async generate(
@@ -32,33 +38,53 @@ export class GeminiProvider extends AIProvider {
     options?: AIGenerateOptions,
   ): Promise<AIGenerateResponse> {
     try {
-      const url = `${this.baseUrl}/models/${this.modelName}:generateContent?key=${this.apiKey}`;
-      const res = await axios.post(
-        url,
-        {
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            maxOutputTokens: options?.maxTokens || 4096,
-            temperature: options?.temperature || 0.7,
-            topP: options?.topP || 0.95,
-          },
-        },
-        { headers: { "Content-Type": "application/json" }, timeout: 30000 },
-      );
+      const model = options ? new ChatGoogleGenerativeAI({
+        apiKey: this.configService.get<string>("ai.gemini.apiKey"),
+        model: this.configService.get<string>("ai.gemini.model", "gemini-2.5-flash"),
+        maxOutputTokens: options.maxTokens || 4096,
+        temperature: options.temperature ?? 0.7,
+        topP: options.topP ?? 0.95,
+      }) : this.model;
 
-      const text = res.data.candidates[0].content.parts[0].text;
-      const usage = res.data.usageMetadata || {};
+      const response = await model.invoke([new HumanMessage(prompt)]);
+      
+      const usage = response.usage_metadata as any;
       return {
-        text,
+        text: response.content as string,
         usage: {
-          inputTokens: usage.promptTokenCount || 0,
-          outputTokens: usage.candidatesTokenCount || 0,
+          inputTokens: usage?.input_tokens || 0,
+          outputTokens: usage?.output_tokens || 0,
         },
       };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error("Gemini API error:", error.message);
       throw new BadRequestException(
-        `Gemini error: ${error.response?.data?.error?.message || error.message}`,
+        `Gemini error: ${error.message}`,
+      );
+    }
+  }
+
+  async generateStructured<T>(
+    prompt: string,
+    schema: any,
+    options?: AIGenerateOptions,
+  ): Promise<T> {
+    try {
+      const model = options ? new ChatGoogleGenerativeAI({
+        apiKey: this.configService.get<string>("ai.gemini.apiKey"),
+        model: this.configService.get<string>("ai.gemini.model", "gemini-2.5-flash"),
+        maxOutputTokens: options.maxTokens || 4096,
+        temperature: options.temperature ?? 0.7,
+        topP: options.topP ?? 0.95,
+      }) : this.model;
+
+      const structuredModel = model.withStructuredOutput(schema);
+      const response = await structuredModel.invoke([new HumanMessage(prompt)]);
+      return response as T;
+    } catch (error: any) {
+      this.logger.error("Gemini API error (structured):", error.message);
+      throw new BadRequestException(
+        `Gemini error: ${error.message}`,
       );
     }
   }
@@ -80,35 +106,30 @@ export class GeminiProvider extends AIProvider {
 
   async extractTextFromPDF(pdfBuffer: Buffer): Promise<string> {
     try {
-      const url = `${this.baseUrl}/models/${this.modelName}:generateContent?key=${this.apiKey}`;
-      const res = await axios.post(
-        url,
-        {
-          contents: [
+      const response = await this.model.invoke([
+        new HumanMessage({
+          content: [
             {
-              parts: [
-                {
-                  inlineData: {
-                    mimeType: "application/pdf",
-                    data: pdfBuffer.toString("base64"),
-                  },
-                },
-                { text: AI_PROMPTS.PDF_EXTRACTION },
-              ],
+              type: "image_url",
+              image_url: {
+                url: `data:application/pdf;base64,${pdfBuffer.toString("base64")}`,
+              },
+            },
+            {
+              type: "text",
+              text: AI_PROMPTS.PDF_EXTRACTION,
             },
           ],
-          generationConfig: { maxOutputTokens: 8192, temperature: 0.3 },
-        },
-        { timeout: 60000 },
-      );
+        }),
+      ]);
 
-      let text = res.data.candidates[0].content.parts[0].text as string;
+      let text = response.content as string;
       text = text
         .replace(/```html\n?/gi, "")
         .replace(/```\n?$/g, "")
         .trim();
       return text;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error("PDF extraction error:", error.message);
       throw new BadRequestException(`PDF extraction failed: ${error.message}`);
     }

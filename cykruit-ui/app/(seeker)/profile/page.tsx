@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
 import {
   User, Briefcase, Award, Terminal, FileText,
-  Plus, Pencil, Trash2, Upload, Check, X, ExternalLink, Sparkles,
+  Plus, Pencil, Trash2, Upload, Check, X, ExternalLink, Sparkles, Wand2,
   GraduationCap, Globe, Camera, Lock, ChevronDown as ChevronDownIcon,
 } from "lucide-react";
 import { FaLinkedinIn, FaGithub, FaXTwitter } from "react-icons/fa6";
@@ -142,6 +142,147 @@ export default function ProfilePage() {
       }
     } catch (err) {
       toast({ type: "error", message: "Error removing photo" });
+    }
+  }
+
+  // AI Resume Parse
+  const [isParsingResume, setIsParsingResume] = useState(false);
+  async function handleAiResumeParse(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ type: "error", message: "File too large", description: "Please upload a PDF under 5 MB." });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    setIsParsingResume(true);
+    toast({ type: "info", message: "Parsing resume...", description: "This might take a few seconds." });
+
+    try {
+      const res = await fetch("/api/profile/ai/parse-resume", {
+        method: "POST",
+        headers: {
+          "x-csrf-token": getCsrfToken(),
+        },
+        body: formData,
+      });
+
+      if (res.ok) {
+        toast({ type: "success", message: "Profile Auto-filled!", description: "Your details have been extracted and saved." });
+        loadProfile();
+      } else {
+        const errData = await res.json();
+        toast({ type: "error", message: "Parsing failed", description: errData.message || "Failed to parse resume" });
+      }
+    } catch (error) {
+      toast({ type: "error", message: "Network error", description: "Failed to connect to parsing service." });
+    } finally {
+      setIsParsingResume(false);
+      e.target.value = "";
+    }
+  }
+
+  // AI Generators
+  const [isGeneratingBio, setIsGeneratingBio] = useState(false);
+  async function handleAiGenerateBio() {
+    setIsGeneratingBio(true);
+    try {
+      const res = await fetch("/api/profile/ai/generate-bio", { method: "GET" });
+      if (res.ok) {
+        const data = await res.json();
+        setBioBuffer(data.data.bio);
+        setEditingBio(true);
+        toast({ type: "success", message: "Bio generated!" });
+      } else {
+        if (res.status === 504) {
+           toast({ type: "info", message: "AI is taking a while", description: "Ollama is generating in the background. Check back in a minute!" });
+           return;
+        }
+        try {
+          const err = await res.json();
+          toast({ type: "error", message: "Generation failed", description: err.message || "Failed to generate bio" });
+        } catch {
+          toast({ type: "error", message: `Server error (${res.status})` });
+        }
+      }
+    } catch (error) {
+      toast({ type: "info", message: "Processing in background", description: "Your local AI is taking longer than 30s. Check back shortly!" });
+    } finally {
+      setIsGeneratingBio(false);
+    }
+  }
+
+  const [isGeneratingSkills, setIsGeneratingSkills] = useState(false);
+  async function handleAiSuggestSkills() {
+    setIsGeneratingSkills(true);
+    try {
+      const res = await fetch("/api/profile/ai/suggest-skills", { method: "GET" });
+      if (res.ok) {
+        const data = await res.json();
+        // The backend automatically saves matching skills to the database
+        // We just reload the profile to get the newly added skills
+        loadProfile();
+        
+        const addedCount = data.data?.addedSkills?.length || 0;
+        if (addedCount > 0) {
+          toast({ type: "success", message: `Added ${addedCount} suggested skills!` });
+        } else {
+          toast({ type: "info", message: "AI suggested skills, but they were already on your profile or not found in our database." });
+        }
+
+      } else {
+        if (res.status === 504) {
+           toast({ type: "info", message: "AI is taking a while", description: "Ollama is still generating in the background. Please refresh the page in a minute." });
+           return;
+        }
+        try {
+          const err = await res.json();
+          toast({ type: "error", message: "Generation failed", description: err.message || "Failed to suggest skills" });
+        } catch {
+          toast({ type: "error", message: `Server error (${res.status})` });
+        }
+      }
+    } catch (error) {
+      toast({ type: "info", message: "Processing in background", description: "Your local AI is taking longer than 30s. Check back shortly!" });
+    } finally {
+      setIsGeneratingSkills(false);
+    }
+  }
+
+  const [profileTips, setProfileTips] = useState<string[]>([]);
+  const [isLoadingTips, setIsLoadingTips] = useState(false);
+  const [showTips, setShowTips] = useState(false);
+
+  async function fetchTips() {
+    if (showTips) {
+      setShowTips(false);
+      return;
+    }
+    setIsLoadingTips(true);
+    try {
+      const res = await fetch("/api/profile/ai/profile-tips", { method: "GET" });
+      if (res.ok) {
+        const data = await res.json();
+        setProfileTips(data.data.tips);
+        setShowTips(true);
+      } else {
+        if (res.status === 504) {
+           toast({ type: "info", message: "AI is taking a while", description: "Ollama is generating in the background. Check back in a minute!" });
+           return;
+        }
+        try {
+          const err = await res.json();
+          toast({ type: "error", message: "Failed to load tips", description: err.message });
+        } catch {
+          toast({ type: "error", message: `Server error (${res.status})` });
+        }
+      }
+    } catch (error) {
+      toast({ type: "info", message: "Processing in background", description: "Your local AI is taking longer than 30s. Check back shortly!" });
+    } finally {
+      setIsLoadingTips(false);
     }
   }
 
@@ -818,8 +959,8 @@ export default function ProfilePage() {
           if (data.experiences && Array.isArray(data.experiences)) {
             setExperience(data.experiences.map((e: any) => ({
               id: e.id,
-              role: e.role,
-              company: e.companyName,
+              role: e.title || e.role || "",
+              company: e.company || e.companyName || "",
               period: `${e.startDate ? new Date(e.startDate).getFullYear() : ""} – ${e.endDate ? new Date(e.endDate).getFullYear() : "Present"}`,
               desc: e.description || "",
             })));
@@ -847,7 +988,7 @@ export default function ProfilePage() {
             setEducation(data.education.map((e: any) => ({
               id: e.id,
               degree: e.degree || "",
-              school: e.schoolName || "",
+              school: e.institute?.name || e.instituteName || e.schoolName || "",
               startYear: e.startDate ? String(new Date(e.startDate).getFullYear()) : "",
               endYear: e.endDate ? String(new Date(e.endDate).getFullYear()) : "Present",
               desc: e.description || "",
@@ -920,6 +1061,35 @@ export default function ProfilePage() {
                 <span className="text-[10px] font-mono text-slate-400">
                   Profile {profilePct}% complete
                 </span>
+                {profilePct < 100 && (
+                  <div className="relative ml-2">
+                    <button
+                      onClick={fetchTips}
+                      className="flex items-center gap-1 text-[10px] font-mono font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-md hover:bg-violet-100 transition-colors"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      {isLoadingTips ? "Analyzing..." : "Get AI Tips"}
+                    </button>
+                    {showTips && profileTips.length > 0 && (
+                      <div className="absolute top-full left-0 mt-2 w-72 bg-white border border-slate-200 shadow-xl rounded-xl p-4 z-50">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-violet-600" /> AI Suggestions</p>
+                          <button onClick={() => setShowTips(false)} className="text-slate-400 hover:text-slate-600">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <ul className="space-y-2.5">
+                          {profileTips.map((tip, i) => (
+                            <li key={i} className="text-xs text-slate-600 flex items-start gap-2 leading-relaxed">
+                              <span className="text-violet-500 mt-0.5">•</span>
+                              {tip}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -936,14 +1106,15 @@ export default function ProfilePage() {
                   <p className="text-[10px] text-violet-400 mt-0.5">We&apos;ll fill your entire profile for you</p>
                 </div>
               </div>
-              <label className="relative z-10 shrink-0 flex items-center gap-1.5 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-700 px-3 py-2 rounded-lg transition-colors cursor-pointer shadow-sm">
+              <label className={`relative z-10 shrink-0 flex items-center gap-1.5 text-xs font-semibold text-white px-3 py-2 rounded-lg transition-colors cursor-pointer shadow-sm ${isParsingResume ? "bg-violet-400 cursor-not-allowed" : "bg-violet-600 hover:bg-violet-700"}`}>
                 <Upload className="w-3.5 h-3.5" />
-                Upload CV
+                {isParsingResume ? "Parsing..." : "Upload CV"}
                 <input
                   type="file"
                   accept=".pdf"
                   className="sr-only"
-                  onChange={() => toast({ type: "info", message: "Auto-fill coming soon", description: "AI resume parsing will be available shortly." })}
+                  onChange={handleAiResumeParse}
+                  disabled={isParsingResume}
                 />
               </label>
             </div>
@@ -1144,12 +1315,23 @@ export default function ProfilePage() {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-semibold text-slate-900">About</h3>
-                      <button
-                        onClick={() => { setEditingBio(!editingBio); setBioBuffer(bio); }}
-                        className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                      >
-                        <Pencil className="w-3 h-3" /> {editingBio ? "Cancel" : "Edit"}
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={handleAiGenerateBio}
+                          disabled={isGeneratingBio || resumes.length === 0}
+                          className="text-xs font-semibold text-violet-600 hover:text-violet-700 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={resumes.length === 0 ? "Upload a resume first" : "Generate bio from your resume and experience"}
+                        >
+                          <Wand2 className="w-3.5 h-3.5" />
+                          {isGeneratingBio ? "Generating..." : "Generate with AI"}
+                        </button>
+                        <button
+                          onClick={() => { setEditingBio(!editingBio); setBioBuffer(bio); }}
+                          className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                        >
+                          <Pencil className="w-3 h-3" /> {editingBio ? "Cancel" : "Edit"}
+                        </button>
+                      </div>
                     </div>
                     {editingBio ? (
                       <div className="space-y-2">
@@ -1177,7 +1359,18 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="border-t border-slate-100 pt-5">
-                    <h3 className="text-sm font-semibold text-slate-900 mb-3">Skills</h3>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-slate-900">Skills</h3>
+                      <button
+                        onClick={handleAiSuggestSkills}
+                        disabled={isGeneratingSkills || resumes.length === 0}
+                        className="text-xs font-semibold text-violet-600 hover:text-violet-700 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title={resumes.length === 0 ? "Upload a resume first" : "Suggest skills from your profile"}
+                      >
+                        <Sparkles className="w-3.5 h-3.5" />
+                        {isGeneratingSkills ? "Suggesting..." : "Suggest Skills"}
+                      </button>
+                    </div>
                     <div className="flex flex-wrap gap-2 mb-3">
                       {skills.map((skill) => (
                         <span

@@ -170,14 +170,44 @@ export default function DashboardPage() {
           const jobsRes = await fetch("/api/public/jobs?limit=3");
           if (jobsRes.ok) {
             const jobsData = await jobsRes.json();
-            if (jobsData.data && jobsData.data.length > 0) {
-              setRecommendedJobs(jobsData.data.map((j: any, index: number) => ({
+            // Handle both { data: [...] } and { data: { items: [...] } } formats
+            const jobsArray = Array.isArray(jobsData.data) ? jobsData.data : (jobsData.data?.items || []);
+            if (jobsArray.length > 0) {
+              const jobs = jobsArray.map((j: any) => ({
                 id: j.id,
+                slug: j.slug,
                 role: j.jobTitle,
                 company: j.employer?.companyName || "Unknown Company",
-                match: 94 - (index * 7),
-                matchColor: index < 2 ? "text-green-700 bg-green-50 border-green-200" : "text-amber-700 bg-amber-50 border-amber-200",
-              })));
+                loadingMatch: true,
+              }));
+              setRecommendedJobs(jobs);
+
+              // Fetch real match scores from our new AI endpoint
+              jobs.forEach(async (job: any) => {
+                try {
+                  const scoreRes = await fetch(`/api/seeker/jobs/${job.slug}/match-score`, { credentials: "include" });
+                  if (scoreRes.ok) {
+                    const scoreData = await scoreRes.json();
+                    const match = scoreData.data.score;
+                    setRecommendedJobs(prev => prev.map(p => {
+                      if (p.id === job.id) {
+                        return {
+                          ...p,
+                          match,
+                          matchColor: match >= 80 ? "text-green-700 bg-green-50 border-green-200" : "text-amber-700 bg-amber-50 border-amber-200",
+                          loadingMatch: false,
+                        };
+                      }
+                      return p;
+                    }));
+                  } else {
+                    setRecommendedJobs(prev => prev.map(p => p.id === job.id ? { ...p, loadingMatch: false, match: 50, matchColor: "text-slate-500 bg-slate-50 border-slate-200" } : p));
+                  }
+                } catch (e) {
+                   setRecommendedJobs(prev => prev.map(p => p.id === job.id ? { ...p, loadingMatch: false, match: 50, matchColor: "text-slate-500 bg-slate-50 border-slate-200" } : p));
+                }
+              });
+
             } else {
               setRecommendedJobs(RECOMMENDED_JOBS);
             }
@@ -434,9 +464,16 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="flex items-center gap-2.5 shrink-0">
-                      <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg border ${job.matchColor}`}>
-                        {job.match}% match
-                      </span>
+                      {job.loadingMatch ? (
+                        <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg border text-slate-500 bg-slate-50 border-slate-200 flex items-center gap-1.5 animate-pulse">
+                          <Sparkles className="w-3 h-3 opacity-50" />
+                          AI
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg border ${job.matchColor}`}>
+                          {job.match}% match
+                        </span>
+                      )}
                       <Link
                         href={`/jobs/${job.id}`}
                         className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 transition-colors"

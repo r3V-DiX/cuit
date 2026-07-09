@@ -9,4 +9,10 @@ export default registerAs("ai", () => ({
     maxTokens: parseInt(process.env.GEMINI_MAX_TOKENS || "4096", 10),
     temperature: parseFloat(process.env.GEMINI_TEMPERATURE || "0.7"),
   },
+  bedrock: {
+    region: process.env.BEDROCK_AWS_REGION,
+    accessKeyId: process.env.BEDROCK_AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.BEDROCK_AWS_SECRET_ACCESS_KEY,
+    modelId: process.env.BEDROCK_MODEL_ID || "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+  },
 }));

@@ -33,6 +33,9 @@ import { ResumeService } from "./services/resume.service";
 
 // Helpers
 import { ProfileHelpers } from "./utils/profile.helpers";
+import { AIProfileService } from "./services/ai-profile.service";
+import { AIProfileController } from "./controllers/ai-profile.controller";
+import { AIModule } from "@cykruit/ai";
 
 @Module({
   imports: [
@@ -41,6 +44,7 @@ import { ProfileHelpers } from "./utils/profile.helpers";
     UploadModule,
     CommonModule,
     RateLimitModule,
+    AIModule,
     AuthCoreModule.forRoot({
       sessionValidatorClass: SessionValidatorService,
       imports: [PrismaModule, ConfigModule],
@@ -56,6 +60,7 @@ import { ProfileHelpers } from "./utils/profile.helpers";
     ProjectsController,
     CTFProfileController,
     ResumeController,
+    AIProfileController,
   ],
   providers: [
     SessionValidatorService,
@@ -68,6 +73,7 @@ import { ProfileHelpers } from "./utils/profile.helpers";
     ProjectsService,
     CTFProfileService,
     ResumeService,
+    AIProfileService,
   ],
 })
 export class SeekerProfileModule {}

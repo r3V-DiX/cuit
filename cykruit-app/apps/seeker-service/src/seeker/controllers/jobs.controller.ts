@@ -26,4 +26,12 @@ export class JobsController {
     getBySlug(@Param('slug') slug: string, @CurrentUser() user?: User) {
         return this.jobsService.getBySlug(slug, user?.id);
     }
+
+    // ── GET /jobs/:slug/match-score ──────────────────────────────────────────
+
+    @Get(':slug/match-score')
+    @UseGuards(AuthGuard)
+    getMatchScore(@Param('slug') slug: string, @CurrentUser() user: User) {
+        return this.jobsService.getMatchScore(slug, user.id);
+    }
 }
