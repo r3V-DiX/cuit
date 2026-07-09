@@ -7,6 +7,7 @@ import { Save, Send, ChevronDown, Plus, X, ArrowLeft, CheckCircle2, Circle, Spar
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 const JOB_TYPES   = ["Full-time", "Part-time", "Contract", "Internship"];
 const REMOTE_TYPES = ["Remote", "On-site", "Hybrid"];
@@ -252,11 +253,6 @@ export default function PostJobPage() {
 
     setPublishing(true);
     try {
-      const csrfCookie = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("csrf_token="));
-      const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
-
       const typeMap: Record<string, string> = {
         "Full-time": "FULL_TIME",
         "Part-time": "PART_TIME",
@@ -278,13 +274,9 @@ export default function PostJobPage() {
         "Manager (8+ yrs)": "SENIOR"
       };
 
-      const res = await fetch("/api/employer/jobs", {
+      const result = await apiFetch("/api/employer/jobs", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": csrfToken,
-        },
-        credentials: "include",
+        headers: authHeaders(),
         body: JSON.stringify({
           jobTitle: title.trim(),
           jobType: typeMap[type],
@@ -301,29 +293,15 @@ export default function PostJobPage() {
         }),
       });
 
-      const result = await res.json();
-      if (!res.ok) {
-        throw new Error(result.error?.message || result.message || "Failed to create job");
-      }
-
       const jobId = result.data?.id;
       if (!jobId) {
         throw new Error("Job ID not returned from server");
       }
 
-      const submitRes = await fetch(`/api/employer/jobs/${jobId}/submit`, {
+      await apiFetch(`/api/employer/jobs/${jobId}/submit`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": csrfToken,
-        },
-        credentials: "include",
+        headers: authHeaders(),
       });
-
-      if (!submitRes.ok) {
-        const submitResult = await submitRes.json();
-        throw new Error(submitResult.error?.message || submitResult.message || "Failed to publish job");
-      }
 
       toast({ type: "success", message: "Job published successfully!" });
       router.push("/employer/jobs");
@@ -346,11 +324,6 @@ export default function PostJobPage() {
 
     setPublishing(true);
     try {
-      const csrfCookie = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("csrf_token="));
-      const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
-
       const typeMap: Record<string, string> = {
         "Full-time": "FULL_TIME",
         "Part-time": "PART_TIME",
@@ -372,13 +345,9 @@ export default function PostJobPage() {
         "Manager (8+ yrs)": "SENIOR"
       };
 
-      const res = await fetch("/api/employer/jobs", {
+      await apiFetch("/api/employer/jobs", {
         method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": csrfToken,
-        },
+        headers: authHeaders(),
         body: JSON.stringify({
           jobTitle: title.trim(),
           jobType: typeMap[type],
@@ -394,11 +363,6 @@ export default function PostJobPage() {
           })) : undefined,
         }),
       });
-
-      const result = await res.json();
-      if (!res.ok) {
-        throw new Error(result.error?.message || result.message || "Failed to save draft");
-      }
 
       toast({ type: "success", message: "Draft saved successfully!" });
       router.push("/employer/jobs");

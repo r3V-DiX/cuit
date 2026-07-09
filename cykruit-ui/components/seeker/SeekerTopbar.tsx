@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 export default function SeekerTopbar({ title }: { title: string }) {
   const [hasUnread, setHasUnread] = useState(false);
@@ -12,18 +13,15 @@ export default function SeekerTopbar({ title }: { title: string }) {
   useEffect(() => {
     async function loadUser() {
       try {
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const result = await res.json();
-          if (result.data) {
-            const user = result.data;
-            const first = user.firstName || "";
-            const last = user.lastName || "";
-            const init = (first[0] || "") + (last[0] || "");
-            setInitials(init || "U");
-            if (user.profileImage) {
-              setProfileImage(user.profileImage);
-            }
+        const result = await apiFetch("/api/auth/me");
+        if (result.data) {
+          const user = result.data;
+          const first = user.firstName || "";
+          const last = user.lastName || "";
+          const init = (first[0] || "") + (last[0] || "");
+          setInitials(init || "U");
+          if (user.profileImage) {
+            setProfileImage(user.profileImage);
           }
         }
       } catch (err) {
@@ -31,11 +29,8 @@ export default function SeekerTopbar({ title }: { title: string }) {
       }
 
       try {
-        const notifRes = await fetch("/api/notifications/unread-count");
-        if (notifRes.ok) {
-          const notifResult = await notifRes.json();
-          setHasUnread(!!notifResult.data?.count);
-        }
+        const notifResult = await apiFetch("/api/notifications/unread-count");
+        setHasUnread(!!notifResult.data?.count);
       } catch (err) {
         // Graceful fallback
       }

@@ -7,6 +7,7 @@ import {
   CheckCheck, Users, Briefcase, AlertCircle, Info, Bell,
   ChevronRight, Trash2, Loader2,
 } from "lucide-react";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 type NotifType = "applicant" | "job" | "system" | "alert";
 
@@ -58,9 +59,7 @@ export default function EmployerNotificationsPage() {
   const fetchNotifs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/notifications?limit=50", { credentials: "include" });
-      if (!res.ok) throw new Error();
-      const body = await res.json();
+      const body = await apiFetch("/api/notifications?limit=50");
       setNotifs(
         (body?.data?.items ?? []).map((n: any): Notification => ({
           id: n.id,
@@ -83,13 +82,9 @@ export default function EmployerNotificationsPage() {
 
   const unreadCount = notifs.filter((n) => !n.isRead).length;
 
-  function getCsrf() {
-    return document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "";
-  }
-
   async function markAllRead() {
     try {
-      await fetch("/api/notifications/read-all", { method: "PATCH", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
+      await apiFetch("/api/notifications/read-all", { method: "PATCH", headers: authHeaders() });
       setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
     } catch {
       // silently fail
@@ -98,7 +93,7 @@ export default function EmployerNotificationsPage() {
 
   async function markRead(id: string) {
     try {
-      await fetch(`/api/notifications/${id}/read`, { method: "PATCH", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
+      await apiFetch(`/api/notifications/${id}/read`, { method: "PATCH", headers: authHeaders() });
       setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
     } catch {
       // silently fail
@@ -107,7 +102,7 @@ export default function EmployerNotificationsPage() {
 
   async function dismiss(id: string) {
     try {
-      await fetch(`/api/notifications/${id}`, { method: "DELETE", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
+      await apiFetch(`/api/notifications/${id}`, { method: "DELETE", headers: authHeaders() });
       setNotifs((prev) => prev.filter((n) => n.id !== id));
     } catch {
       // silently fail

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
+import { apiFetch, authHeaders } from "@/lib/api";
 import {
   User, Bell, Lock, Shield, Trash2, Eye, EyeOff,
   Check, Mail, MapPin, Briefcase, Globe, Info,
@@ -110,12 +111,6 @@ export default function SettingsPage() {
   });
   const [prefsBuffer, setPrefsBuffer] = useState(prefs);
 
-  const getCsrfToken = () => {
-    if (typeof window === "undefined") return "";
-    const match = document.cookie.match(/csrf_token=([^;]+)/);
-    return match ? decodeURIComponent(match[1]) : "";
-  };
-
   // ── Notification preferences ──────────────────────────────────────────────
   const [notifPrefs, setNotifPrefs] = useState({
     jobMatches: true,
@@ -138,69 +133,60 @@ export default function SettingsPage() {
   useEffect(() => {
     async function loadAllSettings() {
       try {
-        const meRes = await fetch("/api/auth/me");
-        if (meRes.ok) {
-          const userResult = await meRes.json();
-          if (userResult.data) {
-            const user = userResult.data;
-            setLockedUser({
-              name: [user.firstName, user.lastName].filter(Boolean).join(" ") || "User",
-              email: user.email || "",
-            });
-            setGoogleAuth(user.provider === "GOOGLE" || user.provider === "GITHUB" || !user.hasPassword);
-          }
+        const userResult = await apiFetch("/api/auth/me");
+        if (userResult.data) {
+          const user = userResult.data;
+          setLockedUser({
+            name: [user.firstName, user.lastName].filter(Boolean).join(" ") || "User",
+            email: user.email || "",
+          });
+          setGoogleAuth(user.provider === "GOOGLE" || user.provider === "GITHUB" || !user.hasPassword);
         }
 
-        const settingsRes = await fetch("/api/settings");
-        if (settingsRes.ok) {
-          const settingsResult = await settingsRes.json();
-          if (settingsResult.data) {
-            const data = settingsResult.data;
-            const gen = data.general || {};
-            const notif = data.notifications || {};
-            
-            const newPrefs = {
-              location: "",
-              phone: "",
-              desiredRole: gen.desiredRole || "Penetration Tester",
-              workMode: gen.preferredWorkModes?.[0] ? (gen.preferredWorkModes[0] === "ONSITE" ? "On-site" : gen.preferredWorkModes[0][0] + gen.preferredWorkModes[0].slice(1).toLowerCase()) : "Remote",
-              noticePeriod: gen.availableFrom ? "2 weeks" : "Immediate",
-              openToWork: gen.jobSearchStatus === "ACTIVELY_LOOKING",
-            };
-            setPrefs(newPrefs);
-            setPrefsBuffer(newPrefs);
+        const settingsResult = await apiFetch("/api/settings");
+        if (settingsResult.data) {
+          const data = settingsResult.data;
+          const gen = data.general || {};
+          const notif = data.notifications || {};
 
-            setNotifPrefs({
-              jobMatches: !!notif.jobAlerts?.jobAlert?.email,
-              appUpdates: !!notif.applications?.applicationStatus?.email,
-              profileViews: false,
-              weeklyDigest: notif.jobAlerts?.jobAlert?.frequency === "WEEKLY",
-              announcements: false,
-              emailNotifs: !!notif.global?.enableEmail,
-              pushNotifs: !!notif.global?.enableInApp,
-            });
+          const newPrefs = {
+            location: "",
+            phone: "",
+            desiredRole: gen.desiredRole || "Penetration Tester",
+            workMode: gen.preferredWorkModes?.[0] ? (gen.preferredWorkModes[0] === "ONSITE" ? "On-site" : gen.preferredWorkModes[0][0] + gen.preferredWorkModes[0].slice(1).toLowerCase()) : "Remote",
+            noticePeriod: gen.availableFrom ? "2 weeks" : "Immediate",
+            openToWork: gen.jobSearchStatus === "ACTIVELY_LOOKING",
+          };
+          setPrefs(newPrefs);
+          setPrefsBuffer(newPrefs);
 
-            setPrivacy({
-              profileVisible: gen.profileVisibility === "PUBLIC",
-              showOpenToWork: gen.jobSearchStatus === "ACTIVELY_LOOKING",
-            });
-          }
+          setNotifPrefs({
+            jobMatches: !!notif.jobAlerts?.jobAlert?.email,
+            appUpdates: !!notif.applications?.applicationStatus?.email,
+            profileViews: false,
+            weeklyDigest: notif.jobAlerts?.jobAlert?.frequency === "WEEKLY",
+            announcements: false,
+            emailNotifs: !!notif.global?.enableEmail,
+            pushNotifs: !!notif.global?.enableInApp,
+          });
+
+          setPrivacy({
+            profileVisible: gen.profileVisibility === "PUBLIC",
+            showOpenToWork: gen.jobSearchStatus === "ACTIVELY_LOOKING",
+          });
         }
 
-        const profileRes = await fetch("/api/profile");
-        if (profileRes.ok) {
-          const profileResult = await profileRes.json();
-          if (profileResult.data) {
-            const basics = profileResult.data.basicInfo || {};
-            const phoneVal = basics.phone || "";
-            const locVal = basics.location ? [basics.location.city, basics.location.country].filter(Boolean).join(", ") : "";
-            
-            setPrefs((prev) => {
-              const updated = { ...prev, phone: phoneVal, location: locVal, desiredRole: basics.title || prev.desiredRole };
-              setPrefsBuffer(updated);
-              return updated;
-            });
-          }
+        const profileResult = await apiFetch("/api/profile");
+        if (profileResult.data) {
+          const basics = profileResult.data.basicInfo || {};
+          const phoneVal = basics.phone || "";
+          const locVal = basics.location ? [basics.location.city, basics.location.country].filter(Boolean).join(", ") : "";
+
+          setPrefs((prev) => {
+            const updated = { ...prev, phone: phoneVal, location: locVal, desiredRole: basics.title || prev.desiredRole };
+            setPrefsBuffer(updated);
+            return updated;
+          });
         }
       } catch (err) {
         console.error(err);
@@ -215,12 +201,9 @@ export default function SettingsPage() {
       const workModeMapped = rawMode === "On-site" ? "ONSITE" : rawMode.toUpperCase();
       const modes = workModeMapped === "ANY" ? ["REMOTE", "HYBRID", "ONSITE"] : [workModeMapped];
 
-      const settingsRes = await fetch("/api/settings/general", {
+      await apiFetch("/api/settings/general", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": getCsrfToken(),
-        },
+        headers: authHeaders(),
         body: JSON.stringify({
           jobSearchStatus: prefsBuffer.openToWork ? "ACTIVELY_LOOKING" : "OPEN",
           preferredWorkModes: modes,
@@ -235,25 +218,18 @@ export default function SettingsPage() {
           country: parts[1] || parts[0] || "",
         };
       }
-      
-      const profileRes = await fetch("/api/profile/basic-info", {
+
+      await apiFetch("/api/profile/basic-info", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": getCsrfToken(),
-        },
+        headers: authHeaders(),
         body: JSON.stringify({
           location: locObj,
           title: prefsBuffer.desiredRole,
         }),
       });
 
-      if (settingsRes.ok && profileRes.ok) {
-        setPrefs(prefsBuffer);
-        toast({ type: "success", message: "Preferences saved", description: "Your job preferences have been updated." });
-      } else {
-        toast({ type: "error", message: "Failed to save preferences" });
-      }
+      setPrefs(prefsBuffer);
+      toast({ type: "success", message: "Preferences saved", description: "Your job preferences have been updated." });
     } catch (err) {
       toast({ type: "error", message: "Error saving preferences" });
     }
@@ -261,12 +237,9 @@ export default function SettingsPage() {
 
   async function saveNotifPrefs() {
     try {
-      const res = await fetch("/api/settings/notifications", {
+      await apiFetch("/api/settings/notifications", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": getCsrfToken(),
-        },
+        headers: authHeaders(),
         body: JSON.stringify({
           enableEmail: notifPrefs.emailNotifs,
           enableInApp: notifPrefs.pushNotifs,
@@ -277,11 +250,7 @@ export default function SettingsPage() {
           jobAlert_frequency: notifPrefs.weeklyDigest ? "WEEKLY" : "INSTANT",
         }),
       });
-      if (res.ok) {
-        toast({ type: "success", message: "Notification preferences saved" });
-      } else {
-        toast({ type: "error", message: "Failed to save notifications" });
-      }
+      toast({ type: "success", message: "Notification preferences saved" });
     } catch (err) {
       toast({ type: "error", message: "Error saving notifications" });
     }
@@ -305,26 +274,18 @@ export default function SettingsPage() {
       confirmLabel: "Yes, change it",
       onConfirm: async () => {
         try {
-          const res = await fetch("/api/auth/change-password", {
+          await apiFetch("/api/auth/change-password", {
             method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              "x-csrf-token": getCsrfToken(),
-            },
+            headers: authHeaders(),
             body: JSON.stringify({
               currentPassword: pwForm.current,
               newPassword: pwForm.newPw,
             }),
           });
-          if (res.ok) {
-            setPwForm({ current: "", newPw: "", confirm: "" });
-            toast({ type: "success", message: "Password updated", description: "You've been signed out of other sessions." });
-          } else {
-            const errResult = await res.json();
-            toast({ type: "error", message: errResult.message || "Failed to update password" });
-          }
-        } catch (err) {
-          toast({ type: "error", message: "Error updating password" });
+          setPwForm({ current: "", newPw: "", confirm: "" });
+          toast({ type: "success", message: "Password updated", description: "You've been signed out of other sessions." });
+        } catch (err: any) {
+          toast({ type: "error", message: err.message || "Error updating password" });
         }
       },
     });
@@ -332,21 +293,14 @@ export default function SettingsPage() {
 
   async function savePrivacy() {
     try {
-      const res = await fetch("/api/settings/general", {
+      await apiFetch("/api/settings/general", {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": getCsrfToken(),
-        },
+        headers: authHeaders(),
         body: JSON.stringify({
           profileVisibility: privacy.profileVisible ? "PUBLIC" : "PRIVATE",
         }),
       });
-      if (res.ok) {
-        toast({ type: "success", message: "Privacy settings saved" });
-      } else {
-        toast({ type: "error", message: "Failed to save privacy settings" });
-      }
+      toast({ type: "success", message: "Privacy settings saved" });
     } catch (err) {
       toast({ type: "error", message: "Error saving privacy settings" });
     }
@@ -357,25 +311,17 @@ export default function SettingsPage() {
       toast({ type: "error", message: "Password required", description: "Please enter your password to confirm." });
       return;
     }
-    
+
     try {
-      const res = await fetch("/api/auth/account", {
+      await apiFetch("/api/auth/account", {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": getCsrfToken(),
-        },
+        headers: authHeaders(),
         body: JSON.stringify({ password: deletePassword }),
       });
-      if (res.ok) {
-        toast({ type: "error", message: "Account scheduled for deletion", description: "You will be logged out.", duration: 6000 });
-        window.location.href = "/login";
-      } else {
-        const errResult = await res.json();
-        toast({ type: "error", message: errResult.message || "Failed to delete account" });
-      }
-    } catch (err) {
-      toast({ type: "error", message: "Error deleting account" });
+      toast({ type: "error", message: "Account scheduled for deletion", description: "You will be logged out.", duration: 6000 });
+      window.location.href = "/login";
+    } catch (err: any) {
+      toast({ type: "error", message: err.message || "Error deleting account" });
     }
   }
 

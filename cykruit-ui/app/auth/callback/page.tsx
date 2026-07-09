@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Shield } from "lucide-react";
+import { apiFetch, ApiError } from "@/lib/api";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -12,22 +13,20 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     async function completeAuth() {
       try {
-        const response = await fetch("/api/auth/me");
-        if (response.ok) {
-          const result = await response.json();
-          const role = result.data?.role;
-          toast({ type: "success", message: "Signed in successfully" });
-          if (role === "EMPLOYER") {
-            router.push("/employer/dashboard");
-          } else {
-            router.push("/dashboard");
-          }
+        const { data } = await apiFetch("/api/auth/me");
+        const role = data?.role;
+        toast({ type: "success", message: "Signed in successfully" });
+        if (role === "EMPLOYER") {
+          router.push("/employer/dashboard");
         } else {
-          toast({ type: "error", message: "Authentication failed", description: "Could not retrieve user session." });
-          router.push("/login");
+          router.push("/dashboard");
         }
-      } catch (error) {
-        toast({ type: "error", message: "Authentication error", description: "Something went wrong during sign in." });
+      } catch (err: any) {
+        if (err instanceof ApiError) {
+          toast({ type: "error", message: "Authentication failed", description: "Could not retrieve user session." });
+        } else {
+          toast({ type: "error", message: "Authentication error", description: "Something went wrong during sign in." });
+        }
         router.push("/login");
       }
     }

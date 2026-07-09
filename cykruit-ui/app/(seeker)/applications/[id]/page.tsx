@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { AppStatus, Application } from "../data";
 import { SEED } from "../data";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -45,32 +46,28 @@ export default function ApplicationDetailPage() {
   useEffect(() => {
     async function fetchApp() {
       try {
-        const res = await fetch(`/api/seeker/applications/${id}`);
-        if (res.ok) {
-          const resJson = await res.json();
-          const data = resJson.data;
-          setApp({
-            id: data.id,
-            role: data.job.jobTitle,
-            company: data.job.employer.companyName,
-            location: data.job.locationType || data.job.location || "Remote",
-            type: data.job.jobType || "Full-time",
-            applied: new Date(data.appliedAt).toLocaleDateString(),
-            status: data.status === "APPLIED" ? "Applied"
-              : data.status === "UNDER_REVIEW" ? "Under Review"
-              : data.status === "SHORTLISTED" ? "Shortlisted"
-              : data.status === "REJECTED" ? "Rejected"
-              : data.status === "WITHDRAWN" ? "Withdrawn"
-              : "Applied",
-            resume: data.resume?.fileName || "Resume.pdf",
-            coverNote: data.screeningAnswers ? JSON.stringify(data.screeningAnswers) : "",
-            timeline: data.statusHistory?.length > 0 ? data.statusHistory.map((h: any) => ({
-              date: new Date(h.changedAt).toLocaleDateString(),
-              event: `Status changed to ${h.newStatus}`,
-              note: h.reason || ""
-            })) : [{ date: new Date(data.appliedAt).toLocaleDateString(), event: "Application submitted" }]
-          });
-        }
+        const { data } = await apiFetch(`/api/seeker/applications/${id}`);
+        setApp({
+          id: data.id,
+          role: data.job.jobTitle,
+          company: data.job.employer.companyName,
+          location: data.job.locationType || data.job.location || "Remote",
+          type: data.job.jobType || "Full-time",
+          applied: new Date(data.appliedAt).toLocaleDateString(),
+          status: data.status === "APPLIED" ? "Applied"
+            : data.status === "UNDER_REVIEW" ? "Under Review"
+            : data.status === "SHORTLISTED" ? "Shortlisted"
+            : data.status === "REJECTED" ? "Rejected"
+            : data.status === "WITHDRAWN" ? "Withdrawn"
+            : "Applied",
+          resume: data.resume?.fileName || "Resume.pdf",
+          coverNote: data.screeningAnswers ? JSON.stringify(data.screeningAnswers) : "",
+          timeline: data.statusHistory?.length > 0 ? data.statusHistory.map((h: any) => ({
+            date: new Date(h.changedAt).toLocaleDateString(),
+            event: `Status changed to ${h.newStatus}`,
+            note: h.reason || ""
+          })) : [{ date: new Date(data.appliedAt).toLocaleDateString(), event: "Application submitted" }]
+        });
       } catch (err) {
         console.error(err);
       } finally {
@@ -117,23 +114,19 @@ export default function ApplicationDetailPage() {
       confirmLabel: "Withdraw",
       onConfirm: async () => {
         try {
-          const res = await fetch(`/api/seeker/applications/${app.id}`, {
+          await apiFetch(`/api/seeker/applications/${app.id}`, {
             method: "DELETE",
-            headers: { "Content-Type": "application/json" },
+            headers: authHeaders(),
             body: JSON.stringify({ reason: "Withdrawn by user" })
           });
-          if (res.ok) {
-            setApp((prev: any) => ({
-              ...prev,
-              status: "Withdrawn",
-              timeline: [{ date: new Date().toLocaleDateString(), event: "Application withdrawn", note: "" }, ...prev.timeline],
-            }));
-            toast({ type: "info", message: "Application withdrawn", description: `${app.role} at ${app.company}` });
-          } else {
-            toast({ type: "error", message: "Failed to withdraw" });
-          }
-        } catch (err) {
-          toast({ type: "error", message: "Network error" });
+          setApp((prev: any) => ({
+            ...prev,
+            status: "Withdrawn",
+            timeline: [{ date: new Date().toLocaleDateString(), event: "Application withdrawn", note: "" }, ...prev.timeline],
+          }));
+          toast({ type: "info", message: "Application withdrawn", description: `${app.role} at ${app.company}` });
+        } catch (err: any) {
+          toast({ type: "error", message: err.message });
         }
       },
     });

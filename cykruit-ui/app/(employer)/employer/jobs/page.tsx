@@ -9,6 +9,7 @@ import {
   ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 const JOBS_PER_PAGE = 10;
 
@@ -69,9 +70,7 @@ export default function MyJobsPage() {
         url.searchParams.set("status", filterMap[statusFilter]);
       }
 
-      const res = await fetch(url.toString(), { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch jobs");
-      const result = await res.json();
+      const result = await apiFetch(url.toString());
 
       const items = result.data?.items || result.items || [];
       const mapped = items.map((job: any) => {
@@ -126,23 +125,10 @@ export default function MyJobsPage() {
     if (!confirm("Are you sure you want to delete this job draft?")) return;
 
     try {
-      const csrfCookie = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("csrf_token="));
-      const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
-
-      const res = await fetch(`/api/employer/jobs/${jobId}`, {
+      await apiFetch(`/api/employer/jobs/${jobId}`, {
         method: "DELETE",
-        headers: {
-          "x-csrf-token": csrfToken,
-        },
-        credentials: "include",
+        headers: authHeaders(),
       });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error?.message || errData.message || "Failed to delete job");
-      }
 
       toast({ type: "success", message: "Job draft deleted successfully" });
       fetchJobs();

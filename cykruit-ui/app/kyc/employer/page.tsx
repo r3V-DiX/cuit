@@ -9,6 +9,7 @@ import {
 import { useModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { useRouter } from "next/navigation";
+import { apiFetch, authHeaders, getCsrf } from "@/lib/api";
 
 type Step = 1 | 2 | 3;
 
@@ -53,28 +54,17 @@ export default function EmployerKYCPage() {
       confirmLabel: "Sign out",
       onConfirm: async () => {
         try {
-          const csrfCookie = document.cookie
-            .split("; ")
-            .find((row) => row.startsWith("csrf_token="));
-          const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
-
-          const response = await fetch("/api/auth/logout", {
+          await apiFetch("/api/auth/logout", {
             method: "POST",
-            headers: {
-              "x-csrf-token": csrfToken,
-            },
+            headers: authHeaders(),
           });
-          if (response.ok) {
-            localStorage.removeItem("cykruit_applications");
-            localStorage.removeItem("cykruit_saved_jobs");
-            localStorage.removeItem("cykruit_messages");
-            localStorage.removeItem("cykruit_notifications");
-            localStorage.removeItem("cykruit_employer_notifications");
-            toast({ type: "success", message: "Logged out successfully" });
-            router.push("/login");
-          } else {
-            toast({ type: "error", message: "Logout failed" });
-          }
+          localStorage.removeItem("cykruit_applications");
+          localStorage.removeItem("cykruit_saved_jobs");
+          localStorage.removeItem("cykruit_messages");
+          localStorage.removeItem("cykruit_notifications");
+          localStorage.removeItem("cykruit_employer_notifications");
+          toast({ type: "success", message: "Logged out successfully" });
+          router.push("/login");
         } catch (error) {
           toast({ type: "error", message: "Logout request failed" });
         }
@@ -339,23 +329,14 @@ export default function EmployerKYCPage() {
                     if (!step2Valid || submitting) return;
                     setSubmitting(true);
                     try {
-                      const csrfCookie = document.cookie
-                        .split("; ")
-                        .find((row) => row.startsWith("csrf_token="));
-                      const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
                       const formData = new FormData();
                       formData.append("file", file as File);
-                      const res = await fetch("/api/employer/kyc/submit", {
+                      await apiFetch("/api/employer/kyc/submit", {
                         method: "POST",
-                        headers: { "x-csrf-token": csrfToken },
-                        credentials: "include",
+                        headers: { "x-csrf-token": getCsrf() },
                         body: formData,
                       });
-                      if (res.ok) {
-                        setStep(3);
-                      } else {
-                        toast({ type: "error", message: "Submission failed. Please try again." });
-                      }
+                      setStep(3);
                     } catch {
                       toast({ type: "error", message: "Network error. Please try again." });
                     } finally {

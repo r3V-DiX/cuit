@@ -9,6 +9,7 @@ import {
   MapPin, Bookmark, ArrowRight, Clock, Search, X,
   Briefcase, SlidersHorizontal, Inbox, ArrowUpDown, Loader2,
 } from "lucide-react";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 type SavedJob = {
   id: string;
@@ -68,9 +69,7 @@ export default function SavedPage() {
   const fetchSaved = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/seeker/saved-jobs?limit=50", { credentials: "include" });
-      if (!res.ok) throw new Error();
-      const body = await res.json();
+      const body = await apiFetch("/api/seeker/saved-jobs?limit=50");
       setJobs((body?.data?.items ?? []).map(mapItem));
     } catch {
       toast({ type: "error", message: "Failed to load saved jobs" });
@@ -103,20 +102,15 @@ export default function SavedPage() {
 
   async function unsave(job: SavedJob) {
     try {
-      const res = await fetch(`/api/seeker/jobs/${job.jobId}/save`, {
+      await apiFetch(`/api/seeker/jobs/${job.jobId}/save`, {
         method: "DELETE",
-        credentials: "include",
+        headers: authHeaders(),
       });
-      if (!res.ok) throw new Error();
       setJobs((prev) => prev.filter((j) => j.jobId !== job.jobId));
       toast({ type: "info", message: "Job removed", description: `"${job.role}" at ${job.company} was unsaved.` });
     } catch {
       toast({ type: "error", message: "Failed to unsave job" });
     }
-  }
-
-  function getCsrf() {
-    return document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "";
   }
 
   function clearAll() {
@@ -126,7 +120,7 @@ export default function SavedPage() {
       description: "All saved jobs will be removed. You can re-save them from the jobs page.",
       onConfirm: async () => {
         await Promise.all(jobs.map((j) =>
-          fetch(`/api/seeker/jobs/${j.jobId}/save`, { method: "DELETE", credentials: "include", headers: { "x-csrf-token": getCsrf() } })
+          apiFetch(`/api/seeker/jobs/${j.jobId}/save`, { method: "DELETE", headers: authHeaders() })
         ));
         setJobs([]);
         toast({ type: "info", message: "Saved jobs cleared" });

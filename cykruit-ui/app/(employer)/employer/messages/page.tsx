@@ -5,6 +5,7 @@ import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { Send, Search, Briefcase, ChevronRight, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useMessaging } from "@/hooks/useMessaging";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 type Message = {
   id: string;
@@ -109,12 +110,12 @@ export default function EmployerMessagesPage() {
     async function load() {
       setLoading(true);
       try {
-        const [convsRes, meRes] = await Promise.all([
-          fetch("/api/conversations", { credentials: "include" }),
-          fetch("/api/auth/me", { credentials: "include" }),
+        const [convsResult, meResult] = await Promise.allSettled([
+          apiFetch("/api/conversations"),
+          apiFetch("/api/auth/me"),
         ]);
-        const convsData = convsRes.ok ? await convsRes.json() : { data: { items: [] } };
-        const meData = meRes.ok ? await meRes.json() : {};
+        const convsData = convsResult.status === "fulfilled" ? convsResult.value : { data: { items: [] } };
+        const meData = meResult.status === "fulfilled" ? meResult.value : {};
         const userId: string = meData?.data?.id ?? meData?.id ?? "";
         setCurrentUserId(userId);
         const items: any[] = convsData?.data?.items ?? [];
@@ -141,13 +142,13 @@ export default function EmployerMessagesPage() {
     async (id: string) => {
       setActiveId(id);
       try {
-        const [fullRes] = await Promise.all([
-          fetch(`/api/conversations/${id}`, { credentials: "include" }),
-          fetch(`/api/conversations/${id}/read`, { method: "PATCH", credentials: "include", headers: { "x-csrf-token": document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "" } }),
+        const results = await Promise.allSettled([
+          apiFetch(`/api/conversations/${id}`),
+          apiFetch(`/api/conversations/${id}/read`, { method: "PATCH", headers: authHeaders() }),
         ]);
-        if (fullRes.ok) {
-          const data = await fullRes.json();
-          const full = data?.data ?? data;
+        const fullResult = results[0];
+        if (fullResult.status === "fulfilled") {
+          const full = fullResult.value?.data ?? fullResult.value;
           const msgs: Message[] = (full.messages ?? []).map((m: any) => ({
             id: m.id,
             from: m.senderId === currentUserId ? ("employer" as const) : ("seeker" as const),
@@ -179,18 +180,11 @@ export default function EmployerMessagesPage() {
     const content = input.trim();
     setInput("");
     try {
-      const csrfToken = document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "";
-      const res = await fetch(`/api/conversations/${active.id}/messages`, {
+      const data = await apiFetch(`/api/conversations/${active.id}/messages`, {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
+        headers: authHeaders(),
         body: JSON.stringify({ content }),
       });
-      if (!res.ok) {
-        toast({ type: "error", message: "Failed to send message" });
-        return;
-      }
-      const data = await res.json();
       const savedMsg = data?.data ?? data;
       const newMsg: Message = {
         id: savedMsg?.id ?? String(Date.now()),
@@ -206,8 +200,8 @@ export default function EmployerMessagesPage() {
             : c
         )
       );
-    } catch {
-      // keep input cleared, send failed silently
+    } catch (err: any) {
+      toast({ type: "error", message: err.message ?? "Failed to send message" });
     }
   }
 

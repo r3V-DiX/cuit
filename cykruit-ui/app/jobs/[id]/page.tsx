@@ -12,6 +12,7 @@ import {
   Building2, Users, Globe, Sparkles,
 } from "lucide-react";
 import { use } from "react";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 function parseDescription(raw: string): {
   intro: string;
@@ -62,11 +63,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const result = await res.json();
-          if (result.success && result.data) setUser(result.data);
-        }
+        const result = await apiFetch("/api/auth/me");
+        if (result.success && result.data) setUser(result.data);
       } catch (err) {}
     };
     fetchUser();
@@ -75,38 +73,35 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   useEffect(() => {
     async function loadJob() {
       try {
-        const response = await fetch(`/api/public/jobs/${id}`);
-        if (response.ok) {
-          const result = await response.json();
-          if (result && result.data) {
-            const jobData = result.data;
-            const parsed = parseDescription(jobData.description || "");
-            setJob({
-              id: jobData.id,
-              title: jobData.jobTitle,
-              company: jobData.employer?.companyName || "Unknown Company",
-              location: jobData.location?.displayName || "Remote",
-              type: jobData.jobType,
-              remote: jobData.workMode,
-              description: parsed.intro || jobData.description || "",
-              logo: jobData.employer?.companyName?.[0] || "C",
-              accent: "bg-blue-100 text-blue-800",
-              posted: new Date(jobData.publishedAt || Date.now()).toLocaleDateString(),
-              tags: jobData.skills?.map((s: any) => s.name) || [],
-              domain: jobData.role?.name || "Cybersecurity",
-              responsibilities: parsed.responsibilities,
-              requirements: [
-                ...parsed.requirements,
-                ...(jobData.certifications?.map((c: any) => c.name) || []),
-              ],
-              niceToHave: [],
-              companyDescription: jobData.employer?.about || "",
-              companyIndustry: jobData.employer?.industry || "",
-              companySize: jobData.employer?.companySize || "",
-            });
-            setLoading(false);
-            return;
-          }
+        const result = await apiFetch(`/api/public/jobs/${id}`);
+        if (result && result.data) {
+          const jobData = result.data;
+          const parsed = parseDescription(jobData.description || "");
+          setJob({
+            id: jobData.id,
+            title: jobData.jobTitle,
+            company: jobData.employer?.companyName || "Unknown Company",
+            location: jobData.location?.displayName || "Remote",
+            type: jobData.jobType,
+            remote: jobData.workMode,
+            description: parsed.intro || jobData.description || "",
+            logo: jobData.employer?.companyName?.[0] || "C",
+            accent: "bg-blue-100 text-blue-800",
+            posted: new Date(jobData.publishedAt || Date.now()).toLocaleDateString(),
+            tags: jobData.skills?.map((s: any) => s.name) || [],
+            domain: jobData.role?.name || "Cybersecurity",
+            responsibilities: parsed.responsibilities,
+            requirements: [
+              ...parsed.requirements,
+              ...(jobData.certifications?.map((c: any) => c.name) || []),
+            ],
+            niceToHave: [],
+            companyDescription: jobData.employer?.about || "",
+            companyIndustry: jobData.employer?.industry || "",
+            companySize: jobData.employer?.companySize || "",
+          });
+          setLoading(false);
+          return;
         }
       } catch (err) {
         console.error("Failed to load job", err);
@@ -118,25 +113,19 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
   useEffect(() => {
     if (!job || !user) return;
-    fetch(`/api/seeker/saved-jobs`, { credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
+    apiFetch(`/api/seeker/saved-jobs`)
       .then((body) => {
         const items = body?.data?.items ?? [];
         setIsSaved(items.some((s: any) => s.job?.id === job.id));
       })
       .catch(() => {});
-    fetch(`/api/seeker/applications`, { credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
+    apiFetch(`/api/seeker/applications`)
       .then((body) => {
         const items = body?.data?.items ?? [];
         setIsApplied(items.some((a: any) => a.jobId === job.id));
       })
       .catch(() => {});
   }, [job, user]);
-
-  function getCsrf() {
-    return document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "";
-  }
 
   async function handleSave() {
     if (!job) return;
@@ -146,18 +135,15 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     }
     try {
       if (isSaved) {
-        const res = await fetch(`/api/seeker/jobs/${job.id}/save`, { method: "DELETE", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
-        if (!res.ok) throw new Error();
+        await apiFetch(`/api/seeker/jobs/${job.id}/save`, { method: "DELETE", headers: authHeaders() });
         setIsSaved(false);
         toast({ type: "info", message: "Job removed", description: `"${job.title}" removed from Saved.` });
       } else {
-        const res = await fetch(`/api/seeker/jobs/${job.id}/save`, {
+        await apiFetch(`/api/seeker/jobs/${job.id}/save`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-csrf-token": getCsrf() },
-          credentials: "include",
+          headers: authHeaders(),
           body: JSON.stringify({}),
         });
-        if (!res.ok) throw new Error();
         setIsSaved(true);
         toast({ type: "success", message: "Job saved", description: `"${job.title}" added to Saved.` });
       }
@@ -178,20 +164,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     }
 
     try {
-      const res = await fetch(`/api/seeker/jobs/${job.id}/apply`, {
+      await apiFetch(`/api/seeker/jobs/${job.id}/apply`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: authHeaders(),
         body: JSON.stringify({
           coverLetter: "Excited about this opportunity. Let's talk!",
           useAiScoring: true,
         }),
       });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => null);
-        throw new Error(errorData?.error?.message || "Failed to apply");
-      }
 
       setIsApplied(true);
       toast({ type: "success", message: "Application submitted", description: `Applied to "${job.title}" at ${job.company}!` });
@@ -373,8 +353,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   {user?.userType === "EMPLOYER" ? "Employer Access" : "Ready to apply?"}
                 </p>
                 <p className="text-xs text-slate-500 mb-4">
-                  {user?.userType === "EMPLOYER" 
-                    ? "Employers cannot apply for jobs." 
+                  {user?.userType === "EMPLOYER"
+                    ? "Employers cannot apply for jobs."
                     : `Submit your application directly to ${job.company}.`}
                 </p>
                 {user?.userType !== "EMPLOYER" && (

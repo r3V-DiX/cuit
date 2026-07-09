@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { io, Socket } from "socket.io-client";
+import { apiFetch } from "@/lib/api";
 
 export type WsMessage = {
   id: string;
@@ -29,12 +30,8 @@ const WS_URL =
 
 async function fetchWsToken(): Promise<string | null> {
   try {
-    const res = await fetch("/api/notifications/ws/token", {
-      credentials: "include",
-    });
-    if (!res.ok) return null;
-    const body = await res.json();
-    return body?.data?.token ?? null;
+    const { data } = await apiFetch("/api/notifications/ws/token");
+    return data?.token ?? null;
   } catch {
     return null;
   }

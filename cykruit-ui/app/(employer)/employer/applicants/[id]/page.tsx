@@ -9,6 +9,7 @@ import {
   Download, Sparkles, TrendingUp, TrendingDown, Minus,
   ShieldCheck, AlertTriangle, ThumbsUp,
 } from "lucide-react";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 type AppStatus = "New" | "Shortlisted" | "Under Review" | "Rejected" | "Withdrawn";
 
@@ -26,26 +27,22 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
   const { id } = use(params);
   const [app, setApp] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
+
   const [status, setStatus] = useState<AppStatus>("New");
   const [notes, setNotes]   = useState("");
 
   useEffect(() => {
     async function fetchApp() {
       try {
-        const res = await fetch(`/api/employer/applications/${id}`, { credentials: "include" });
-        if (res.ok) {
-          const resJson = await res.json();
-          const data = resJson.data;
-          setApp(data);
-          
-          let mappedStatus: AppStatus = "New";
-          if (data.status === "UNDER_REVIEW") mappedStatus = "Under Review";
-          if (data.status === "SHORTLISTED") mappedStatus = "Shortlisted";
-          if (data.status === "REJECTED") mappedStatus = "Rejected";
-          if (data.status === "WITHDRAWN") mappedStatus = "Withdrawn";
-          setStatus(mappedStatus);
-        }
+        const { data } = await apiFetch(`/api/employer/applications/${id}`);
+        setApp(data);
+
+        let mappedStatus: AppStatus = "New";
+        if (data.status === "UNDER_REVIEW") mappedStatus = "Under Review";
+        if (data.status === "SHORTLISTED") mappedStatus = "Shortlisted";
+        if (data.status === "REJECTED") mappedStatus = "Rejected";
+        if (data.status === "WITHDRAWN") mappedStatus = "Withdrawn";
+        setStatus(mappedStatus);
       } catch (err) {
         console.error(err);
       } finally {
@@ -74,12 +71,12 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
   }
 
   const cfg = STATUS_CFG[status];
-  
+
   // Format seeker profile data safely
   const profile = app.seeker?.profile || {};
   const user = app.seeker || {};
   const name = `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || "Applicant";
-  
+
   // AI score data safely parsed
   const aiScoreData = app.aiScoreData || {};
   const ai = {
@@ -341,16 +338,13 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                           if (s === "Under Review") backendStatus = "UNDER_REVIEW";
                           if (s === "Shortlisted") backendStatus = "SHORTLISTED";
                           if (s === "Rejected") backendStatus = "REJECTED";
-                          
-                          const res = await fetch(`/api/employer/applications/${id}/status`, {
+
+                          await apiFetch(`/api/employer/applications/${id}/status`, {
                             method: "PATCH",
-                            credentials: "include",
-                            headers: { "Content-Type": "application/json" },
+                            headers: authHeaders(),
                             body: JSON.stringify({ status: backendStatus })
                           });
-                          if (res.ok) {
-                            setStatus(s);
-                          }
+                          setStatus(s);
                         } catch (err) {
                           console.error(err);
                         }

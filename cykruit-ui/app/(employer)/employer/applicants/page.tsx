@@ -8,6 +8,7 @@ import {
   Users, ChevronDown, Sparkles, AlertCircle
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { apiFetch } from "@/lib/api";
 
 type AppStatus = "APPLIED" | "UNDER_REVIEW" | "SHORTLISTED" | "INTERVIEW" | "OFFERED" | "REJECTED" | "HIRED" | "WITHDRAWN" | "New" | "Shortlisted" | "Interview" | "Rejected";
 
@@ -41,22 +42,17 @@ export default function ApplicantsPage() {
   useEffect(() => {
     async function fetchApplicants() {
       try {
-        const res = await fetch("/api/employer/applications", { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          const items = data.data?.items || data.items || [];
-          setApplicants(items);
-          
-          // Dynamically populate job options from the fetched applications
-          const jobsMap = new Map<string, string>();
-          items.forEach((app: any) => {
-            if (app.job) jobsMap.set(app.job.id, app.job.jobTitle);
-          });
-          const options = Array.from(jobsMap.entries()).map(([id, title]) => ({ label: title, value: id }));
-          setJobOptions([{ label: "All Jobs", value: "all" }, ...options]);
-        } else {
-          toast({ type: "error", message: "Failed to load applications" });
-        }
+        const { data } = await apiFetch("/api/employer/applications");
+        const items = data?.items || [];
+        setApplicants(items);
+
+        // Dynamically populate job options from the fetched applications
+        const jobsMap = new Map<string, string>();
+        items.forEach((app: any) => {
+          if (app.job) jobsMap.set(app.job.id, app.job.jobTitle);
+        });
+        const options = Array.from(jobsMap.entries()).map(([id, title]) => ({ label: title, value: id }));
+        setJobOptions([{ label: "All Jobs", value: "all" }, ...options]);
       } catch (err) {
         toast({ type: "error", message: "Failed to fetch applications" });
       } finally {
@@ -199,7 +195,7 @@ export default function ApplicantsPage() {
                   const skills = a.skills || [];
                   const experience = a.experience || "N/A";
                   const appliedDate = new Date(a.appliedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-                  
+
                   return (
                     <tr key={a.id} className="hover:bg-slate-50/60 transition-colors group">
                       <td className="px-5 py-3.5">

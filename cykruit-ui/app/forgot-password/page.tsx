@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Shield, ArrowRight, ChevronLeft, Mail, Loader2, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { apiFetch, ApiError, authHeaders } from "@/lib/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -19,20 +20,20 @@ export default function ForgotPasswordPage() {
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/forgot-password", {
+      await apiFetch("/api/auth/forgot-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ email: email.trim() }),
       });
       // Always show success to avoid email enumeration
-      if (res.ok || res.status === 404) {
+      setSent(true);
+    } catch (err: any) {
+      // Always show success to avoid email enumeration
+      if (err instanceof ApiError && err.status === 404) {
         setSent(true);
       } else {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.message || "Request failed");
+        toast({ type: "error", message: err.message || "Something went wrong" });
       }
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Something went wrong" });
     } finally {
       setLoading(false);
     }

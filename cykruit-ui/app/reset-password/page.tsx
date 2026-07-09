@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Shield, Eye, EyeOff, Loader2, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 function ResetPasswordContent() {
   const searchParams = useSearchParams();
@@ -24,8 +25,8 @@ function ResetPasswordContent() {
       setTokenValid("invalid");
       return;
     }
-    fetch(`/api/auth/verify-reset-token?token=${encodeURIComponent(token)}`)
-      .then((r) => setTokenValid(r.ok ? "valid" : "invalid"))
+    apiFetch(`/api/auth/verify-reset-token?token=${encodeURIComponent(token)}`)
+      .then(() => setTokenValid("valid"))
       .catch(() => setTokenValid("invalid"));
   }, [token]);
 
@@ -41,15 +42,11 @@ function ResetPasswordContent() {
     }
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/reset-password", {
+      await apiFetch("/api/auth/reset-password", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ token, newPassword: password }),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.message || "Reset failed");
-      }
       setDone(true);
     } catch (err: any) {
       toast({ type: "error", message: err.message || "Something went wrong" });

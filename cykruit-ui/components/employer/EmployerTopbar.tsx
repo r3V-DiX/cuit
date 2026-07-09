@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 export default function EmployerTopbar({ title }: { title: string }) {
   const [hasUnread, setHasUnread] = useState(false);
@@ -12,18 +13,15 @@ export default function EmployerTopbar({ title }: { title: string }) {
   useEffect(() => {
     async function loadUser() {
       try {
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const result = await res.json();
-          if (result.data) {
-            const user = result.data;
-            const first = user.firstName || "";
-            const last = user.lastName || "";
-            const init = (first[0] || "") + (last[0] || "");
-            setInitials(init || "U");
-            if (user.profileImage) {
-              setProfileImage(user.profileImage);
-            }
+        const { data } = await apiFetch("/api/auth/me");
+        if (data) {
+          const user = data;
+          const first = user.firstName || "";
+          const last = user.lastName || "";
+          const init = (first[0] || "") + (last[0] || "");
+          setInitials(init || "U");
+          if (user.profileImage) {
+            setProfileImage(user.profileImage);
           }
         }
       } catch (err) {

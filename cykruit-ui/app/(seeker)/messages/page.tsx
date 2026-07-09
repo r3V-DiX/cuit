@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { MessageSquare, Send, Search, Briefcase, ChevronRight, Loader2 } from "lucide-react";
 import { useMessaging } from "@/hooks/useMessaging";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 type Message = {
   id: string | number;
@@ -61,26 +62,24 @@ export default function SeekerMessagesPage() {
   useEffect(() => {
     async function init() {
       try {
-        const [meRes, convsRes] = await Promise.all([
-          fetch("/api/auth/me", { credentials: "include" }),
-          fetch("/api/conversations", { credentials: "include" }),
+        const [meResult, convsResult] = await Promise.all([
+          apiFetch("/api/auth/me").catch(() => null),
+          apiFetch("/api/conversations").catch(() => null),
         ]);
 
         let userId = "";
         let initials = "Me";
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          userId = meData.data?.id || meData.id || "";
-          const firstName = meData.data?.firstName || meData.firstName || "";
-          const lastName = meData.data?.lastName || meData.lastName || "";
+        if (meResult) {
+          userId = meResult.data?.id || "";
+          const firstName = meResult.data?.firstName || "";
+          const lastName = meResult.data?.lastName || "";
           const fullName = `${firstName} ${lastName}`.trim();
           initials = getInitials(fullName) || "Me";
           setCurrentUserId(userId);
         }
 
-        if (convsRes.ok) {
-          const convsData = await convsRes.json();
-          const items: any[] = convsData.data?.items || [];
+        if (convsResult) {
+          const items: any[] = convsResult.data?.items || [];
           const mapped: Conversation[] = items.map((conv: any, idx: number) => {
             const employer = conv.participants?.find((p: any) => p.role === "EMPLOYER");
             const companyName = employer
@@ -116,20 +115,17 @@ export default function SeekerMessagesPage() {
             const firstId = mapped[0].id;
             setActiveId(firstId);
             try {
-              const fullRes = await fetch(`/api/conversations/${firstId}`, { credentials: "include" });
-              if (fullRes.ok) {
-                const fullData = await fullRes.json();
-                const fullMessages: Message[] = (fullData.data?.messages || []).map((msg: any) => ({
-                  id: msg.id,
-                  from: msg.senderId === userId ? "seeker" : "employer",
-                  text: msg.content,
-                  time: formatTime(msg.createdAt),
-                  timeTs: new Date(msg.createdAt).getTime(),
-                }));
-                setConvs((prev) =>
-                  prev.map((c) => c.id === firstId ? { ...c, messages: fullMessages } : c)
-                );
-              }
+              const fullResult = await apiFetch(`/api/conversations/${firstId}`);
+              const fullMessages: Message[] = (fullResult.data?.messages || []).map((msg: any) => ({
+                id: msg.id,
+                from: msg.senderId === userId ? "seeker" : "employer",
+                text: msg.content,
+                time: formatTime(msg.createdAt),
+                timeTs: new Date(msg.createdAt).getTime(),
+              }));
+              setConvs((prev) =>
+                prev.map((c) => c.id === firstId ? { ...c, messages: fullMessages } : c)
+              );
             } catch {}
           }
         }
@@ -153,21 +149,18 @@ export default function SeekerMessagesPage() {
     setActiveId(id);
     setConvs((prev) => prev.map((c) => c.id === id ? { ...c, seekerUnread: 0 } : c));
     try {
-      const convRes = await fetch(`/api/conversations/${id}`, { credentials: "include" });
-      fetch(`/api/conversations/${id}/read`, { method: "PATCH", credentials: "include", headers: { "x-csrf-token": document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "" } }).catch(() => {});
-      if (convRes.ok) {
-        const data = await convRes.json();
-        const messages: Message[] = (data.data?.messages || []).map((msg: any) => ({
-          id: msg.id,
-          from: msg.senderId === currentUserId ? "seeker" : "employer",
-          text: msg.content,
-          time: formatTime(msg.createdAt),
-          timeTs: new Date(msg.createdAt).getTime(),
-        }));
-        setConvs((prev) =>
-          prev.map((c) => c.id === id ? { ...c, messages, seekerUnread: 0 } : c)
-        );
-      }
+      const convResult = await apiFetch(`/api/conversations/${id}`);
+      apiFetch(`/api/conversations/${id}/read`, { method: "PATCH", headers: authHeaders() }).catch(() => {});
+      const messages: Message[] = (convResult.data?.messages || []).map((msg: any) => ({
+        id: msg.id,
+        from: msg.senderId === currentUserId ? "seeker" : "employer",
+        text: msg.content,
+        time: formatTime(msg.createdAt),
+        timeTs: new Date(msg.createdAt).getTime(),
+      }));
+      setConvs((prev) =>
+        prev.map((c) => c.id === id ? { ...c, messages, seekerUnread: 0 } : c)
+      );
     } catch {}
   }
 
@@ -176,29 +169,24 @@ export default function SeekerMessagesPage() {
     const content = input.trim();
     setInput("");
     try {
-      const csrfToken = document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "";
-      const res = await fetch(`/api/conversations/${activeId}/messages`, {
+      const result = await apiFetch(`/api/conversations/${activeId}/messages`, {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", "x-csrf-token": csrfToken },
+        headers: authHeaders(),
         body: JSON.stringify({ content }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        const returned = data.data;
-        const newMsg: Message = {
-          id: returned.id,
-          from: "seeker",
-          text: returned.content,
-          time: formatTime(returned.createdAt),
-          timeTs: new Date(returned.createdAt).getTime(),
-        };
-        setConvs((prev) =>
-          prev.map((c) =>
-            c.id === activeId ? { ...c, messages: [...c.messages, newMsg] } : c
-          )
-        );
-      }
+      const returned = result.data;
+      const newMsg: Message = {
+        id: returned.id,
+        from: "seeker",
+        text: returned.content,
+        time: formatTime(returned.createdAt),
+        timeTs: new Date(returned.createdAt).getTime(),
+      };
+      setConvs((prev) =>
+        prev.map((c) =>
+          c.id === activeId ? { ...c, messages: [...c.messages, newMsg] } : c
+        )
+      );
     } catch {}
   }
 

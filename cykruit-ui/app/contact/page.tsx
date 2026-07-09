@@ -6,6 +6,7 @@ import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { useToast } from "@/components/ui/Toast";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 export default function ContactPage() {
   const [fullName, setFullName] = useState("");
@@ -36,20 +37,14 @@ export default function ContactPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/public/contact", {
+      await apiFetch("/api/public/contact", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ fullName: fullName.trim(), email: email.trim(), message: message.trim() }),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        const msg = data?.error?.message || data?.message || "Failed to send message";
-        toast({ type: "error", message: Array.isArray(msg) ? msg[0] : msg });
-        return;
-      }
       setSubmitted(true);
-    } catch {
-      toast({ type: "error", message: "Network error — please try again" });
+    } catch (err: any) {
+      toast({ type: "error", message: err.message ?? "Network error — please try again" });
     } finally {
       setLoading(false);
     }

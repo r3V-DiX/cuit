@@ -7,6 +7,7 @@ import {
   Save, ChevronDown, Plus, X, Camera,
   CheckCircle2, AlertCircle, PlusCircle, ArrowRight, Loader2,
 } from "lucide-react";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 const INDUSTRIES = [
   "Cybersecurity", "Information Technology", "Financial Services",
@@ -66,8 +67,7 @@ export default function CompanyProfilePage() {
   const hasLogo = !!logoUrl;
 
   useEffect(() => {
-    fetch("/api/employer/company/me", { credentials: "include" })
-      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
+    apiFetch("/api/employer/company/me")
       .then((d) => {
         setName(d.name ?? "");
         setIndustry(d.industry ?? "");
@@ -97,22 +97,19 @@ export default function CompanyProfilePage() {
     setSaving(true);
     try {
       await Promise.all([
-        fetch("/api/employer/company/basic", {
+        apiFetch("/api/employer/company/basic", {
           method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders(),
           body: JSON.stringify({ name, industry, size, website, location, founded }),
         }),
-        fetch("/api/employer/company/about", {
+        apiFetch("/api/employer/company/about", {
           method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders(),
           body: JSON.stringify({ bio, culture }),
         }),
-        fetch("/api/employer/company/social", {
+        apiFetch("/api/employer/company/social", {
           method: "PATCH",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: authHeaders(),
           body: JSON.stringify({ linkedin, twitter }),
         }),
       ]);
@@ -126,19 +123,13 @@ export default function CompanyProfilePage() {
     if (!v || perks.some((p) => p.name === v)) return;
     setPerkInput("");
     try {
-      const res = await fetch("/api/employer/company/benefits", {
+      const data = await apiFetch("/api/employer/company/benefits", {
         method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ name: v }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        const perkId = data?.data?.id ?? data?.id ?? undefined;
-        setPerks((prev) => [...prev, { id: perkId, name: v }]);
-      } else {
-        setPerks((prev) => [...prev, { name: v }]);
-      }
+      const perkId = data?.data?.id ?? data?.id ?? undefined;
+      setPerks((prev) => [...prev, { id: perkId, name: v }]);
     } catch {
       setPerks((prev) => [...prev, { name: v }]);
     }
@@ -147,9 +138,9 @@ export default function CompanyProfilePage() {
   async function removePerk(perk: Perk) {
     setPerks((prev) => prev.filter((p) => p !== perk));
     if (perk.id) {
-      await fetch(`/api/employer/company/benefits/${perk.id}`, {
+      await apiFetch(`/api/employer/company/benefits/${perk.id}`, {
         method: "DELETE",
-        credentials: "include",
+        headers: authHeaders(),
       }).catch(() => {});
     }
   }
@@ -160,15 +151,12 @@ export default function CompanyProfilePage() {
     const fd = new FormData();
     fd.append("logo", file);
     try {
-      const res = await fetch("/api/employer/company/logo", {
+      const data = await apiFetch("/api/employer/company/logo", {
         method: "POST",
-        credentials: "include",
+        headers: authHeaders(),
         body: fd,
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) setLogoUrl(data.url);
-      }
+      if (data.url) setLogoUrl(data.url);
     } catch {}
     e.target.value = "";
   }

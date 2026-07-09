@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Shield, Activity, LogOut, ChevronRight,
   Users, Settings, BarChart3, FileText, Lock,
 } from "lucide-react";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 const NAV = [
   { label: "Dashboard", href: "/admin", icon: BarChart3, exact: true },
@@ -22,12 +23,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [user, setUser] = useState<{ firstName: string; email: string } | null>(null);
   const [checking, setChecking] = useState(true);
 
-  const getCsrf = useCallback(() =>
-    document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "", []);
-
   useEffect(() => {
-    fetch("/api/auth/me", { credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
+    apiFetch("/api/auth/me")
       .then((res) => {
         const u = res?.data;
         if (!u || u.role !== "ADMIN") {
@@ -41,10 +38,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [router]);
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", {
+    await apiFetch("/api/auth/logout", {
       method: "POST",
-      credentials: "include",
-      headers: { "x-csrf-token": getCsrf() },
+      headers: authHeaders(),
     }).catch(() => {});
     router.replace("/login");
   }

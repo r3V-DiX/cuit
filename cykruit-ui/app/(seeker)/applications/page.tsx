@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { AppStatus, Application } from "./data";
 import { SEED } from "./data";
+import { apiFetch } from "@/lib/api";
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
@@ -30,26 +31,23 @@ export default function ApplicationsPage() {
   useEffect(() => {
     async function fetchApps() {
       try {
-        const res = await fetch("/api/seeker/applications?limit=50", { credentials: "include" });
-        if (res.ok) {
-          const resJson = await res.json();
-          const items = resJson.data?.items || [];
-          const mapped = items.map((a: any) => ({
-            id: a.id,
-            role: a.job.jobTitle,
-            company: a.job.employer.companyName,
-            location: a.job.locationType || a.job.location || "Remote",
-            type: a.job.jobType || "Full-time",
-            applied: new Date(a.appliedAt).toLocaleDateString(),
-            status: a.status === "APPLIED" ? "Applied"
-              : a.status === "UNDER_REVIEW" ? "Under Review"
-              : a.status === "SHORTLISTED" ? "Shortlisted"
-              : a.status === "REJECTED" ? "Rejected"
-              : a.status === "WITHDRAWN" ? "Withdrawn"
-              : "Applied", // fallback
-          }));
-          setApps(mapped);
-        }
+        const { data } = await apiFetch("/api/seeker/applications?limit=50");
+        const items = data?.items || [];
+        const mapped = items.map((a: any) => ({
+          id: a.id,
+          role: a.job.jobTitle,
+          company: a.job.employer.companyName,
+          location: a.job.locationType || a.job.location || "Remote",
+          type: a.job.jobType || "Full-time",
+          applied: new Date(a.appliedAt).toLocaleDateString(),
+          status: a.status === "APPLIED" ? "Applied"
+            : a.status === "UNDER_REVIEW" ? "Under Review"
+            : a.status === "SHORTLISTED" ? "Shortlisted"
+            : a.status === "REJECTED" ? "Rejected"
+            : a.status === "WITHDRAWN" ? "Withdrawn"
+            : "Applied", // fallback
+        }));
+        setApps(mapped);
       } catch (err) {
         console.error("Failed to fetch apps", err);
       }

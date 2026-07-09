@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { domains, jobTypes, remoteTypes, type Job } from "@/lib/jobs-data";
 import SearchBox from "@/components/ui/SearchBox";
+import { apiFetch } from "@/lib/api";
 
 const JOBS_PER_PAGE = 9;
 
@@ -51,37 +52,34 @@ async function fetchJobs(params: {
     url.searchParams.set("page", String(page));
     url.searchParams.set("limit", String(limit));
 
-    const res = await fetch(url.toString());
-    if (res.ok) {
-      const result = await res.json();
-      
-      let rawJobs = [];
-      if (Array.isArray(result.data)) rawJobs = result.data;
-      else if (result.data && Array.isArray(result.data.jobs)) rawJobs = result.data.jobs;
-      else if (result.data && Array.isArray(result.data.data)) rawJobs = result.data.data;
-      else if (Array.isArray(result.jobs)) rawJobs = result.jobs;
-      else if (Array.isArray(result)) rawJobs = result;
+    const result = await apiFetch(url.toString());
 
-      const mapped = rawJobs.map((job: any) => {
-        const rawDesc: string = job.description || "";
-        const introEnd = rawDesc.search(/\n\n(responsibilities|requirements):/i);
-        const descSnippet = introEnd > 0 ? rawDesc.slice(0, introEnd).trim() : rawDesc.trim();
-        return {
-        id: job.id,
-        title: job.jobTitle,
-        company: job.employer?.companyName || "Unknown Company",
-        location: job.location?.displayName || "Remote",
-        type: job.jobType,
-        remote: job.workMode,
-        description: descSnippet,
-        logo: job.employer?.companyName?.[0] || "C",
-        accent: "bg-blue-100 text-blue-800",
-        posted: new Date(job.publishedAt || Date.now()).toLocaleDateString(),
-        tags: job.skills?.map((s: any) => s.name) || [],
-        domain: job.role?.name || "Cybersecurity",
-        }; });
-      return { data: mapped, total: result.total || result.data?.total || mapped.length, totalPages: result.totalPages || result.data?.totalPages || 1 };
-    }
+    let rawJobs = [];
+    if (Array.isArray(result.data)) rawJobs = result.data;
+    else if (result.data && Array.isArray(result.data.jobs)) rawJobs = result.data.jobs;
+    else if (result.data && Array.isArray(result.data.data)) rawJobs = result.data.data;
+    else if (Array.isArray(result.jobs)) rawJobs = result.jobs;
+    else if (Array.isArray(result)) rawJobs = result;
+
+    const mapped = rawJobs.map((job: any) => {
+      const rawDesc: string = job.description || "";
+      const introEnd = rawDesc.search(/\n\n(responsibilities|requirements):/i);
+      const descSnippet = introEnd > 0 ? rawDesc.slice(0, introEnd).trim() : rawDesc.trim();
+      return {
+      id: job.id,
+      title: job.jobTitle,
+      company: job.employer?.companyName || "Unknown Company",
+      location: job.location?.displayName || "Remote",
+      type: job.jobType,
+      remote: job.workMode,
+      description: descSnippet,
+      logo: job.employer?.companyName?.[0] || "C",
+      accent: "bg-blue-100 text-blue-800",
+      posted: new Date(job.publishedAt || Date.now()).toLocaleDateString(),
+      tags: job.skills?.map((s: any) => s.name) || [],
+      domain: job.role?.name || "Cybersecurity",
+      }; });
+    return { data: mapped, total: result.total || result.data?.total || mapped.length, totalPages: result.totalPages || result.data?.totalPages || 1 };
   } catch (error) {
     console.error("Failed to fetch jobs:", error);
   }

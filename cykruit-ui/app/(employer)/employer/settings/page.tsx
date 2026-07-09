@@ -9,6 +9,7 @@ import {
   Mail, Smartphone, Info, AlertTriangle, Trash2,
   Building2, ChevronDown, Loader2,
 } from "lucide-react";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const inputCls     = "w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-400";
@@ -93,13 +94,6 @@ export default function EmployerSettingsPage() {
   const [phone, setPhone]     = useState("");
   const [timezone, setTimezone] = useState("Pacific Time (PT)");
 
-  const getCsrfToken = () => {
-    if (typeof window === "undefined") return "";
-    const match = document.cookie.match(/csrf_token=([^;]+)/);
-    if (!match) { console.warn("[settings] csrf_token cookie absent — proceeding without it"); return ""; }
-    return decodeURIComponent(match[1]);
-  };
-
   // Company basics
   const [companySize, setCompanySize] = useState("51–200");
   const [publicEmail, setPublicEmail] = useState("");
@@ -118,27 +112,21 @@ export default function EmployerSettingsPage() {
   useEffect(() => {
     async function loadSettings() {
       try {
-        const [meRes, settingsRes] = await Promise.all([
-          fetch("/api/auth/me", { credentials: "include" }),
-          fetch("/api/settings", { credentials: "include" }),
+        const [me, s] = await Promise.all([
+          apiFetch("/api/auth/me"),
+          apiFetch("/api/settings"),
         ]);
-        if (meRes.ok) {
-          const me = await meRes.json();
-          const u = me?.data ?? me;
-          const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ");
-          setLocked({ name: fullName || u.name || u.fullName || "", email: u.email ?? "" });
-        }
-        if (settingsRes.ok) {
-          const s = await settingsRes.json();
-          const d = s?.data ?? s;
-          const general = d?.general ?? d;
-          const notifs = d?.notifications;
-          if (general.phone    !== undefined) setPhone(general.phone);
-          if (general.timezone !== undefined) setTimezone(general.timezone);
-          if (general.companySize   !== undefined) setCompanySize(general.companySize);
-          if (general.publicEmail   !== undefined) setPublicEmail(general.publicEmail);
-          if (notifs !== undefined) setNotifs((prev) => ({ ...prev, ...notifs }));
-        }
+        const u = me?.data ?? me;
+        const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ");
+        setLocked({ name: fullName || u.name || u.fullName || "", email: u.email ?? "" });
+        const d = s?.data ?? s;
+        const general = d?.general ?? d;
+        const notifs = d?.notifications;
+        if (general.phone    !== undefined) setPhone(general.phone);
+        if (general.timezone !== undefined) setTimezone(general.timezone);
+        if (general.companySize   !== undefined) setCompanySize(general.companySize);
+        if (general.publicEmail   !== undefined) setPublicEmail(general.publicEmail);
+        if (notifs !== undefined) setNotifs((prev) => ({ ...prev, ...notifs }));
       } catch {
         // silent — fields remain at defaults
       } finally {
@@ -150,58 +138,40 @@ export default function EmployerSettingsPage() {
 
   async function saveGeneral() {
     try {
-      const res = await fetch("/api/settings/general", {
+      await apiFetch("/api/settings/general", {
         method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", "x-csrf-token": getCsrfToken() },
+        headers: authHeaders(),
         body: JSON.stringify({ phone, timezone }),
       });
-      if (res.ok) {
-        toast({ type: "success", message: "Contact details saved" });
-      } else {
-        const e = await res.json().catch(() => ({}));
-        toast({ type: "error", message: e.message || "Failed to save details" });
-      }
-    } catch {
-      toast({ type: "error", message: "Network error" });
+      toast({ type: "success", message: "Contact details saved" });
+    } catch (err: any) {
+      toast({ type: "error", message: err.message || "Failed to save details" });
     }
   }
 
   async function saveCompany() {
     try {
-      const res = await fetch("/api/settings/general", {
+      await apiFetch("/api/settings/general", {
         method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", "x-csrf-token": getCsrfToken() },
+        headers: authHeaders(),
         body: JSON.stringify({ companySize, publicEmail }),
       });
-      if (res.ok) {
-        toast({ type: "success", message: "Company settings saved" });
-      } else {
-        const e = await res.json().catch(() => ({}));
-        toast({ type: "error", message: e.message || "Failed to save settings" });
-      }
-    } catch {
-      toast({ type: "error", message: "Network error" });
+      toast({ type: "success", message: "Company settings saved" });
+    } catch (err: any) {
+      toast({ type: "error", message: err.message || "Failed to save settings" });
     }
   }
 
   async function saveNotifs() {
     try {
-      const res = await fetch("/api/settings/notifications", {
+      await apiFetch("/api/settings/notifications", {
         method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json", "x-csrf-token": getCsrfToken() },
+        headers: authHeaders(),
         body: JSON.stringify({ notifications: notifs }),
       });
-      if (res.ok) {
-        toast({ type: "success", message: "Notification preferences saved" });
-      } else {
-        const e = await res.json().catch(() => ({}));
-        toast({ type: "error", message: e.message || "Failed to save preferences" });
-      }
-    } catch {
-      toast({ type: "error", message: "Network error" });
+      toast({ type: "success", message: "Notification preferences saved" });
+    } catch (err: any) {
+      toast({ type: "error", message: err.message || "Failed to save preferences" });
     }
   }
 
@@ -222,21 +192,15 @@ export default function EmployerSettingsPage() {
       confirmLabel: "Yes, change it",
       onConfirm: async () => {
         try {
-          const res = await fetch("/api/auth/change-password", {
+          await apiFetch("/api/auth/change-password", {
             method: "POST",
-            credentials: "include",
-            headers: { "Content-Type": "application/json", "x-csrf-token": getCsrfToken() },
+            headers: authHeaders(),
             body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.newPw }),
           });
-          if (res.ok) {
-            setPwForm({ current: "", newPw: "", confirm: "" });
-            toast({ type: "success", message: "Password updated", description: "You've been signed out of other sessions." });
-          } else {
-            const e = await res.json().catch(() => ({}));
-            toast({ type: "error", message: e.message || "Failed to change password" });
-          }
-        } catch {
-          toast({ type: "error", message: "Network error" });
+          setPwForm({ current: "", newPw: "", confirm: "" });
+          toast({ type: "success", message: "Password updated", description: "You've been signed out of other sessions." });
+        } catch (err: any) {
+          toast({ type: "error", message: err.message || "Failed to change password" });
         }
       },
     });
@@ -253,24 +217,15 @@ export default function EmployerSettingsPage() {
       return;
     }
     try {
-      const res = await fetch("/api/auth/account", {
+      await apiFetch("/api/auth/account", {
         method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": getCsrfToken(),
-        },
-        credentials: "include",
+        headers: authHeaders(),
         body: JSON.stringify({ password: deletePassword }),
       });
-      if (res.ok) {
-        toast({ type: "error", message: "Account scheduled for deletion", description: "You will be logged out.", duration: 6000 });
-        window.location.href = "/login";
-      } else {
-        const errResult = await res.json();
-        toast({ type: "error", message: errResult.message || "Failed to delete account" });
-      }
-    } catch (err) {
-      toast({ type: "error", message: "Error deleting account" });
+      toast({ type: "error", message: "Account scheduled for deletion", description: "You will be logged out.", duration: 6000 });
+      window.location.href = "/login";
+    } catch (err: any) {
+      toast({ type: "error", message: err.message || "Failed to delete account" });
     }
   }
 

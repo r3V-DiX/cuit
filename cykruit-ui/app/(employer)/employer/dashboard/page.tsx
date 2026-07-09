@@ -8,6 +8,7 @@ import {
   PlusCircle, CheckCircle2, Clock, XCircle, Send, Building2,
   BarChart2, Activity, Loader2,
 } from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
 type AppStatus = "New" | "Shortlisted" | "Rejected" | "Interview";
 
@@ -74,12 +75,9 @@ export default function EmployerDashboardPage() {
   useEffect(() => {
     async function fetchUser() {
       try {
-        const response = await fetch("/api/auth/me");
-        if (response.ok) {
-          const result = await response.json();
-          if (result.data?.firstName) {
-            setDisplayName(result.data.firstName);
-          }
+        const result = await apiFetch("/api/auth/me");
+        if (result.data?.firstName) {
+          setDisplayName(result.data.firstName);
         }
       } catch {
         // Silent catch for guest fallback
@@ -94,12 +92,8 @@ export default function EmployerDashboardPage() {
       setError(false);
       try {
         const [jobsData, appsData] = await Promise.all([
-          fetch("/api/employer/jobs", { credentials: "include" })
-            .then((r) => (r.ok ? r.json() : { data: { items: [] } }))
-            .catch(() => ({ data: { items: [] } })),
-          fetch("/api/employer/applications", { credentials: "include" })
-            .then((r) => (r.ok ? r.json() : { data: { items: [] } }))
-            .catch(() => ({ data: { items: [] } })),
+          apiFetch("/api/employer/jobs").catch(() => ({ data: { items: [] } })),
+          apiFetch("/api/employer/applications").catch(() => ({ data: { items: [] } })),
         ]);
         const jobsArr: ApiJob[] = Array.isArray(jobsData) ? jobsData : (jobsData.data ?? jobsData.items ?? []);
         const appsArr: ApiApplication[] = Array.isArray(appsData) ? appsData : (appsData.data ?? appsData.items ?? []);

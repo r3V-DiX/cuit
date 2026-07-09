@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Shield, Mail, ArrowRight, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 function CheckEmailContent() {
   const [resending, setResending] = useState(false);
@@ -18,14 +19,11 @@ function CheckEmailContent() {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/auth/check-verification?email=${encodeURIComponent(email)}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.isVerified) {
-            clearInterval(interval);
-            toast({ type: "success", message: "Email verified successfully!", description: "Please sign in to continue." });
-            router.push("/login?verified=true");
-          }
+        const data = await apiFetch(`/api/auth/check-verification?email=${encodeURIComponent(email)}`);
+        if (data.isVerified) {
+          clearInterval(interval);
+          toast({ type: "success", message: "Email verified successfully!", description: "Please sign in to continue." });
+          router.push("/login?verified=true");
         }
       } catch (err) {
         // Ignore errors during polling
@@ -43,16 +41,11 @@ function CheckEmailContent() {
 
     setResending(true);
     try {
-      const response = await fetch("/api/auth/resend-verification", {
+      const data = await apiFetch("/api/auth/resend-verification", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ email }),
       });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.error?.message || data.message || "Failed to resend verification email");
-      }
 
       const body = data?.data ?? data;
       const msg: string = data?.message ?? body?.message ?? "";

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Shield, Eye, EyeOff, ArrowRight, Building2, ChevronLeft, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
+import { apiFetch, ApiError, authHeaders } from "@/lib/api";
 
 function getPasswordStrength(p: string): { score: number; label: string; color: string; bars: string } {
   if (!p) return { score: 0, label: "", color: "", bars: "" };
@@ -73,12 +74,9 @@ export default function EmployerRegisterPage() {
     if (!agreed) { toast({ type: "error", message: "You must agree to the Terms of Service and Privacy Policy" }); return; }
     setLoading(true);
     try {
-      const response = await fetch("/api/auth/register", {
+      await apiFetch("/api/auth/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
+        headers: authHeaders(),
         body: JSON.stringify({
           firstName,
           lastName,
@@ -88,20 +86,15 @@ export default function EmployerRegisterPage() {
           role: "EMPLOYER",
         }),
       });
-      const result = await response.json();
-      if (!response.ok) {
-        const msg = result?.error?.message || result?.message || "Failed to create account";
-        if (result?.error?.code === "EMAIL_DOMAIN_NOT_ALLOWED") {
-          setEmailError(msg);
-          return;
-        }
-        throw new Error(msg);
-      }
       toast({ type: "success", message: "Employer account created!", description: "Please check your email to verify your account." });
       setTimeout(() => {
         router.push("/verify-email/check?email=" + encodeURIComponent(email));
       }, 1500);
     } catch (error: any) {
+      if (error instanceof ApiError && error.code === "EMAIL_DOMAIN_NOT_ALLOWED") {
+        setEmailError(error.message);
+        return;
+      }
       toast({ type: "error", message: error.message || "Registration failed" });
     } finally {
       setLoading(false);

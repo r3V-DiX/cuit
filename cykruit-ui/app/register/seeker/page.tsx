@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Shield, Eye, EyeOff, ArrowRight, User, ChevronLeft, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 function getPasswordStrength(p: string): { score: number; label: string; color: string; bars: string } {
   if (!p) return { score: 0, label: "", color: "", bars: "" };
@@ -44,11 +45,9 @@ export default function SeekerRegisterPage() {
     if (!agreed) { toast({ type: "error", message: "You must agree to the Terms of Service and Privacy Policy" }); return; }
     setLoading(true);
     try {
-      const response = await fetch("/api/auth/register", {
+      await apiFetch("/api/auth/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: authHeaders(),
         body: JSON.stringify({
           firstName,
           lastName,
@@ -58,10 +57,6 @@ export default function SeekerRegisterPage() {
           role: "SEEKER",
         }),
       });
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to create account");
-      }
       toast({ type: "success", message: "Account created!", description: "Please check your email to verify your account." });
       setTimeout(() => {
         router.push("/verify-email/check?email=" + encodeURIComponent(email));

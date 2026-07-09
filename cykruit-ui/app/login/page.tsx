@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Shield, Eye, EyeOff, ArrowRight, ChevronLeft } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -28,18 +29,11 @@ function LoginForm() {
     }
     setLoading(true);
     try {
-      const response = await fetch("/api/auth/login", {
+      const result = await apiFetch("/api/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
+        headers: authHeaders(),
         body: JSON.stringify({ email, password }),
       });
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to authenticate");
-      }
       toast({ type: "success", message: "Signed in successfully" });
       const role = result.data?.role;
       // Validate nextPath is a relative path to prevent open redirect
@@ -53,16 +47,11 @@ function LoginForm() {
     }
   }  async function handleGoogleSignIn() {
     try {
-      const response = await fetch("/api/auth/google?role=SEEKER");
-      if (response.ok) {
-        const result = await response.json();
-        if (result.data?.url) {
-          window.location.href = result.data.url;
-        } else {
-          toast({ type: "error", message: "Failed to get Google sign-in URL" });
-        }
+      const result = await apiFetch("/api/auth/google?role=SEEKER");
+      if (result.data?.url) {
+        window.location.href = result.data.url;
       } else {
-        toast({ type: "error", message: "Google auth service unavailable" });
+        toast({ type: "error", message: "Failed to get Google sign-in URL" });
       }
     } catch (err) {
       toast({ type: "error", message: "Failed to connect to authentication server" });

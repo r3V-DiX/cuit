@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Shield, CheckCircle2, XCircle, Loader2, ArrowRight } from "lucide-react";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 type Status = "verifying" | "success" | "failed";
 
@@ -21,16 +22,11 @@ function VerifyEmailContent({ status, setStatus }: { status: Status; setStatus: 
 
     async function verify() {
       try {
-        const response = await fetch("/api/auth/verify-email", {
+        await apiFetch("/api/auth/verify-email", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: authHeaders(),
           body: JSON.stringify({ token }),
         });
-        if (!response.ok) {
-          throw new Error("Verification failed");
-        }
         if (isMounted) {
           setStatus("success");
         }

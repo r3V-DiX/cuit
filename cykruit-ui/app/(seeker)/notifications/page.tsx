@@ -5,6 +5,7 @@ import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
+import { apiFetch, authHeaders } from "@/lib/api";
 import {
   Bell, BellOff, CheckCheck, Trash2, X,
   Briefcase, Sparkles, Eye, Shield, ChevronRight,
@@ -88,9 +89,7 @@ export default function NotificationsPage() {
   const fetchNotifs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/notifications?limit=50", { credentials: "include" });
-      if (!res.ok) throw new Error();
-      const body = await res.json();
+      const body = await apiFetch("/api/notifications?limit=50");
       setNotifs(
         (body?.data?.items ?? []).map((n: any): Notification => ({
           id: n.id,
@@ -125,13 +124,9 @@ export default function NotificationsPage() {
       ? notifs.filter((n) => !n.isRead).length
       : notifs.filter((n) => n.type === tab && !n.isRead).length;
 
-  function getCsrf() {
-    return document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "";
-  }
-
   async function markRead(id: string) {
     try {
-      await fetch(`/api/notifications/${id}/read`, { method: "PATCH", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
+      await apiFetch(`/api/notifications/${id}/read`, { method: "PATCH", headers: authHeaders() });
       setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
     } catch {
       toast({ type: "error", message: "Failed to mark as read" });
@@ -146,7 +141,7 @@ export default function NotificationsPage() {
       confirmLabel: "Mark all read",
       onConfirm: async () => {
         try {
-          await fetch("/api/notifications/read-all", { method: "PATCH", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
+          await apiFetch("/api/notifications/read-all", { method: "PATCH", headers: authHeaders() });
           setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
           toast({ type: "success", message: "All notifications marked as read" });
         } catch {
@@ -165,7 +160,7 @@ export default function NotificationsPage() {
       confirmLabel: "Delete",
       onConfirm: async () => {
         try {
-          await fetch(`/api/notifications/${id}`, { method: "DELETE", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
+          await apiFetch(`/api/notifications/${id}`, { method: "DELETE", headers: authHeaders() });
           setNotifs((prev) => prev.filter((n) => n.id !== id));
           toast({ type: "info", message: "Notification deleted" });
         } catch {
@@ -183,7 +178,7 @@ export default function NotificationsPage() {
     }
     Promise.all(
       readNotifs.map((n) =>
-        fetch(`/api/notifications/${n.id}`, { method: "DELETE", credentials: "include", headers: { "x-csrf-token": getCsrf() } })
+        apiFetch(`/api/notifications/${n.id}`, { method: "DELETE", headers: authHeaders() })
       )
     ).then(() => {
       setNotifs((prev) => prev.filter((n) => !n.isRead));

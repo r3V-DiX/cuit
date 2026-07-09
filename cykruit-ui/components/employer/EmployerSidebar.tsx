@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 const navItems = [
   { label: "Dashboard",     href: "/employer/dashboard",     icon: LayoutDashboard },
@@ -75,30 +76,19 @@ export default function EmployerSidebar() {
       confirmLabel: "Sign out",
       onConfirm: async () => {
         try {
-          const csrfCookie = document.cookie
-            .split("; ")
-            .find((row) => row.startsWith("csrf_token="));
-          const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
-
-          const response = await fetch("/api/auth/logout", {
+          await apiFetch("/api/auth/logout", {
             method: "POST",
-            headers: {
-              "x-csrf-token": csrfToken,
-            },
+            headers: authHeaders(),
           });
-          if (response.ok) {
-            localStorage.removeItem("cykruit_applications");
-            localStorage.removeItem("cykruit_saved_jobs");
-            localStorage.removeItem("cykruit_messages");
-            localStorage.removeItem("cykruit_notifications");
-            localStorage.removeItem("cykruit_employer_notifications");
-            toast({ type: "success", message: "Logged out successfully" });
-            router.push("/login");
-          } else {
-            toast({ type: "error", message: "Logout failed" });
-          }
-        } catch (error) {
-          toast({ type: "error", message: "Logout request failed" });
+          localStorage.removeItem("cykruit_applications");
+          localStorage.removeItem("cykruit_saved_jobs");
+          localStorage.removeItem("cykruit_messages");
+          localStorage.removeItem("cykruit_notifications");
+          localStorage.removeItem("cykruit_employer_notifications");
+          toast({ type: "success", message: "Logged out successfully" });
+          router.push("/login");
+        } catch (err: any) {
+          toast({ type: "error", message: err.message });
         }
       },
     });

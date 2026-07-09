@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { inferDomain } from "@/lib/jobs-data";
 import { useToast } from "@/components/ui/Toast";
+import { apiFetch, authHeaders } from "@/lib/api";
 
 const JOB_TYPES    = ["Full-time", "Part-time", "Contract", "Internship"];
 const REMOTE_TYPES = ["Remote", "On-site", "Hybrid"];
@@ -93,14 +94,13 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
   useEffect(() => {
     const fetchJob = async () => {
       try {
-        const res = await fetch(`/api/employer/jobs/${id}`, { credentials: "include" });
-        const result = await res.json();
+        const result = await apiFetch(`/api/employer/jobs/${id}`);
         const rawJob = result.data || result;
         if (rawJob && rawJob.id) {
             setInitialJob(rawJob);
             setTitle(rawJob.jobTitle || "");
             setDomain(rawJob.role?.name || "Cybersecurity");
-            
+
             const typeStr = rawJob.jobType?.replace("_", "-").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()) || "Full-time";
             setType(typeStr);
 
@@ -143,9 +143,6 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
     }
     setSaving(true);
     try {
-      const csrfCookie = document.cookie.split("; ").find((row) => row.startsWith("csrf_token="));
-      const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
-
       const typeMap: Record<string, string> = {
         "Full-time": "FULL_TIME",
         "Part-time": "PART_TIME",
@@ -167,13 +164,9 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
         "Manager (8+ yrs)": "SENIOR"
       };
 
-      const res = await fetch(`/api/employer/jobs/${id}`, {
+      await apiFetch(`/api/employer/jobs/${id}`, {
         method: "PATCH",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": csrfToken,
-        },
+        headers: authHeaders(),
         body: JSON.stringify({
           jobTitle: title.trim(),
           jobType: typeMap[type],
@@ -182,11 +175,6 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
           description: description.trim() || undefined,
         }),
       });
-
-      const result = await res.json();
-      if (!res.ok) {
-        throw new Error(result.error?.message || result.message || "Failed to save job");
-      }
 
       toast({ type: "success", message: "Job updated successfully!" });
       router.push(`/employer/jobs/${id}`);
@@ -318,8 +306,8 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
               </div>
               <div className="mt-3 flex items-center justify-between">
                 <span className={`text-[10px] font-mono font-semibold px-2.5 py-1 rounded-lg border flex items-center gap-1
-                   ${statusDisplay === "Active" ? "text-green-700 bg-green-50 border-green-200" 
-                     : statusDisplay === "Draft" ? "text-slate-500 bg-slate-50 border-slate-200" 
+                   ${statusDisplay === "Active" ? "text-green-700 bg-green-50 border-green-200"
+                     : statusDisplay === "Draft" ? "text-slate-500 bg-slate-50 border-slate-200"
                      : "text-amber-700 bg-amber-50 border-amber-200"}`}>
                   <CheckCircle2 className="w-3 h-3" /> {statusDisplay}
                 </span>
