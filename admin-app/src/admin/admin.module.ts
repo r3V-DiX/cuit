@@ -1,7 +1,10 @@
 // admin-app/src/admin/admin.module.ts
+// Console auth is self-contained (Admin + AdminSession via AdminAuthGuard) —
+// no auth-core session wiring, no dependency on the main auth-service.
+// PermissionsGuard is used at controller level only (never APP_GUARD — it must
+// run after AdminAuthGuard has attached req.admin).
 
-import { Injectable, UnauthorizedException, ForbiddenException } from '@nestjs/common';
-import { Module } from '@nestjs/common';
+import { Injectable, Module, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
 import type { Request } from 'express';
@@ -19,8 +22,13 @@ import {
 } from '@cykruit/auth-core';
 import { UserRole } from '@prisma/client';
 
+// Auth
+import { AdminAuthController } from './auth/admin-auth.controller';
+import { AdminAuthService } from './auth/admin-auth.service';
+import { AdminAuthGuard } from './auth/admin-auth.guard';
+
 // Guards
-import { AdminGuard } from './guards/admin.guard';
+import { PermissionsGuard } from './guards/permissions.guard';
 
 // Controllers
 import { KycController } from './controllers/kyc.controller';
@@ -42,6 +50,7 @@ import { AuditQueryService } from './services/audit.service';
 import { DashboardService } from './services/dashboard.service';
 import { AdminAuditLogger } from './services/admin-audit.logger';
 import { TestimonialsService } from './services/testimonials.service';
+import { PermissionsService } from './services/permissions.service';
 
 // Repositories
 import { KycRepository } from './repositories/kyc.repository';
@@ -51,6 +60,7 @@ import { RbacRepository } from './repositories/rbac.repository';
 import { AuditRepository } from './repositories/audit.repository';
 import { DashboardRepository } from './repositories/dashboard.repository';
 import { TestimonialsRepository } from './repositories/testimonials.repository';
+import { SubscriptionRepository } from './repositories/subscription.repository';
 
 @Injectable()
 export class AdminSessionValidator implements ISessionValidator {
@@ -113,6 +123,7 @@ export class AdminSessionValidator implements ISessionValidator {
         }),
     ],
     controllers: [
+        AdminAuthController,
         KycController,
         AdminJobsController,
         UsersController,
@@ -124,7 +135,10 @@ export class AdminSessionValidator implements ISessionValidator {
     ],
     providers: [
         AdminSessionValidator,
-        AdminGuard,
+        AdminAuthService,
+        AdminAuthGuard,
+        PermissionsService,
+        PermissionsGuard,
         AdminAuditLogger,
         // Services
         KycService,
@@ -143,6 +157,7 @@ export class AdminSessionValidator implements ISessionValidator {
         AuditRepository,
         DashboardRepository,
         TestimonialsRepository,
+        SubscriptionRepository,
     ],
 })
 export class AdminModule {}
