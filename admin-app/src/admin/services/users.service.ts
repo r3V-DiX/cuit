@@ -39,11 +39,11 @@ export class UsersService {
         const updated = await this.usersRepository.suspend(id);
 
         this.auditLogger.log({
-            actorId: adminId,
+            adminId,
             action: 'users:suspend',
             module: 'users',
-            targetType: 'User',
-            targetId: id,
+            resource: 'User',
+            resourceId: id,
             riskLevel: 'HIGH',
             result: 'SUCCESS',
             newData: { reason: dto.reason },
@@ -72,11 +72,11 @@ export class UsersService {
         const updated = await this.usersRepository.unsuspend(id);
 
         this.auditLogger.log({
-            actorId: adminId,
+            adminId,
             action: 'users:unsuspend',
             module: 'users',
-            targetType: 'User',
-            targetId: id,
+            resource: 'User',
+            resourceId: id,
             riskLevel: 'MEDIUM',
             result: 'SUCCESS',
             newData: { action: 'unsuspend', reason: dto.reason },

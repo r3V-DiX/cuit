@@ -11,25 +11,30 @@ import {
     HttpCode,
     HttpStatus,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
-import { AdminGuard } from '../guards/admin.guard';
-import type { User } from '@prisma/client';
+import { AdminAuthGuard } from '../auth/admin-auth.guard';
+import { CurrentAdmin } from '../auth/current-admin.decorator';
+import { PermissionsGuard } from '../guards/permissions.guard';
+import { RequirePermission } from '../decorators/require-permission.decorator';
+import { ACTIONS } from '../rbac/permissions.registry';
+import type { Admin } from '@prisma/client';
 import { KycService } from '../services/kyc.service';
 import { KycListQueryDto, ApproveKycDto, RejectKycDto } from '../dto/kyc.dto';
 
 @Controller('admin/kyc')
-@UseGuards(AuthGuard, AdminGuard)
+@UseGuards(AdminAuthGuard, PermissionsGuard)
 export class KycController {
     constructor(private readonly kycService: KycService) {}
 
     // GET /admin/kyc — pending verifications queue (default: PENDING + UNDER_REVIEW)
     @Get()
+    @RequirePermission(ACTIONS.KYC.VIEW)
     list(@Query() query: KycListQueryDto) {
         return this.kycService.list(query);
     }
 
     // GET /admin/kyc/:id
     @Get(':id')
+    @RequirePermission(ACTIONS.KYC.VIEW)
     getOne(@Param('id') id: string) {
         return this.kycService.getById(id);
     }
@@ -37,8 +42,9 @@ export class KycController {
     // PATCH /admin/kyc/:id/approve
     @Patch(':id/approve')
     @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.KYC.REVIEW)
     approve(
-        @CurrentUser() admin: User,
+        @CurrentAdmin() admin: Admin,
         @Param('id') id: string,
         @Body() dto: ApproveKycDto,
     ) {
@@ -48,8 +54,9 @@ export class KycController {
     // PATCH /admin/kyc/:id/reject
     @Patch(':id/reject')
     @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.KYC.REVIEW)
     reject(
-        @CurrentUser() admin: User,
+        @CurrentAdmin() admin: Admin,
         @Param('id') id: string,
         @Body() dto: RejectKycDto,
     ) {

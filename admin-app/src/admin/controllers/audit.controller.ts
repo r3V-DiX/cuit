@@ -1,13 +1,15 @@
 // admin-app/src/admin/controllers/audit.controller.ts
 
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { AuthGuard } from '@cykruit/auth-core';
-import { AdminGuard } from '../guards/admin.guard';
+import { AdminAuthGuard } from '../auth/admin-auth.guard';
+import { PermissionsGuard } from '../guards/permissions.guard';
+import { RequirePermission } from '../decorators/require-permission.decorator';
+import { ACTIONS } from '../rbac/permissions.registry';
 import { AuditQueryService } from '../services/audit.service';
 import { AuditLogQueryDto, AuthAuditLogQueryDto } from '../dto/audit.dto';
 
 @Controller('admin/audit-logs')
-@UseGuards(AuthGuard, AdminGuard)
+@UseGuards(AdminAuthGuard, PermissionsGuard)
 export class AuditController {
     constructor(private readonly auditQueryService: AuditQueryService) {}
 
@@ -22,6 +24,7 @@ export class AuditController {
     }
 
     @Get()
+    @RequirePermission(ACTIONS.AUDIT.VIEW)
     list(@Query() query: AuditLogQueryDto) {
         return this.auditQueryService.list(query);
     }

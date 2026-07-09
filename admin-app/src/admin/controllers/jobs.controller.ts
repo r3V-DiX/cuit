@@ -11,25 +11,30 @@ import {
     HttpCode,
     HttpStatus,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
-import { AdminGuard } from '../guards/admin.guard';
-import type { User } from '@prisma/client';
+import { AdminAuthGuard } from '../auth/admin-auth.guard';
+import { CurrentAdmin } from '../auth/current-admin.decorator';
+import { PermissionsGuard } from '../guards/permissions.guard';
+import { RequirePermission } from '../decorators/require-permission.decorator';
+import { ACTIONS } from '../rbac/permissions.registry';
+import type { Admin } from '@prisma/client';
 import { AdminJobsService } from '../services/jobs.service';
 import { AdminJobListQueryDto, ApproveJobDto, RejectJobDto } from '../dto/jobs.dto';
 
 @Controller('admin/jobs')
-@UseGuards(AuthGuard, AdminGuard)
+@UseGuards(AdminAuthGuard, PermissionsGuard)
 export class AdminJobsController {
     constructor(private readonly jobsService: AdminJobsService) {}
 
     // GET /admin/jobs — job approvals queue (default: PENDING_APPROVAL)
     @Get()
+    @RequirePermission(ACTIONS.JOBS.VIEW)
     list(@Query() query: AdminJobListQueryDto) {
         return this.jobsService.list(query);
     }
 
     // GET /admin/jobs/:id
     @Get(':id')
+    @RequirePermission(ACTIONS.JOBS.VIEW)
     getOne(@Param('id') id: string) {
         return this.jobsService.getById(id);
     }
@@ -37,8 +42,9 @@ export class AdminJobsController {
     // PATCH /admin/jobs/:id/approve
     @Patch(':id/approve')
     @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.JOBS.REVIEW)
     approve(
-        @CurrentUser() admin: User,
+        @CurrentAdmin() admin: Admin,
         @Param('id') id: string,
         @Body() dto: ApproveJobDto,
     ) {
@@ -48,8 +54,9 @@ export class AdminJobsController {
     // PATCH /admin/jobs/:id/reject
     @Patch(':id/reject')
     @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.JOBS.REVIEW)
     reject(
-        @CurrentUser() admin: User,
+        @CurrentAdmin() admin: Admin,
         @Param('id') id: string,
         @Body() dto: RejectJobDto,
     ) {

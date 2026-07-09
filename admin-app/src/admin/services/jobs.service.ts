@@ -43,11 +43,11 @@ export class AdminJobsService {
         const updated = await this.jobsRepository.approve(id);
 
         this.auditLogger.log({
-            actorId: adminId,
+            adminId,
             action: 'jobs:approve',
             module: 'jobs',
-            targetType: 'Job',
-            targetId: id,
+            resource: 'Job',
+            resourceId: id,
             riskLevel: 'LOW',
             result: 'SUCCESS',
         });
@@ -87,11 +87,11 @@ export class AdminJobsService {
         const updated = await this.jobsRepository.reject(id, dto.reason);
 
         this.auditLogger.log({
-            actorId: adminId,
+            adminId,
             action: 'jobs:reject',
             module: 'jobs',
-            targetType: 'Job',
-            targetId: id,
+            resource: 'Job',
+            resourceId: id,
             riskLevel: 'LOW',
             result: 'SUCCESS',
         });

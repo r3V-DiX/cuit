@@ -37,11 +37,11 @@ export class KycService {
         const updated = await this.kycRepository.approveWithTransaction(id, record.employerId, adminId, dto.adminNotes);
 
         this.auditLogger.log({
-            actorId: adminId,
-            action: 'company:approve_kyc',
+            adminId,
+            action: 'kyc:approve',
             module: 'kyc',
-            targetType: 'EmployerVerification',
-            targetId: id,
+            resource: 'EmployerVerification',
+            resourceId: id,
             riskLevel: 'MEDIUM',
             result: 'SUCCESS',
         });
@@ -83,11 +83,11 @@ export class KycService {
         );
 
         this.auditLogger.log({
-            actorId: adminId,
-            action: 'company:reject_kyc',
+            adminId,
+            action: 'kyc:reject',
             module: 'kyc',
-            targetType: 'EmployerVerification',
-            targetId: id,
+            resource: 'EmployerVerification',
+            resourceId: id,
             riskLevel: 'MEDIUM',
             result: 'SUCCESS',
         });

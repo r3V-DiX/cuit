@@ -1,4 +1,5 @@
 // admin-app/src/admin/dto/rbac.dto.ts
+// Console RBAC — roles/permissions/overrides belong to Admin accounts (Admin* tables).
 
 import {
     IsString,
@@ -46,24 +47,20 @@ export class AssignRolePermissionsDto {
     permissionIds: string[];
 }
 
-export class AssignUserRoleDto {
+export class AssignAdminRoleDto {
     @IsUUID('4')
-    userId: string;
+    adminId: string;
 
     @IsUUID('4')
     roleId: string;
 
     @IsOptional()
-    @IsUUID('4')
-    employerId?: string;
-
-    @IsOptional()
     expiresAt?: Date;
 }
 
-export class OverrideUserPermissionDto {
+export class OverrideAdminPermissionDto {
     @IsUUID('4')
-    userId: string;
+    adminId: string;
 
     @IsUUID('4')
     permissionId: string;
@@ -74,13 +71,6 @@ export class OverrideUserPermissionDto {
     @IsOptional()
     @IsString()
     reason?: string;
-
-    @IsOptional()
-    @IsUUID('4')
-    employerId?: string;
-
-    @IsOptional()
-    expiresAt?: Date;
 }
 
 export class RbacListQueryDto {

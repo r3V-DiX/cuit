@@ -1,21 +1,26 @@
 // admin-app/src/admin/services/rbac.service.ts
+// Console RBAC management. System roles (super_admin / platform_admin / reviewer)
+// are seed-owned: no rename, no deactivation, and super_admin's permission set is locked.
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { RbacRepository } from '../repositories/rbac.repository';
 import {
     CreateRoleDto,
     UpdateRoleDto,
     AssignRolePermissionsDto,
-    AssignUserRoleDto,
-    OverrideUserPermissionDto,
+    AssignAdminRoleDto,
+    OverrideAdminPermissionDto,
 } from '../dto/rbac.dto';
 import { AdminAuditLogger } from './admin-audit.logger';
+import { PermissionsService } from './permissions.service';
+import { SYSTEM_ROLE_NAMES, SUPER_ADMIN_ROLE } from '../rbac/permissions.registry';
 
 @Injectable()
 export class RbacService {
     constructor(
         private readonly rbacRepository: RbacRepository,
         private readonly auditLogger: AdminAuditLogger,
+        private readonly permissionsService: PermissionsService,
     ) {}
 
     async listRoles() {
@@ -28,15 +33,19 @@ export class RbacService {
         return role;
     }
 
-    async createRole(adminId: string, dto: CreateRoleDto) {
+    async createRole(actingAdminId: string, dto: CreateRoleDto) {
+        if (SYSTEM_ROLE_NAMES.includes(dto.name)) {
+            throw new ForbiddenException('This role name is reserved for system roles');
+        }
+
         const role = await this.rbacRepository.createRole(dto);
 
         this.auditLogger.log({
-            actorId: adminId,
-            action: 'platform:manage_roles',
+            adminId: actingAdminId,
+            action: 'rbac:manage',
             module: 'rbac',
-            targetType: 'SystemRole',
-            targetId: role.id,
+            resource: 'AdminRbacRole',
+            resourceId: role.id,
             riskLevel: 'HIGH',
             result: 'SUCCESS',
             newData: { name: dto.name },
@@ -45,16 +54,27 @@ export class RbacService {
         return role;
     }
 
-    async updateRole(id: string, adminId: string, dto: UpdateRoleDto) {
-        await this.getRole(id);
+    async updateRole(id: string, actingAdminId: string, dto: UpdateRoleDto) {
+        const role = await this.getRole(id);
+
+        if (SYSTEM_ROLE_NAMES.includes(role.name)) {
+            if (dto.name !== undefined && dto.name !== role.name) {
+                throw new ForbiddenException('System roles cannot be renamed');
+            }
+            if (dto.isActive === false) {
+                throw new ForbiddenException('System roles cannot be deactivated');
+            }
+        }
+
         const updated = await this.rbacRepository.updateRole(id, dto);
+        this.permissionsService.clearCache();
 
         this.auditLogger.log({
-            actorId: adminId,
-            action: 'platform:manage_roles',
+            adminId: actingAdminId,
+            action: 'rbac:manage',
             module: 'rbac',
-            targetType: 'SystemRole',
-            targetId: id,
+            resource: 'AdminRbacRole',
+            resourceId: id,
             riskLevel: 'HIGH',
             result: 'SUCCESS',
         });
@@ -62,16 +82,22 @@ export class RbacService {
         return updated;
     }
 
-    async setRolePermissions(roleId: string, adminId: string, dto: AssignRolePermissionsDto) {
-        await this.getRole(roleId);
+    async setRolePermissions(roleId: string, actingAdminId: string, dto: AssignRolePermissionsDto) {
+        const role = await this.getRole(roleId);
+
+        if (role.name === SUPER_ADMIN_ROLE) {
+            throw new ForbiddenException("super_admin's permissions cannot be edited");
+        }
+
         const updated = await this.rbacRepository.setRolePermissions(roleId, dto.permissionIds);
+        this.permissionsService.clearCache();
 
         this.auditLogger.log({
-            actorId: adminId,
-            action: 'platform:manage_permissions',
+            adminId: actingAdminId,
+            action: 'rbac:manage',
             module: 'rbac',
-            targetType: 'SystemRole',
-            targetId: roleId,
+            resource: 'AdminRbacRole',
+            resourceId: roleId,
             riskLevel: 'CRITICAL',
             result: 'SUCCESS',
         });
@@ -83,21 +109,25 @@ export class RbacService {
         return this.rbacRepository.findAllPermissions();
     }
 
-    async assignUserRole(adminId: string, dto: AssignUserRoleDto) {
-        const assignment = await this.rbacRepository.assignUserRole(
-            dto.userId,
+    async listAdmins() {
+        return this.rbacRepository.findAllAdmins();
+    }
+
+    async assignAdminRole(actingAdminId: string, dto: AssignAdminRoleDto) {
+        const assignment = await this.rbacRepository.assignAdminRole(
+            dto.adminId,
             dto.roleId,
-            adminId,
-            dto.employerId,
+            actingAdminId,
             dto.expiresAt,
         );
+        this.permissionsService.clearCache(dto.adminId);
 
         this.auditLogger.log({
-            actorId: adminId,
-            action: 'platform:manage_roles',
+            adminId: actingAdminId,
+            action: 'rbac:manage',
             module: 'rbac',
-            targetType: 'User',
-            targetId: dto.userId,
+            resource: 'Admin',
+            resourceId: dto.adminId,
             riskLevel: 'HIGH',
             result: 'SUCCESS',
             newData: { roleId: dto.roleId },
@@ -106,15 +136,16 @@ export class RbacService {
         return assignment;
     }
 
-    async revokeUserRole(assignmentId: string, adminId: string) {
-        const revoked = await this.rbacRepository.revokeUserRole(assignmentId);
+    async revokeAdminRole(assignmentId: string, actingAdminId: string) {
+        const revoked = await this.rbacRepository.revokeAdminRole(assignmentId);
+        this.permissionsService.clearCache(revoked.adminId);
 
         this.auditLogger.log({
-            actorId: adminId,
-            action: 'platform:manage_roles',
+            adminId: actingAdminId,
+            action: 'rbac:manage',
             module: 'rbac',
-            targetType: 'UserRoleAssignment',
-            targetId: assignmentId,
+            resource: 'AdminRoleAssignment',
+            resourceId: assignmentId,
             riskLevel: 'HIGH',
             result: 'SUCCESS',
         });
@@ -122,26 +153,26 @@ export class RbacService {
         return revoked;
     }
 
-    async getUserRoles(userId: string) {
-        return this.rbacRepository.findUserRoles(userId);
+    async getAdminRoles(adminId: string) {
+        return this.rbacRepository.findAdminRoles(adminId);
     }
 
-    async overrideUserPermission(adminId: string, dto: OverrideUserPermissionDto) {
-        const override = await this.rbacRepository.overrideUserPermission(
-            dto.userId,
+    async overrideAdminPermission(actingAdminId: string, dto: OverrideAdminPermissionDto) {
+        const override = await this.rbacRepository.overrideAdminPermission(
+            dto.adminId,
             dto.permissionId,
             dto.grant,
-            adminId,
+            actingAdminId,
             dto.reason,
-            dto.employerId,
         );
+        this.permissionsService.clearCache(dto.adminId);
 
         this.auditLogger.log({
-            actorId: adminId,
-            action: 'platform:manage_permissions',
+            adminId: actingAdminId,
+            action: 'rbac:manage',
             module: 'rbac',
-            targetType: 'User',
-            targetId: dto.userId,
+            resource: 'Admin',
+            resourceId: dto.adminId,
             riskLevel: 'CRITICAL',
             result: 'SUCCESS',
             newData: { permissionId: dto.permissionId, grant: dto.grant },
@@ -150,7 +181,7 @@ export class RbacService {
         return override;
     }
 
-    async getUserPermissionOverrides(userId: string) {
-        return this.rbacRepository.findUserPermissionOverrides(userId);
+    async getAdminPermissionOverrides(adminId: string) {
+        return this.rbacRepository.findAdminPermissionOverrides(adminId);
     }
 }

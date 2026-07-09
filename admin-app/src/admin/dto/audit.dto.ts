@@ -1,4 +1,5 @@
 // admin-app/src/admin/dto/audit.dto.ts
+// Filters for the console's AdminAuditLog viewer.
 
 import { IsOptional, IsString, IsIn, IsInt, Min, Max, IsDateString, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -14,19 +15,19 @@ export class AuditLogQueryDto {
 
     @IsOptional()
     @IsString()
-    actorRole?: string;
-
-    @IsOptional()
-    @IsString()
     module?: string;
 
     @IsOptional()
     @IsString()
-    actorId?: string;
+    adminId?: string;
 
     @IsOptional()
     @IsString()
-    targetId?: string;
+    resource?: string;
+
+    @IsOptional()
+    @IsString()
+    resourceId?: string;
 
     @IsOptional()
     @IsString()

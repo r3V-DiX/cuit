@@ -11,25 +11,30 @@ import {
     HttpCode,
     HttpStatus,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
-import { AdminGuard } from '../guards/admin.guard';
-import type { User } from '@prisma/client';
+import { AdminAuthGuard } from '../auth/admin-auth.guard';
+import { CurrentAdmin } from '../auth/current-admin.decorator';
+import { PermissionsGuard } from '../guards/permissions.guard';
+import { RequirePermission } from '../decorators/require-permission.decorator';
+import { ACTIONS } from '../rbac/permissions.registry';
+import type { Admin } from '@prisma/client';
 import { UsersService } from '../services/users.service';
 import { AdminUserListQueryDto, SuspendUserDto, UnsuspendUserDto } from '../dto/users.dto';
 
 @Controller('admin/users')
-@UseGuards(AuthGuard, AdminGuard)
+@UseGuards(AdminAuthGuard, PermissionsGuard)
 export class UsersController {
     constructor(private readonly usersService: UsersService) {}
 
     // GET /admin/users
     @Get()
+    @RequirePermission(ACTIONS.USERS.VIEW)
     list(@Query() query: AdminUserListQueryDto) {
         return this.usersService.list(query);
     }
 
     // GET /admin/users/:id
     @Get(':id')
+    @RequirePermission(ACTIONS.USERS.VIEW)
     getOne(@Param('id') id: string) {
         return this.usersService.getById(id);
     }
@@ -37,8 +42,9 @@ export class UsersController {
     // PATCH /admin/users/:id/suspend
     @Patch(':id/suspend')
     @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.USERS.SUSPEND)
     suspend(
-        @CurrentUser() admin: User,
+        @CurrentAdmin() admin: Admin,
         @Param('id') id: string,
         @Body() dto: SuspendUserDto,
     ) {
@@ -48,8 +54,9 @@ export class UsersController {
     // PATCH /admin/users/:id/unsuspend
     @Patch(':id/unsuspend')
     @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.USERS.SUSPEND)
     unsuspend(
-        @CurrentUser() admin: User,
+        @CurrentAdmin() admin: Admin,
         @Param('id') id: string,
         @Body() dto: UnsuspendUserDto,
     ) {

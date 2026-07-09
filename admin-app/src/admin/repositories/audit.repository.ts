@@ -1,4 +1,5 @@
 // admin-app/src/admin/repositories/audit.repository.ts
+// Reads the console's own audit trail (AdminAuditLog).
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
@@ -9,50 +10,62 @@ import { AuditLogQueryDto, AuthAuditLogQueryDto } from '../dto/audit.dto';
 export class AuditRepository {
     constructor(private readonly prisma: PrismaService) {}
 
-    async findAll(query: AuditLogQueryDto): Promise<{ items: any[]; total: number }> {
-        const { page = 1, limit = 50, riskLevel, result, actorRole, module, actorId, targetId, search, from, to } = query;
+    async findAll(query: AuditLogQueryDto): Promise<{ items: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+        const { page = 1, limit = 50, riskLevel, result, module, adminId, resource, resourceId, search, from, to } = query;
         const skip = (page - 1) * limit;
 
-        const where: Prisma.AuditLogWhereInput = {
+        const where: Prisma.AdminAuditLogWhereInput = {
             ...(riskLevel ? { riskLevel } : {}),
             ...(result ? { result } : {}),
-            ...(actorRole ? { actorRole } : {}),
             ...(module ? { module } : {}),
-            ...(actorId ? { actorId } : {}),
-            ...(targetId ? { targetId } : {}),
-            ...(from || to ? {
-                createdAt: {
-                    ...(from ? { gte: new Date(from) } : {}),
-                    ...(to ? { lte: new Date(to) } : {}),
-                },
-            } : {}),
-            ...(search ? {
-                OR: [
-                    { action: { contains: search, mode: 'insensitive' as const } },
-                    { module: { contains: search, mode: 'insensitive' as const } },
-                    { reason: { contains: search, mode: 'insensitive' as const } },
-                    { actor: { email: { contains: search, mode: 'insensitive' as const } } },
-                    { actor: { firstName: { contains: search, mode: 'insensitive' as const } } },
-                ],
-            } : {}),
+            ...(adminId ? { adminId } : {}),
+            ...(resource ? { resource } : {}),
+            ...(resourceId ? { resourceId } : {}),
+            ...(from || to
+                ? {
+                      createdAt: {
+                          ...(from ? { gte: new Date(from) } : {}),
+                          ...(to ? { lte: new Date(to) } : {}),
+                      },
+                  }
+                : {}),
+            ...(search
+                ? {
+                      OR: [
+                          { action: { contains: search, mode: 'insensitive' as const } },
+                          { module: { contains: search, mode: 'insensitive' as const } },
+                          { reason: { contains: search, mode: 'insensitive' as const } },
+                          { admin: { email: { contains: search, mode: 'insensitive' as const } } },
+                          { admin: { firstName: { contains: search, mode: 'insensitive' as const } } },
+                      ],
+                  }
+                : {}),
         };
 
         const [items, total] = await this.prisma.$transaction([
-            this.prisma.auditLog.findMany({
+            this.prisma.adminAuditLog.findMany({
                 where,
                 skip,
                 take: limit,
                 orderBy: { createdAt: 'desc' },
                 include: {
-                    actor: {
-                        select: { id: true, email: true, firstName: true, lastName: true, role: true },
+                    admin: {
+                        select: { id: true, email: true, firstName: true, lastName: true },
                     },
                 },
             }),
-            this.prisma.auditLog.count({ where }),
+            this.prisma.adminAuditLog.count({ where }),
         ]);
 
-        return { items, total };
+        return {
+            items,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
     }
 
     async findAuthLogs(query: AuthAuditLogQueryDto): Promise<{ items: any[]; total: number }> {
@@ -63,20 +76,24 @@ export class AuditRepository {
             ...(status ? { status } : {}),
             ...(action ? { action } : {}),
             ...(userId ? { userId } : {}),
-            ...(from || to ? {
-                createdAt: {
-                    ...(from ? { gte: new Date(from) } : {}),
-                    ...(to ? { lte: new Date(to) } : {}),
-                },
-            } : {}),
-            ...(search ? {
-                OR: [
-                    { action: { contains: search, mode: 'insensitive' as const } },
-                    { ipAddress: { contains: search, mode: 'insensitive' as const } },
-                    { user: { email: { contains: search, mode: 'insensitive' as const } } },
-                    { user: { firstName: { contains: search, mode: 'insensitive' as const } } },
-                ],
-            } : {}),
+            ...(from || to
+                ? {
+                      createdAt: {
+                          ...(from ? { gte: new Date(from) } : {}),
+                          ...(to ? { lte: new Date(to) } : {}),
+                      },
+                  }
+                : {}),
+            ...(search
+                ? {
+                      OR: [
+                          { action: { contains: search, mode: 'insensitive' as const } },
+                          { ipAddress: { contains: search, mode: 'insensitive' as const } },
+                          { user: { email: { contains: search, mode: 'insensitive' as const } } },
+                          { user: { firstName: { contains: search, mode: 'insensitive' as const } } },
+                      ],
+                  }
+                : {}),
         };
 
         const [items, total] = await this.prisma.$transaction([

@@ -9,7 +9,7 @@ import { AdminJobListQueryDto } from '../dto/jobs.dto';
 export class AdminJobsRepository {
     constructor(private readonly prisma: PrismaService) {}
 
-    async findAll(query: AdminJobListQueryDto): Promise<{ items: any[]; total: number }> {
+    async findAll(query: AdminJobListQueryDto): Promise<{ items: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
         const { page = 1, limit = 20, status, q } = query;
         const skip = (page - 1) * limit;
 
@@ -48,7 +48,15 @@ export class AdminJobsRepository {
             this.prisma.job.count({ where }),
         ]);
 
-        return { items, total };
+        return {
+            items,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
     }
 
     async findById(id: string) {

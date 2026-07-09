@@ -1,4 +1,6 @@
 // admin-app/src/admin/repositories/rbac.repository.ts
+// Console RBAC data access — Admin* tables only (AdminRbacRole / AdminPermission /
+// AdminRolePermission / AdminRoleAssignment / AdminPermissionOverride).
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
@@ -11,7 +13,7 @@ export class RbacRepository {
     // ── Roles ─────────────────────────────────────────────────────────────────
 
     async findAllRoles() {
-        return this.prisma.rbacRole.findMany({
+        return this.prisma.adminRbacRole.findMany({
             orderBy: { createdAt: 'asc' },
             include: {
                 permissions: {
@@ -22,7 +24,7 @@ export class RbacRepository {
     }
 
     async findRoleById(id: string) {
-        return this.prisma.rbacRole.findUnique({
+        return this.prisma.adminRbacRole.findUnique({
             where: { id },
             include: {
                 permissions: { include: { permission: true } },
@@ -31,7 +33,7 @@ export class RbacRepository {
     }
 
     async createRole(dto: CreateRoleDto) {
-        return this.prisma.rbacRole.create({
+        return this.prisma.adminRbacRole.create({
             data: {
                 name: dto.name,
                 description: dto.description,
@@ -48,7 +50,7 @@ export class RbacRepository {
     }
 
     async updateRole(id: string, dto: UpdateRoleDto) {
-        return this.prisma.rbacRole.update({
+        return this.prisma.adminRbacRole.update({
             where: { id },
             data: {
                 ...(dto.name !== undefined ? { name: dto.name } : {}),
@@ -60,8 +62,8 @@ export class RbacRepository {
 
     async setRolePermissions(roleId: string, permissionIds: string[]) {
         await this.prisma.$transaction([
-            this.prisma.rolePermission.deleteMany({ where: { roleId } }),
-            this.prisma.rolePermission.createMany({
+            this.prisma.adminRolePermission.deleteMany({ where: { roleId } }),
+            this.prisma.adminRolePermission.createMany({
                 data: permissionIds.map((permissionId) => ({ roleId, permissionId })),
                 skipDuplicates: true,
             }),
@@ -73,67 +75,70 @@ export class RbacRepository {
     // ── Permissions ───────────────────────────────────────────────────────────
 
     async findAllPermissions() {
-        return this.prisma.permission.findMany({
+        return this.prisma.adminPermission.findMany({
             orderBy: [{ module: 'asc' }, { action: 'asc' }],
         });
     }
 
-    // ── User role assignments ─────────────────────────────────────────────────
+    // ── Admin accounts (for the assignment UI) ────────────────────────────────
 
-    async assignUserRole(
-        userId: string,
-        roleId: string,
-        assignedBy: string,
-        employerId?: string,
-        expiresAt?: Date,
-    ) {
-        // upsert on the 3-field unique key — idempotent, updates assignedBy/expiresAt on re-assign
-        return this.prisma.userRoleAssignment.upsert({
-            where: {
-                userId_roleId_employerId: { userId, roleId, employerId: employerId ?? null },
+    async findAllAdmins() {
+        return this.prisma.admin.findMany({
+            orderBy: { createdAt: 'asc' },
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                isActive: true,
+                lastLogin: true,
+                roleAssignments: {
+                    select: { id: true, role: { select: { id: true, name: true } } },
+                },
             },
-            create: { userId, roleId, assignedBy, employerId, expiresAt },
+        });
+    }
+
+    // ── Admin role assignments ────────────────────────────────────────────────
+
+    async assignAdminRole(adminId: string, roleId: string, assignedBy: string, expiresAt?: Date) {
+        return this.prisma.adminRoleAssignment.upsert({
+            where: { adminId_roleId: { adminId, roleId } },
+            create: { adminId, roleId, assignedBy, expiresAt },
             update: { assignedBy, expiresAt },
         });
     }
 
-    async revokeUserRole(assignmentId: string) {
-        return this.prisma.userRoleAssignment.delete({ where: { id: assignmentId } });
+    async revokeAdminRole(assignmentId: string) {
+        return this.prisma.adminRoleAssignment.delete({ where: { id: assignmentId } });
     }
 
-    async findUserRoles(userId: string) {
-        return this.prisma.userRoleAssignment.findMany({
-            where: { userId },
+    async findAdminRoles(adminId: string) {
+        return this.prisma.adminRoleAssignment.findMany({
+            where: { adminId },
             include: { role: { include: { permissions: { include: { permission: true } } } } },
         });
     }
 
-    // ── User permission overrides ─────────────────────────────────────────────
+    // ── Admin permission overrides ────────────────────────────────────────────
 
-    async overrideUserPermission(
-        userId: string,
+    async overrideAdminPermission(
+        adminId: string,
         permissionId: string,
         grant: boolean,
         grantedBy: string,
         reason?: string,
-        employerId?: string,
     ) {
-        return this.prisma.userPermissionOverride.upsert({
-            where: {
-                userId_permissionId_employerId: {
-                    userId,
-                    permissionId,
-                    employerId: employerId ?? null,
-                },
-            },
-            create: { userId, permissionId, grant, grantedBy, reason, employerId },
+        return this.prisma.adminPermissionOverride.upsert({
+            where: { adminId_permissionId: { adminId, permissionId } },
+            create: { adminId, permissionId, grant, grantedBy, reason },
             update: { grant, grantedBy, reason },
         });
     }
 
-    async findUserPermissionOverrides(userId: string) {
-        return this.prisma.userPermissionOverride.findMany({
-            where: { userId },
+    async findAdminPermissionOverrides(adminId: string) {
+        return this.prisma.adminPermissionOverride.findMany({
+            where: { adminId },
             include: { permission: true },
         });
     }

@@ -1,110 +1,60 @@
 // admin-app/src/admin/services/subscription.service.ts
-// Proxies all subscription operations to subscription-service (:4008).
-// Admin-app does NOT own subscription data — it delegates to the dedicated service.
+// Admin-app owns subscription data locally and uses the Prisma-backed repository.
 
-import { Injectable, BadGatewayException, HttpException } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
-import { AxiosError } from 'axios';
+import { Injectable } from '@nestjs/common';
 import {
     CreatePackageDto,
     UpdatePackageDto,
     AssignSubscriptionDto,
     SubscriptionListQueryDto,
 } from '../dto/subscription.dto';
+import { SubscriptionRepository } from '../repositories/subscription.repository';
 
 @Injectable()
 export class SubscriptionService {
-    private readonly baseUrl: string;
-
-    constructor(
-        private readonly http: HttpService,
-        private readonly config: ConfigService,
-    ) {
-        this.baseUrl = this.config.get<string>('SUBSCRIPTION_SERVICE_URL') ?? 'http://localhost:4008';
-    }
-
-    private async proxy<T>(fn: () => Promise<{ data: T }>): Promise<T> {
-        try {
-            const res = await fn();
-            return res.data;
-        } catch (err) {
-            const axiosErr = err as AxiosError;
-            if (axiosErr.response) {
-                // Forward the upstream error response verbatim
-                const status = axiosErr.response.status;
-                const data = axiosErr.response.data as any;
-                const message = data?.message ?? 'Subscription service error';
-                throw new HttpException(message, status);
-            }
-            throw new BadGatewayException('Subscription service unavailable');
-        }
-    }
+    constructor(private readonly repository: SubscriptionRepository) {}
 
     // ── Packages ──────────────────────────────────────────────────────────────
 
     async listPackages(query: { isActive?: boolean; page?: number; limit?: number } = {}) {
-        return this.proxy(() =>
-            firstValueFrom(this.http.get(`${this.baseUrl}/subscriptions/packages`, { params: query })),
-        );
+        return this.repository.findAllPackages(query);
     }
 
     async getPackage(id: string) {
-        return this.proxy(() =>
-            firstValueFrom(this.http.get(`${this.baseUrl}/subscriptions/packages/${id}`)),
-        );
+        return this.repository.findPackageById(id);
     }
 
     async createPackage(dto: CreatePackageDto) {
-        return this.proxy(() =>
-            firstValueFrom(this.http.post(`${this.baseUrl}/subscriptions/admin/packages`, dto)),
-        );
+        return this.repository.createPackage(dto);
     }
 
     async updatePackage(id: string, dto: UpdatePackageDto) {
-        return this.proxy(() =>
-            firstValueFrom(this.http.patch(`${this.baseUrl}/subscriptions/admin/packages/${id}`, dto)),
-        );
+        return this.repository.updatePackage(id, dto);
     }
 
     async deletePackage(id: string) {
-        return this.proxy(() =>
-            firstValueFrom(this.http.delete(`${this.baseUrl}/subscriptions/admin/packages/${id}`)),
-        );
+        return this.repository.deletePackage(id);
     }
 
     // ── Employer subscriptions ────────────────────────────────────────────────
 
     async listSubscriptions(query: SubscriptionListQueryDto) {
-        return this.proxy(() =>
-            firstValueFrom(this.http.get(`${this.baseUrl}/subscriptions/admin`, { params: query })),
-        );
+        return this.repository.findAllSubscriptions(query);
     }
 
     async getSubscriptionById(id: string) {
-        return this.proxy(() =>
-            firstValueFrom(this.http.get(`${this.baseUrl}/subscriptions/admin/${id}`)),
-        );
+        return this.repository.findSubscriptionById(id);
     }
 
     async assignSubscription(dto: AssignSubscriptionDto) {
-        return this.proxy(() =>
-            firstValueFrom(this.http.post(`${this.baseUrl}/subscriptions/admin/assign`, dto)),
-        );
+        return this.repository.assignSubscription(dto.employerId, dto.packageId, dto.status ?? 'ACTIVE');
     }
 
     async getEmployerSubscription(employerId: string) {
-        return this.proxy(() =>
-            firstValueFrom(this.http.get(`${this.baseUrl}/subscriptions/my`, { params: { employerId } })),
-        );
+        return this.repository.findSubscriptionByEmployer(employerId);
     }
 
     async updateSubscriptionStatus(id: string, status: string) {
-        return this.proxy(() =>
-            firstValueFrom(
-                this.http.patch(`${this.baseUrl}/subscriptions/admin/${id}/status`, { status }),
-            ),
-        );
+        return this.repository.updateSubscriptionStatus(id, status);
     }
 }

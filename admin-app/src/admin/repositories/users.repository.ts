@@ -9,7 +9,7 @@ import { AdminUserListQueryDto } from '../dto/users.dto';
 export class UsersRepository {
     constructor(private readonly prisma: PrismaService) {}
 
-    async findAll(query: AdminUserListQueryDto): Promise<{ items: any[]; total: number }> {
+    async findAll(query: AdminUserListQueryDto): Promise<{ items: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
         const { page = 1, limit = 20, role, status, q } = query;
         const skip = (page - 1) * limit;
 
@@ -49,7 +49,15 @@ export class UsersRepository {
             this.prisma.user.count({ where }),
         ]);
 
-        return { items, total };
+        return {
+            items,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
     }
 
     async findById(id: string) {

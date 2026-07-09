@@ -1,4 +1,5 @@
 // admin-app/src/admin/controllers/rbac.controller.ts
+// Console RBAC — roles/permissions/assignments/overrides for Admin accounts.
 
 import {
     Controller,
@@ -13,45 +14,52 @@ import {
     HttpCode,
     HttpStatus,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
-import { AdminGuard } from '../guards/admin.guard';
-import type { User } from '@prisma/client';
+import type { Admin } from '@prisma/client';
+import { AdminAuthGuard } from '../auth/admin-auth.guard';
+import { CurrentAdmin } from '../auth/current-admin.decorator';
+import { PermissionsGuard } from '../guards/permissions.guard';
+import { RequirePermission } from '../decorators/require-permission.decorator';
+import { ACTIONS } from '../rbac/permissions.registry';
 import { RbacService } from '../services/rbac.service';
 import {
     CreateRoleDto,
     UpdateRoleDto,
     AssignRolePermissionsDto,
-    AssignUserRoleDto,
-    OverrideUserPermissionDto,
+    AssignAdminRoleDto,
+    OverrideAdminPermissionDto,
     RbacListQueryDto,
 } from '../dto/rbac.dto';
 
 @Controller('admin/rbac')
-@UseGuards(AuthGuard, AdminGuard)
+@UseGuards(AdminAuthGuard, PermissionsGuard)
 export class RbacController {
     constructor(private readonly rbacService: RbacService) {}
 
     // ── Roles ─────────────────────────────────────────────────────────────────
 
     @Get('roles')
+    @RequirePermission(ACTIONS.RBAC.VIEW)
     listRoles(@Query() _query: RbacListQueryDto) {
         return this.rbacService.listRoles();
     }
 
     @Get('roles/:id')
+    @RequirePermission(ACTIONS.RBAC.VIEW)
     getRole(@Param('id') id: string) {
         return this.rbacService.getRole(id);
     }
 
     @Post('roles')
     @HttpCode(HttpStatus.CREATED)
-    createRole(@CurrentUser() admin: User, @Body() dto: CreateRoleDto) {
+    @RequirePermission(ACTIONS.RBAC.MANAGE)
+    createRole(@CurrentAdmin() admin: Admin, @Body() dto: CreateRoleDto) {
         return this.rbacService.createRole(admin.id, dto);
     }
 
     @Patch('roles/:id')
+    @RequirePermission(ACTIONS.RBAC.MANAGE)
     updateRole(
-        @CurrentUser() admin: User,
+        @CurrentAdmin() admin: Admin,
         @Param('id') id: string,
         @Body() dto: UpdateRoleDto,
     ) {
@@ -59,8 +67,9 @@ export class RbacController {
     }
 
     @Patch('roles/:id/permissions')
+    @RequirePermission(ACTIONS.RBAC.MANAGE)
     setRolePermissions(
-        @CurrentUser() admin: User,
+        @CurrentAdmin() admin: Admin,
         @Param('id') roleId: string,
         @Body() dto: AssignRolePermissionsDto,
     ) {
@@ -70,39 +79,53 @@ export class RbacController {
     // ── Permissions ───────────────────────────────────────────────────────────
 
     @Get('permissions')
+    @RequirePermission(ACTIONS.RBAC.VIEW)
     listPermissions() {
         return this.rbacService.listPermissions();
     }
 
-    // ── User role assignments ─────────────────────────────────────────────────
+    // ── Admin accounts ────────────────────────────────────────────────────────
 
-    @Post('user-roles')
+    @Get('admins')
+    @RequirePermission(ACTIONS.RBAC.VIEW)
+    listAdmins() {
+        return this.rbacService.listAdmins();
+    }
+
+    // ── Admin role assignments ────────────────────────────────────────────────
+
+    @Post('admin-roles')
     @HttpCode(HttpStatus.CREATED)
-    assignUserRole(@CurrentUser() admin: User, @Body() dto: AssignUserRoleDto) {
-        return this.rbacService.assignUserRole(admin.id, dto);
+    @RequirePermission(ACTIONS.RBAC.MANAGE)
+    assignAdminRole(@CurrentAdmin() admin: Admin, @Body() dto: AssignAdminRoleDto) {
+        return this.rbacService.assignAdminRole(admin.id, dto);
     }
 
-    @Delete('user-roles/:id')
+    @Delete('admin-roles/:id')
     @HttpCode(HttpStatus.OK)
-    revokeUserRole(@CurrentUser() admin: User, @Param('id') assignmentId: string) {
-        return this.rbacService.revokeUserRole(assignmentId, admin.id);
+    @RequirePermission(ACTIONS.RBAC.MANAGE)
+    revokeAdminRole(@CurrentAdmin() admin: Admin, @Param('id') assignmentId: string) {
+        return this.rbacService.revokeAdminRole(assignmentId, admin.id);
     }
 
-    @Get('users/:userId/roles')
-    getUserRoles(@Param('userId') userId: string) {
-        return this.rbacService.getUserRoles(userId);
+    @Get('admins/:adminId/roles')
+    @RequirePermission(ACTIONS.RBAC.VIEW)
+    getAdminRoles(@Param('adminId') adminId: string) {
+        return this.rbacService.getAdminRoles(adminId);
     }
 
-    // ── Permission overrides ──────────────────────────────────────────────────
+    // ── Admin permission overrides ────────────────────────────────────────────
 
     @Post('permission-overrides')
     @HttpCode(HttpStatus.CREATED)
-    overridePermission(@CurrentUser() admin: User, @Body() dto: OverrideUserPermissionDto) {
-        return this.rbacService.overrideUserPermission(admin.id, dto);
+    @RequirePermission(ACTIONS.RBAC.MANAGE)
+    overridePermission(@CurrentAdmin() admin: Admin, @Body() dto: OverrideAdminPermissionDto) {
+        return this.rbacService.overrideAdminPermission(admin.id, dto);
     }
 
-    @Get('users/:userId/permission-overrides')
-    getUserPermissionOverrides(@Param('userId') userId: string) {
-        return this.rbacService.getUserPermissionOverrides(userId);
+    @Get('admins/:adminId/permission-overrides')
+    @RequirePermission(ACTIONS.RBAC.VIEW)
+    getAdminPermissionOverrides(@Param('adminId') adminId: string) {
+        return this.rbacService.getAdminPermissionOverrides(adminId);
     }
 }

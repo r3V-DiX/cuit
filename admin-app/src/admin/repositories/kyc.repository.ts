@@ -9,7 +9,7 @@ import { KycListQueryDto } from '../dto/kyc.dto';
 export class KycRepository {
     constructor(private readonly prisma: PrismaService) {}
 
-    async findAll(query: KycListQueryDto): Promise<{ items: any[]; total: number }> {
+    async findAll(query: KycListQueryDto): Promise<{ items: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
         const { page = 1, limit = 20, status } = query;
         const skip = (page - 1) * limit;
 
@@ -39,7 +39,15 @@ export class KycRepository {
             this.prisma.employerVerification.count({ where }),
         ]);
 
-        return { items, total };
+        return {
+            items,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
     }
 
     async findById(id: string) {

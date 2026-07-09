@@ -12,8 +12,9 @@ export class SubscriptionRepository {
 
     // ── Packages ──────────────────────────────────────────────────────────────
 
-    async findAllPackages() {
+    async findAllPackages(query: { isActive?: boolean } = {}) {
         return this.prisma.subscriptionPackage.findMany({
+            where: query.isActive !== undefined ? { isActive: query.isActive } : undefined,
             orderBy: { priceMonthly: 'asc' },
         });
     }
@@ -30,9 +31,13 @@ export class SubscriptionRepository {
         return this.prisma.subscriptionPackage.update({ where: { id }, data: dto });
     }
 
+    async deletePackage(id: string) {
+        return this.prisma.subscriptionPackage.delete({ where: { id } });
+    }
+
     // ── Employer subscriptions ────────────────────────────────────────────────
 
-    async findAllSubscriptions(query: SubscriptionListQueryDto): Promise<{ items: any[]; total: number }> {
+    async findAllSubscriptions(query: SubscriptionListQueryDto): Promise<{ items: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
         const { page = 1, limit = 20, status } = query;
         const skip = (page - 1) * limit;
 
@@ -56,7 +61,22 @@ export class SubscriptionRepository {
             this.prisma.employerSubscription.count({ where }),
         ]);
 
-        return { items, total };
+        return {
+            items,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    }
+
+    async findSubscriptionById(id: string) {
+        return this.prisma.employerSubscription.findUnique({
+            where: { id },
+            include: { employer: { select: { id: true, companyName: true, slug: true, companyLogo: true } }, package: true },
+        });
     }
 
     async assignSubscription(employerId: string, packageId: string, status: string) {
@@ -78,6 +98,14 @@ export class SubscriptionRepository {
     async findSubscriptionByEmployer(employerId: string) {
         return this.prisma.employerSubscription.findUnique({
             where: { employerId },
+            include: { package: true },
+        });
+    }
+
+    async updateSubscriptionStatus(id: string, status: string) {
+        return this.prisma.employerSubscription.update({
+            where: { id },
+            data: { status },
             include: { package: true },
         });
     }
