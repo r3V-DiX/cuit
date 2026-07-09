@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const SESSION_COOKIE = "session_token";
+const ROLE_COOKIE    = "user_role";
 
-// Routes that require authentication (any role)
-const AUTHED_PREFIXES = [
+const SEEKER_PREFIXES = [
   "/dashboard",
   "/applications",
   "/saved",
@@ -12,6 +12,9 @@ const AUTHED_PREFIXES = [
   "/notifications",
   "/profile",
   "/settings",
+];
+
+const EMPLOYER_PREFIXES = [
   "/employer/dashboard",
   "/employer/jobs",
   "/employer/applicants",
@@ -21,10 +24,10 @@ const AUTHED_PREFIXES = [
   "/employer/settings",
   "/employer/subscription",
   "/kyc",
-  "/admin",
 ];
 
-// Routes that authed users should not visit (auth pages)
+const ADMIN_PREFIXES = ["/admin"];
+
 const GUEST_ONLY = [
   "/login",
   "/register",
@@ -33,29 +36,41 @@ const GUEST_ONLY = [
   "/verify-email",
 ];
 
-function isAuthedRoute(pathname: string): boolean {
-  return AUTHED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
-}
-
-function isGuestOnly(pathname: string): boolean {
-  return GUEST_ONLY.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"));
+function matchesAny(pathname: string, prefixes: string[]): boolean {
+  return prefixes.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const sessionCookie = request.cookies.get(SESSION_COOKIE);
-  const isAuthed = !!sessionCookie?.value;
+  const isAuthed = !!request.cookies.get(SESSION_COOKIE)?.value;
+  const role     = request.cookies.get(ROLE_COOKIE)?.value ?? "";
 
-  // Unauthed user hitting protected page → redirect to login
-  if (!isAuthed && isAuthedRoute(pathname)) {
+  const isSeekerRoute   = matchesAny(pathname, SEEKER_PREFIXES);
+  const isEmployerRoute = matchesAny(pathname, EMPLOYER_PREFIXES);
+  const isAdminRoute    = matchesAny(pathname, ADMIN_PREFIXES);
+  const isGuestOnly     = matchesAny(pathname, GUEST_ONLY);
+
+  // Unauthenticated → login
+  if (!isAuthed && (isSeekerRoute || isEmployerRoute || isAdminRoute)) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Authed user hitting guest-only page → redirect to home (role unknown without API call)
-  if (isAuthed && isGuestOnly(pathname)) {
-    return NextResponse.redirect(new URL("/", request.url));
+  // Authenticated on guest page → home
+  if (isAuthed && isGuestOnly) {
+    const dest = role === "EMPLOYER" ? "/employer/dashboard" : "/dashboard";
+    return NextResponse.redirect(new URL(dest, request.url));
+  }
+
+  // Role mismatch: employer on seeker routes → employer dashboard
+  if (isAuthed && role === "EMPLOYER" && isSeekerRoute) {
+    return NextResponse.redirect(new URL("/employer/dashboard", request.url));
+  }
+
+  // Role mismatch: seeker on employer routes → seeker dashboard
+  if (isAuthed && role === "SEEKER" && isEmployerRoute) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
   return NextResponse.next();

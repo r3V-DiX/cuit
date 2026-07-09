@@ -90,6 +90,12 @@ export class AuthController {
       CookieConfig.getCsrfCookieOptions(),
     );
 
+    res.cookie(
+      CookieConfig.COOKIE_NAMES.ROLE,
+      result.data.user.role,
+      CookieConfig.getRoleCookieOptions(dto.rememberMe),
+    );
+
     return { data: result.data.user, message: result.message };
   }
 
@@ -148,6 +154,10 @@ export class AuthController {
       CookieConfig.COOKIE_NAMES.CSRF,
       CookieConfig.getClearCsrfCookieOptions(),
     );
+    res.clearCookie(
+      CookieConfig.COOKIE_NAMES.ROLE,
+      CookieConfig.getClearRoleCookieOptions(),
+    );
 
     return { message: "Logout successful" };
   }
@@ -172,6 +182,10 @@ export class AuthController {
     res.clearCookie(
       CookieConfig.COOKIE_NAMES.CSRF,
       CookieConfig.getClearCsrfCookieOptions(),
+    );
+    res.clearCookie(
+      CookieConfig.COOKIE_NAMES.ROLE,
+      CookieConfig.getClearRoleCookieOptions(),
     );
 
     return { message: "Logged out from all devices successfully" };
@@ -203,6 +217,10 @@ export class AuthController {
     res.clearCookie(
       CookieConfig.COOKIE_NAMES.CSRF,
       CookieConfig.getClearCsrfCookieOptions(),
+    );
+    res.clearCookie(
+      CookieConfig.COOKIE_NAMES.ROLE,
+      CookieConfig.getClearRoleCookieOptions(),
     );
 
     return { message: "Password changed successfully. Please login again." };

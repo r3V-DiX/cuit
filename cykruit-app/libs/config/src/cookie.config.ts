@@ -65,9 +65,35 @@ export class CookieConfig {
     };
   }
 
+  static getRoleCookieOptions(rememberMe: boolean = false): CookieOptions {
+    const isSecure = process.env.COOKIE_SECURE === "true";
+    return {
+      httpOnly: false, // readable by proxy — not sensitive, just EMPLOYER|SEEKER string
+      secure: isSecure,
+      sameSite: isSecure ? "none" : "lax",
+      maxAge: rememberMe
+        ? 30 * 24 * 60 * 60 * 1000
+        : 24 * 60 * 60 * 1000,
+      path: "/",
+      domain: process.env.COOKIE_DOMAIN || undefined,
+    };
+  }
+
+  static getClearRoleCookieOptions(): CookieOptions {
+    const isSecure = process.env.COOKIE_SECURE === "true";
+    return {
+      httpOnly: false,
+      secure: isSecure,
+      sameSite: isSecure ? "none" : "lax",
+      path: "/",
+      domain: process.env.COOKIE_DOMAIN || undefined,
+    };
+  }
+
   static readonly COOKIE_NAMES = {
     SESSION: "session_token",
     REFRESH: "refresh_token",
     CSRF: "csrf_token",
+    ROLE: "user_role",
   } as const;
 }

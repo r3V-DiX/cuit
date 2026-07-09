@@ -102,6 +102,12 @@ export class OAuthController {
         CookieConfig.getCsrfCookieOptions(),
       );
 
+      res.cookie(
+        CookieConfig.COOKIE_NAMES.ROLE,
+        result.user.role,
+        CookieConfig.getRoleCookieOptions(false),
+      );
+
       this.logger.log(
         `Google OAuth successful: ${result.user.email}`,
         "OAuthController",
@@ -180,6 +186,12 @@ export class OAuthController {
         CookieConfig.COOKIE_NAMES.CSRF,
         this.csrfGuard.generateToken(),
         CookieConfig.getCsrfCookieOptions(),
+      );
+
+      res.cookie(
+        CookieConfig.COOKIE_NAMES.ROLE,
+        result.user.role,
+        CookieConfig.getRoleCookieOptions(false),
       );
 
       this.logger.log(
