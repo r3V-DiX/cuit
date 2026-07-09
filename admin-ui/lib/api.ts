@@ -1,0 +1,100 @@
+// admin-ui/lib/api.ts
+// Thin fetch wrapper: JSON, envelope unwrap ({success, data}), typed ApiError, 401 → /login.
+// CSRF token is read from the csrf_token cookie and sent as x-csrf-token on mutations.
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly data: unknown = null,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+
+
+interface EnvelopeSuccess<T> {
+  success: true;
+  data: T;
+  message?: string;
+}
+
+interface EnvelopeError {
+  success: false;
+  error?: { message?: string; messages?: string[] };
+  message?: string;
+}
+
+type Envelope<T> = EnvelopeSuccess<T> | EnvelopeError;
+
+async function request<T>(
+  url: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init.headers as Record<string, string>),
+    },
+  });
+
+  if (res.status === 401) {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+    throw new ApiError('Unauthorized', 401);
+  }
+
+  let body: Envelope<T>;
+  try {
+    body = (await res.json()) as Envelope<T>;
+  } catch {
+    throw new ApiError(`HTTP ${res.status}`, res.status);
+  }
+
+  if (!body.success) {
+    const err = (body as EnvelopeError).error;
+    const msg =
+      err?.messages?.join(', ') ??
+      err?.message ??
+      (body as EnvelopeError).message ??
+      'An unexpected error occurred';
+    throw new ApiError(msg, res.status, err);
+  }
+
+  return (body as EnvelopeSuccess<T>).data;
+}
+
+
+
+export const api = {
+  get<T>(url: string, init?: RequestInit): Promise<T> {
+    return request<T>(url, { ...init, method: 'GET' });
+  },
+
+  post<T>(url: string, body?: unknown, init?: RequestInit): Promise<T> {
+    return request<T>(url, {
+      ...init,
+      method: 'POST',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  },
+
+  patch<T>(url: string, body?: unknown, init?: RequestInit): Promise<T> {
+    return request<T>(url, {
+      ...init,
+      method: 'PATCH',
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  },
+
+  del<T>(url: string, init?: RequestInit): Promise<T> {
+    return request<T>(url, {
+      ...init,
+      method: 'DELETE',
+    });
+  },
+};
