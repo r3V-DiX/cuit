@@ -44,4 +44,4 @@ coverage/
 # Misc
 .eslintcache
 .agents/
-.codex/
+.codex/.next/
