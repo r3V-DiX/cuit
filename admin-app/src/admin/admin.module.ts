@@ -30,6 +30,7 @@ import { RbacController } from './controllers/rbac.controller';
 import { SubscriptionController } from './controllers/subscription.controller';
 import { AuditController } from './controllers/audit.controller';
 import { DashboardController } from './controllers/dashboard.controller';
+import { TestimonialsController } from './controllers/testimonials.controller';
 
 // Services
 import { KycService } from './services/kyc.service';
@@ -40,6 +41,7 @@ import { SubscriptionService } from './services/subscription.service';
 import { AuditQueryService } from './services/audit.service';
 import { DashboardService } from './services/dashboard.service';
 import { AdminAuditLogger } from './services/admin-audit.logger';
+import { TestimonialsService } from './services/testimonials.service';
 
 // Repositories
 import { KycRepository } from './repositories/kyc.repository';
@@ -48,6 +50,7 @@ import { UsersRepository } from './repositories/users.repository';
 import { RbacRepository } from './repositories/rbac.repository';
 import { AuditRepository } from './repositories/audit.repository';
 import { DashboardRepository } from './repositories/dashboard.repository';
+import { TestimonialsRepository } from './repositories/testimonials.repository';
 
 @Injectable()
 export class AdminSessionValidator implements ISessionValidator {
@@ -117,6 +120,7 @@ export class AdminSessionValidator implements ISessionValidator {
         SubscriptionController,
         AuditController,
         DashboardController,
+        TestimonialsController,
     ],
     providers: [
         AdminSessionValidator,
@@ -130,6 +134,7 @@ export class AdminSessionValidator implements ISessionValidator {
         SubscriptionService,
         AuditQueryService,
         DashboardService,
+        TestimonialsService,
         // Repositories
         KycRepository,
         AdminJobsRepository,
@@ -137,6 +142,7 @@ export class AdminSessionValidator implements ISessionValidator {
         RbacRepository,
         AuditRepository,
         DashboardRepository,
+        TestimonialsRepository,
     ],
 })
 export class AdminModule {}

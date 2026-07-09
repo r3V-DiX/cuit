@@ -118,22 +118,34 @@
 
 ---
 
-## 7. Contact Page `/contact`
+## 7. Landing Page — Success Stories + Employer Stories
 
 | # | What to Test | Backend Route |
 |---|-------------|---------------|
-| 70 | Contact page loads | — |
-| 71 | Submit with all fields → success screen shown | `POST /public/contact` |
-| 72 | Submit with empty name → error toast | client-side |
-| 73 | Submit with empty email → error toast | client-side |
-| 74 | Submit with empty/short message → error toast | client-side |
-| 75 | Backend error (e.g. rate limit) → error toast with message | `POST /public/contact` |
-| 76 | Rate limit: 4th submission within an hour → 429 error shown | `POST /public/contact` |
-| 77 | "Send another message" button resets form | client-side |
+| 70 | Seeker testimonials on landing page are real DB data | `GET /public/testimonials?type=SEEKER` |
+| 71 | Employer testimonials on `/employers` page are real DB data | `GET /public/testimonials?type=EMPLOYER` |
+| 72 | Empty state shown when no published testimonials | `GET /public/testimonials` |
+| 73 | Admin publishes a testimonial → appears on site after revalidation | `isPublished=true` in DB |
+| 74 | `sortOrder` controls display order | DB `sortOrder` field |
 
 ---
 
-## 8. Error Handling
+## 9. Contact Page `/contact`
+
+| # | What to Test | Backend Route |
+|---|-------------|---------------|
+| 75 | Contact page loads | — |
+| 76 | Submit with all fields → success screen shown | `POST /public/contact` |
+| 77 | Submit with empty name → error toast | client-side |
+| 78 | Submit with empty email → error toast | client-side |
+| 79 | Submit with empty/short message → error toast | client-side |
+| 80 | Backend error (e.g. rate limit) → error toast with message | `POST /public/contact` |
+| 81 | Rate limit: 4th submission within an hour → 429 error shown | `POST /public/contact` |
+| 82 | "Send another message" button resets form | client-side |
+
+---
+
+## 10. Error Handling
 
 | # | What to Test | Expected |
 |---|-------------|----------|

@@ -363,39 +363,38 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 </div>
               </div>
 
-              {/* AI Match Score */}
-              <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-violet-600" />
-                  <h3 className="text-sm font-semibold text-violet-900">AI Match Score</h3>
-                  <span className="ml-auto text-[10px] font-bold text-white bg-violet-500 px-1.5 py-0.5 rounded-full">AI</span>
-                </div>
-                <div className="flex items-end gap-2 mb-2">
-                  <span className="text-3xl font-bold text-violet-700 font-mono leading-none">84%</span>
-                  <span className="text-xs text-violet-500 mb-0.5">match with your profile</span>
-                </div>
-                <div className="h-2 bg-violet-200 rounded-full overflow-hidden mb-3">
-                  <div className="h-full w-[84%] bg-violet-500 rounded-full" />
-                </div>
-                <div className="space-y-1.5 mb-4">
-                  {[
-                    { label: "Skills match",       pct: 90 },
-                    { label: "Experience level",   pct: 80 },
-                    { label: "Certifications",     pct: 75 },
-                  ].map((s) => (
-                    <div key={s.label} className="flex items-center gap-2 text-[11px] text-violet-700">
-                      <span className="w-24 shrink-0">{s.label}</span>
-                      <div className="flex-1 h-1 bg-violet-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-violet-400 rounded-full" style={{ width: `${s.pct}%` }} />
+              {/* AI Match Score — only shown to logged-in seekers */}
+              {user && user.userType !== "EMPLOYER" && (
+                <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="w-4 h-4 text-violet-600" />
+                    <h3 className="text-sm font-semibold text-violet-900">AI Match Score</h3>
+                    <span className="ml-auto text-[10px] font-bold text-white bg-violet-500 px-1.5 py-0.5 rounded-full">AI</span>
+                  </div>
+                  <div className="flex items-end gap-2 mb-2">
+                    <span className="text-3xl font-bold text-violet-700 font-mono leading-none">84%</span>
+                    <span className="text-xs text-violet-500 mb-0.5">match with your profile</span>
+                  </div>
+                  <div className="h-2 bg-violet-200 rounded-full overflow-hidden mb-3">
+                    <div className="h-full w-[84%] bg-violet-500 rounded-full" />
+                  </div>
+                  <div className="space-y-1.5">
+                    {[
+                      { label: "Skills match",     pct: 90 },
+                      { label: "Experience level", pct: 80 },
+                      { label: "Certifications",   pct: 75 },
+                    ].map((s) => (
+                      <div key={s.label} className="flex items-center gap-2 text-[11px] text-violet-700">
+                        <span className="w-24 shrink-0">{s.label}</span>
+                        <div className="flex-1 h-1 bg-violet-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-violet-400 rounded-full" style={{ width: `${s.pct}%` }} />
+                        </div>
+                        <span className="font-bold font-mono w-8 text-right">{s.pct}%</span>
                       </div>
-                      <span className="font-bold font-mono w-8 text-right">{s.pct}%</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-                {!user && (
-                  <p className="text-[11px] text-violet-500">Sign in to see your personalized match</p>
-                )}
-              </div>
+              )}
 
               {/* Job details */}
               <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">

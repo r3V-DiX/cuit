@@ -13,7 +13,7 @@ import {
     HttpCode,
     HttpStatus,
 } from '@nestjs/common';
-import { AuthGuard } from '@cykruit/auth-core';
+import { AuthGuard, Public } from '@cykruit/auth-core';
 import { AdminGuard } from '../guards/admin.guard';
 import { PackagesService } from '../services/packages.service';
 import { CreatePackageDto, UpdatePackageDto } from '../dto/package.dto';
@@ -22,18 +22,16 @@ import { PackageListQueryDto } from '../dto/query.dto';
 // ── Public ────────────────────────────────────────────────────────────────────
 
 @Controller('subscriptions/packages')
+@Public()
 export class PublicPackagesController {
     constructor(private readonly packagesService: PackagesService) {}
 
-    /** Any authenticated user can browse active plans. */
     @Get()
-    @UseGuards(AuthGuard)
     listActive() {
         return this.packagesService.listActive();
     }
 
     @Get(':id')
-    @UseGuards(AuthGuard)
     getOne(@Param('id') id: string) {
         return this.packagesService.getById(id);
     }

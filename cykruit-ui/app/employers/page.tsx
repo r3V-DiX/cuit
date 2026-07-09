@@ -6,6 +6,23 @@ import {
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import Button from "@/components/ui/Button";
+import type { Testimonial } from "@/components/landing/TestimonialsSection";
+
+const PUBLIC_URL = process.env.PUBLIC_SERVICE_URL || "http://127.0.0.1:4006";
+
+async function getEmployerTestimonials(): Promise<Testimonial[]> {
+  try {
+    const res = await fetch(`${PUBLIC_URL}/public/testimonials?type=EMPLOYER`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return [];
+    const body = await res.json();
+    const raw = body?.data;
+    return Array.isArray(raw) ? raw : [];
+  } catch {
+    return [];
+  }
+}
 
 const features = [
   {
@@ -68,33 +85,6 @@ const benefits = [
 ];
 
 
-const testimonials = [
-  {
-    quote: "We filled a Senior Pentester role in 11 days. On LinkedIn it took us 4 months for the same position last year.",
-    name: "Aditya Sharma",
-    role: "CISO",
-    company: "Fintech Startup",
-    avatar: "AS",
-    bg: "bg-blue-600",
-  },
-  {
-    quote: "The AI ranking is legitimately good. It surfaces candidates our team would have found buried on page 6 of applicants.",
-    name: "Rachel Kim",
-    role: "Head of Security Recruiting",
-    company: "Series B SaaS",
-    avatar: "RK",
-    bg: "bg-purple-600",
-  },
-  {
-    quote: "Every applicant actually understood what our SOC team does. That has never happened before on any other platform.",
-    name: "Mehul Desai",
-    role: "Security Engineering Manager",
-    company: "E-commerce Platform",
-    avatar: "MD",
-    bg: "bg-green-600",
-  },
-];
-
 const steps = [
   {
     step: "01",
@@ -130,7 +120,9 @@ const steps = [
   },
 ];
 
-export default function EmployersPage() {
+export default async function EmployersPage() {
+  const testimonials = await getEmployerTestimonials();
+
   return (
     <>
       <Navbar />
@@ -380,33 +372,39 @@ export default function EmployersPage() {
               <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">What Hiring Teams Say</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {testimonials.map(({ quote, name, role, company, avatar, bg }) => (
-                <div key={name} className="group relative p-6 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 overflow-hidden flex flex-col gap-4">
-                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-blue-400/0 via-blue-500/70 to-blue-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  <div className="absolute top-2.5 left-2.5 w-3 h-3 border-t border-l border-slate-200 group-hover:border-blue-300 transition-colors" />
-                  <div className="absolute top-2.5 right-2.5 w-3 h-3 border-t border-r border-slate-200 group-hover:border-blue-300 transition-colors" />
-                  <div className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b border-l border-slate-200 group-hover:border-blue-300 transition-colors" />
-                  <div className="absolute bottom-2.5 right-2.5 w-3 h-3 border-b border-r border-slate-200 group-hover:border-blue-300 transition-colors" />
+            {testimonials.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 font-mono text-sm">
+                Stories coming soon.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {testimonials.map((t) => (
+                  <div key={t.id} className="group relative p-6 rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 overflow-hidden flex flex-col gap-4">
+                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-blue-400/0 via-blue-500/70 to-blue-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute top-2.5 left-2.5 w-3 h-3 border-t border-l border-slate-200 group-hover:border-blue-300 transition-colors" />
+                    <div className="absolute top-2.5 right-2.5 w-3 h-3 border-t border-r border-slate-200 group-hover:border-blue-300 transition-colors" />
+                    <div className="absolute bottom-2.5 left-2.5 w-3 h-3 border-b border-l border-slate-200 group-hover:border-blue-300 transition-colors" />
+                    <div className="absolute bottom-2.5 right-2.5 w-3 h-3 border-b border-r border-slate-200 group-hover:border-blue-300 transition-colors" />
 
-                  <div className="flex gap-1">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-slate-600 leading-relaxed flex-1">&ldquo;{quote}&rdquo;</p>
-                  <div className="flex items-center gap-3 pt-3 border-t border-slate-100 group-hover:border-blue-100 transition-colors">
-                    <div className={`w-9 h-9 rounded-full ${bg} flex items-center justify-center shrink-0`}>
-                      <span className="text-xs font-bold text-white">{avatar}</span>
+                    <div className="flex gap-1">
+                      {Array.from({ length: t.stars }).map((_, i) => (
+                        <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      ))}
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900">{name}</p>
-                      <p className="text-xs font-mono text-slate-400">{role} · {company}</p>
+                    <p className="text-sm text-slate-600 leading-relaxed flex-1">&ldquo;{t.quote}&rdquo;</p>
+                    <div className="flex items-center gap-3 pt-3 border-t border-slate-100 group-hover:border-blue-100 transition-colors">
+                      <div className={`w-9 h-9 rounded-full ${t.avatarColor ?? "bg-slate-600"} flex items-center justify-center shrink-0`}>
+                        <span className="text-xs font-bold text-white">{t.avatar ?? t.name.slice(0, 2).toUpperCase()}</span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">{t.name}</p>
+                        <p className="text-xs font-mono text-slate-400">{t.role} · {t.company}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

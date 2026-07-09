@@ -1606,6 +1606,30 @@ model ContactForm {
     @@index([email])
 }
 
+// Testimonial
+// type: "SEEKER" | "EMPLOYER"
+model Testimonial {
+    id          String  @id @default(uuid())
+    type        String  // SEEKER | EMPLOYER
+    name        String
+    role        String
+    company     String
+    avatar      String?  // initials fallback if null
+    avatarColor String?  // tailwind bg class e.g. "bg-blue-600"
+    quote       String  @db.Text
+    stars       Int     @default(5)
+    tag         String? // e.g. RED_TEAM, CLOUD_SEC
+    isPublished Boolean @default(false)
+    sortOrder   Int     @default(0)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([type, isPublished])
+    @@index([sortOrder])
+    @@map("testimonials")
+}
+
 model Blog {
     id          String  @id @default(uuid())
     title       String

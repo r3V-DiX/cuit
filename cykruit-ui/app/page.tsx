@@ -3,31 +3,46 @@ import FeaturedJobsSection, { FeaturedJob } from "@/components/landing/FeaturedJ
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import ForEmployersSection from "@/components/landing/ForEmployersSection";
-import TestimonialsSection from "@/components/landing/TestimonialsSection";
+import TestimonialsSection, { Testimonial } from "@/components/landing/TestimonialsSection";
 import CTASection from "@/components/landing/CTASection";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 
+const PUBLIC_URL = process.env.PUBLIC_SERVICE_URL || "http://127.0.0.1:4006";
+
 async function getFeaturedJobs(): Promise<FeaturedJob[]> {
   try {
-    const PUBLIC_URL = process.env.PUBLIC_SERVICE_URL || "http://127.0.0.1:4006";
     const res = await fetch(`${PUBLIC_URL}/public/jobs?limit=6`, {
       next: { revalidate: 300 },
     });
     if (!res.ok) return [];
     const body = await res.json();
-    // ResponseInterceptor wraps to { success, data: <service return>, meta }
-    // Jobs service returns { data: [...], total, ... } so final path is body.data.data
     const raw = body?.data;
-    const jobs = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
-    return jobs;
+    return Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+  } catch {
+    return [];
+  }
+}
+
+async function getSeekerTestimonials(): Promise<Testimonial[]> {
+  try {
+    const res = await fetch(`${PUBLIC_URL}/public/testimonials?type=SEEKER`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return [];
+    const body = await res.json();
+    const raw = body?.data;
+    return Array.isArray(raw) ? raw : [];
   } catch {
     return [];
   }
 }
 
 export default async function LandingPage() {
-  const jobs = await getFeaturedJobs();
+  const [jobs, seekerTestimonials] = await Promise.all([
+    getFeaturedJobs(),
+    getSeekerTestimonials(),
+  ]);
 
   return (
     <>
@@ -38,7 +53,7 @@ export default async function LandingPage() {
         <HowItWorksSection />
         <FeaturesSection />
         <ForEmployersSection />
-        <TestimonialsSection />
+        <TestimonialsSection testimonials={seekerTestimonials} />
         <CTASection />
       </main>
       <Footer />
