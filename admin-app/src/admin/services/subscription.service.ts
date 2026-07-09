@@ -46,31 +46,31 @@ export class SubscriptionService {
 
     async listPackages(query: { isActive?: boolean; page?: number; limit?: number } = {}) {
         return this.proxy(() =>
-            firstValueFrom(this.http.get(`${this.baseUrl}/packages`, { params: query })),
+            firstValueFrom(this.http.get(`${this.baseUrl}/subscriptions/packages`, { params: query })),
         );
     }
 
     async getPackage(id: string) {
         return this.proxy(() =>
-            firstValueFrom(this.http.get(`${this.baseUrl}/packages/${id}`)),
+            firstValueFrom(this.http.get(`${this.baseUrl}/subscriptions/packages/${id}`)),
         );
     }
 
     async createPackage(dto: CreatePackageDto) {
         return this.proxy(() =>
-            firstValueFrom(this.http.post(`${this.baseUrl}/admin/packages`, dto)),
+            firstValueFrom(this.http.post(`${this.baseUrl}/subscriptions/admin/packages`, dto)),
         );
     }
 
     async updatePackage(id: string, dto: UpdatePackageDto) {
         return this.proxy(() =>
-            firstValueFrom(this.http.patch(`${this.baseUrl}/admin/packages/${id}`, dto)),
+            firstValueFrom(this.http.patch(`${this.baseUrl}/subscriptions/admin/packages/${id}`, dto)),
         );
     }
 
     async deletePackage(id: string) {
         return this.proxy(() =>
-            firstValueFrom(this.http.delete(`${this.baseUrl}/admin/packages/${id}`)),
+            firstValueFrom(this.http.delete(`${this.baseUrl}/subscriptions/admin/packages/${id}`)),
         );
     }
 
@@ -78,32 +78,32 @@ export class SubscriptionService {
 
     async listSubscriptions(query: SubscriptionListQueryDto) {
         return this.proxy(() =>
-            firstValueFrom(this.http.get(`${this.baseUrl}/admin/subscriptions`, { params: query })),
+            firstValueFrom(this.http.get(`${this.baseUrl}/subscriptions/admin`, { params: query })),
         );
     }
 
     async getSubscriptionById(id: string) {
         return this.proxy(() =>
-            firstValueFrom(this.http.get(`${this.baseUrl}/admin/subscriptions/${id}`)),
+            firstValueFrom(this.http.get(`${this.baseUrl}/subscriptions/admin/${id}`)),
         );
     }
 
     async assignSubscription(dto: AssignSubscriptionDto) {
         return this.proxy(() =>
-            firstValueFrom(this.http.post(`${this.baseUrl}/admin/subscriptions/assign`, dto)),
+            firstValueFrom(this.http.post(`${this.baseUrl}/subscriptions/admin/assign`, dto)),
         );
     }
 
     async getEmployerSubscription(employerId: string) {
         return this.proxy(() =>
-            firstValueFrom(this.http.get(`${this.baseUrl}/admin/subscriptions/employer/${employerId}`)),
+            firstValueFrom(this.http.get(`${this.baseUrl}/subscriptions/my`, { params: { employerId } })),
         );
     }
 
     async updateSubscriptionStatus(id: string, status: string) {
         return this.proxy(() =>
             firstValueFrom(
-                this.http.patch(`${this.baseUrl}/admin/subscriptions/${id}/status`, { status }),
+                this.http.patch(`${this.baseUrl}/subscriptions/admin/${id}/status`, { status }),
             ),
         );
     }

@@ -83,7 +83,7 @@ export class SeekerSessionValidator implements ISessionValidator {
         AuthCoreModule.forRoot({
             sessionValidatorClass: SeekerSessionValidator,
             imports: [PrismaModule, ConfigModule],
-            enableCsrf: false,
+            enableCsrf: true,
         }),
     ],
     controllers: [

@@ -125,9 +125,13 @@ export default function NotificationsPage() {
       ? notifs.filter((n) => !n.isRead).length
       : notifs.filter((n) => n.type === tab && !n.isRead).length;
 
+  function getCsrf() {
+    return document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "";
+  }
+
   async function markRead(id: string) {
     try {
-      await fetch(`/api/notifications/${id}/read`, { method: "PATCH", credentials: "include" });
+      await fetch(`/api/notifications/${id}/read`, { method: "PATCH", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
       setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
     } catch {
       toast({ type: "error", message: "Failed to mark as read" });
@@ -142,7 +146,7 @@ export default function NotificationsPage() {
       confirmLabel: "Mark all read",
       onConfirm: async () => {
         try {
-          await fetch("/api/notifications/read-all", { method: "PATCH", credentials: "include" });
+          await fetch("/api/notifications/read-all", { method: "PATCH", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
           setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
           toast({ type: "success", message: "All notifications marked as read" });
         } catch {
@@ -161,7 +165,7 @@ export default function NotificationsPage() {
       confirmLabel: "Delete",
       onConfirm: async () => {
         try {
-          await fetch(`/api/notifications/${id}`, { method: "DELETE", credentials: "include" });
+          await fetch(`/api/notifications/${id}`, { method: "DELETE", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
           setNotifs((prev) => prev.filter((n) => n.id !== id));
           toast({ type: "info", message: "Notification deleted" });
         } catch {
@@ -179,7 +183,7 @@ export default function NotificationsPage() {
     }
     Promise.all(
       readNotifs.map((n) =>
-        fetch(`/api/notifications/${n.id}`, { method: "DELETE", credentials: "include" })
+        fetch(`/api/notifications/${n.id}`, { method: "DELETE", credentials: "include", headers: { "x-csrf-token": getCsrf() } })
       )
     ).then(() => {
       setNotifs((prev) => prev.filter((n) => !n.isRead));

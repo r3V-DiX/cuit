@@ -108,7 +108,7 @@ export class EmployerSessionValidator implements ISessionValidator {
         AuthCoreModule.forRoot({
             sessionValidatorClass: EmployerSessionValidator,
             imports: [PrismaModule, ConfigModule],
-            enableCsrf: false,
+            enableCsrf: true,
         }),
     ],
     controllers: [

@@ -91,8 +91,13 @@ export class AuthGuard implements CanActivate {
   }
 
   private extractIp(request: Request): string {
+    const trustedProxyCount = parseInt(process.env.TRUSTED_PROXY_COUNT ?? "0", 10);
+    const socketIp = request.ip || request.socket?.remoteAddress || "unknown";
+    if (trustedProxyCount === 0) return socketIp;
     const forwarded = request.headers["x-forwarded-for"] as string;
-    if (forwarded) return forwarded.split(",")[0].trim();
-    return request.ip || request.socket?.remoteAddress || "unknown";
+    if (!forwarded) return socketIp;
+    const ips = forwarded.split(",").map((s) => s.trim()).filter(Boolean);
+    if (ips.length === 0) return socketIp;
+    return ips[Math.max(0, ips.length - trustedProxyCount - 1)] || socketIp;
   }
 }

@@ -22,10 +22,12 @@ export class CsrfGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly configService: ConfigService,
   ) {
+    const csrfSecret = this.configService.get<string>("CSRF_SECRET");
     const jwtSecret = this.configService.get<string>("JWT_SECRET");
-    if (!jwtSecret)
-      throw new Error("JWT_SECRET must be set for CSRF protection");
-    this.secret = createHmac("sha256", jwtSecret)
+    const keyMaterial = csrfSecret || jwtSecret;
+    if (!keyMaterial)
+      throw new Error("CSRF_SECRET (or JWT_SECRET) must be set for CSRF protection");
+    this.secret = createHmac("sha256", keyMaterial)
       .update("csrf-token-v1")
       .digest("hex");
   }

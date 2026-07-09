@@ -134,15 +134,19 @@ export class AddOfficeLocationDto {
     type: string;
 
     @IsString()
+    @MaxLength(500)
     address: string;
 
     @IsString()
+    @MaxLength(100)
     city: string;
 
     @IsString()
+    @MaxLength(100)
     state: string;
 
     @IsString()
+    @MaxLength(100)
     country: string;
 
     @IsBoolean()

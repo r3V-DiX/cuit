@@ -16,7 +16,7 @@ import { ForgotPasswordDto } from "../dto/forgot-password.dto";
 import { ResetPasswordDto } from "../dto/reset-password.dto";
 import { Public } from "@cykruit/auth-core";
 import { ErrorCodes } from "@cykruit/common";
-import { ForgotPasswordRateLimit } from "@cykruit/rate-limit";
+import { ForgotPasswordRateLimit, RateLimit } from "@cykruit/rate-limit";
 
 @Controller("auth")
 export class PasswordController {
@@ -43,6 +43,7 @@ export class PasswordController {
   }
 
   @Public()
+  @RateLimit({ reset_password: { ttl: 15 * 60_000, limit: 10 } })
   @Post("reset-password")
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {

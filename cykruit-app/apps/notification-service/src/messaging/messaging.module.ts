@@ -66,7 +66,7 @@ export class MessagingSessionValidator implements ISessionValidator {
         AuthCoreModule.forRoot({
             sessionValidatorClass: MessagingSessionValidator,
             imports: [PrismaModule, ConfigModule],
-            enableCsrf: false,
+            enableCsrf: true,
         }),
     ],
     controllers: [MessagingController],

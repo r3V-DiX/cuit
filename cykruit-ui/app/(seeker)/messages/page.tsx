@@ -154,7 +154,7 @@ export default function SeekerMessagesPage() {
     setConvs((prev) => prev.map((c) => c.id === id ? { ...c, seekerUnread: 0 } : c));
     try {
       const convRes = await fetch(`/api/conversations/${id}`, { credentials: "include" });
-      fetch(`/api/conversations/${id}/read`, { method: "PATCH", credentials: "include" }).catch(() => {});
+      fetch(`/api/conversations/${id}/read`, { method: "PATCH", credentials: "include", headers: { "x-csrf-token": document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "" } }).catch(() => {});
       if (convRes.ok) {
         const data = await convRes.json();
         const messages: Message[] = (data.data?.messages || []).map((msg: any) => ({

@@ -94,10 +94,11 @@ app.use('/ws', wsProxy);
 
 // ── Health aggregator ──────────────────────────────────────────────────
 app.get('/gateway/health', (_req, res) => {
+    const isProd = process.env.NODE_ENV === 'production';
     res.json({
         status: 'ok',
         gateway: 'running',
-        services: SERVICES,
+        ...(isProd ? {} : { services: SERVICES }),
         timestamp: new Date().toISOString(),
     });
 });

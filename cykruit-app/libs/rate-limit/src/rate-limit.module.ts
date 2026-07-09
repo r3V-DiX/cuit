@@ -62,6 +62,16 @@ const isDev = process.env.NODE_ENV === "development";
             ttl: 60_000,
             limit: isDev ? 10000 : 20,
           },
+          {
+            name: "reset_password",
+            ttl: 15 * 60_000,
+            limit: isDev ? 10000 : 10,
+          },
+          {
+            name: "check_verification",
+            ttl: 60_000,
+            limit: isDev ? 10000 : 20,
+          },
         ],
       }),
     }),

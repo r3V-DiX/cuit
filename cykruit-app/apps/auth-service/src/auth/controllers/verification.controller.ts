@@ -23,6 +23,7 @@ import { sanitizeIpAddress, sanitizeUserAgent } from "../utils/auth.utils";
 import {
   VerifyEmailRateLimit,
   ResendVerificationRateLimit,
+  RateLimit,
 } from "@cykruit/rate-limit";
 
 @Controller("auth")
@@ -83,6 +84,7 @@ export class VerificationController {
   }
 
   @Public()
+  @RateLimit({ check_verification: { ttl: 60_000, limit: 20 } })
   @Get("check-verification")
   @HttpCode(HttpStatus.OK)
   async checkVerificationStatus(@Query("email") email: string) {

@@ -115,6 +115,10 @@ export default function SavedPage() {
     }
   }
 
+  function getCsrf() {
+    return document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "";
+  }
+
   function clearAll() {
     openModal({
       variant: "danger",
@@ -122,7 +126,7 @@ export default function SavedPage() {
       description: "All saved jobs will be removed. You can re-save them from the jobs page.",
       onConfirm: async () => {
         await Promise.all(jobs.map((j) =>
-          fetch(`/api/seeker/jobs/${j.jobId}/save`, { method: "DELETE", credentials: "include" })
+          fetch(`/api/seeker/jobs/${j.jobId}/save`, { method: "DELETE", credentials: "include", headers: { "x-csrf-token": getCsrf() } })
         ));
         setJobs([]);
         toast({ type: "info", message: "Saved jobs cleared" });

@@ -93,6 +93,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       .catch(() => {});
   }, [job, user]);
 
+  function getCsrf() {
+    return document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "";
+  }
+
   async function handleSave() {
     if (!job) return;
     if (!user) {
@@ -101,14 +105,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     }
     try {
       if (isSaved) {
-        const res = await fetch(`/api/seeker/jobs/${job.id}/save`, { method: "DELETE", credentials: "include" });
+        const res = await fetch(`/api/seeker/jobs/${job.id}/save`, { method: "DELETE", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
         if (!res.ok) throw new Error();
         setIsSaved(false);
         toast({ type: "info", message: "Job removed", description: `"${job.title}" removed from Saved.` });
       } else {
         const res = await fetch(`/api/seeker/jobs/${job.id}/save`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", "x-csrf-token": getCsrf() },
           credentials: "include",
           body: JSON.stringify({}),
         });

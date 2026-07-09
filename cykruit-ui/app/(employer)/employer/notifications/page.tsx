@@ -83,9 +83,13 @@ export default function EmployerNotificationsPage() {
 
   const unreadCount = notifs.filter((n) => !n.isRead).length;
 
+  function getCsrf() {
+    return document.cookie.split(";").find((c) => c.trim().startsWith("csrf_token="))?.split("=")[1] ?? "";
+  }
+
   async function markAllRead() {
     try {
-      await fetch("/api/notifications/read-all", { method: "PATCH", credentials: "include" });
+      await fetch("/api/notifications/read-all", { method: "PATCH", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
       setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
     } catch {
       // silently fail
@@ -94,7 +98,7 @@ export default function EmployerNotificationsPage() {
 
   async function markRead(id: string) {
     try {
-      await fetch(`/api/notifications/${id}/read`, { method: "PATCH", credentials: "include" });
+      await fetch(`/api/notifications/${id}/read`, { method: "PATCH", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
       setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
     } catch {
       // silently fail
@@ -103,7 +107,7 @@ export default function EmployerNotificationsPage() {
 
   async function dismiss(id: string) {
     try {
-      await fetch(`/api/notifications/${id}`, { method: "DELETE", credentials: "include" });
+      await fetch(`/api/notifications/${id}`, { method: "DELETE", credentials: "include", headers: { "x-csrf-token": getCsrf() } });
       setNotifs((prev) => prev.filter((n) => n.id !== id));
     } catch {
       // silently fail

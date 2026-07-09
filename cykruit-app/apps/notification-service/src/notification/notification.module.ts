@@ -92,7 +92,7 @@ export class NotificationSessionValidator implements ISessionValidator {
         AuthCoreModule.forRoot({
             sessionValidatorClass: NotificationSessionValidator,
             imports: [PrismaModule, ConfigModule],
-            enableCsrf: false,
+            enableCsrf: true,
         }),
     ],
     controllers: [NotificationController],

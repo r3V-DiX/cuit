@@ -4,6 +4,7 @@ import {
     IsString,
     IsOptional,
     IsEnum,
+    IsIn,
     IsUUID,
     IsInt,
     IsBoolean,
@@ -59,7 +60,6 @@ export class JobSearchDto {
     featuredOnly?: boolean;
 
     @IsOptional()
-    @IsString()
-    @MaxLength(50)
+    @IsIn(['recent', 'relevance'])
     sortBy?: 'recent' | 'relevance' = 'recent';
 }
