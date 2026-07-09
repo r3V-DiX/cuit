@@ -331,7 +331,7 @@ export default function EmployerRegisterPage() {
                 </span>
               </label>
 
-              <button type="submit" disabled={loading}
+              <button type="submit" disabled={loading || !!emailError || (!!confirm && confirm !== password)}
                 className="w-full h-11 rounded-xl bg-linear-to-r from-violet-500 to-violet-600 text-white text-sm font-semibold hover:from-violet-400 hover:to-violet-500 shadow-md shadow-violet-500/20 hover:shadow-violet-500/35 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
                 {loading ? (
                   <><svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
