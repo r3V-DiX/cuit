@@ -1,9 +1,95 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
-import { Send, Search, Briefcase, ChevronRight } from "lucide-react";
-import { CONVERSATIONS, type Conversation, type Message } from "@/lib/messages-data";
+import { Send, Search, Briefcase, ChevronRight, Loader2 } from "lucide-react";
+
+type Message = {
+  id: string;
+  from: "seeker" | "employer";
+  text: string;
+  time: string;
+  timeTs: number;
+};
+
+type Conversation = {
+  id: string;
+  candidateName: string;
+  candidateInitials: string;
+  candidateAccent: string;
+  companyName: string;
+  companyInitials: string;
+  companyAccent: string;
+  jobTitle: string;
+  jobId: string | null;
+  messages: Message[];
+  seekerUnread: number;
+  employerUnread: number;
+};
+
+const ACCENTS = [
+  "bg-blue-500", "bg-violet-500", "bg-emerald-500", "bg-orange-500",
+  "bg-pink-500", "bg-teal-500", "bg-indigo-500", "bg-rose-500",
+];
+
+function formatTime(iso: string): string {
+  const now = Date.now();
+  const ts = new Date(iso).getTime();
+  const diff = Math.floor((now - ts) / 1000);
+  if (diff < 60) return "Just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 172800) return "Yesterday";
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function nameInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((p) => p[0] ?? "")
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapApiConv(conv: any, idx: number): Conversation {
+  const seeker = conv.participants?.find((p: any) => p.role === "SEEKER");
+  const employer = conv.participants?.find((p: any) => p.role === "EMPLOYER");
+  const seekerName = seeker
+    ? `${seeker.user?.firstName ?? ""} ${seeker.user?.lastName ?? ""}`.trim()
+    : "Unknown Candidate";
+  const employerName = employer
+    ? `${employer.user?.firstName ?? ""} ${employer.user?.lastName ?? ""}`.trim()
+    : "Company";
+  const jobTitle = conv.jobId ? `Job #${String(conv.jobId).slice(0, 8)}` : "General";
+  const lastMsg = conv.lastMessage;
+  const msgs: Message[] = lastMsg
+    ? [
+        {
+          id: lastMsg.id,
+          from: "seeker",
+          text: lastMsg.content,
+          time: formatTime(lastMsg.createdAt),
+          timeTs: new Date(lastMsg.createdAt).getTime(),
+        },
+      ]
+    : [];
+  return {
+    id: conv.id,
+    candidateName: seekerName,
+    candidateInitials: nameInitials(seekerName),
+    candidateAccent: ACCENTS[idx % ACCENTS.length],
+    companyName: employerName,
+    companyInitials: nameInitials(employerName),
+    companyAccent: ACCENTS[(idx + 3) % ACCENTS.length],
+    jobTitle,
+    jobId: conv.jobId ?? null,
+    messages: msgs,
+    seekerUnread: 0,
+    employerUnread: conv.myUnread ?? 0,
+  };
+}
 
 // Employer sees ALL conversations across all candidates
 export default function EmployerMessagesPage() {
@@ -11,57 +97,110 @@ export default function EmployerMessagesPage() {
   const [activeId, setActiveId] = useState<string>("");
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [showList, setShowList] = useState(true);
 
   useEffect(() => {
-    const local = localStorage.getItem("cykruit_messages");
-    if (local) {
-      const parsed = JSON.parse(local);
-      setConvs(parsed);
-      if (parsed.length > 0) setActiveId(parsed[0].id);
-    } else {
-      localStorage.setItem("cykruit_messages", JSON.stringify(CONVERSATIONS));
-      setConvs(CONVERSATIONS);
-      if (CONVERSATIONS.length > 0) setActiveId(CONVERSATIONS[0].id);
+    async function load() {
+      setLoading(true);
+      try {
+        const [convsRes, meRes] = await Promise.all([
+          fetch("/api/conversations", { credentials: "include" }),
+          fetch("/api/auth/me", { credentials: "include" }),
+        ]);
+        const convsData = convsRes.ok ? await convsRes.json() : { data: { items: [] } };
+        const meData = meRes.ok ? await meRes.json() : {};
+        const userId: string = meData?.data?.id ?? meData?.id ?? "";
+        setCurrentUserId(userId);
+        const items: any[] = convsData?.data?.items ?? [];
+        const mapped = items.map((c, i) => mapApiConv(c, i));
+        setConvs(mapped);
+        if (mapped.length > 0) setActiveId(mapped[0].id);
+      } finally {
+        setLoading(false);
+      }
     }
+    load();
   }, []);
 
   const active = convs.find((c) => c.id === activeId);
 
-  const filtered = convs.filter((c) =>
-    search === "" ||
-    c.candidateName.toLowerCase().includes(search.toLowerCase()) ||
-    c.jobTitle.toLowerCase().includes(search.toLowerCase())
+  const filtered = convs.filter(
+    (c) =>
+      search === "" ||
+      c.candidateName.toLowerCase().includes(search.toLowerCase()) ||
+      c.jobTitle.toLowerCase().includes(search.toLowerCase())
   );
 
-  function selectConv(id: string) {
-    setActiveId(id);
-    setConvs((prev) => {
-      const next = prev.map((c) => c.id === id ? { ...c, employerUnread: 0 } : c);
-      localStorage.setItem("cykruit_messages", JSON.stringify(next));
-      return next;
-    });
-  }
+  const selectConv = useCallback(
+    async (id: string) => {
+      setActiveId(id);
+      try {
+        const [fullRes] = await Promise.all([
+          fetch(`/api/conversations/${id}`, { credentials: "include" }),
+          fetch(`/api/conversations/${id}/read`, { method: "PATCH", credentials: "include" }),
+        ]);
+        if (fullRes.ok) {
+          const data = await fullRes.json();
+          const full = data?.data ?? data;
+          const msgs: Message[] = (full.messages ?? []).map((m: any) => ({
+            id: m.id,
+            from: m.senderId === currentUserId ? ("employer" as const) : ("seeker" as const),
+            text: m.content,
+            time: formatTime(m.createdAt),
+            timeTs: new Date(m.createdAt).getTime(),
+          }));
+          setConvs((prev) =>
+            prev.map((c) =>
+              c.id === id ? { ...c, messages: msgs, employerUnread: 0 } : c
+            )
+          );
+        } else {
+          setConvs((prev) =>
+            prev.map((c) => (c.id === id ? { ...c, employerUnread: 0 } : c))
+          );
+        }
+      } catch {
+        setConvs((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, employerUnread: 0 } : c))
+        );
+      }
+    },
+    [currentUserId]
+  );
 
-  function sendMessage() {
+  async function sendMessage() {
     if (!input.trim() || !active) return;
-    const newMsg: Message = {
-      id: active.messages.length + 1,
-      from: "employer",
-      text: input.trim(),
-      time: "Just now",
-      timeTs: Date.now(),
-    };
-    setConvs((prev) => {
-      const next = prev.map((c) =>
-        c.id === activeId
-          ? { ...c, messages: [...c.messages, newMsg], employerUnread: 0 }
-          : c
-      );
-      localStorage.setItem("cykruit_messages", JSON.stringify(next));
-      return next;
-    });
+    const content = input.trim();
     setInput("");
+    try {
+      const res = await fetch(`/api/conversations/${active.id}/messages`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      const data = res.ok ? await res.json() : null;
+      const savedMsg = data?.data ?? data;
+      const newMsg: Message = {
+        id: savedMsg?.id ?? String(Date.now()),
+        from: "employer",
+        text: savedMsg?.content ?? content,
+        time: formatTime(savedMsg?.createdAt ?? new Date().toISOString()),
+        timeTs: savedMsg?.createdAt ? new Date(savedMsg.createdAt).getTime() : Date.now(),
+      };
+      setConvs((prev) =>
+        prev.map((c) =>
+          c.id === active.id
+            ? { ...c, messages: [...c.messages, newMsg], employerUnread: 0 }
+            : c
+        )
+      );
+    } catch {
+      // keep input cleared, send failed silently
+    }
   }
 
   function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -76,8 +215,6 @@ export default function EmployerMessagesPage() {
   }, [active?.messages.length, activeId]);
 
   const totalUnread = convs.reduce((s, c) => s + c.employerUnread, 0);
-
-  const [showList, setShowList] = useState(true);
 
   function openConv(id: string) {
     selectConv(id);
@@ -115,7 +252,11 @@ export default function EmployerMessagesPage() {
 
           {/* List */}
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="p-6 flex justify-center">
+                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">No conversations found</div>
             ) : filtered.map((conv) => {
               const last = conv.messages[conv.messages.length - 1];
@@ -136,12 +277,14 @@ export default function EmployerMessagesPage() {
                         <span className={`text-xs font-semibold truncate ${isActive ? "text-blue-700" : "text-slate-800"}`}>
                           {conv.candidateName}
                         </span>
-                        <span className="text-[10px] text-slate-400 shrink-0">{last.time}</span>
+                        <span className="text-[10px] text-slate-400 shrink-0">{last?.time ?? ""}</span>
                       </div>
                       <p className="text-[11px] text-slate-500 truncate mt-0.5">{conv.jobTitle}</p>
-                      <p className={`text-[11px] truncate mt-1 ${conv.employerUnread > 0 ? "text-slate-700 font-medium" : "text-slate-400"}`}>
-                        {last.from === "employer" ? "You: " : `${conv.candidateName.split(" ")[0]}: `}{last.text}
-                      </p>
+                      {last && (
+                        <p className={`text-[11px] truncate mt-1 ${conv.employerUnread > 0 ? "text-slate-700 font-medium" : "text-slate-400"}`}>
+                          {last.from === "employer" ? "You: " : `${conv.candidateName.split(" ")[0]}: `}{last.text}
+                        </p>
+                      )}
                     </div>
                     {conv.employerUnread > 0 && (
                       <span className="w-4 h-4 rounded-full bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center shrink-0 mt-1">
@@ -240,7 +383,11 @@ export default function EmployerMessagesPage() {
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 text-slate-400 p-6 text-center">
-            <svg className="w-8 h-8 mb-2 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            {loading ? (
+              <Loader2 className="w-8 h-8 mb-2 animate-spin opacity-30" />
+            ) : (
+              <svg className="w-8 h-8 mb-2 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            )}
             <p className="text-sm font-medium">Select a conversation to start messaging</p>
           </div>
         )}

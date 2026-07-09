@@ -65,6 +65,10 @@ const nextConfig: NextConfig = {
         destination: `${NOTIF_URL}/notifications/:path*`,
       },
       {
+        source: "/api/conversations/:path*",
+        destination: `${NOTIF_URL}/conversations/:path*`,
+      },
+      {
         source: "/api/subscriptions/:path*",
         destination: `${SUBS_URL}/subscriptions/:path*`,
       },

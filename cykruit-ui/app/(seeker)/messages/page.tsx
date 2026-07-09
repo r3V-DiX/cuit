@@ -2,64 +2,202 @@
 
 import { useState, useRef, useEffect } from "react";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
-import { MessageSquare, Send, Search, Building2, Briefcase, ChevronRight } from "lucide-react";
-import { CONVERSATIONS, type Conversation, type Message } from "@/lib/messages-data";
+import { MessageSquare, Send, Search, Briefcase, ChevronRight, Loader2 } from "lucide-react";
+
+type Message = {
+  id: string | number;
+  from: "seeker" | "employer";
+  text: string;
+  time: string;
+  timeTs: number;
+};
+
+type Conversation = {
+  id: string;
+  candidateName: string;
+  candidateInitials: string;
+  candidateAccent: string;
+  companyName: string;
+  companyInitials: string;
+  companyAccent: string;
+  jobTitle: string;
+  jobId: string;
+  messages: Message[];
+  seekerUnread: number;
+  employerUnread: number;
+};
+
+const ACCENTS = [
+  "bg-blue-500", "bg-violet-500", "bg-emerald-500", "bg-orange-500",
+  "bg-pink-500", "bg-teal-500", "bg-amber-500", "bg-cyan-500",
+];
+
+function getInitials(name: string): string {
+  return name.split(" ").filter(Boolean).map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+}
+
+function formatTime(iso: string): string {
+  const now = Date.now();
+  const ts = new Date(iso).getTime();
+  const diff = Math.floor((now - ts) / 1000);
+  if (diff < 60) return "Just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  const days = Math.floor(diff / 86400);
+  if (days === 1) return "Yesterday";
+  return `${days}d ago`;
+}
 
 export default function SeekerMessagesPage() {
   const [convs, setConvs] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const local = localStorage.getItem("cykruit_messages");
-    if (local) {
-      const parsed = JSON.parse(local);
-      setConvs(parsed);
-      if (parsed.length > 0) setActiveId(parsed[0].id);
-    } else {
-      setConvs([]);
+    async function init() {
+      try {
+        const [meRes, convsRes] = await Promise.all([
+          fetch("/api/auth/me", { credentials: "include" }),
+          fetch("/api/conversations", { credentials: "include" }),
+        ]);
+
+        let userId = "";
+        let initials = "Me";
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          userId = meData.data?.id || meData.id || "";
+          const firstName = meData.data?.firstName || meData.firstName || "";
+          const lastName = meData.data?.lastName || meData.lastName || "";
+          const fullName = `${firstName} ${lastName}`.trim();
+          initials = getInitials(fullName) || "Me";
+          setCurrentUserId(userId);
+        }
+
+        if (convsRes.ok) {
+          const convsData = await convsRes.json();
+          const items: any[] = convsData.data?.items || [];
+          const mapped: Conversation[] = items.map((conv: any, idx: number) => {
+            const employer = conv.participants?.find((p: any) => p.role === "EMPLOYER");
+            const companyName = employer
+              ? `${employer.user?.firstName || ""} ${employer.user?.lastName || ""}`.trim() || "Employer"
+              : "Employer";
+            const lastMsg = conv.lastMessage;
+            const messages: Message[] = lastMsg
+              ? [{
+                  id: lastMsg.id,
+                  from: lastMsg.senderId === userId ? "seeker" : "employer",
+                  text: lastMsg.content,
+                  time: formatTime(lastMsg.createdAt),
+                  timeTs: new Date(lastMsg.createdAt).getTime(),
+                }]
+              : [];
+            return {
+              id: conv.id,
+              candidateName: "",
+              candidateInitials: initials,
+              candidateAccent: "bg-blue-600",
+              companyName,
+              companyInitials: getInitials(companyName),
+              companyAccent: ACCENTS[idx % ACCENTS.length],
+              jobTitle: conv.jobId ? `Job #${conv.jobId}` : "Position",
+              jobId: conv.jobId || "",
+              messages,
+              seekerUnread: conv.myUnread || 0,
+              employerUnread: 0,
+            };
+          });
+          setConvs(mapped);
+          if (mapped.length > 0) {
+            const firstId = mapped[0].id;
+            setActiveId(firstId);
+            try {
+              const fullRes = await fetch(`/api/conversations/${firstId}`, { credentials: "include" });
+              if (fullRes.ok) {
+                const fullData = await fullRes.json();
+                const fullMessages: Message[] = (fullData.data?.messages || []).map((msg: any) => ({
+                  id: msg.id,
+                  from: msg.senderId === userId ? "seeker" : "employer",
+                  text: msg.content,
+                  time: formatTime(msg.createdAt),
+                  timeTs: new Date(msg.createdAt).getTime(),
+                }));
+                setConvs((prev) =>
+                  prev.map((c) => c.id === firstId ? { ...c, messages: fullMessages } : c)
+                );
+              }
+            } catch {}
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
     }
+    init();
   }, []);
 
   const active = convs.find((c) => c.id === activeId);
 
-  const filtered = convs.filter((c) =>
-    search === "" ||
-    c.companyName.toLowerCase().includes(search.toLowerCase()) ||
-    c.jobTitle.toLowerCase().includes(search.toLowerCase())
+  const filtered = convs.filter(
+    (c) =>
+      search === "" ||
+      c.companyName.toLowerCase().includes(search.toLowerCase()) ||
+      c.jobTitle.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Mark as read when switching to a conversation
-  function selectConv(id: string) {
+  async function selectConv(id: string) {
     setActiveId(id);
-    setConvs((prev) => {
-      const next = prev.map((c) => c.id === id ? { ...c, seekerUnread: 0 } : c);
-      localStorage.setItem("cykruit_messages", JSON.stringify(next));
-      return next;
-    });
+    setConvs((prev) => prev.map((c) => c.id === id ? { ...c, seekerUnread: 0 } : c));
+    try {
+      const convRes = await fetch(`/api/conversations/${id}`, { credentials: "include" });
+      fetch(`/api/conversations/${id}/read`, { method: "PATCH", credentials: "include" });
+      if (convRes.ok) {
+        const data = await convRes.json();
+        const messages: Message[] = (data.data?.messages || []).map((msg: any) => ({
+          id: msg.id,
+          from: msg.senderId === currentUserId ? "seeker" : "employer",
+          text: msg.content,
+          time: formatTime(msg.createdAt),
+          timeTs: new Date(msg.createdAt).getTime(),
+        }));
+        setConvs((prev) =>
+          prev.map((c) => c.id === id ? { ...c, messages, seekerUnread: 0 } : c)
+        );
+      }
+    } catch {}
   }
 
-  function sendMessage() {
+  async function sendMessage() {
     if (!input.trim() || !active) return;
-    const newMsg: Message = {
-      id: active.messages.length + 1,
-      from: "seeker",
-      text: input.trim(),
-      time: "Just now",
-      timeTs: Date.now(),
-    };
-    setConvs((prev) => {
-      const next = prev.map((c) =>
-        c.id === activeId
-          ? { ...c, messages: [...c.messages, newMsg], seekerUnread: 0 }
-          : c
-      );
-      localStorage.setItem("cykruit_messages", JSON.stringify(next));
-      return next;
-    });
+    const content = input.trim();
     setInput("");
+    try {
+      const res = await fetch(`/api/conversations/${activeId}/messages`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const returned = data.data;
+        const newMsg: Message = {
+          id: returned.id,
+          from: "seeker",
+          text: returned.content,
+          time: formatTime(returned.createdAt),
+          timeTs: new Date(returned.createdAt).getTime(),
+        };
+        setConvs((prev) =>
+          prev.map((c) =>
+            c.id === activeId ? { ...c, messages: [...c.messages, newMsg] } : c
+          )
+        );
+      }
+    } catch {}
   }
 
   function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -80,6 +218,17 @@ export default function SeekerMessagesPage() {
   function openConv(id: string) {
     selectConv(id);
     setShowList(false);
+  }
+
+  if (loading) {
+    return (
+      <>
+        <SeekerTopbar title="Messages" />
+        <main className="flex-1 flex items-center justify-center bg-slate-50">
+          <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+        </main>
+      </>
+    );
   }
 
   return (
@@ -135,11 +284,11 @@ export default function SeekerMessagesPage() {
                         <span className={`text-xs font-semibold truncate ${isActive ? "text-blue-700" : "text-slate-800"}`}>
                           {conv.companyName}
                         </span>
-                        <span className="text-[10px] text-slate-400 shrink-0">{last.time}</span>
+                        <span className="text-[10px] text-slate-400 shrink-0">{last?.time}</span>
                       </div>
                       <p className="text-[11px] text-slate-500 truncate mt-0.5">{conv.jobTitle}</p>
                       <p className={`text-[11px] truncate mt-1 ${conv.seekerUnread > 0 ? "text-slate-700 font-medium" : "text-slate-400"}`}>
-                        {last.from === "seeker" ? "You: " : ""}{last.text}
+                        {last?.from === "seeker" ? "You: " : ""}{last?.text}
                       </p>
                     </div>
                     {conv.seekerUnread > 0 && (

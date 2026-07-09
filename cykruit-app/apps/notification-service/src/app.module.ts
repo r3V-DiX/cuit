@@ -13,6 +13,7 @@ import { MailModule } from '@cykruit/mail';
 import { LoggerMiddleware } from '@cykruit/logger';
 
 import { NotificationModule } from './notification/notification.module';
+import { MessagingModule } from './messaging/messaging.module';
 
 export const NOTIFICATION_QUEUE = 'notification-email';
 
@@ -57,6 +58,7 @@ export const NOTIFICATION_QUEUE = 'notification-email';
         CommonModule,
 
         NotificationModule,
+        MessagingModule,
     ],
 })
 export class AppModule implements NestModule {
