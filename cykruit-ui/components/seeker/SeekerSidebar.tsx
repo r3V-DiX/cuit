@@ -11,6 +11,7 @@ import {
 import { useModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
+import { broadcastLogout, subscribeAuthSync } from "@/lib/auth-sync";
 
 const navItems = [
   { label: "Dashboard",     href: "/dashboard",     icon: LayoutDashboard },
@@ -66,6 +67,13 @@ export default function SeekerSidebar() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    return subscribeAuthSync(
+      () => router.push("/login"),
+      () => {},
+    );
+  }, [router]);
+
   function handleSignOut() {
     openModal({
       variant: "danger",
@@ -83,6 +91,7 @@ export default function SeekerSidebar() {
           localStorage.removeItem("cykruit_messages");
           localStorage.removeItem("cykruit_notifications");
           localStorage.removeItem("cykruit_employer_notifications");
+          broadcastLogout();
           toast({ type: "success", message: "Logged out successfully" });
           router.push("/login");
         } catch (error: any) {

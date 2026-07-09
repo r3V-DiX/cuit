@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Shield, Eye, EyeOff, ArrowRight, ChevronLeft } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
+import { broadcastLogin } from "@/lib/auth-sync";
 
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -36,6 +37,7 @@ function LoginForm() {
       });
       toast({ type: "success", message: "Signed in successfully" });
       const role = result.data?.role;
+      broadcastLogin(role === "EMPLOYER" ? "EMPLOYER" : "SEEKER");
       // Validate nextPath is a relative path to prevent open redirect
       const safeNext = nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : null;
       const destination = safeNext || (role === "EMPLOYER" ? "/employer/dashboard" : "/dashboard");
