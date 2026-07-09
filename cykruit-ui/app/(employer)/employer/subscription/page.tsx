@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { useToast } from "@/components/ui/Toast";
@@ -8,22 +8,47 @@ import { useModal } from "@/components/ui/Modal";
 import {
   CreditCard, Check, Zap, Building2, Shield, ArrowRight, Clock,
   AlertTriangle, Download, ExternalLink, ChevronRight, Star,
-  TrendingUp, Users, Briefcase, RefreshCw, XCircle,
+  TrendingUp, Users, Briefcase, RefreshCw, XCircle, Loader2,
 } from "lucide-react";
 
-// ── Mock data (swap with API) ────────────────────────────────────────────────
-const CURRENT_PLAN = {
-  id: "growth",
-  name: "Growth",
-  status: "active" as "active" | "cancelled" | "past_due" | "trialing",
-  billing: "monthly" as "monthly" | "yearly",
-  price: 149,
-  renewsAt: "2026-07-23",
-  trialEndsAt: null as string | null,
-  jobListingsUsed: 14,
-  jobListingsLimit: 25,
-  teamSeatsUsed: 2,
-  teamSeatsLimit: 3,
+// ── Types ─────────────────────────────────────────────────────────────────────
+interface SubscriptionPackage {
+  id: string;
+  name: string;
+  price: number;
+  features: string[];
+}
+
+interface Subscription {
+  id: string;
+  packageId: string;
+  status: "active" | "cancelled" | "past_due" | "trialing";
+  startDate: string;
+  endDate: string | null;
+  billingCycle: "monthly" | "yearly";
+  package: SubscriptionPackage;
+}
+
+interface Usage {
+  jobsUsed: number;
+  jobsLimit: number;
+  applicantsViewedUsed: number;
+  applicantsViewedLimit: number;
+  [key: string]: number;
+}
+
+interface ApiPackage {
+  id: string;
+  name: string;
+  price: number;
+  features: string[];
+}
+
+// ── Static UI config (icon/color/yearlyPrice not returned by API) ─────────────
+const PLAN_UI: Record<string, { yearlyPrice: number; icon: React.ElementType; color: string }> = {
+  starter:    { yearlyPrice: 39,  icon: Shield,    color: "blue"    },
+  growth:     { yearlyPrice: 119, icon: Zap,       color: "violet"  },
+  enterprise: { yearlyPrice: 319, icon: Building2, color: "emerald" },
 };
 
 const PAYMENT_METHODS = [
@@ -39,13 +64,7 @@ const INVOICES = [
   { id: "INV-2026-001", date: "2026-01-01", amount: 149, status: "paid",   period: "Jan 2026" },
 ];
 
-const PLANS = [
-  { id: "starter",    name: "Starter",    price: 49,  yearlyPrice: 39,  icon: Shield,    color: "blue"   },
-  { id: "growth",     name: "Growth",     price: 149, yearlyPrice: 119, icon: Zap,       color: "violet" },
-  { id: "enterprise", name: "Enterprise", price: 399, yearlyPrice: 319, icon: Building2, color: "emerald"},
-];
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const statusConfig = {
   active:    { label: "Active",    cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   trialing:  { label: "Trial",     cls: "bg-blue-100 text-blue-700 border-blue-200"          },
@@ -64,7 +83,7 @@ function cardBrandIcon(brand: string) {
 }
 
 function UsageBar({ used, limit, color }: { used: number; limit: number; color: string }) {
-  const pct = Math.min((used / limit) * 100, 100);
+  const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
   const warn = pct >= 80;
   return (
     <div>
@@ -82,24 +101,59 @@ function UsageBar({ used, limit, color }: { used: number; limit: number; color: 
   );
 }
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 export default function SubscriptionPage() {
   const { toast } = useToast();
   const { openModal } = useModal();
   const [tab, setTab] = useState<"overview" | "plans" | "payment" | "history">("overview");
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
-  const plan = CURRENT_PLAN;
-  const sc = statusConfig[plan.status];
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [usage, setUsage] = useState<Usage | null>(null);
+  const [packages, setPackages] = useState<ApiPackage[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [subRes, usageRes, pkgRes] = await Promise.all([
+          fetch("/api/subscriptions/my", { credentials: "include" }),
+          fetch("/api/subscriptions/usage", { credentials: "include" }),
+          fetch("/api/subscriptions/packages", { credentials: "include" }),
+        ]);
+        if (subRes.ok) setSubscription(await subRes.json());
+        if (usageRes.ok) setUsage(await usageRes.json());
+        if (pkgRes.ok) setPackages(await pkgRes.json());
+      } catch {
+        // silently ignore; UI shows fallbacks
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  const planStatus = subscription?.status ?? "active";
+  const sc = statusConfig[planStatus] ?? statusConfig.active;
+  const planName = subscription?.package?.name ?? "No active plan";
+  const planPrice = subscription?.package?.price ?? 0;
+  const planBilling = subscription?.billingCycle ?? "monthly";
+  const planRenewsAt = subscription?.endDate ? subscription.endDate.slice(0, 10) : "—";
+  const planPackageId = subscription?.packageId ?? "";
+
+  const jobsUsed = usage?.jobsUsed ?? 0;
+  const jobsLimit = usage?.jobsLimit ?? 0;
+  const applicantsUsed = usage?.applicantsViewedUsed ?? 0;
+  const applicantsLimit = usage?.applicantsViewedLimit ?? 0;
 
   function handleCancelPlan() {
     openModal({
       variant: "danger",
       title: "Cancel subscription?",
-      description: `Your Growth plan will remain active until ${plan.renewsAt}. After that you'll be moved to the free tier and excess job listings will be paused.`,
+      description: `Your ${planName} plan will remain active until ${planRenewsAt}. After that you'll be moved to the free tier and excess job listings will be paused.`,
       confirmLabel: "Yes, cancel plan",
       onConfirm: () => {
-        toast({ type: "info", message: "Subscription cancelled", description: `Access continues until ${plan.renewsAt}.` });
+        toast({ type: "info", message: "Subscription cancelled", description: `Access continues until ${planRenewsAt}.` });
       },
     });
   }
@@ -122,6 +176,17 @@ export default function SubscriptionPage() {
     { id: "payment",  label: "Payment Methods"  },
     { id: "history",  label: "Billing History"  },
   ] as const;
+
+  if (loading) {
+    return (
+      <>
+        <EmployerTopbar title="Subscription" />
+        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center min-h-100">
+          <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
@@ -165,7 +230,7 @@ export default function SubscriptionPage() {
             {tab === "overview" && (
               <>
                 {/* Past due alert */}
-                {plan.status === "past_due" && (
+                {planStatus === "past_due" && (
                   <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50">
                     <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                     <div>
@@ -176,78 +241,94 @@ export default function SubscriptionPage() {
                   </div>
                 )}
 
-                {/* Current plan card */}
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                  <div className="px-6 py-5 border-b border-slate-100">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2.5 mb-1.5">
-                          <Zap className="w-4 h-4 text-violet-500" />
-                          <h3 className="text-base font-bold text-slate-900">{plan.name} Plan</h3>
-                          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${sc.cls}`}>{sc.label}</span>
-                        </div>
-                        <p className="text-sm text-slate-400">
-                          ${plan.price}/mo · {plan.billing === "yearly" ? "billed annually" : "billed monthly"}
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-0.5">
-                          {plan.status === "cancelled" ? "Expires" : "Renews"}
-                        </p>
-                        <p className="text-sm font-semibold text-slate-700 flex items-center gap-1.5 justify-end">
-                          <Clock className="w-3.5 h-3.5 text-slate-400" /> {plan.renewsAt}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Usage */}
-                  <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <Briefcase className="w-3.5 h-3.5 text-slate-400" />
-                        <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Job Listings</p>
-                      </div>
-                      <UsageBar used={plan.jobListingsUsed} limit={plan.jobListingsLimit} color="bg-violet-500" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 mb-3">
-                        <Users className="w-3.5 h-3.5 text-slate-400" />
-                        <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Team Seats</p>
-                      </div>
-                      <UsageBar used={plan.teamSeatsUsed} limit={plan.teamSeatsLimit} color="bg-blue-500" />
-                    </div>
-                  </div>
-
-                  {/* Quick actions */}
-                  <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-wrap gap-3">
+                {/* No subscription state */}
+                {!subscription && (
+                  <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
+                    <p className="text-sm font-semibold text-slate-600">No active plan</p>
+                    <p className="text-xs text-slate-400 mt-1 mb-4">You don&apos;t have an active subscription yet.</p>
                     <button
                       onClick={() => setTab("plans")}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
                     >
-                      <TrendingUp className="w-3.5 h-3.5" /> Upgrade Plan
-                    </button>
-                    <button
-                      onClick={() => setTab("payment")}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
-                    >
-                      <CreditCard className="w-3.5 h-3.5" /> Manage Payment
-                    </button>
-                    <button
-                      onClick={() => setTab("history")}
-                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5" /> Download Invoices
+                      <TrendingUp className="w-3.5 h-3.5" /> View Plans
                     </button>
                   </div>
-                </div>
+                )}
+
+                {/* Current plan card */}
+                {subscription && (
+                  <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                    <div className="px-6 py-5 border-b border-slate-100">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2.5 mb-1.5">
+                            <Zap className="w-4 h-4 text-violet-500" />
+                            <h3 className="text-base font-bold text-slate-900">{planName} Plan</h3>
+                            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${sc.cls}`}>{sc.label}</span>
+                          </div>
+                          <p className="text-sm text-slate-400">
+                            ${planPrice}/mo · {planBilling === "yearly" ? "billed annually" : "billed monthly"}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-0.5">
+                            {planStatus === "cancelled" ? "Expires" : "Renews"}
+                          </p>
+                          <p className="text-sm font-semibold text-slate-700 flex items-center gap-1.5 justify-end">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" /> {planRenewsAt}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Usage */}
+                    <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Briefcase className="w-3.5 h-3.5 text-slate-400" />
+                          <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Job Listings</p>
+                        </div>
+                        <UsageBar used={jobsUsed} limit={jobsLimit} color="bg-violet-500" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-3">
+                          <Users className="w-3.5 h-3.5 text-slate-400" />
+                          <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Applicants Viewed</p>
+                        </div>
+                        <UsageBar used={applicantsUsed} limit={applicantsLimit} color="bg-blue-500" />
+                      </div>
+                    </div>
+
+                    {/* Quick actions */}
+                    <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-wrap gap-3">
+                      <button
+                        onClick={() => setTab("plans")}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                      >
+                        <TrendingUp className="w-3.5 h-3.5" /> Upgrade Plan
+                      </button>
+                      <button
+                        onClick={() => setTab("payment")}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+                      >
+                        <CreditCard className="w-3.5 h-3.5" /> Manage Payment
+                      </button>
+                      <button
+                        onClick={() => setTab("history")}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Download Invoices
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Stats row */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { label: "Active Listings",   value: plan.jobListingsUsed, icon: Briefcase,  color: "text-violet-600"  },
-                    { label: "Team Members",       value: plan.teamSeatsUsed,   icon: Users,      color: "text-blue-600"    },
-                    { label: "Months Active",      value: 6,                    icon: Clock,      color: "text-slate-500"   },
+                    { label: "Active Listings",   value: jobsUsed,                          icon: Briefcase,  color: "text-violet-600"  },
+                    { label: "Applicants Viewed",  value: applicantsUsed,                    icon: Users,      color: "text-blue-600"    },
+                    { label: "Jobs Remaining",     value: Math.max(0, jobsLimit - jobsUsed), icon: Clock,      color: "text-slate-500"   },
                     { label: "Total Invoiced",     value: `$${INVOICES.reduce((s, i) => s + i.amount, 0)}`, icon: CreditCard, color: "text-emerald-600" },
                   ].map(({ label, value, icon: Icon, color }) => (
                     <div key={label} className="bg-white rounded-2xl border border-slate-200 p-4">
@@ -259,12 +340,12 @@ export default function SubscriptionPage() {
                 </div>
 
                 {/* Cancel zone */}
-                {plan.status !== "cancelled" && (
+                {subscription && planStatus !== "cancelled" && (
                   <div className="bg-white rounded-2xl border border-slate-200 p-5">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-semibold text-slate-700">Cancel subscription</p>
-                        <p className="text-xs text-slate-400 mt-0.5">You&apos;ll retain access until {plan.renewsAt}. This cannot be undone.</p>
+                        <p className="text-xs text-slate-400 mt-0.5">You&apos;ll retain access until {planRenewsAt}. This cannot be undone.</p>
                       </div>
                       <button
                         onClick={handleCancelPlan}
@@ -284,7 +365,7 @@ export default function SubscriptionPage() {
                 <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Available Plans</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">You&apos;re currently on <span className="font-semibold text-slate-600">Growth (Monthly)</span></p>
+                    <p className="text-xs text-slate-400 mt-0.5">You&apos;re currently on <span className="font-semibold text-slate-600">{planName} ({planBilling === "yearly" ? "Annual" : "Monthly"})</span></p>
                   </div>
                   {/* Billing toggle */}
                   <div className="flex items-center gap-2 p-1 rounded-xl bg-slate-100 border border-slate-200">
@@ -296,31 +377,35 @@ export default function SubscriptionPage() {
                 </div>
 
                 <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {PLANS.map((p) => {
-                    const price = billingCycle === "yearly" ? p.yearlyPrice : p.price;
-                    const isCurrent = p.id === plan.id;
-                    const Icon = p.icon;
+                  {packages.map((pkg) => {
+                    const ui = PLAN_UI[pkg.id.toLowerCase()] ?? PLAN_UI[pkg.name.toLowerCase()] ?? { yearlyPrice: Math.round(pkg.price * 0.8), icon: Zap, color: "violet" };
+                    const price = billingCycle === "yearly" ? ui.yearlyPrice : pkg.price;
+                    const isCurrent = pkg.id === planPackageId || pkg.name === planName;
+                    const Icon = ui.icon;
+                    const isEnterprise = pkg.id === "enterprise" || pkg.name.toLowerCase() === "enterprise";
                     const accent =
-                      p.color === "violet"  ? { btn: "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20", badge: "bg-violet-50 border-violet-200 text-violet-700", border: "border-violet-200 ring-2 ring-violet-200/50" }
-                    : p.color === "emerald" ? { btn: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20", badge: "bg-emerald-50 border-emerald-200 text-emerald-700", border: "border-emerald-200 ring-2 ring-emerald-200/50" }
+                      ui.color === "violet"  ? { btn: "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20", badge: "bg-violet-50 border-violet-200 text-violet-700", border: "border-violet-200 ring-2 ring-violet-200/50" }
+                    : ui.color === "emerald" ? { btn: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20", badge: "bg-emerald-50 border-emerald-200 text-emerald-700", border: "border-emerald-200 ring-2 ring-emerald-200/50" }
                     : { btn: "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20", badge: "bg-blue-50 border-blue-200 text-blue-700", border: "border-blue-200 ring-2 ring-blue-200/50" };
 
+                    const currentPkgPrice = packages.find(x => x.id === planPackageId || x.name === planName)?.price ?? 0;
+
                     return (
-                      <div key={p.id} className={`relative rounded-2xl border p-5 flex flex-col gap-4 ${isCurrent ? accent.border : "border-slate-200"}`}>
+                      <div key={pkg.id} className={`relative rounded-2xl border p-5 flex flex-col gap-4 ${isCurrent ? accent.border : "border-slate-200"}`}>
                         {isCurrent && (
                           <span className={`absolute top-3 right-3 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${accent.badge}`}>Current</span>
                         )}
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             <Icon className="w-4 h-4 text-slate-500" />
-                            <span className="text-sm font-bold text-slate-900">{p.name}</span>
+                            <span className="text-sm font-bold text-slate-900">{pkg.name}</span>
                           </div>
                           <div className="flex items-end gap-1">
-                            <span className="text-2xl font-bold text-slate-900">{p.id === "enterprise" ? "Custom" : `$${price}`}</span>
-                            {p.id !== "enterprise" && <span className="text-xs text-slate-400 mb-1">/mo</span>}
+                            <span className="text-2xl font-bold text-slate-900">{isEnterprise ? "Custom" : `$${price}`}</span>
+                            {!isEnterprise && <span className="text-xs text-slate-400 mb-1">/mo</span>}
                           </div>
-                          {billingCycle === "yearly" && p.id !== "enterprise" && (
-                            <p className="text-[10px] font-mono text-emerald-600 mt-0.5">Save ${(p.price - p.yearlyPrice) * 12}/yr</p>
+                          {billingCycle === "yearly" && !isEnterprise && (
+                            <p className="text-[10px] font-mono text-emerald-600 mt-0.5">Save ${(pkg.price - ui.yearlyPrice) * 12}/yr</p>
                           )}
                         </div>
 
@@ -330,16 +415,19 @@ export default function SubscriptionPage() {
                           </button>
                         ) : (
                           <Link
-                            href={p.id === "enterprise" ? "/contact" : `/employer/subscription/checkout?plan=${p.id}&billing=${billingCycle}&from=subscription`}
+                            href={isEnterprise ? "/contact" : `/employer/subscription/checkout?plan=${pkg.id}&billing=${billingCycle}&from=subscription`}
                             className={`w-full h-10 rounded-xl text-white text-xs font-semibold transition-all shadow-md flex items-center justify-center gap-1.5 ${accent.btn}`}
                           >
-                            {p.id === "enterprise" ? "Contact Sales" : p.price > PLANS.find(x => x.id === plan.id)!.price ? "Upgrade" : "Downgrade"}
+                            {isEnterprise ? "Contact Sales" : pkg.price > currentPkgPrice ? "Upgrade" : "Downgrade"}
                             <ChevronRight className="w-3.5 h-3.5" />
                           </Link>
                         )}
                       </div>
                     );
                   })}
+                  {packages.length === 0 && (
+                    <div className="col-span-3 py-8 text-center text-sm text-slate-400">No packages available.</div>
+                  )}
                 </div>
 
                 <div className="px-6 pb-5 text-center">

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   CheckCheck, Users, Briefcase, AlertCircle, Info, Bell,
-  ChevronRight, Trash2,
+  ChevronRight, Trash2, Loader2,
 } from "lucide-react";
 
 type NotifType = "applicant" | "job" | "system" | "alert";
@@ -17,20 +17,15 @@ const TYPE_CFG: Record<NotifType, { icon: React.ReactNode; color: string; label:
   alert:     { icon: <AlertCircle className="w-4 h-4" />, color: "bg-amber-50 text-amber-600 border-amber-200",  label: "Alert"     },
 };
 
-const INITIAL_NOTIFS: {
-  id: number; type: NotifType; title: string; body: string;
-  time: string; read: boolean; href?: string;
-}[] = [
-  { id: 1, type: "applicant", title: "New application received",       body: "Aryan Mehta applied for Senior Penetration Tester.",               time: "2h ago",  read: false, href: "/employer/applicants/1" },
-  { id: 2, type: "applicant", title: "New application received",       body: "Neha Kulkarni applied for Senior Penetration Tester.",             time: "4h ago",  read: false, href: "/employer/applicants/4" },
-  { id: 3, type: "job",       title: "Job listing approved",           body: "Your job 'Cloud Security Engineer' is now live and visible.",      time: "6h ago",  read: false, href: "/employer/jobs"         },
-  { id: 4, type: "applicant", title: "Applicant shortlisted",          body: "Priya Sharma was moved to Shortlisted for Cloud Security Engineer.",time: "1d ago", read: true,  href: "/employer/applicants/2" },
-  { id: 5, type: "alert",     title: "Job expiring soon",              body: "'Red Team Operator' expires in 3 days. Renew to keep it live.",    time: "1d ago",  read: true,  href: "/employer/jobs"         },
-  { id: 6, type: "system",    title: "Profile verification complete",  body: "Your company profile has been verified by the Cykruit team.",     time: "3d ago",  read: true                                   },
-  { id: 7, type: "applicant", title: "New application received",       body: "Vikram Singh applied for Red Team Operator.",                     time: "4d ago",  read: true,  href: "/employer/applicants/5" },
-  { id: 8, type: "job",       title: "Job reached 100 views",          body: "Senior Penetration Tester has reached 100 profile views.",        time: "5d ago",  read: true,  href: "/employer/jobs"         },
-  { id: 9, type: "system",    title: "Weekly hiring report ready",     body: "Your week ending Jun 20 summary: 9 new applicants, 340 views.",   time: "6d ago",  read: true                                   },
-];
+type Notification = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  actionUrl?: string;
+  createdAt: string;
+};
 
 type Filter = "all" | "unread" | NotifType;
 const FILTER_OPTIONS: { id: Filter; label: string }[] = [
@@ -42,46 +37,81 @@ const FILTER_OPTIONS: { id: Filter; label: string }[] = [
   { id: "system",    label: "System"    },
 ];
 
+function formatTime(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "Just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d === 1) return "Yesterday";
+  if (d < 7) return `${d}d ago`;
+  return `${Math.floor(d / 7)}w ago`;
+}
+
 export default function EmployerNotificationsPage() {
-  const [notifs, setNotifs] = useState<any[]>([]);
+  const [notifs, setNotifs] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
 
-  useEffect(() => {
-    const local = localStorage.getItem("cykruit_employer_notifications");
-    if (local) {
-      setNotifs(JSON.parse(local));
-    } else {
-      localStorage.setItem("cykruit_employer_notifications", JSON.stringify(INITIAL_NOTIFS));
-      setNotifs(INITIAL_NOTIFS);
+  const fetchNotifs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/notifications?limit=50", { credentials: "include" });
+      if (!res.ok) throw new Error();
+      const body = await res.json();
+      setNotifs(
+        (body?.data?.items ?? []).map((n: any): Notification => ({
+          id: n.id,
+          type: n.type,
+          title: n.title,
+          message: n.message,
+          isRead: n.isRead,
+          actionUrl: n.actionUrl,
+          createdAt: n.createdAt,
+        }))
+      );
+    } catch {
+      // silently fail
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const unreadCount = notifs.filter((n) => !n.read).length;
+  useEffect(() => { fetchNotifs(); }, [fetchNotifs]);
 
-  function markAllRead() {
-    setNotifs((prev) => {
-      const next = prev.map((n) => ({ ...n, read: true }));
-      localStorage.setItem("cykruit_employer_notifications", JSON.stringify(next));
-      return next;
-    });
+  const unreadCount = notifs.filter((n) => !n.isRead).length;
+
+  async function markAllRead() {
+    try {
+      await fetch("/api/notifications/read-all", { method: "PATCH", credentials: "include" });
+      setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch {
+      // silently fail
+    }
   }
-  function markRead(id: number) {
-    setNotifs((prev) => {
-      const next = prev.map((n) => n.id === id ? { ...n, read: true } : n);
-      localStorage.setItem("cykruit_employer_notifications", JSON.stringify(next));
-      return next;
-    });
+
+  async function markRead(id: string) {
+    try {
+      await fetch(`/api/notifications/${id}/read`, { method: "PATCH", credentials: "include" });
+      setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
+    } catch {
+      // silently fail
+    }
   }
-  function dismiss(id: number) {
-    setNotifs((prev) => {
-      const next = prev.filter((n) => n.id !== id);
-      localStorage.setItem("cykruit_employer_notifications", JSON.stringify(next));
-      return next;
-    });
+
+  async function dismiss(id: string) {
+    try {
+      await fetch(`/api/notifications/${id}`, { method: "DELETE", credentials: "include" });
+      setNotifs((prev) => prev.filter((n) => n.id !== id));
+    } catch {
+      // silently fail
+    }
   }
 
   const shown = notifs.filter((n) => {
-    if (filter === "unread") return !n.read;
+    if (filter === "unread") return !n.isRead;
     if (filter === "all") return true;
     return n.type === filter;
   });
@@ -120,7 +150,12 @@ export default function EmployerNotificationsPage() {
             </div>
 
             {/* List */}
-            {shown.length === 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-20 bg-white rounded-2xl border border-slate-200">
+                <Loader2 className="w-5 h-5 animate-spin mr-2 text-slate-400" />
+                <span className="text-sm text-slate-400">Loading notifications…</span>
+              </div>
+            ) : shown.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-slate-200">
                 <Bell className="w-10 h-10 text-slate-200 mb-3" />
                 <p className="text-slate-500 font-medium text-sm">You're all caught up</p>
@@ -131,18 +166,18 @@ export default function EmployerNotificationsPage() {
                 {shown.map((n) => {
                   const cfg = TYPE_CFG[n.type as NotifType];
                   const Inner = (
-                    <div className={`flex items-start gap-4 px-5 py-4 transition-colors group ${!n.read ? "bg-blue-50/40" : "hover:bg-slate-50/60"}`}>
+                    <div className={`flex items-start gap-4 px-5 py-4 transition-colors group ${!n.isRead ? "bg-blue-50/40" : "hover:bg-slate-50/60"}`}>
                       <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 mt-0.5 ${cfg.color}`}>
                         {cfg.icon}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className={`text-sm font-semibold ${n.read ? "text-slate-700" : "text-slate-900"}`}>{n.title}</p>
+                            <p className={`text-sm font-semibold ${n.isRead ? "text-slate-700" : "text-slate-900"}`}>{n.title}</p>
                             <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md border ${cfg.color}`}>{cfg.label}</span>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[10px] font-mono text-slate-400">{n.time}</span>
+                            <span className="text-[10px] font-mono text-slate-400">{formatTime(n.createdAt)}</span>
                             <button
                               onClick={(e) => { e.stopPropagation(); e.preventDefault(); dismiss(n.id); }}
                               className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-lg flex items-center justify-center text-slate-300 hover:text-slate-500 hover:bg-slate-100 transition-all cursor-pointer"
@@ -151,19 +186,19 @@ export default function EmployerNotificationsPage() {
                             </button>
                           </div>
                         </div>
-                        <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{n.body}</p>
-                        {n.href && (
+                        <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{n.message}</p>
+                        {n.actionUrl && (
                           <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 mt-1.5">
                             View <ChevronRight className="w-3 h-3" />
                           </span>
                         )}
                       </div>
-                      {!n.read && <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2" />}
+                      {!n.isRead && <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0 mt-2" />}
                     </div>
                   );
 
-                  return n.href ? (
-                    <Link key={n.id} href={n.href} onClick={() => markRead(n.id)} className="block">
+                  return n.actionUrl ? (
+                    <Link key={n.id} href={n.actionUrl} onClick={() => markRead(n.id)} className="block">
                       {Inner}
                     </Link>
                   ) : (
@@ -187,7 +222,7 @@ export default function EmployerNotificationsPage() {
                 {(["applicant", "job", "alert", "system"] as NotifType[]).map((t) => {
                   const cfg   = TYPE_CFG[t];
                   const count = notifs.filter((n) => n.type === t).length;
-                  const unread = notifs.filter((n) => n.type === t && !n.read).length;
+                  const unread = notifs.filter((n) => n.type === t && !n.isRead).length;
                   return (
                     <button key={t} onClick={() => setFilter(t)}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all cursor-pointer text-left ${

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
 import {
   User, Bell, Lock, Shield, Eye, EyeOff, Check,
   Mail, Smartphone, Info, AlertTriangle, Trash2,
-  Building2, ChevronDown,
+  Building2, ChevronDown, Loader2,
 } from "lucide-react";
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -86,10 +86,11 @@ export default function EmployerSettingsPage() {
   const { toast }    = useToast();
   const { openModal }= useModal();
   const [tab, setTab]= useState("account");
+  const [loading, setLoading] = useState(true);
 
   // Account
-  const LOCKED = { name: "Alex Kumar", email: "alex@cybershield.io" };
-  const [phone, setPhone]     = useState("+1 415 555 0100");
+  const [locked, setLocked] = useState({ name: "", email: "" });
+  const [phone, setPhone]     = useState("");
   const [timezone, setTimezone] = useState("Pacific Time (PT)");
 
   const getCsrfToken = () => {
@@ -100,7 +101,7 @@ export default function EmployerSettingsPage() {
 
   // Company basics
   const [companySize, setCompanySize] = useState("51–200");
-  const [publicEmail, setPublicEmail] = useState("hiring@cybershield.io");
+  const [publicEmail, setPublicEmail] = useState("");
 
   // Notifications
   const [notifs, setNotifs] = useState({
@@ -113,8 +114,89 @@ export default function EmployerSettingsPage() {
     pushEnabled:      false,
   });
 
-  function saveNotifs() {
-    toast({ type: "success", message: "Notification preferences saved" });
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const [meRes, settingsRes] = await Promise.all([
+          fetch("/api/auth/me", { credentials: "include" }),
+          fetch("/api/settings", { credentials: "include" }),
+        ]);
+        if (meRes.ok) {
+          const me = await meRes.json();
+          setLocked({ name: me.name ?? me.fullName ?? "", email: me.email ?? "" });
+        }
+        if (settingsRes.ok) {
+          const s = await settingsRes.json();
+          if (s.phone    !== undefined) setPhone(s.phone);
+          if (s.timezone !== undefined) setTimezone(s.timezone);
+          if (s.companySize   !== undefined) setCompanySize(s.companySize);
+          if (s.publicEmail   !== undefined) setPublicEmail(s.publicEmail);
+          if (s.notifications !== undefined) setNotifs((prev) => ({ ...prev, ...s.notifications }));
+        }
+      } catch {
+        // silent — fields remain at defaults
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadSettings();
+  }, []);
+
+  async function saveGeneral() {
+    try {
+      const res = await fetch("/api/settings/general", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "x-csrf-token": getCsrfToken() },
+        body: JSON.stringify({ phone, timezone }),
+      });
+      if (res.ok) {
+        toast({ type: "success", message: "Contact details saved" });
+      } else {
+        const e = await res.json().catch(() => ({}));
+        toast({ type: "error", message: e.message || "Failed to save details" });
+      }
+    } catch {
+      toast({ type: "error", message: "Network error" });
+    }
+  }
+
+  async function saveCompany() {
+    try {
+      const res = await fetch("/api/settings/general", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "x-csrf-token": getCsrfToken() },
+        body: JSON.stringify({ companySize, publicEmail }),
+      });
+      if (res.ok) {
+        toast({ type: "success", message: "Company settings saved" });
+      } else {
+        const e = await res.json().catch(() => ({}));
+        toast({ type: "error", message: e.message || "Failed to save settings" });
+      }
+    } catch {
+      toast({ type: "error", message: "Network error" });
+    }
+  }
+
+  async function saveNotifs() {
+    try {
+      const res = await fetch("/api/settings/notifications", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "x-csrf-token": getCsrfToken() },
+        body: JSON.stringify({ notifications: notifs }),
+      });
+      if (res.ok) {
+        toast({ type: "success", message: "Notification preferences saved" });
+      } else {
+        const e = await res.json().catch(() => ({}));
+        toast({ type: "error", message: e.message || "Failed to save preferences" });
+      }
+    } catch {
+      toast({ type: "error", message: "Network error" });
+    }
   }
 
   // Password
@@ -132,9 +214,24 @@ export default function EmployerSettingsPage() {
       description: "You will be signed out of all other sessions after changing your password.",
       variant: "info",
       confirmLabel: "Yes, change it",
-      onConfirm: () => {
-        setPwForm({ current: "", newPw: "", confirm: "" });
-        toast({ type: "success", message: "Password updated", description: "You've been signed out of other sessions." });
+      onConfirm: async () => {
+        try {
+          const res = await fetch("/api/auth/change-password", {
+            method: "POST",
+            credentials: "include",
+            headers: { "Content-Type": "application/json", "x-csrf-token": getCsrfToken() },
+            body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.newPw }),
+          });
+          if (res.ok) {
+            setPwForm({ current: "", newPw: "", confirm: "" });
+            toast({ type: "success", message: "Password updated", description: "You've been signed out of other sessions." });
+          } else {
+            const e = await res.json().catch(() => ({}));
+            toast({ type: "error", message: e.message || "Failed to change password" });
+          }
+        } catch {
+          toast({ type: "error", message: "Network error" });
+        }
       },
     });
   }
@@ -170,6 +267,17 @@ export default function EmployerSettingsPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <>
+        <EmployerTopbar title="Settings" />
+        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <EmployerTopbar title="Settings" />
@@ -203,7 +311,7 @@ export default function EmployerSettingsPage() {
                     <div>
                       <label className={labelCls}>Full Name</label>
                       <div className="relative">
-                        <input value={LOCKED.name} disabled className={inputDisabled} />
+                        <input value={locked.name} disabled className={inputDisabled} />
                         <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300 pointer-events-none" />
                       </div>
                       <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1"><Info className="w-3 h-3" /> Managed by your account</p>
@@ -211,7 +319,7 @@ export default function EmployerSettingsPage() {
                     <div>
                       <label className={labelCls}>Email Address</label>
                       <div className="relative">
-                        <input value={LOCKED.email} disabled className={inputDisabled} />
+                        <input value={locked.email} disabled className={inputDisabled} />
                         <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300 pointer-events-none" />
                       </div>
                       <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1"><Info className="w-3 h-3" /> Managed by your account</p>
@@ -237,7 +345,7 @@ export default function EmployerSettingsPage() {
                       </div>
                     </div>
                   </div>
-                  <button onClick={() => toast({ type: "success", message: "Contact details saved" })} className={saveBtnCls}>
+                  <button onClick={saveGeneral} className={saveBtnCls}>
                     <Check className="w-3.5 h-3.5" /> Save Details
                   </button>
                 </Section>
@@ -317,7 +425,7 @@ export default function EmployerSettingsPage() {
                       <p className="text-[10px] text-slate-400 mt-1">Shown to candidates on your job listings</p>
                     </div>
                   </div>
-                  <button onClick={() => toast({ type: "success", message: "Company settings saved" })} className={saveBtnCls}>
+                  <button onClick={saveCompany} className={saveBtnCls}>
                     <Check className="w-3.5 h-3.5" /> Save Settings
                   </button>
                 </Section>
@@ -366,7 +474,7 @@ export default function EmployerSettingsPage() {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-slate-800">Email</p>
-                          <p className="text-xs text-slate-400">{LOCKED.email}</p>
+                          <p className="text-xs text-slate-400">{locked.email}</p>
                         </div>
                       </div>
                       <Toggle on={notifs.emailEnabled} onChange={(v) => setNotifs({ ...notifs, emailEnabled: v })} />
@@ -496,7 +604,7 @@ export default function EmployerSettingsPage() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-slate-800">Google</p>
-                        <p className="text-xs text-slate-400">{LOCKED.email}</p>
+                        <p className="text-xs text-slate-400">{locked.email}</p>
                       </div>
                     </div>
                     <span className="text-[10px] font-mono text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">

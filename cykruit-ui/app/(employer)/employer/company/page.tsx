@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Save, ChevronDown, Plus, X, Camera,
-  CheckCircle2, AlertCircle, PlusCircle, ArrowRight,
+  CheckCircle2, AlertCircle, PlusCircle, ArrowRight, Loader2,
 } from "lucide-react";
 
 const INDUSTRIES = [
@@ -43,25 +43,133 @@ const COMPLETION_CHECKS: { key: string; label: string; required: boolean }[] = [
   { key: "logo",      label: "Company logo",        required: false },
 ];
 
-export default function CompanyProfilePage() {
-  const [name, setName]         = useState("CyberShield Inc.");
-  const [industry, setIndustry] = useState("Cybersecurity");
-  const [size, setSize]         = useState("51–200");
-  const [website, setWebsite]   = useState("https://cybershield.io");
-  const [location, setLocation] = useState("San Francisco, CA");
-  const [founded, setFounded]   = useState("2015");
-  const [bio, setBio]           = useState("CyberShield Inc. is a leading cybersecurity firm specializing in penetration testing, red team operations, and cloud security for Fortune 500 companies.");
-  const [culture, setCulture]   = useState("We believe in a remote-first, mission-driven culture with a focus on continuous learning and certification support.");
-  const [linkedin, setLinkedin] = useState("https://linkedin.com/company/cybershield");
-  const [twitter, setTwitter]   = useState("https://twitter.com/cybershield");
-  const [perks, setPerks]       = useState(["Remote-first culture", "Cert reimbursement", "Conference budget", "Flexible hours"]);
-  const [perkInput, setPerkInput] = useState("");
-  const [hasLogo]               = useState(false);
+type Perk = { id?: string; name: string };
 
-  function addPerk() {
+export default function CompanyProfilePage() {
+  const [loading, setLoading]   = useState(true);
+  const [saving, setSaving]     = useState(false);
+  const [name, setName]         = useState("");
+  const [industry, setIndustry] = useState("");
+  const [size, setSize]         = useState("");
+  const [website, setWebsite]   = useState("");
+  const [location, setLocation] = useState("");
+  const [founded, setFounded]   = useState("");
+  const [bio, setBio]           = useState("");
+  const [culture, setCulture]   = useState("");
+  const [linkedin, setLinkedin] = useState("");
+  const [twitter, setTwitter]   = useState("");
+  const [perks, setPerks]       = useState<Perk[]>([]);
+  const [perkInput, setPerkInput] = useState("");
+  const [logoUrl, setLogoUrl]   = useState<string | null>(null);
+  const logoInputRef            = useRef<HTMLInputElement>(null);
+
+  const hasLogo = !!logoUrl;
+
+  useEffect(() => {
+    fetch("/api/employer/company/me", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => {
+        setName(d.name ?? "");
+        setIndustry(d.industry ?? "");
+        setSize(d.size ?? "");
+        setWebsite(d.website ?? "");
+        setLocation(d.location ?? d.headquarters ?? "");
+        setFounded(d.founded ? String(d.founded) : "");
+        setBio(d.bio ?? d.description ?? "");
+        setCulture(d.culture ?? "");
+        setLinkedin(d.linkedin ?? d.linkedinUrl ?? "");
+        setTwitter(d.twitter ?? d.twitterUrl ?? "");
+        const raw = d.benefits ?? d.perks ?? [];
+        setPerks(
+          Array.isArray(raw)
+            ? raw.map((p: any) =>
+                typeof p === "string" ? { name: p } : { id: p.id, name: p.name ?? p.label }
+              )
+            : []
+        );
+        if (d.logoUrl) setLogoUrl(d.logoUrl);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await Promise.all([
+        fetch("/api/employer/company/basic", {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, industry, size, website, location, founded }),
+        }),
+        fetch("/api/employer/company/about", {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bio, culture }),
+        }),
+        fetch("/api/employer/company/social", {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ linkedin, twitter }),
+        }),
+      ]);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function addPerk() {
     const v = perkInput.trim();
-    if (v && !perks.includes(v)) setPerks([...perks, v]);
+    if (!v || perks.some((p) => p.name === v)) return;
     setPerkInput("");
+    try {
+      const res = await fetch("/api/employer/company/benefits", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: v }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPerks((prev) => [...prev, { id: data.id, name: v }]);
+      } else {
+        setPerks((prev) => [...prev, { name: v }]);
+      }
+    } catch {
+      setPerks((prev) => [...prev, { name: v }]);
+    }
+  }
+
+  async function removePerk(perk: Perk) {
+    setPerks((prev) => prev.filter((p) => p !== perk));
+    if (perk.id) {
+      await fetch(`/api/employer/company/benefits/${perk.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      }).catch(() => {});
+    }
+  }
+
+  async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append("logo", file);
+    try {
+      const res = await fetch("/api/employer/company/logo", {
+        method: "POST",
+        credentials: "include",
+        body: fd,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) setLogoUrl(data.url);
+      }
+    } catch {}
+    e.target.value = "";
   }
 
   // Completion scoring
@@ -82,6 +190,17 @@ export default function CompanyProfilePage() {
   const pct             = Math.round((completedChecks / totalChecks) * 100);
   const canPostJob      = pct >= 50;
 
+  if (loading) {
+    return (
+      <>
+        <EmployerTopbar title="Company Profile" />
+        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <EmployerTopbar title="Company Profile" />
@@ -95,21 +214,30 @@ export default function CompanyProfilePage() {
             <Section title="Logo & Branding" desc="Upload your company logo so candidates can recognise your brand.">
               <div className="flex items-center gap-5 flex-wrap">
                 <div className="relative">
-                  <div className="w-20 h-20 rounded-2xl bg-blue-50 border-2 border-blue-100 flex items-center justify-center text-2xl font-bold text-blue-600">
-                    CS
-                  </div>
-                  <button className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-colors cursor-pointer">
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="Company logo" className="w-20 h-20 rounded-2xl object-cover border-2 border-blue-100" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-2xl bg-blue-50 border-2 border-blue-100 flex items-center justify-center text-2xl font-bold text-blue-600">
+                      {name ? name.slice(0, 2).toUpperCase() : "CO"}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => logoInputRef.current?.click()}
+                    className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 hover:text-blue-600 hover:border-blue-300 transition-colors cursor-pointer">
                     <Camera className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">{name || "Your Company"}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{industry} · {location || "—"}</p>
-                  <button className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer">
+                  <button
+                    onClick={() => logoInputRef.current?.click()}
+                    className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer">
                     Upload logo
                   </button>
                 </div>
               </div>
+              <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
             </Section>
 
             {/* Basic info */}
@@ -175,9 +303,9 @@ export default function CompanyProfilePage() {
             <Section title="Perks & Benefits" desc="Help candidates understand what it's like to work at your company.">
               <div className="flex flex-wrap gap-2 mb-3">
                 {perks.map((p) => (
-                  <span key={p} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-xl border border-blue-200">
-                    {p}
-                    <button onClick={() => setPerks(perks.filter((x) => x !== p))} className="hover:text-blue-900 cursor-pointer">
+                  <span key={p.id ?? p.name} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-xl border border-blue-200">
+                    {p.name}
+                    <button onClick={() => removePerk(p)} className="hover:text-blue-900 cursor-pointer">
                       <X className="w-3 h-3" />
                     </button>
                   </span>
@@ -210,8 +338,12 @@ export default function CompanyProfilePage() {
 
             {/* Save */}
             <div className="px-6 py-5">
-              <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 cursor-pointer">
-                <Save className="w-4 h-4" /> Save Profile
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {saving ? "Saving…" : "Save Profile"}
               </button>
             </div>
           </div>
@@ -290,7 +422,7 @@ export default function CompanyProfilePage() {
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">How candidates see you</h3>
               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-sm font-bold text-blue-600 shrink-0">
-                  CS
+                  {name ? name.slice(0, 2).toUpperCase() : "CO"}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-900 truncate">{name || "Your Company"}</p>
