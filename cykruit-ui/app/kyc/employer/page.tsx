@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
-import Link from "next/link";
+import { useState, useRef, useEffect } from "react";
 import {
   Building2, FileText, CheckCircle2, ChevronRight,
   Upload, X, Shield, AlertCircle, ArrowRight, ChevronLeft, LogOut, Loader2,
@@ -9,18 +8,40 @@ import {
 import { useModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { useRouter } from "next/navigation";
-import { apiFetch, authHeaders, getCsrf } from "@/lib/api";
+import { apiFetch, authHeaders, getCsrf, ApiError } from "@/lib/api";
 
 type Step = 1 | 2 | 3;
 
-const COMPANY_TYPES = [
-  "Private Limited",
-  "Public Limited",
-  "Partnership",
-  "Sole Proprietorship",
-  "Government / PSU",
-  "Non-Profit / NGO",
-  "LLP",
+const COMPANY_TYPES: { label: string; value: string }[] = [
+  { label: "Private Limited Company",  value: "PRIVATE_LIMITED_COMPANY" },
+  { label: "Public Limited Company",   value: "PUBLIC_LIMITED_COMPANY"  },
+  { label: "Partnership Firm",         value: "PARTNERSHIP_FIRM"        },
+  { label: "Sole Proprietorship",      value: "SOLE_PROPRIETORSHIP"     },
+  { label: "LLP",                      value: "OTHERS"                  },
+  { label: "NGO / Non-Profit",         value: "NGO"                     },
+  { label: "Educational Institution",  value: "EDUCATIONAL_INSTITUTION" },
+  { label: "Government / PSU",         value: "NATIONALISED_BANK"       },
+  { label: "Others",                   value: "COOPERATIVE_SOCIETY"     },
+];
+
+const INDUSTRIES: { label: string; value: string }[] = [
+  { label: "Technology",    value: "TECHNOLOGY"    },
+  { label: "Healthcare",    value: "HEALTHCARE"    },
+  { label: "Finance",       value: "FINANCE"       },
+  { label: "Education",     value: "EDUCATION"     },
+  { label: "Retail",        value: "RETAIL"        },
+  { label: "Manufacturing", value: "MANUFACTURING" },
+  { label: "Consulting",    value: "CONSULTING"    },
+  { label: "Other",         value: "OTHER"         },
+];
+
+const COMPANY_SIZES: { label: string; value: string }[] = [
+  { label: "1–10",     value: "SIZE_1_10"      },
+  { label: "11–50",    value: "SIZE_11_50"     },
+  { label: "51–200",   value: "SIZE_51_200"    },
+  { label: "201–500",  value: "SIZE_201_500"   },
+  { label: "501–1000", value: "SIZE_501_1000"  },
+  { label: "1000+",    value: "SIZE_1000_PLUS" },
 ];
 
 const DOC_TYPES = [
@@ -41,10 +62,25 @@ const STEPS = [
 ];
 
 export default function EmployerKYCPage() {
-  const [step, setStep] = useState<Step>(1);
-  const router = useRouter();
-  const { openModal } = useModal();
-  const { toast } = useToast();
+  const [step, setStep]                 = useState<Step>(1);
+  const [checkingStatus, setChecking]   = useState(true);
+  const router                          = useRouter();
+  const { openModal }                   = useModal();
+  const { toast }                       = useToast();
+
+  useEffect(() => {
+    async function checkStatus() {
+      try {
+        const { data } = await apiFetch("/api/employer/kyc/status");
+        if (data?.isVerified) { router.replace("/employer/dashboard"); return; }
+        const vs = data?.verification?.status;
+        if (vs === "PENDING" || vs === "UNDER_REVIEW") { setStep(3); }
+        else if (data?.companyId) { setStep(2); }
+      } catch { /* COMPANY_NOT_FOUND → stay on step 1 */ }
+      finally { setChecking(false); }
+    }
+    checkStatus();
+  }, [router]);
 
   function handleLogout() {
     openModal({
@@ -54,66 +90,106 @@ export default function EmployerKYCPage() {
       confirmLabel: "Sign out",
       onConfirm: async () => {
         try {
-          await apiFetch("/api/auth/logout", {
-            method: "POST",
-            headers: authHeaders(),
-          });
-          localStorage.removeItem("cykruit_applications");
-          localStorage.removeItem("cykruit_saved_jobs");
-          localStorage.removeItem("cykruit_messages");
-          localStorage.removeItem("cykruit_notifications");
-          localStorage.removeItem("cykruit_employer_notifications");
+          await apiFetch("/api/auth/logout", { method: "POST", headers: authHeaders() });
+          ["cykruit_applications","cykruit_saved_jobs","cykruit_messages","cykruit_notifications","cykruit_employer_notifications"]
+            .forEach((k) => localStorage.removeItem(k));
           toast({ type: "success", message: "Logged out successfully" });
           router.push("/login");
-        } catch (error) {
-          toast({ type: "error", message: "Logout request failed" });
-        }
+        } catch { toast({ type: "error", message: "Logout request failed" }); }
       },
     });
   }
 
-  // Step 1
-  const [legalName,   setLegalName]   = useState("");
-  const [location,    setLocation]    = useState("");
-  const [companyType, setCompanyType] = useState("");
-  const [email,       setEmail]       = useState("");
-  const [phone,       setPhone]       = useState("");
+  // Step 1 state
+  const [legalName,    setLegalName]    = useState("");
+  const [location,     setLocation]     = useState("");
+  const [companyType,  setCompanyType]  = useState("");
+  const [industry,     setIndustry]     = useState("");
+  const [companySize,  setCompanySize]  = useState("");
+  const [website,      setWebsite]      = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [savingOrg,    setSavingOrg]    = useState(false);
 
-  // Step 2
-  const [docType,     setDocType]     = useState("");
-  const [file,        setFile]        = useState<File | null>(null);
-  const [dragOver,    setDragOver]    = useState(false);
-  const [submitting,  setSubmitting]  = useState(false);
+  // Step 2 state
+  const [docType,    setDocType]    = useState("");
+  const [file,       setFile]       = useState<File | null>(null);
+  const [dragOver,   setDragOver]   = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const step1Valid = legalName.trim() && location.trim() && companyType && email.trim() && phone.trim();
+  const step1Valid = legalName.trim() && location.trim() && companyType && industry && companySize;
   const step2Valid = docType && file;
 
-  function handleFile(f: File) { setFile(f); }
+  async function handleStep1Continue() {
+    if (!step1Valid || savingOrg) return;
+    setSavingOrg(true);
+    try {
+      await apiFetch("/api/employer/company/setup", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          companyName: legalName.trim(),
+          companyType,
+          industry,
+          companySize,
+          location: location.trim(),
+          ...(website.trim()      ? { companyWebsite: website.trim()      } : {}),
+          ...(contactEmail.trim() ? { contactEmail:   contactEmail.trim() } : {}),
+        }),
+      });
+      setStep(2);
+    } catch (err: any) {
+      if (err instanceof ApiError && err.statusCode === 409) {
+        setStep(2); // company already exists, skip
+      } else {
+        toast({ type: "error", message: err.message || "Failed to save organization details" });
+      }
+    } finally { setSavingOrg(false); }
+  }
 
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setDragOver(false);
-    const f = e.dataTransfer.files[0];
-    if (f) handleFile(f);
+  async function handleSubmitDoc() {
+    if (!step2Valid || submitting) return;
+    setSubmitting(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file as File);
+      await apiFetch("/api/employer/kyc/submit", {
+        method: "POST",
+        headers: { "x-csrf-token": getCsrf() },
+        body: fd,
+      });
+      setStep(3);
+    } catch (err: any) {
+      toast({ type: "error", message: err.message || "Network error. Please try again." });
+    } finally { setSubmitting(false); }
+  }
+
+  if (checkingStatus) {
+    return (
+      <div className="h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center animate-pulse">
+            <Shield className="w-5 h-5 text-white" />
+          </div>
+          <p className="text-sm text-slate-500">Checking verification status…</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
 
-      {/* Top bar */}
-      <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
+      <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20">
             <Shield className="w-4 h-4 text-white" strokeWidth={2.5} />
           </div>
           <span className="text-base font-bold text-slate-900 tracking-tight">Cykruit</span>
           <span className="text-xs font-mono text-slate-400 ml-1">/ Employer Verification</span>
         </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
-        >
+        <button onClick={handleLogout}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all">
           <LogOut className="w-4 h-4" /> Sign Out
         </button>
       </header>
@@ -121,11 +197,10 @@ export default function EmployerKYCPage() {
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-3xl mx-auto px-6 py-10 space-y-6">
 
-          {/* Heading */}
           {step < 3 && (
             <div className="text-center">
-              <h1 className="text-xl font-bold text-slate-900">Verify your organisation</h1>
-              <p className="text-sm text-slate-500 mt-1">Complete KYC before accessing the employer dashboard</p>
+              <h1 className="text-xl font-bold text-slate-900">Set up your organisation</h1>
+              <p className="text-sm text-slate-500 mt-1">Complete KYC to start posting jobs and managing your team</p>
             </div>
           )}
 
@@ -133,8 +208,7 @@ export default function EmployerKYCPage() {
           <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5">
             <div className="flex items-center">
               {STEPS.map(({ n, label, icon: Icon }, i) => {
-                const done    = step > n;
-                const current = step === n;
+                const done = step > n; const current = step === n;
                 return (
                   <div key={n} className="flex items-center flex-1 last:flex-none">
                     <div className="flex flex-col items-center gap-2 min-w-0">
@@ -147,9 +221,7 @@ export default function EmployerKYCPage() {
                       </div>
                       <span className={`text-[11px] font-medium whitespace-nowrap ${
                         current ? "text-blue-700" : done ? "text-slate-700" : "text-slate-400"
-                      }`}>
-                        {label}
-                      </span>
+                      }`}>{label}</span>
                     </div>
                     {i < STEPS.length - 1 && (
                       <div className={`flex-1 h-0.5 mx-3 mb-5 rounded-full transition-all ${done ? "bg-blue-500" : "bg-slate-200"}`} />
@@ -160,18 +232,16 @@ export default function EmployerKYCPage() {
             </div>
           </div>
 
-          {/* ── Step 1: Organization Details ── */}
+          {/* Step 1 */}
           {step === 1 && (
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-              <div className="px-6 py-5 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                    <Building2 className="w-4.5 h-4.5 text-blue-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-900">Organization Details</h2>
-                    <p className="text-xs text-slate-400 mt-0.5">Enter your company's legal information</p>
-                  </div>
+              <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                  <Building2 className="w-4.5 h-4.5 text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">Organization Details</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">This creates your company profile on Cykruit</p>
                 </div>
               </div>
 
@@ -187,10 +257,10 @@ export default function EmployerKYCPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
-                      Location <span className="text-rose-400">*</span>
+                      Headquarters <span className="text-rose-400">*</span>
                     </label>
                     <input value={location} onChange={(e) => setLocation(e.target.value)}
-                      placeholder="e.g. San Francisco, CA" className={inputCls} />
+                      placeholder="e.g. Mumbai, India" className={inputCls} />
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
@@ -198,7 +268,7 @@ export default function EmployerKYCPage() {
                     </label>
                     <select value={companyType} onChange={(e) => setCompanyType(e.target.value)} className={selectCls}>
                       <option value="">Select type</option>
-                      {COMPANY_TYPES.map((t) => <option key={t}>{t}</option>)}
+                      {COMPANY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>
                 </div>
@@ -206,59 +276,65 @@ export default function EmployerKYCPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
-                      Official Email <span className="text-rose-400">*</span>
+                      Industry <span className="text-rose-400">*</span>
                     </label>
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                      placeholder="e.g. hr@yourcompany.com" className={inputCls} />
+                    <select value={industry} onChange={(e) => setIndustry(e.target.value)} className={selectCls}>
+                      <option value="">Select industry</option>
+                      {INDUSTRIES.map((i) => <option key={i.value} value={i.value}>{i.label}</option>)}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
-                      Phone Number <span className="text-rose-400">*</span>
+                      Company Size <span className="text-rose-400">*</span>
                     </label>
-                    <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
-                      placeholder="e.g. +1 415 000 0000" className={inputCls} />
+                    <select value={companySize} onChange={(e) => setCompanySize(e.target.value)} className={selectCls}>
+                      <option value="">Select size</option>
+                      {COMPANY_SIZES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
+                      Company Website
+                    </label>
+                    <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)}
+                      placeholder="https://yourcompany.com" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
+                      Official Contact Email
+                    </label>
+                    <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
+                      placeholder="hr@yourcompany.com" className={inputCls} />
                   </div>
                 </div>
               </div>
 
               <div className="px-6 py-4 border-t border-slate-100 flex justify-end">
-                <button onClick={() => step1Valid && setStep(2)} disabled={!step1Valid}
+                <button onClick={handleStep1Continue} disabled={!step1Valid || savingOrg}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm shadow-blue-500/20">
-                  Continue <ChevronRight className="w-4 h-4" />
+                  {savingOrg ? <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</> : <>Continue <ChevronRight className="w-4 h-4" /></>}
                 </button>
               </div>
             </div>
           )}
 
-          {/* ── Step 2: KYC Document ── */}
+          {/* Step 2 */}
           {step === 2 && (
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-              <div className="px-6 py-5 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center shrink-0">
-                    <FileText className="w-4.5 h-4.5 text-violet-600" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-900">KYC Document</h2>
-                    <p className="text-xs text-slate-400 mt-0.5">Upload one official document to verify your organisation</p>
-                  </div>
+              <div className="px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center shrink-0">
+                  <FileText className="w-4.5 h-4.5 text-violet-600" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">KYC Document</h2>
+                  <p className="text-xs text-slate-400 mt-0.5">Upload one official document to verify your organisation</p>
                 </div>
               </div>
 
               <div className="px-6 py-6 space-y-5">
-                {/* Org summary */}
-                <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <Building2 className="w-4 h-4 text-slate-400 shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 truncate">{legalName}</p>
-                    <p className="text-[11px] text-slate-400">{companyType} · {location}</p>
-                  </div>
-                  <button onClick={() => setStep(1)} className="text-xs text-blue-500 hover:text-blue-700 shrink-0 ml-auto font-medium">
-                    Edit
-                  </button>
-                </div>
-
-                {/* Document type */}
                 <div>
                   <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
                     Document Type <span className="text-rose-400">*</span>
@@ -269,7 +345,6 @@ export default function EmployerKYCPage() {
                   </select>
                 </div>
 
-                {/* Upload zone */}
                 <div>
                   <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
                     Upload Document <span className="text-rose-400">*</span>
@@ -283,14 +358,15 @@ export default function EmployerKYCPage() {
                         <p className="text-sm font-semibold text-green-800 truncate">{file.name}</p>
                         <p className="text-[11px] text-green-600">{(file.size / 1024).toFixed(1)} KB</p>
                       </div>
-                      <button onClick={() => setFile(null)} className="w-7 h-7 rounded-lg flex items-center justify-center text-green-500 hover:text-green-700 hover:bg-green-100 transition-colors shrink-0">
+                      <button onClick={() => setFile(null)}
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-green-500 hover:text-green-700 hover:bg-green-100 transition-colors shrink-0">
                         <X className="w-4 h-4" />
                       </button>
                     </div>
                   ) : (
                     <div
                       onClick={() => fileRef.current?.click()}
-                      onDrop={handleDrop}
+                      onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) setFile(f); }}
                       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                       onDragLeave={() => setDragOver(false)}
                       className={`flex flex-col items-center justify-center gap-3 py-10 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
@@ -307,14 +383,13 @@ export default function EmployerKYCPage() {
                     </div>
                   )}
                   <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) setFile(f); }} />
                 </div>
 
-                {/* Notice */}
                 <div className="flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
                   <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                   <p className="text-xs text-amber-700 leading-relaxed">
-                    Documents are reviewed within <span className="font-semibold">1–2 business days</span>. You'll receive a notification once your account is verified. All documents are encrypted and stored securely.
+                    Documents reviewed within <span className="font-semibold">1–2 business days</span>. All documents are encrypted and stored securely.
                   </p>
                 </div>
               </div>
@@ -324,78 +399,35 @@ export default function EmployerKYCPage() {
                   className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button
-                  onClick={async () => {
-                    if (!step2Valid || submitting) return;
-                    setSubmitting(true);
-                    try {
-                      const formData = new FormData();
-                      formData.append("file", file as File);
-                      await apiFetch("/api/employer/kyc/submit", {
-                        method: "POST",
-                        headers: { "x-csrf-token": getCsrf() },
-                        body: formData,
-                      });
-                      setStep(3);
-                    } catch {
-                      toast({ type: "error", message: "Network error. Please try again." });
-                    } finally {
-                      setSubmitting(false);
-                    }
-                  }}
-                  disabled={!step2Valid || submitting}
+                <button onClick={handleSubmitDoc} disabled={!step2Valid || submitting}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm shadow-blue-500/20">
-                  {submitting ? (
-                    <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>
-                  ) : (
-                    <>Submit for Review <ArrowRight className="w-4 h-4" /></>
-                  )}
+                  {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</> : <>Submit for Review <ArrowRight className="w-4 h-4" /></>}
                 </button>
               </div>
             </div>
           )}
 
-          {/* ── Step 3: Submitted ── */}
+          {/* Step 3 */}
           {step === 3 && (
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-              <div className="px-6 py-12 flex flex-col items-center text-center gap-4">
+              <div className="px-6 py-12 flex flex-col items-center text-center gap-5">
                 <div className="w-16 h-16 rounded-2xl bg-green-50 border-2 border-green-200 flex items-center justify-center">
                   <Shield className="w-8 h-8 text-green-600" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Verification Submitted</h2>
                   <p className="text-sm text-slate-500 mt-1.5 max-w-sm leading-relaxed">
-                    Your documents are under review. We'll notify you within <span className="font-semibold text-slate-700">1–2 business days</span> once verification is complete.
+                    Your documents are under review. We'll notify you within{" "}
+                    <span className="font-semibold text-slate-700">1–2 business days</span>.
                   </p>
                 </div>
-                <a
-                  href="/employer/dashboard"
-                  className="flex items-center gap-2 h-10 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors shadow-sm shadow-blue-500/20"
-                >
+                <a href="/employer/dashboard"
+                  className="flex items-center gap-2 h-10 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors shadow-sm shadow-blue-500/20">
                   Go to Dashboard
                 </a>
-
-                <div className="w-full max-w-sm bg-slate-50 rounded-2xl border border-slate-200 divide-y divide-slate-100 text-left mt-2">
-                  {[
-                    { label: "Legal name", value: legalName },
-                    { label: "Location",   value: location  },
-                    { label: "Email",      value: email     },
-                    { label: "Phone",      value: phone     },
-                    { label: "Document",   value: docType   },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="px-4 py-3 flex items-center justify-between gap-3">
-                      <span className="text-xs text-slate-400">{label}</span>
-                      <span className="text-xs font-semibold text-slate-700 truncate ml-2">{value}</span>
-                    </div>
-                  ))}
-                  <div className="px-4 py-3 flex items-center justify-between gap-3">
-                    <span className="text-xs text-slate-400">Status</span>
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-700">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" /> Under Review
-                    </span>
-                  </div>
-                </div>
-
+                <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+                  You can access the dashboard in limited mode while verification is pending. Job posting unlocks once approved.
+                </p>
               </div>
             </div>
           )}

@@ -17,6 +17,11 @@ export default function AuthCallbackPage() {
         const role = data?.role;
         toast({ type: "success", message: "Signed in successfully" });
         if (role === "EMPLOYER") {
+          const es = data?.employerStatus;
+          if (!es?.hasProfile || es?.needsVerification) {
+            router.push("/kyc/employer");
+            return;
+          }
           router.push("/employer/dashboard");
         } else {
           router.push("/dashboard");

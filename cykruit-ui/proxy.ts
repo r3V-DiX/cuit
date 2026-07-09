@@ -23,6 +23,7 @@ const EMPLOYER_PREFIXES = [
   "/employer/notifications",
   "/employer/settings",
   "/employer/subscription",
+  "/employer/team",
   "/kyc",
 ];
 

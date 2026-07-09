@@ -38,10 +38,18 @@ function LoginForm() {
       toast({ type: "success", message: "Signed in successfully" });
       const role = result.data?.role;
       broadcastLogin(role === "EMPLOYER" ? "EMPLOYER" : "SEEKER");
+      if (role === "EMPLOYER") {
+        const es = result.data?.employerStatus;
+        if (!es?.hasProfile || es?.needsVerification) {
+          router.push("/kyc/employer");
+          return;
+        }
+        router.push("/employer/dashboard");
+        return;
+      }
       // Validate nextPath is a relative path to prevent open redirect
       const safeNext = nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : null;
-      const destination = safeNext || (role === "EMPLOYER" ? "/employer/dashboard" : "/dashboard");
-      router.push(destination);
+      router.push(safeNext || "/dashboard");
     } catch (error: any) {
       toast({ type: "error", message: error.message || "Authentication failed" });
     } finally {

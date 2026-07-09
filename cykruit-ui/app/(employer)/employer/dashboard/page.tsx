@@ -6,7 +6,7 @@ import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Briefcase, Users, Eye, TrendingUp, ArrowRight, ChevronRight,
   PlusCircle, CheckCircle2, Clock, XCircle, Send, Building2,
-  BarChart2, Activity, Loader2,
+  BarChart2, Activity, Loader2, AlertTriangle, ShieldCheck, ShieldAlert,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 
@@ -67,6 +67,7 @@ interface ApiApplication {
 
 export default function EmployerDashboardPage() {
   const [displayName, setDisplayName] = useState("Employer");
+  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
   const [jobs, setJobs] = useState<ApiJob[]>([]);
   const [applications, setApplications] = useState<ApiApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,6 +79,9 @@ export default function EmployerDashboardPage() {
         const result = await apiFetch("/api/auth/me");
         if (result.data?.firstName) {
           setDisplayName(result.data.firstName);
+        }
+        const es = result.data?.employerStatus;
+        if (es) setVerificationStatus(es.verificationStatus ?? (es.needsVerification ? "NOT_SUBMITTED" : null));
         }
       } catch {
         // Silent catch for guest fallback
@@ -156,6 +160,47 @@ export default function EmployerDashboardPage() {
       <EmployerTopbar title="Dashboard" />
       <main className="flex-1 overflow-y-auto p-6">
         <div className="flex flex-col gap-5">
+
+          {/* Verification banner */}
+          {verificationStatus === "NOT_SUBMITTED" && (
+            <div className="flex items-start gap-3 px-5 py-4 bg-amber-50 border border-amber-200 rounded-2xl">
+              <ShieldAlert className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-800">KYC verification required</p>
+                <p className="text-xs text-amber-700 mt-0.5">Complete your organization setup and submit KYC to post jobs.</p>
+              </div>
+              <Link href="/kyc/employer" className="shrink-0 h-8 px-3 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 transition-colors flex items-center">
+                Complete KYC
+              </Link>
+            </div>
+          )}
+          {(verificationStatus === "PENDING" || verificationStatus === "UNDER_REVIEW") && (
+            <div className="flex items-start gap-3 px-5 py-4 bg-blue-50 border border-blue-200 rounded-2xl">
+              <Clock className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-blue-800">Verification under review</p>
+                <p className="text-xs text-blue-700 mt-0.5">Your KYC documents are being reviewed. Job posting will unlock once approved (1–2 business days).</p>
+              </div>
+            </div>
+          )}
+          {verificationStatus === "REJECTED" && (
+            <div className="flex items-start gap-3 px-5 py-4 bg-rose-50 border border-rose-200 rounded-2xl">
+              <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-rose-800">Verification rejected</p>
+                <p className="text-xs text-rose-700 mt-0.5">Your KYC was rejected. Please resubmit with correct documents.</p>
+              </div>
+              <Link href="/kyc/employer" className="shrink-0 h-8 px-3 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors flex items-center">
+                Resubmit
+              </Link>
+            </div>
+          )}
+          {verificationStatus === "APPROVED" && (
+            <div className="flex items-center gap-3 px-5 py-3.5 bg-green-50 border border-green-200 rounded-2xl">
+              <ShieldCheck className="w-5 h-5 text-green-500 shrink-0" />
+              <p className="text-sm font-semibold text-green-800">Organization verified</p>
+            </div>
+          )}
 
           {/* Greeting */}
           <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5 flex items-center justify-between gap-6 flex-wrap">
