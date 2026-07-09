@@ -82,7 +82,6 @@ export default function EmployerDashboardPage() {
         }
         const es = result.data?.employerStatus;
         if (es) setVerificationStatus(es.verificationStatus ?? (es.needsVerification ? "NOT_SUBMITTED" : null));
-        }
       } catch {
         // Silent catch for guest fallback
       }
