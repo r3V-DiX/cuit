@@ -26,12 +26,7 @@ const APP_STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }
   Rejected:    { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle      className="w-3 h-3" /> },
 };
 
-// Hardcoded for now until applicants API is ready
-const ALL_APPLICANTS: {
-  id: number; name: string; jobId: string; location: string;
-  experience: string; status: AppStatus; applied: string; skills: string[];
-}[] = [];
-const AI_SCORES: Record<number, number> = {};
+const AI_SCORES: Record<string, number> = {};
 
 const STATUS_FILTERS: (AppStatus | "All")[] = ["All", "New", "Shortlisted", "Interview", "Rejected"];
 
@@ -39,6 +34,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const { id } = use(params);
   
   const [job, setJob] = useState<any>(null);
+  const [applicants, setApplicants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<AppStatus | "All">("All");
   const [search, setSearch] = useState("");
@@ -47,8 +43,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   useEffect(() => {
     const fetchJob = async () => {
       try {
-        const res = await fetch(`/api/employer/jobs/${id}`, { credentials: "include" });
-        const result = await res.json();
+        const [jobRes, appsRes] = await Promise.all([
+          fetch(`/api/employer/jobs/${id}`, { credentials: "include" }),
+          fetch(`/api/employer/jobs/${id}/applications`, { credentials: "include" }),
+        ]);
+        const result = await jobRes.json();
         const rawJob = result.data || result;
         if (rawJob && rawJob.id) {
            const statusMap: Record<string, JobStatus> = {
@@ -73,6 +72,24 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               skills: rawJob.skills?.map((s: any) => s.skill.name) || [],
             };
             setJob(mapped);
+        }
+        if (appsRes.ok) {
+          const appsData = await appsRes.json();
+          const items = appsData.data?.items ?? appsData.items ?? [];
+          const appStatusMap: Record<string, AppStatus> = {
+            APPLIED: "New", UNDER_REVIEW: "New", SHORTLISTED: "Shortlisted",
+            INTERVIEW: "Interview", REJECTED: "Rejected",
+          };
+          setApplicants(items.map((a: any) => ({
+            id: a.id,
+            name: `${a.jobSeeker?.firstName ?? ""} ${a.jobSeeker?.lastName ?? ""}`.trim() || "Applicant",
+            jobId: a.jobId,
+            location: a.jobSeeker?.location ?? "—",
+            experience: a.experienceYears ? `${a.experienceYears} yrs` : "—",
+            status: appStatusMap[a.status] ?? "New",
+            applied: new Date(a.appliedAt ?? a.createdAt).toLocaleDateString(),
+            skills: (a.skills ?? []).map((s: any) => s.skill?.name ?? s),
+          })));
         }
       } catch (e) {
         console.error(e);
@@ -112,7 +129,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     );
   }
 
-  const jobApplicants = ALL_APPLICANTS.filter((a) => a.jobId === job.id);
+  const jobApplicants = applicants;
   const jcfg = JOB_STATUS_CFG[job.status as JobStatus] || JOB_STATUS_CFG.Draft;
 
   const filtered = jobApplicants.filter((a) => {
