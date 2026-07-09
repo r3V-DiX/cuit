@@ -55,7 +55,8 @@ function CheckEmailContent() {
       }
 
       const body = data?.data ?? data;
-      if (body?.alreadyVerified) {
+      const msg: string = data?.message ?? body?.message ?? "";
+      if (body?.alreadyVerified || msg.toLowerCase().includes("already verified")) {
         toast({ type: "info", message: "Already verified", description: "Your email is already verified. Redirecting to sign in…" });
         setTimeout(() => router.push("/login"), 1500);
         return;
