@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useToast } from "@/components/ui/Toast";
@@ -10,10 +10,12 @@ import {
 } from "lucide-react";
 
 // ── Data ─────────────────────────────────────────────────────────────────────
-const PLANS: Record<string, {
+type PlanShape = {
   name: string; monthlyPrice: number; yearlyPrice: number;
-  features: string[]; color: string; badge?: string;
-}> = {
+  features: string[]; color: string; badge?: string; id?: string;
+};
+
+const FALLBACK_PLANS: Record<string, PlanShape> = {
   starter: {
     name: "Starter", monthlyPrice: 3999, yearlyPrice: 3199,
     features: ["5 active job listings", "Basic applicant tracking", "Company profile", "Email support", "Standard search visibility", "CSV export"],
@@ -81,8 +83,37 @@ function CheckoutContent() {
 
   const planId  = params.get("plan") || "growth";
   const billing = (params.get("billing") || "monthly") as "monthly" | "yearly";
-  const plan    = PLANS[planId] || PLANS.growth;
   const yearly  = billing === "yearly";
+
+  const [plans, setPlans] = useState<Record<string, PlanShape>>(FALLBACK_PLANS);
+  const [plansLoading, setPlansLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/subscriptions/packages")
+      .then((r) => r.json())
+      .then((data: { id: string; name: string; price: number; billingCycle: string; features: string[]; isActive: boolean }[]) => {
+        if (!Array.isArray(data) || data.length === 0) return;
+        const mapped: Record<string, PlanShape> = {};
+        data.forEach((pkg) => {
+          const key = pkg.name.toLowerCase();
+          const fallback = FALLBACK_PLANS[key];
+          mapped[key] = {
+            id: pkg.id,
+            name: pkg.name,
+            monthlyPrice: pkg.billingCycle === "yearly" ? (fallback?.monthlyPrice ?? pkg.price) : pkg.price,
+            yearlyPrice:  pkg.billingCycle === "yearly" ? pkg.price : (fallback?.yearlyPrice ?? Math.round(pkg.price * 0.8)),
+            features: Array.isArray(pkg.features) && pkg.features.length > 0 ? pkg.features : (fallback?.features ?? []),
+            color: fallback?.color ?? "blue",
+            badge: fallback?.badge,
+          };
+        });
+        setPlans(mapped);
+      })
+      .catch(() => { /* fall back to FALLBACK_PLANS already set */ })
+      .finally(() => setPlansLoading(false));
+  }, []);
+
+  const plan    = plans[planId] || plans.growth || FALLBACK_PLANS.growth;
   const basePrice = yearly ? plan.yearlyPrice : plan.monthlyPrice;
 
   // Coupon
@@ -161,6 +192,16 @@ function CheckoutContent() {
     }
 
     setLoading(true);
+
+    // fire-and-forget assign call (admin endpoint, best-effort)
+    if (plan.id) {
+      fetch("/api/subscriptions/admin/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packageId: plan.id, billingCycle: billing, email, company, gstIn }),
+      }).catch(() => { /* ignore */ });
+    }
+
     setTimeout(() => {
       setLoading(false);
       router.push(`/employer/subscription/success?plan=${planId}&billing=${billing}&amount=${total}`);
@@ -411,16 +452,16 @@ function CheckoutContent() {
           {/* ── Pay button ── */}
           <button
             onClick={validateAndPay}
-            disabled={loading}
+            disabled={loading || plansLoading}
             className={`w-full h-13 rounded-2xl text-white text-base font-bold shadow-lg transition-all flex items-center justify-center gap-2.5 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer py-3.5 ${accentBtn}`}
           >
-            {loading ? (
+            {loading || plansLoading ? (
               <>
                 <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                 </svg>
-                Processing payment…
+                {plansLoading ? "Loading plan…" : "Processing payment…"}
               </>
             ) : (
               <>

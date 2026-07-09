@@ -6,7 +6,7 @@ import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Briefcase, Users, Eye, TrendingUp, ArrowRight, ChevronRight,
   PlusCircle, CheckCircle2, Clock, XCircle, Send, Building2,
-  BarChart2, Activity,
+  BarChart2, Activity, Loader2,
 } from "lucide-react";
 
 type AppStatus = "New" | "Shortlisted" | "Rejected" | "Interview";
@@ -18,23 +18,26 @@ const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }> = 
   Rejected:   { color: "text-rose-700 bg-rose-50 border-rose-200",   icon: <XCircle className="w-3 h-3" />     },
 };
 
-const RECENT_APPLICANTS: {
-  id: number; name: string; role: string; status: AppStatus; time: string;
-}[] = [
-  { id: 1, name: "Aryan Mehta",    role: "Senior Penetration Tester", status: "New",         time: "2h ago"  },
-  { id: 2, name: "Priya Sharma",   role: "Cloud Security Engineer",   status: "Shortlisted", time: "5h ago"  },
-  { id: 3, name: "Rohan Das",      role: "SOC Analyst II",            status: "Interview",   time: "1d ago"  },
-  { id: 4, name: "Neha Kulkarni",  role: "Red Team Operator",         status: "New",         time: "1d ago"  },
-];
+const STATUS_MAP: Record<string, AppStatus> = {
+  PENDING: "New",
+  SHORTLISTED: "Shortlisted",
+  REJECTED: "Rejected",
+  INTERVIEW: "Interview",
+};
 
-const ACTIVE_JOBS: {
-  id: number; title: string; applicants: number; views: number; posted: string; status: "Active" | "Draft";
-}[] = [
-  { id: 1, title: "Senior Penetration Tester", applicants: 12, views: 340, posted: "3d ago",  status: "Active" },
-  { id: 2, title: "Cloud Security Engineer",   applicants:  8, views: 210, posted: "5d ago",  status: "Active" },
-  { id: 3, title: "Red Team Operator",         applicants:  5, views: 180, posted: "1w ago",  status: "Active" },
-  { id: 4, title: "AppSec Engineer",           applicants:  0, views:   0, posted: "Today",   status: "Draft"  },
-];
+function relativeTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  return `${weeks}w ago`;
+}
 
 const QUICK_LINKS = [
   { label: "Post a Job",      href: "/employer/jobs/new",   icon: <PlusCircle  className="w-4 h-4" /> },
@@ -43,8 +46,30 @@ const QUICK_LINKS = [
   { label: "Company Profile", href: "/employer/company",    icon: <Building2   className="w-4 h-4" /> },
 ];
 
+interface ApiJob {
+  id: string | number;
+  jobTitle: string;
+  status: string;
+  applicantCount?: number;
+  viewCount?: number;
+  publishedAt?: string | null;
+}
+
+interface ApiApplication {
+  id: string | number;
+  jobId?: string | number;
+  job?: { jobTitle?: string };
+  applicant?: { firstName?: string; lastName?: string };
+  status: string;
+  appliedAt: string;
+}
+
 export default function EmployerDashboardPage() {
   const [displayName, setDisplayName] = useState("Employer");
+  const [jobs, setJobs] = useState<ApiJob[]>([]);
+  const [applications, setApplications] = useState<ApiApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     async function fetchUser() {
@@ -56,12 +81,77 @@ export default function EmployerDashboardPage() {
             setDisplayName(result.data.firstName);
           }
         }
-      } catch (error) {
+      } catch {
         // Silent catch for guest fallback
       }
     }
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      setLoading(true);
+      setError(false);
+      try {
+        const [jobsRes, appsRes] = await Promise.all([
+          fetch("/api/employer/jobs", { credentials: "include" }),
+          fetch("/api/employer/applications", { credentials: "include" }),
+        ]);
+        if (!jobsRes.ok || !appsRes.ok) throw new Error("fetch failed");
+        const [jobsData, appsData] = await Promise.all([jobsRes.json(), appsRes.json()]);
+        const jobsArr: ApiJob[] = Array.isArray(jobsData) ? jobsData : (jobsData.data ?? jobsData.items ?? []);
+        const appsArr: ApiApplication[] = Array.isArray(appsData) ? appsData : (appsData.data ?? appsData.items ?? []);
+        setJobs(jobsArr);
+        setApplications(appsArr);
+      } catch {
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchDashboardData();
+  }, []);
+
+  // Derived stats
+  const activeJobsCount = jobs.filter(j => j.status !== "DRAFT" && j.status !== "CLOSED").length;
+  const totalApplicants = applications.length;
+  const newThisWeek = applications.filter(a => {
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return new Date(a.appliedAt).getTime() >= weekAgo;
+  }).length;
+  const totalViews = jobs.reduce((sum, j) => sum + (j.viewCount || 0), 0);
+
+  // Recent applicants: last 4 by appliedAt desc
+  const recentApplicants = [...applications]
+    .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
+    .slice(0, 4)
+    .map(a => ({
+      id: a.id,
+      name: `${a.applicant?.firstName ?? ""} ${a.applicant?.lastName ?? ""}`.trim() || "Unknown",
+      role: a.job?.jobTitle ?? "—",
+      status: (STATUS_MAP[a.status] ?? "New") as AppStatus,
+      time: relativeTime(a.appliedAt),
+    }));
+
+  // Jobs list: sorted by publishedAt desc
+  const jobsList = [...jobs]
+    .sort((a, b) => new Date(b.publishedAt ?? 0).getTime() - new Date(a.publishedAt ?? 0).getTime())
+    .map(j => ({
+      id: j.id,
+      title: j.jobTitle,
+      applicants: j.applicantCount ?? 0,
+      views: j.viewCount ?? 0,
+      posted: relativeTime(j.publishedAt),
+      status: j.status === "DRAFT" ? "Draft" : "Active",
+    }));
+
+  // Hiring funnel counts
+  const funnelTotal = applications.length;
+  const funnelShortlisted = applications.filter(a => a.status === "SHORTLISTED").length;
+  const funnelInterview = applications.filter(a => a.status === "INTERVIEW").length;
+  const funnelOffer = applications.filter(a => a.status === "OFFER_SENT" || a.status === "OFFERED").length;
+
+  const statVal = (val: number) => (loading ? null : error ? "—" : val);
 
   return (
     <>
@@ -86,10 +176,10 @@ export default function EmployerDashboardPage() {
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Active Jobs",       value: 3,   href: "/employer/jobs",       iconBg: "bg-blue-50 text-blue-600",   numColor: "text-blue-600",   icon: <Briefcase    className="w-5 h-5" /> },
-              { label: "Total Applicants",  value: 25,  href: "/employer/applicants", iconBg: "bg-violet-50 text-violet-600", numColor: "text-violet-600", icon: <Users        className="w-5 h-5" /> },
-              { label: "New This Week",     value: 9,   href: "/employer/applicants", iconBg: "bg-green-50 text-green-600", numColor: "text-green-600",  icon: <TrendingUp   className="w-5 h-5" /> },
-              { label: "Total Views",       value: 730, href: "/employer/jobs",       iconBg: "bg-amber-50 text-amber-600", numColor: "text-amber-600",  icon: <Eye          className="w-5 h-5" /> },
+              { label: "Active Jobs",       value: statVal(activeJobsCount),  href: "/employer/jobs",       iconBg: "bg-blue-50 text-blue-600",   numColor: "text-blue-600",   icon: <Briefcase    className="w-5 h-5" /> },
+              { label: "Total Applicants",  value: statVal(totalApplicants),  href: "/employer/applicants", iconBg: "bg-violet-50 text-violet-600", numColor: "text-violet-600", icon: <Users        className="w-5 h-5" /> },
+              { label: "New This Week",     value: statVal(newThisWeek),      href: "/employer/applicants", iconBg: "bg-green-50 text-green-600", numColor: "text-green-600",  icon: <TrendingUp   className="w-5 h-5" /> },
+              { label: "Total Views",       value: statVal(totalViews),       href: "/employer/jobs",       iconBg: "bg-amber-50 text-amber-600", numColor: "text-amber-600",  icon: <Eye          className="w-5 h-5" /> },
             ].map(({ label, value, href, iconBg, numColor, icon }) => (
               <Link
                 key={label}
@@ -97,7 +187,10 @@ export default function EmployerDashboardPage() {
                 className="bg-white rounded-2xl border border-slate-200 px-4 py-4 flex items-center justify-between gap-3 hover:border-slate-300 hover:shadow-sm transition-all group"
               >
                 <div>
-                  <p className={`text-2xl font-bold leading-none ${numColor}`}>{value}</p>
+                  {loading
+                    ? <Loader2 className={`w-5 h-5 animate-spin ${numColor}`} />
+                    : <p className={`text-2xl font-bold leading-none ${numColor}`}>{value}</p>
+                  }
                   <p className="text-xs text-slate-600 font-medium mt-1.5">{label}</p>
                 </div>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
@@ -122,7 +215,13 @@ export default function EmployerDashboardPage() {
                 </Link>
               </div>
               <div className="divide-y divide-slate-100">
-                {RECENT_APPLICANTS.map((a) => {
+                {loading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                  </div>
+                ) : recentApplicants.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-10">No applicants yet</p>
+                ) : recentApplicants.map((a) => {
                   const cfg = STATUS_CFG[a.status];
                   return (
                     <div key={a.id} className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-slate-50/60 transition-colors group">
@@ -186,7 +285,13 @@ export default function EmployerDashboardPage() {
                 </Link>
               </div>
               <div className="divide-y divide-slate-100">
-                {ACTIVE_JOBS.map((job) => (
+                {loading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                  </div>
+                ) : jobsList.length === 0 ? (
+                  <p className="text-xs text-slate-400 text-center py-10">No jobs posted yet</p>
+                ) : jobsList.map((job) => (
                   <div key={job.id} className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-slate-50/60 transition-colors group">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -221,15 +326,17 @@ export default function EmployerDashboardPage() {
               </div>
               <div className="flex flex-col gap-3 flex-1">
                 {[
-                  { label: "Total Applied",  count: 25, pct: 100, color: "bg-blue-500"   },
-                  { label: "Shortlisted",    count: 10, pct: 40,  color: "bg-violet-500" },
-                  { label: "Interview",      count: 5,  pct: 20,  color: "bg-amber-500"  },
-                  { label: "Offer Sent",     count: 2,  pct: 8,   color: "bg-green-500"  },
+                  { label: "Total Applied",  count: funnelTotal,       pct: 100,                                                                  color: "bg-blue-500"   },
+                  { label: "Shortlisted",    count: funnelShortlisted, pct: funnelTotal ? Math.round(funnelShortlisted / funnelTotal * 100) : 0,  color: "bg-violet-500" },
+                  { label: "Interview",      count: funnelInterview,   pct: funnelTotal ? Math.round(funnelInterview   / funnelTotal * 100) : 0,  color: "bg-amber-500"  },
+                  { label: "Offer Sent",     count: funnelOffer,       pct: funnelTotal ? Math.round(funnelOffer       / funnelTotal * 100) : 0,  color: "bg-green-500"  },
                 ].map(({ label, count, pct, color }) => (
                   <div key={label}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs text-slate-600 font-medium">{label}</span>
-                      <span className="text-xs font-bold text-slate-900 font-mono">{count}</span>
+                      <span className="text-xs font-bold text-slate-900 font-mono">
+                        {loading ? <Loader2 className="w-3 h-3 animate-spin inline" /> : count}
+                      </span>
                     </div>
                     <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />

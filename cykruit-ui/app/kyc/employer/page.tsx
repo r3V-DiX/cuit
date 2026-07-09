@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import {
   Building2, FileText, CheckCircle2, ChevronRight,
-  Upload, X, Shield, AlertCircle, ArrowRight, ChevronLeft, LogOut,
+  Upload, X, Shield, AlertCircle, ArrowRight, ChevronLeft, LogOut, Loader2,
 } from "lucide-react";
 import { useModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
@@ -90,9 +90,10 @@ export default function EmployerKYCPage() {
   const [phone,       setPhone]       = useState("");
 
   // Step 2
-  const [docType,  setDocType]  = useState("");
-  const [file,     setFile]     = useState<File | null>(null);
-  const [dragOver, setDragOver] = useState(false);
+  const [docType,     setDocType]     = useState("");
+  const [file,        setFile]        = useState<File | null>(null);
+  const [dragOver,    setDragOver]    = useState(false);
+  const [submitting,  setSubmitting]  = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const step1Valid = legalName.trim() && location.trim() && companyType && email.trim() && phone.trim();
@@ -333,9 +334,41 @@ export default function EmployerKYCPage() {
                   className="flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors">
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button onClick={() => setStep(3)} disabled={!step2Valid}
+                <button
+                  onClick={async () => {
+                    if (!step2Valid || submitting) return;
+                    setSubmitting(true);
+                    try {
+                      const csrfCookie = document.cookie
+                        .split("; ")
+                        .find((row) => row.startsWith("csrf_token="));
+                      const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split("=")[1]) : "";
+                      const formData = new FormData();
+                      formData.append("file", file as File);
+                      const res = await fetch("/api/employer/kyc/submit", {
+                        method: "POST",
+                        headers: { "x-csrf-token": csrfToken },
+                        credentials: "include",
+                        body: formData,
+                      });
+                      if (res.ok) {
+                        setStep(3);
+                      } else {
+                        toast({ type: "error", message: "Submission failed. Please try again." });
+                      }
+                    } catch {
+                      toast({ type: "error", message: "Network error. Please try again." });
+                    } finally {
+                      setSubmitting(false);
+                    }
+                  }}
+                  disabled={!step2Valid || submitting}
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm shadow-blue-500/20">
-                  Submit for Review <ArrowRight className="w-4 h-4" />
+                  {submitting ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</>
+                  ) : (
+                    <>Submit for Review <ArrowRight className="w-4 h-4" /></>
+                  )}
                 </button>
               </div>
             </div>
