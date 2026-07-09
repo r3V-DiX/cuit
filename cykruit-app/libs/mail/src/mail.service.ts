@@ -44,10 +44,11 @@ export class MailService {
         );
       }
       const { error } = await this.resend.emails.send({
-        from: `"Cykruit 🚀" <${this.fromEmail}>`,
+        from: `Cykruit <${this.fromEmail}>`,
         replyTo: "support@cykruit.com",
         to: email,
-        subject: "Verify your Cykruit account",
+        subject: "Verify your email address",
+        text: `Verify your Cykruit account\n\nClick this link to verify: ${verifyUrl}\n\nLink expires in 24 hours. If you didn't sign up, ignore this email.\n\n-- Cykruit Team`,
         html: verificationTemplate(verifyUrl),
       });
 
@@ -74,10 +75,11 @@ export class MailService {
         );
       }
       const { error } = await this.resend.emails.send({
-        from: `"Cykruit 🚀" <${this.fromEmail}>`,
+        from: `Cykruit <${this.fromEmail}>`,
         replyTo: "support@cykruit.com",
         to: email,
-        subject: "Reset Your Cykruit Password",
+        subject: "Reset your password",
+        text: `Password reset request\n\nClick to reset your password: ${resetUrl}\n\nThis link expires in 1 hour. Didn't request this? Ignore this email.\n\n-- Cykruit Team`,
         html: passwordResetTemplate(resetUrl),
       });
 
@@ -102,10 +104,11 @@ export class MailService {
     try {
       const loginUrl = `${this.frontendUrl}/login`;
       const { error } = await this.resend.emails.send({
-        from: `"Cykruit 🚀" <${this.fromEmail}>`,
+        from: `Cykruit <${this.fromEmail}>`,
         replyTo: "support@cykruit.com",
         to: email,
-        subject: "✅ Password Successfully Changed",
+        subject: "Your password was changed",
+        text: `Password updated\n\nHi ${firstName}, your Cykruit password was successfully changed.\n\nIf you didn't make this change, contact support@cykruit.com immediately.\n\n-- Cykruit Team`,
         html: passwordChangedTemplate(firstName, loginUrl),
       });
 
@@ -138,10 +141,11 @@ export class MailService {
   ): Promise<void> {
     try {
       const { error } = await this.resend.emails.send({
-        from: `"Cykruit 🚀" <${this.fromEmail}>`,
+        from: `Cykruit <${this.fromEmail}>`,
         replyTo: "support@cykruit.com",
         to: email,
-        subject: "🔔 You have a new notification",
+        subject: "New notification from Cykruit",
+        text: `${firstName ? `Hi ${firstName},\n\n` : ""}${message}${actionUrl ? `\n\nView details: ${actionUrl}` : ""}\n\n-- Cykruit Team`,
         html: notificationTemplate(message, actionUrl, firstName),
       });
 
@@ -168,10 +172,11 @@ export class MailService {
     try {
       const loginUrl = `${this.frontendUrl}/login`;
       const { error } = await this.resend.emails.send({
-        from: `"Cykruit 🚀" <${this.fromEmail}>`,
+        from: `Cykruit <${this.fromEmail}>`,
         replyTo: "support@cykruit.com",
         to: email,
-        subject: "⚠️ Your Cykruit Account is Scheduled for Deletion",
+        subject: "Your account is scheduled for deletion",
+        text: `Account deletion scheduled\n\nYour Cykruit account will be permanently deleted on ${deletionScheduledAt.toDateString()}.\n\nTo cancel: log in before that date at ${this.frontendUrl}/login\n\nIf you didn't request this, contact support@cykruit.com\n\n-- Cykruit Team`,
         html: accountDeletionScheduledTemplate(deletionScheduledAt, loginUrl),
       });
 
@@ -211,10 +216,11 @@ export class MailService {
         this.logger.log(`[DEV] OTP Code for ${to}: ${data.otp}`, "MailService");
       }
       const { error } = await this.resend.emails.send({
-        from: `"Cykruit 🚀" <${this.fromEmail}>`,
+        from: `Cykruit <${this.fromEmail}>`,
         replyTo: "support@cykruit.com",
         to,
-        subject: "Your Cykruit verification code",
+        subject: "Your verification code",
+        text: `Hi ${data.firstName || "there"},\n\nYour Cykruit verification code: ${data.otp}\n\nExpires in ${data.expiresInMinutes} minutes. Do not share this code.\n\n-- Cykruit Team`,
         html: otpTemplate(
           data.firstName,
           data.otp,
@@ -251,10 +257,11 @@ export class MailService {
         );
       }
       const { error } = await this.resend.emails.send({
-        from: `"Cykruit 🚀" <${this.fromEmail}>`,
+        from: `Cykruit <${this.fromEmail}>`,
         replyTo: "support@cykruit.com",
         to,
-        subject: `You've been invited to join ${data.companyName} on Cykruit`,
+        subject: `Invitation to join ${data.companyName} on Cykruit`,
+        text: `Hi ${data.inviteeName},\n\n${data.inviterName} has invited you to join ${data.companyName} on Cykruit as ${data.assignedRole}.\n\nAccept invite: ${data.inviteUrl}\n\nExpires in ${data.expiresInHours} hours.\n\n-- Cykruit Team`,
         html: employerInviteTemplate(
           data.inviteeName,
           data.inviterName,
@@ -298,10 +305,11 @@ export class MailService {
         );
       }
       const { error } = await this.resend.emails.send({
-        from: `"Cykruit 🚀" <${this.fromEmail}>`,
+        from: `Cykruit <${this.fromEmail}>`,
         replyTo: "support@cykruit.com",
         to,
-        subject: `Someone from ${data.requesterEmail.split("@")[1]} wants to join ${data.companyName}`,
+        subject: `${data.requesterName} wants to join your team on Cykruit`,
+        text: `Hi ${data.ownerFirstName},\n\n${data.requesterName} (${data.requesterEmail}) has requested to join ${data.companyName} on Cykruit.\n\nReview in dashboard: ${data.dashboardUrl}\n\n-- Cykruit Team`,
         html: companyJoinRequestTemplate(
           data.ownerFirstName,
           data.requesterName,
@@ -340,10 +348,10 @@ export class MailService {
   ): Promise<void> {
     try {
       const { error } = await this.resend.emails.send({
-        from: `"Cykruit 🚀" <${this.fromEmail}>`,
+        from: `Cykruit <${this.fromEmail}>`,
         replyTo: data.email,
         to,
-        subject: `🔔 New Contact Form: ${data.fullName}`,
+        subject: `Contact form: ${data.fullName}`,
         html: `
                     <div style="font-family:sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;">
                       <h2 style="color:#1B3C8B;margin-top:0;">New Contact Form Submission</h2>

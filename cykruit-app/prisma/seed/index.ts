@@ -7,6 +7,7 @@ import { seedRoles } from './roles.seed';
 import { seedAdmins } from './admins.seed';
 import { seedSubscriptionPackages } from './subscriptions.seed';
 import { seedTestimonials } from './testimonials.seed';
+import { seedJobs } from './jobs.seed';
 
 const prisma = new PrismaClient();
 
@@ -61,6 +62,12 @@ async function main() {
         await seedTestimonials(prisma);
     } catch (e) {
         console.error('❌ Testimonials seeding failed:', e);
+    }
+
+    try {
+        await seedJobs(prisma);
+    } catch (e) {
+        console.error('❌ Jobs seeding failed:', e);
     }
 
     console.log('\n================================================');

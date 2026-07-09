@@ -7,33 +7,38 @@ export const otpTemplate = (
   expiresInMinutes: number,
   purpose: string,
 ): string =>
-  baseTemplate(`
-    <div style="text-align:center;margin-bottom:30px;">
-      <div style="font-size:48px;margin-bottom:16px;">🔑</div>
-      <h2 style="margin:0 0 10px 0;font-size:26px;font-weight:700;color:#1B3C8B;">Verification Code</h2>
-      <p style="margin:0;font-size:15px;color:#64748b;">Here is your security code for ${purpose.toLowerCase()}</p>
-    </div>
-
-    <p style="margin:0 0 20px 0;color:#334155;font-size:15px;">
-      Hello ${firstName || "User"},
-    </p>
-    <p style="margin:0 0 30px 0;color:#334155;line-height:1.6;">
-      You requested a verification code to use with Cykruit. Please use the following code to complete your verification:
-    </p>
-
-    <div style="text-align:center;margin:30px 0;">
-      <div style="display:inline-block;background:#f1f5f9;border:2px dashed #1B3C8B;color:#1B3C8B;font-family:monospace;font-size:36px;font-weight:700;letter-spacing:6px;padding:16px 40px;border-radius:12px;">
-        ${otp}
+  baseTemplate(
+    `
+    <div style="text-align:center;margin-bottom:36px;">
+      <div style="display:inline-block;width:64px;height:64px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:16px;text-align:center;line-height:64px;margin-bottom:20px;">
+        <span style="font-size:28px;display:inline-block;vertical-align:middle;">🔑</span>
       </div>
+      <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#f1f5f9;letter-spacing:-0.3px;">Your verification code</h1>
+      <p style="margin:0;font-size:14px;color:#4b5563;font-family:'Courier New',monospace;letter-spacing:1px;">${purpose.toUpperCase()}</p>
     </div>
 
-    <div style="background:#fdf2f2;border-radius:8px;padding:16px;margin:24px 0;border-left:4px solid #ef4444;">
-      <p style="margin:0;font-size:13px;color:#991b1b;font-weight:500;">
-        ⏰ This code is valid for <strong>${expiresInMinutes} minutes</strong>. 
-      </p>
-    </div>
-
-    <p style="margin:20px 0 0 0;font-size:13px;color:#64748b;line-height:1.5;">
-      <strong>Security notice:</strong> If you did not request this code, someone may have entered your email address by mistake. You can safely ignore this email. Do not share this code with anyone.
+    <p style="margin:0 0 28px;color:#9ca3af;font-size:15px;line-height:1.75;text-align:center;">
+      Hey <strong style="color:#f1f5f9;">${firstName || "there"}</strong>, use this code to complete your verification. Do not share it with anyone.
     </p>
-  `);
+
+    <!-- OTP block -->
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 32px;">
+      <tr>
+        <td align="center" style="background:#0b1120;border:2px solid rgba(37,99,235,0.5);border-radius:12px;padding:22px 48px;">
+          <p style="margin:0;font-size:40px;font-weight:800;color:#f1f5f9;font-family:'Courier New',monospace;letter-spacing:12px;text-align:center;">${otp}</p>
+        </td>
+      </tr>
+    </table>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr>
+        <td style="background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-left:3px solid #2563eb;border-radius:0 8px 8px 0;padding:14px 16px;">
+          <p style="margin:0;font-size:12px;color:#4b5563;font-family:'Courier New',monospace;letter-spacing:0.5px;">
+            ⏰ EXPIRES IN <strong style="color:#9ca3af;">${expiresInMinutes} MINUTES</strong> &nbsp;|&nbsp; SINGLE USE ONLY &nbsp;|&nbsp; DO NOT SHARE
+          </p>
+        </td>
+      </tr>
+    </table>
+    `,
+    `Your ${otp} verification code — expires in ${expiresInMinutes} min`
+  );

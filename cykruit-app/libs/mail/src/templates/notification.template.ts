@@ -7,16 +7,25 @@ export const notificationTemplate = (
   actionUrl?: string,
   firstName?: string,
 ): string =>
-  baseTemplate(`
-    <div style="text-align:center;margin-bottom:30px;">
-      <div style="font-size:48px;margin-bottom:16px;">🔔</div>
-      <h2 style="margin:0 0 10px 0;font-size:26px;font-weight:700;color:#1B3C8B;">New Notification</h2>
-      ${firstName ? `<p style="margin:0;font-size:15px;color:#64748b;">Hi ${firstName}</p>` : ""}
+  baseTemplate(
+    `
+    <div style="text-align:center;margin-bottom:36px;">
+      <div style="display:inline-block;width:64px;height:64px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:16px;text-align:center;line-height:64px;margin-bottom:20px;">
+        <span style="font-size:28px;display:inline-block;vertical-align:middle;">🔔</span>
+      </div>
+      <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#f1f5f9;letter-spacing:-0.3px;">New notification</h1>
+      ${firstName ? `<p style="margin:0;font-size:14px;color:#4b5563;font-family:'Courier New',monospace;letter-spacing:1px;">FOR ${firstName.toUpperCase()}</p>` : ""}
     </div>
 
-    <div style="background:#f8fafc;border-radius:8px;padding:20px;margin:0 0 24px 0;border:1px solid #e2e8f0;">
-      <p style="margin:0;color:#334155;font-size:15px;line-height:1.7;">${message}</p>
-    </div>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px;">
+      <tr>
+        <td style="background:#0b1120;border:1px solid #1f2937;border-radius:10px;padding:20px 24px;">
+          <p style="margin:0;color:#cbd5e1;font-size:15px;line-height:1.75;">${message}</p>
+        </td>
+      </tr>
+    </table>
 
     ${actionUrl ? cyberButton("View Details", actionUrl) : ""}
-  `);
+    `,
+    message.slice(0, 80)
+  );

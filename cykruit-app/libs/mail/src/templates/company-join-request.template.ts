@@ -1,5 +1,6 @@
 // libs/mail/src/templates/company-join-request.template.ts
 import { baseTemplate } from "./base.template";
+import { cyberButton } from "./cyber-button.template";
 
 export const companyJoinRequestTemplate = (
   ownerFirstName: string,
@@ -8,48 +9,54 @@ export const companyJoinRequestTemplate = (
   companyName: string,
   dashboardUrl: string,
 ): string =>
-  baseTemplate(`
-    <div style="text-align:center;margin-bottom:30px;">
-      <div style="font-size:48px;margin-bottom:16px;">🙋‍♂️</div>
-      <h2 style="margin:0 0 10px 0;font-size:26px;font-weight:700;color:#1B3C8B;">Join Request</h2>
-      <p style="margin:0;font-size:15px;color:#64748b;">Someone wants to join your company team on Cykruit</p>
+  baseTemplate(
+    `
+    <div style="text-align:center;margin-bottom:36px;">
+      <div style="display:inline-block;width:64px;height:64px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:16px;text-align:center;line-height:64px;margin-bottom:20px;">
+        <span style="font-size:28px;display:inline-block;vertical-align:middle;">🤝</span>
+      </div>
+      <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#f1f5f9;letter-spacing:-0.3px;">Team join request</h1>
+      <p style="margin:0;font-size:14px;color:#4b5563;font-family:'Courier New',monospace;letter-spacing:1px;">ACTION REQUIRED</p>
     </div>
 
-    <p style="margin:0 0 20px 0;color:#334155;font-size:15px;">
-      Hello ${ownerFirstName},
-    </p>
-    <p style="margin:0 0 20px 0;color:#334155;line-height:1.6;">
-      A request has been received from <strong>${requesterName}</strong> (${requesterEmail}) to join your company account for <strong>${companyName}</strong> on Cykruit because their email domain matches yours.
-    </p>
-    <p style="margin:0 0 30px 0;color:#334155;line-height:1.6;">
-      Please review their request in your employer dashboard to approve or decline access.
+    <p style="margin:0 0 24px;color:#9ca3af;font-size:15px;line-height:1.75;text-align:center;">
+      Hey <strong style="color:#f1f5f9;">${ownerFirstName}</strong>, someone from your company domain wants to join the <strong style="color:#f1f5f9;">${companyName}</strong> team on Cykruit.
     </p>
 
-    <div style="text-align:center;margin:30px 0;">
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="margin:0 auto;">
-        <tr>
-          <td style="padding:10px;">
-            <a href="${dashboardUrl}" style="display:inline-block;background:#10b981;color:#ffffff;padding:14px 30px;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px;box-shadow:0 4px 12px rgba(16,185,129,0.2);">
-              Approve Request
-            </a>
-          </td>
-          <td style="padding:10px;">
-            <a href="${dashboardUrl}" style="display:inline-block;background:#ef4444;color:#ffffff;padding:14px 30px;text-decoration:none;border-radius:8px;font-weight:600;font-size:15px;box-shadow:0 4px 12px rgba(239,68,68,0.2);">
-              Decline Request
-            </a>
-          </td>
-        </tr>
-      </table>
-    </div>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px;">
+      <tr>
+        <td style="background:#0b1120;border:1px solid #1f2937;border-radius:10px;padding:18px 22px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+              <td style="padding:6px 0;font-size:13px;font-family:'Courier New',monospace;letter-spacing:0.5px;border-bottom:1px solid #1f2937;">
+                <span style="color:#6b7280;">NAME</span>&nbsp;&nbsp;&nbsp;&nbsp;<strong style="color:#cbd5e1;">${requesterName}</strong>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0;font-size:13px;font-family:'Courier New',monospace;letter-spacing:0.5px;">
+                <span style="color:#6b7280;">EMAIL</span>&nbsp;&nbsp;&nbsp;<strong style="color:#3b82f6;">${requesterEmail}</strong>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
 
-    <div style="background:#f1f5f9;border-radius:8px;padding:16px;margin:24px 0;border-left:4px solid #1B3C8B;">
-      <p style="margin:0;font-size:13px;color:#475569;">
-        ℹ️ <strong>Security note:</strong> For security reasons, approval or rejection can only be performed after logging in to your verified employer dashboard.
-      </p>
-    </div>
-
-    <p style="margin:20px 0 0 0;font-size:13px;color:#94a3b8;text-align:center;">
-      If the buttons do not work, copy and paste this link into your browser to go to your dashboard:<br/>
-      <a href="${dashboardUrl}" style="color:#1B3C8B;word-break:break-all;">${dashboardUrl}</a>
+    <p style="margin:0 0 24px;color:#9ca3af;font-size:14px;line-height:1.75;text-align:center;">
+      Review their request in your employer dashboard to approve or decline access.
     </p>
-  `);
+
+    ${cyberButton("Review in Dashboard", dashboardUrl)}
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:28px 0 0;">
+      <tr>
+        <td style="background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-left:3px solid #2563eb;border-radius:0 8px 8px 0;padding:14px 16px;">
+          <p style="margin:0;font-size:12px;color:#4b5563;font-family:'Courier New',monospace;letter-spacing:0.5px;">
+            🔒 APPROVAL REQUIRES LOGIN — cannot be actioned without dashboard authentication.
+          </p>
+        </td>
+      </tr>
+    </table>
+    `,
+    `${requesterName} wants to join ${companyName} on Cykruit`
+  );

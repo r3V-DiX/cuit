@@ -16,13 +16,11 @@ const links = {
   ],
   Company: [
     { label: "About Us", href: "/about" },
-    { label: "Resources", href: "/resources" },
     { label: "Contact", href: "/contact" },
   ],
   Legal: [
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
-    { label: "Cookie Policy", href: "/cookies-policy" },
   ],
 };
 

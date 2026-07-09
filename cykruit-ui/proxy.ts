@@ -1,32 +1,59 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function proxy(request: NextRequest) {
-  const sessionToken = request.cookies.get("session_token")?.value;
-  const { pathname } = request.nextUrl;
+const SESSION_COOKIE = "session_token";
 
-  // API routes returning 401 — pass through, let client handle redirect
-  if (pathname.startsWith("/api/")) {
-    return NextResponse.next();
+const AUTHED_PREFIXES = [
+  "/dashboard",
+  "/applications",
+  "/saved",
+  "/messages",
+  "/notifications",
+  "/profile",
+  "/settings",
+  "/employer/dashboard",
+  "/employer/jobs",
+  "/employer/applicants",
+  "/employer/company",
+  "/employer/messages",
+  "/employer/notifications",
+  "/employer/settings",
+  "/employer/subscription",
+  "/kyc",
+];
+
+const GUEST_ONLY = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+];
+
+function isAuthedRoute(pathname: string): boolean {
+  return AUTHED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
+  );
+}
+
+function isGuestOnly(pathname: string): boolean {
+  return GUEST_ONLY.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
+  );
+}
+
+export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const isAuthed = !!request.cookies.get(SESSION_COOKIE)?.value;
+
+  if (!isAuthed && isAuthedRoute(pathname)) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", pathname);
+    return NextResponse.redirect(loginUrl);
   }
 
-  const protectedPrefixes = [
-    "/dashboard",
-    "/profile",
-    "/settings",
-    "/applications",
-    "/employer",
-    "/kyc"
-  ];
-
-  const isProtected = protectedPrefixes.some((prefix) =>
-    pathname === prefix || pathname.startsWith(prefix + "/")
-  );
-
-  if (isProtected && !sessionToken) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+  if (isAuthed && isGuestOnly(pathname)) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();
@@ -34,11 +61,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/profile/:path*",
-    "/settings/:path*",
-    "/applications/:path*",
-    "/employer/:path*",
-    "/kyc/:path*",
+    "/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|otf)).*)",
   ],
 };

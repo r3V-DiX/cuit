@@ -6,22 +6,31 @@ export const passwordChangedTemplate = (
   firstName: string,
   loginUrl: string,
 ): string =>
-  baseTemplate(`
-    <div style="text-align:center;margin-bottom:30px;">
-      <div style="font-size:48px;margin-bottom:16px;">✅</div>
-      <h2 style="margin:0 0 10px 0;font-size:26px;font-weight:700;color:#1B3C8B;">Password Changed</h2>
-      <p style="margin:0;font-size:15px;color:#64748b;">Your password has been updated successfully</p>
+  baseTemplate(
+    `
+    <div style="text-align:center;margin-bottom:36px;">
+      <div style="display:inline-block;width:64px;height:64px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:16px;text-align:center;line-height:64px;margin-bottom:20px;">
+        <span style="font-size:28px;display:inline-block;vertical-align:middle;">🔒</span>
+      </div>
+      <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#f1f5f9;letter-spacing:-0.3px;">Password updated</h1>
+      <p style="margin:0;font-size:14px;color:#4b5563;font-family:'Courier New',monospace;letter-spacing:1px;">ACCOUNT SECURITY ALERT</p>
     </div>
 
-    <p style="margin:0 0 20px 0;color:#334155;">
-      Hi <strong>${firstName}</strong>, your Cykruit account password was successfully changed.
+    <p style="margin:0 0 24px;color:#9ca3af;font-size:15px;line-height:1.75;text-align:center;">
+      Hey <strong style="color:#f1f5f9;">${firstName}</strong>, your Cykruit account password was successfully updated. You can log in with your new credentials right now.
     </p>
 
-    ${cyberButton("Login to Your Account", loginUrl)}
+    ${cyberButton("Go to Dashboard", loginUrl)}
 
-    <div style="background:#fee2e2;border-radius:8px;padding:16px;margin:24px 0;border-left:4px solid #ef4444;">
-      <p style="margin:0;font-size:13px;color:#991b1b;">
-        🚨 If you did not make this change, please <a href="mailto:support@cykruit.com" style="color:#991b1b;font-weight:600;">contact support immediately</a> as your account may be compromised.
-      </p>
-    </div>
-  `);
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:28px 0 0;">
+      <tr>
+        <td style="background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-left:3px solid #ef4444;border-radius:0 8px 8px 0;padding:14px 16px;">
+          <p style="margin:0;font-size:12px;color:#991b1b;font-family:'Courier New',monospace;letter-spacing:0.5px;">
+            🚨 DIDN'T DO THIS? — Contact <a href="mailto:support@cykruit.com" style="color:#ef4444;text-decoration:none;">support@cykruit.com</a> immediately. Your account may be compromised.
+          </p>
+        </td>
+      </tr>
+    </table>
+    `,
+    "Your Cykruit password was successfully changed"
+  );

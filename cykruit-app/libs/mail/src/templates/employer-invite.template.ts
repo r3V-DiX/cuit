@@ -11,37 +11,55 @@ export const employerInviteTemplate = (
   inviteUrl: string,
   expiresInHours: number,
 ): string =>
-  baseTemplate(`
-    <div style="text-align:center;margin-bottom:30px;">
+  baseTemplate(
+    `
+    <div style="text-align:center;margin-bottom:36px;">
       ${
         companyLogo
-          ? `<img src="${companyLogo}" alt="${companyName} Logo" style="max-height:60px;margin-bottom:16px;border-radius:8px;" />`
-          : `<div style="font-size:48px;margin-bottom:16px;">💼</div>`
+          ? `<img src="${companyLogo}" alt="${companyName}" style="max-height:56px;border-radius:10px;margin-bottom:20px;" />`
+          : `<div style="display:inline-block;width:64px;height:64px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:16px;text-align:center;line-height:64px;margin-bottom:20px;"><span style="font-size:28px;display:inline-block;vertical-align:middle;">💼</span></div>`
       }
-      <h2 style="margin:0 0 10px 0;font-size:26px;font-weight:700;color:#1B3C8B;">Join ${companyName}</h2>
-      <p style="margin:0;font-size:15px;color:#64748b;">You've been invited to join the team on Cykruit</p>
+      <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#f1f5f9;letter-spacing:-0.3px;">You've been invited</h1>
+      <p style="margin:0;font-size:14px;color:#4b5563;font-family:'Courier New',monospace;letter-spacing:1px;">TEAM ACCESS GRANTED</p>
     </div>
 
-    <p style="margin:0 0 20px 0;color:#334155;font-size:15px;">
-      Hello ${inviteeName},
+    <p style="margin:0 0 16px;color:#9ca3af;font-size:15px;line-height:1.75;text-align:center;">
+      Hey <strong style="color:#f1f5f9;">${inviteeName}</strong>,
     </p>
-    <p style="margin:0 0 20px 0;color:#334155;line-height:1.6;">
-      <strong>${inviterName}</strong> has invited you to join the team of <strong>${companyName}</strong> on Cykruit as a <strong>${assignedRole}</strong>.
+    <p style="margin:0 0 24px;color:#9ca3af;font-size:15px;line-height:1.75;text-align:center;">
+      <strong style="color:#f1f5f9;">${inviterName}</strong> has invited you to join the <strong style="color:#f1f5f9;">${companyName}</strong> hiring team on Cykruit as a <strong style="color:#3b82f6;">${assignedRole}</strong>.
     </p>
-    <p style="margin:0 0 30px 0;color:#334155;line-height:1.6;">
-      As a team member, you will be able to post jobs, view applicant profiles, schedule interviews, and collaborate on hiring.
-    </p>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px;">
+      <tr>
+        <td style="background:#0b1120;border:1px solid #1f2937;border-radius:10px;padding:18px 22px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+              <td style="padding:6px 0;font-size:13px;color:#4b5563;font-family:'Courier New',monospace;letter-spacing:0.5px;border-bottom:1px solid #1f2937;">
+                <span style="color:#6b7280;">COMPANY</span>&nbsp;&nbsp;<strong style="color:#cbd5e1;">${companyName}</strong>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:6px 0;font-size:13px;color:#4b5563;font-family:'Courier New',monospace;letter-spacing:0.5px;">
+                <span style="color:#6b7280;">ROLE</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong style="color:#3b82f6;">${assignedRole.toUpperCase()}</strong>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
 
     ${cyberButton("Accept Invite", inviteUrl)}
 
-    <div style="background:#f1f5f9;border-radius:8px;padding:16px;margin:24px 0;border-left:4px solid #1B3C8B;">
-      <p style="margin:0;font-size:13px;color:#475569;">
-        ⏰ This invitation link is valid for <strong>${expiresInHours} hours</strong>. If you did not expect this invitation, you can ignore this email safely.
-      </p>
-    </div>
-
-    <p style="margin:20px 0 0 0;font-size:13px;color:#94a3b8;text-align:center;">
-      If the button doesn't work, copy and paste this link into your browser:<br/>
-      <a href="${inviteUrl}" style="color:#1B3C8B;word-break:break-all;">${inviteUrl}</a>
-    </p>
-  `);
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:28px 0 0;">
+      <tr>
+        <td style="background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-left:3px solid #2563eb;border-radius:0 8px 8px 0;padding:14px 16px;">
+          <p style="margin:0;font-size:12px;color:#4b5563;font-family:'Courier New',monospace;letter-spacing:0.5px;">
+            ⏰ INVITE EXPIRES IN <strong style="color:#9ca3af;">${expiresInHours} HOURS</strong> &nbsp;|&nbsp; NOT EXPECTED? IGNORE THIS EMAIL.
+          </p>
+        </td>
+      </tr>
+    </table>
+    `,
+    `${inviterName} invited you to join ${companyName} on Cykruit`
+  );
