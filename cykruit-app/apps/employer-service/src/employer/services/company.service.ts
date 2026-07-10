@@ -10,6 +10,7 @@ import { EmployerMemberRole } from '@prisma/client';
 import { PrismaService } from '@cykruit/prisma';
 import { UploadService, UPLOAD_CONFIGS } from '@cykruit/upload';
 import { EmployerCompletionService, CompanyErrorCodes } from '@cykruit/common';
+import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { CompanyRepository } from '../repositories/company.repository';
 import {
     CreateCompanyDto,
@@ -27,6 +28,7 @@ export class CompanyService {
         private readonly completionService: EmployerCompletionService,
         private readonly prisma: PrismaService,
         private readonly uploadService: UploadService,
+        private readonly eventPublisher: EventPublisher,
     ) { }
 
     async getMyCompany(userId: string) {
@@ -60,6 +62,12 @@ export class CompanyService {
 
         const completion = await this.completionService.calculateCompletion(employer.id);
         await this.companyRepository.updateCompletion(employer.id, completion.percentage);
+
+        this.eventPublisher.publish(
+            DomainEventType.EMPLOYER_SETUP_COMPLETE,
+            { employerId: employer.id, userId },
+            'employer-service',
+        );
 
         return { ...employer, profileCompletion: completion.percentage };
     }

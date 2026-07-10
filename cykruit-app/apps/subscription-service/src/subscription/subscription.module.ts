@@ -8,6 +8,7 @@ import type { Request } from 'express';
 import { PrismaModule, PrismaService } from '@cykruit/prisma';
 import { CommonModule } from '@cykruit/common';
 import { RateLimitModule } from '@cykruit/rate-limit';
+import { LoggerModule } from '@cykruit/logger';
 import { EventsModule } from '@cykruit/events';
 import {
     AuthCoreModule,
@@ -17,9 +18,12 @@ import {
 } from '@cykruit/auth-core';
 
 import { SubscriptionRepository } from './repositories/subscription.repository';
+import { PaymentRepository } from './repositories/payment.repository';
 import { PackagesService } from './services/packages.service';
 import { SubscriptionService } from './services/subscription.service';
 import { SubscriptionExpiryService } from './services/subscription-expiry.service';
+import { PaymentService } from './services/payment.service';
+import { EmployerEventsProcessor } from './processors/employer-events.processor';
 import { AdminGuard } from './guards/admin.guard';
 import {
     PublicPackagesController,
@@ -29,6 +33,7 @@ import {
     EmployerSubscriptionController,
     AdminSubscriptionController,
 } from './controllers/subscription.controller';
+import { PaymentController } from './controllers/payment.controller';
 
 @Injectable()
 export class SubscriptionSessionValidator implements ISessionValidator {
@@ -69,8 +74,10 @@ export class SubscriptionSessionValidator implements ISessionValidator {
         PrismaModule,
         CommonModule,
         RateLimitModule,
+        LoggerModule,
         ScheduleModule.forRoot(),
         EventsModule.forPublisher(),
+        EventsModule.forConsumer(),
         AuthCoreModule.forRoot({
             sessionValidatorClass: SubscriptionSessionValidator,
             imports: [PrismaModule, ConfigModule],
@@ -82,12 +89,16 @@ export class SubscriptionSessionValidator implements ISessionValidator {
         AdminPackagesController,
         EmployerSubscriptionController,
         AdminSubscriptionController,
+        PaymentController,
     ],
     providers: [
         SubscriptionRepository,
+        PaymentRepository,
         PackagesService,
         SubscriptionService,
         SubscriptionExpiryService,
+        PaymentService,
+        EmployerEventsProcessor,
         AdminGuard,
         SubscriptionSessionValidator,
     ],

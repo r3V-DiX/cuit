@@ -25,8 +25,13 @@ export enum DomainEventType {
     ACCOUNT_UNSUSPENDED         = 'account.unsuspended',          // admin unsuspended
 
     // ── Subscription ─────────────────────────────────────────────────────────
-    SUBSCRIPTION_EXPIRED        = 'subscription.expired',         // cron: plan expired
-    SUBSCRIPTION_ASSIGNED       = 'subscription.assigned',        // admin assigned plan
+    SUBSCRIPTION_EXPIRED          = 'subscription.expired',           // cron: plan expired
+    SUBSCRIPTION_ASSIGNED         = 'subscription.assigned',          // admin assigned plan
+    SUBSCRIPTION_PAYMENT_CAPTURED = 'subscription.payment_captured',  // razorpay payment confirmed
+    SUBSCRIPTION_RENEWED          = 'subscription.renewed',           // plan renewed after payment
+
+    // ── Employer ─────────────────────────────────────────────────────────────
+    EMPLOYER_SETUP_COMPLETE       = 'employer.setup_complete',         // employer finished company setup
 }
 
 // ── Payload types per event ────────────────────────────────────────────────────
@@ -132,22 +137,49 @@ export interface SubscriptionAssignedPayload {
     expiresAt?: string;
 }
 
+export interface SubscriptionPaymentCapturedPayload {
+    orderId: string;
+    paymentId: string;
+    employerId: string;
+    employerUserId: string;
+    packageName: string;
+    billingCycle: string;
+    amountPaise: number;
+}
+
+export interface SubscriptionRenewedPayload {
+    subscriptionId: string;
+    employerId: string;
+    employerUserId: string;
+    packageName: string;
+    billingCycle: string;
+    expiresAt: string;
+}
+
+export interface EmployerSetupCompletePayload {
+    employerId: string;
+    userId: string;
+}
+
 // ── Discriminated union ────────────────────────────────────────────────────────
 
 export type DomainEventPayloadMap = {
-    [DomainEventType.APPLICATION_SUBMITTED]:      ApplicationSubmittedPayload;
-    [DomainEventType.APPLICATION_STATUS_CHANGED]: ApplicationStatusChangedPayload;
-    [DomainEventType.APPLICATION_WITHDRAWN]:      ApplicationWithdrawnPayload;
-    [DomainEventType.JOB_APPROVED]:               JobApprovedPayload;
-    [DomainEventType.JOB_REJECTED]:               JobRejectedPayload;
-    [DomainEventType.JOB_EXPIRING_SOON]:          JobExpiringSoonPayload;
-    [DomainEventType.KYC_APPROVED]:               KycApprovedPayload;
-    [DomainEventType.KYC_REJECTED]:               KycRejectedPayload;
-    [DomainEventType.TEAM_INVITE_SENT]:           TeamInviteSentPayload;
-    [DomainEventType.ACCOUNT_SUSPENDED]:          AccountSuspendedPayload;
-    [DomainEventType.ACCOUNT_UNSUSPENDED]:        AccountUnsuspendedPayload;
-    [DomainEventType.SUBSCRIPTION_EXPIRED]:       SubscriptionExpiredPayload;
-    [DomainEventType.SUBSCRIPTION_ASSIGNED]:      SubscriptionAssignedPayload;
+    [DomainEventType.APPLICATION_SUBMITTED]:          ApplicationSubmittedPayload;
+    [DomainEventType.APPLICATION_STATUS_CHANGED]:     ApplicationStatusChangedPayload;
+    [DomainEventType.APPLICATION_WITHDRAWN]:          ApplicationWithdrawnPayload;
+    [DomainEventType.JOB_APPROVED]:                   JobApprovedPayload;
+    [DomainEventType.JOB_REJECTED]:                   JobRejectedPayload;
+    [DomainEventType.JOB_EXPIRING_SOON]:              JobExpiringSoonPayload;
+    [DomainEventType.KYC_APPROVED]:                   KycApprovedPayload;
+    [DomainEventType.KYC_REJECTED]:                   KycRejectedPayload;
+    [DomainEventType.TEAM_INVITE_SENT]:               TeamInviteSentPayload;
+    [DomainEventType.ACCOUNT_SUSPENDED]:              AccountSuspendedPayload;
+    [DomainEventType.ACCOUNT_UNSUSPENDED]:            AccountUnsuspendedPayload;
+    [DomainEventType.SUBSCRIPTION_EXPIRED]:           SubscriptionExpiredPayload;
+    [DomainEventType.SUBSCRIPTION_ASSIGNED]:          SubscriptionAssignedPayload;
+    [DomainEventType.SUBSCRIPTION_PAYMENT_CAPTURED]:  SubscriptionPaymentCapturedPayload;
+    [DomainEventType.SUBSCRIPTION_RENEWED]:           SubscriptionRenewedPayload;
+    [DomainEventType.EMPLOYER_SETUP_COMPLETE]:        EmployerSetupCompletePayload;
 };
 
 export interface DomainEvent<T extends DomainEventType = DomainEventType> {

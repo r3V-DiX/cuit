@@ -41,6 +41,40 @@ history and `migrate status` reported everything (incl. `init`) as pending. Base
 `20260708111703_add_testimonials`. From now on use `prisma migrate dev` for schema changes —
 never `db push` — and never accept a `migrate dev` reset prompt against this shared dev DB.
 
+## Schema Changes
+
+### Billing & Payment Models (July 2026)
+- New enums: `BillingCycle` (MONTHLY/YEARLY), `PaymentOrderStatus` (CREATED/PAID/FAILED/EXPIRED), `PaymentStatus` (CAPTURED/FAILED/REFUNDED)
+- `EmployerSubscription` gets `billingCycle BillingCycle?` and `paymentOrders PaymentOrder[]`
+- `SubscriptionPackage` gets `paymentOrders PaymentOrder[]` back-relation
+- `Employer` gets `paymentOrders PaymentOrder[]` back-relation
+- New model `PaymentOrder`: stores Razorpay order ID, amount in paise (base + GST + total), billing cycle, status, 15-min TTL
+- New model `Payment`: stores `razorpayPaymentId`, signature, CAPTURED/FAILED/REFUNDED status
+- Migration: `20260710110531_add_billing_payment_models`
+
+## Billing Architecture
+
+### Free tier auto-activation (July 2026)
+- `employer-service` `CompanyService.setupCompany()` fires `EMPLOYER_SETUP_COMPLETE` event via Bull/Redis
+- `subscription-service` `EmployerEventsProcessor` consumes it and calls `PaymentService.activateFreeTierIfEligible()`
+- Free tier = `SubscriptionPackage` where `priceMonthly IS NULL AND priceYearly IS NULL` (seed the "Free" package with no price)
+- Event-driven, not HTTP: zero coupling between services
+
+### Razorpay payment flow (July 2026)
+- `POST /subscriptions/orders` — employer creates order; returns `razorpayOrderId + key_id` for frontend Razorpay checkout
+- Razorpay calls `POST /subscriptions/webhook` on capture/failure — raw body required; signature verified via HMAC-SHA256
+- On `payment.captured`: assigns/renews subscription with correct expiry (monthly +1 month, yearly +1 year), creates `Payment` row, marks order PAID, fires events
+- GST: 18% added on top of base price; stored separately (`amountPaise` + `gstAmountPaise` + `totalAmountPaise` all in paisa)
+- Currency: INR only
+- Env vars: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` — required in `subscription-service`
+
+### CSP nonce (fe-6, July 2026)
+- `unsafe-inline` removed from `script-src` and `style-src`
+- Nonce generated per-request in `proxy.ts` via `crypto.randomUUID()`
+- Nonce set as `x-nonce` response header + full CSP header with `'nonce-<value>'`
+- `next.config.ts` no longer sets a static CSP
+- `app/layout.tsx` reads nonce from `await headers()` and passes to `<Providers>`
+
 ## Known Issues / Deviations
 - **`admin-app` `start:prod` is broken** (pre-existing): the build emits
   `dist/admin-app/src/main.js` + `dist/cykruit-app/libs/**` (lib sources live

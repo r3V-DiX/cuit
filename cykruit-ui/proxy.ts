@@ -4,6 +4,20 @@ import type { NextRequest } from "next/server";
 const SESSION_COOKIE = "session_token";
 const ROLE_COOKIE    = "user_role";
 
+const WS_ORIGIN = process.env.NEXT_PUBLIC_WS_URL ?? "ws://127.0.0.1:4007 wss://127.0.0.1:4007";
+
+function buildCsp(nonce: string): string {
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'unsafe-eval'`,
+    `style-src 'self' 'nonce-${nonce}'`,
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    `connect-src 'self' ${WS_ORIGIN} http://127.0.0.1:* http://localhost:*`,
+    "frame-ancestors 'none'",
+  ].join("; ");
+}
+
 const SEEKER_PREFIXES = [
   "/dashboard",
   "/applications",
@@ -83,7 +97,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  return NextResponse.next();
+  const nonce = crypto.randomUUID().replace(/-/g, "");
+  const response = NextResponse.next({
+    request: { headers: new Headers(request.headers) },
+  });
+
+  response.headers.set("x-nonce", nonce);
+  response.headers.set("Content-Security-Policy", buildCsp(nonce));
+  return response;
 }
 
 export const config = {

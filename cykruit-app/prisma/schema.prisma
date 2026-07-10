@@ -1137,6 +1137,7 @@ model Employer {
     settings            EmployerSettings?
     members             EmployerMember[]
     subscription        EmployerSubscription?
+    paymentOrders       PaymentOrder[]
     inviteTokens        Token[]
 
     @@index([slug])
@@ -1960,6 +1961,28 @@ model EmployerMember {
 }
 
 // ==========================
+// SUBSCRIPTION ENUMS
+// ==========================
+
+enum BillingCycle {
+    MONTHLY
+    YEARLY
+}
+
+enum PaymentOrderStatus {
+    CREATED
+    PAID
+    FAILED
+    EXPIRED
+}
+
+enum PaymentStatus {
+    CAPTURED
+    FAILED
+    REFUNDED
+}
+
+// ==========================
 // SUBSCRIPTION MODELS
 // ==========================
 
@@ -1981,6 +2004,7 @@ model SubscriptionPackage {
     updatedAt DateTime @updatedAt
 
     subscriptions EmployerSubscription[]
+    paymentOrders PaymentOrder[]
 
     @@index([isActive])
     @@map("subscription_packages")
@@ -1993,23 +2017,73 @@ model EmployerSubscription {
     packageId  String
     package    SubscriptionPackage @relation(fields: [packageId], references: [id])
 
-    status    String   @default("ACTIVE") // ACTIVE | EXPIRED | CANCELLED
-    startedAt DateTime @default(now())
-    expiresAt DateTime?
+    status       String        @default("ACTIVE") // ACTIVE | EXPIRED | CANCELLED
+    billingCycle BillingCycle?
+    startedAt    DateTime      @default(now())
+    expiresAt    DateTime?
 
     // Cached usage counters — refreshed periodically, not authoritative for hard limits
     currentActiveJobs    Int @default(0)
     currentTeamMembers   Int @default(0)
     usedFeaturedJobSlots Int @default(0)
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    createdAt     DateTime       @default(now())
+    updatedAt     DateTime       @updatedAt
+    paymentOrders PaymentOrder[]
 
     @@index([employerId])
     @@index([status])
     @@index([expiresAt])
     @@map("employer_subscriptions")
 }
+
+model PaymentOrder {
+    id             String   @id @default(uuid())
+    employerId     String
+    employer       Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+    subscriptionId String?
+    subscription   EmployerSubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+    packageId      String
+    package        SubscriptionPackage   @relation(fields: [packageId], references: [id])
+
+    razorpayOrderId String             @unique
+    billingCycle    BillingCycle
+    amountPaise     Int                // base amount (pre-GST) in paisa
+    gstAmountPaise  Int                // 18% GST in paisa
+    totalAmountPaise Int               // amountPaise + gstAmountPaise
+    currency        String             @default("INR")
+    status          PaymentOrderStatus @default(CREATED)
+    expiresAt       DateTime
+
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    payment   Payment?
+
+    @@index([employerId])
+    @@index([status])
+    @@index([razorpayOrderId])
+    @@index([expiresAt])
+    @@map("payment_orders")
+}
+
+model Payment {
+    id      String       @id @default(uuid())
+    orderId String       @unique
+    order   PaymentOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+    razorpayPaymentId String  @unique
+    razorpaySignature String
+    status            PaymentStatus @default(CAPTURED)
+    capturedAt        DateTime?
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([razorpayPaymentId])
+    @@index([status])
+    @@map("payments")
+}
+
 
 // ==========================
 // General Audit Log (admin-app)

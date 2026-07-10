@@ -19,4 +19,7 @@ export {
     AccountUnsuspendedPayload,
     SubscriptionExpiredPayload,
     SubscriptionAssignedPayload,
+    SubscriptionPaymentCapturedPayload,
+    SubscriptionRenewedPayload,
+    EmployerSetupCompletePayload,
 } from './events.types';

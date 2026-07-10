@@ -2,7 +2,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
-import { Prisma } from '@prisma/client';
+import { BillingCycle, Prisma } from '@prisma/client';
 import { CreatePackageDto, UpdatePackageDto } from '../dto/package.dto';
 import { PackageListQueryDto, SubscriptionListQueryDto } from '../dto/query.dto';
 
@@ -194,6 +194,14 @@ export class SubscriptionRepository {
             where: { id },
             data: { status },
             include: SUBSCRIPTION_INCLUDE,
+        });
+    }
+
+    async updateBillingCycle(id: string, billingCycle: BillingCycle) {
+        return this.prisma.employerSubscription.update({
+            where: { id },
+            data: { billingCycle },
+            select: { id: true, billingCycle: true },
         });
     }
 

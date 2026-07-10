@@ -3,7 +3,7 @@
 import { ToastProvider } from "./Toast";
 import { ModalProvider } from "./Modal";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children, nonce: _nonce }: { children: React.ReactNode; nonce?: string }) {
   return (
     <ToastProvider>
       <ModalProvider>{children}</ModalProvider>
