@@ -1,6 +1,7 @@
 // admin-app/src/admin/services/testimonials.service.ts
 
 import { Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { TestimonialsRepository } from '../repositories/testimonials.repository';
 import { AdminAuditLogger } from './admin-audit.logger';
 import {
@@ -30,12 +31,12 @@ export class TestimonialsService {
         const created = await this.repo.create(dto);
 
         this.auditLogger.log({
-            actorId: adminId,
+            adminId,
             action: 'testimonials:create',
             module: 'testimonials',
-            targetType: 'Testimonial',
-            targetId: created.id,
-            newData: dto,
+            resource: 'Testimonial',
+            resourceId: created.id,
+            newData: dto as unknown as Prisma.InputJsonValue,
             riskLevel: 'LOW',
             result: 'SUCCESS',
         });
@@ -48,13 +49,13 @@ export class TestimonialsService {
         const updated = await this.repo.update(id, dto);
 
         this.auditLogger.log({
-            actorId: adminId,
+            adminId,
             action: 'testimonials:update',
             module: 'testimonials',
-            targetType: 'Testimonial',
-            targetId: id,
+            resource: 'Testimonial',
+            resourceId: id,
             oldData: existing,
-            newData: dto,
+            newData: dto as unknown as Prisma.InputJsonValue,
             riskLevel: 'LOW',
             result: 'SUCCESS',
         });
@@ -67,11 +68,11 @@ export class TestimonialsService {
         await this.repo.delete(id);
 
         this.auditLogger.log({
-            actorId: adminId,
+            adminId,
             action: 'testimonials:delete',
             module: 'testimonials',
-            targetType: 'Testimonial',
-            targetId: id,
+            resource: 'Testimonial',
+            resourceId: id,
             riskLevel: 'MEDIUM',
             result: 'SUCCESS',
         });
@@ -84,11 +85,11 @@ export class TestimonialsService {
         const updated = await this.repo.setPublished(id, true);
 
         this.auditLogger.log({
-            actorId: adminId,
+            adminId,
             action: 'testimonials:publish',
             module: 'testimonials',
-            targetType: 'Testimonial',
-            targetId: id,
+            resource: 'Testimonial',
+            resourceId: id,
             riskLevel: 'LOW',
             result: 'SUCCESS',
         });
@@ -101,11 +102,11 @@ export class TestimonialsService {
         const updated = await this.repo.setPublished(id, false);
 
         this.auditLogger.log({
-            actorId: adminId,
+            adminId,
             action: 'testimonials:unpublish',
             module: 'testimonials',
-            targetType: 'Testimonial',
-            targetId: id,
+            resource: 'Testimonial',
+            resourceId: id,
             riskLevel: 'LOW',
             result: 'SUCCESS',
         });

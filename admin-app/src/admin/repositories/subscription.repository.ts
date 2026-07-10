@@ -38,11 +38,18 @@ export class SubscriptionRepository {
     // ── Employer subscriptions ────────────────────────────────────────────────
 
     async findAllSubscriptions(query: SubscriptionListQueryDto): Promise<{ items: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
-        const { page = 1, limit = 20, status } = query;
+        const { page = 1, limit = 20, status, q } = query;
         const skip = (page - 1) * limit;
 
         const where: Prisma.EmployerSubscriptionWhereInput = {
             ...(status ? { status } : {}),
+            ...(q
+                ? {
+                      employer: {
+                          companyName: { contains: q, mode: Prisma.QueryMode.insensitive },
+                      },
+                  }
+                : {}),
         };
 
         const [items, total] = await this.prisma.$transaction([

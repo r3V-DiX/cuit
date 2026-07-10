@@ -1,19 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "paths": {
-      "@cykruit/prisma":      ["../cykruit-app/libs/prisma/src/index.ts"],
-      "@cykruit/config":      ["../cykruit-app/libs/config/src/index.ts"],
-      "@cykruit/context":     ["../cykruit-app/libs/context/src/index.ts"],
-      "@cykruit/logger":      ["../cykruit-app/libs/logger/src/index.ts"],
-      "@cykruit/common":      ["../cykruit-app/libs/common/src/index.ts"],
-      "@cykruit/auth-core":   ["../cykruit-app/libs/auth-core/src/index.ts"],
-      "@cykruit/mail":        ["../cykruit-app/libs/mail/src/index.ts"],
-      "@cykruit/audit":       ["../cykruit-app/libs/audit/src/index.ts"],
-      "@cykruit/rate-limit":  ["../cykruit-app/libs/rate-limit/src/index.ts"],
-      "@cykruit/permissions": ["../cykruit-app/libs/permissions/src/index.ts"]
-    }
+    "outDir": "dist"
   },
   "exclude": ["node_modules", "dist", "**/*.spec.ts"]
 }

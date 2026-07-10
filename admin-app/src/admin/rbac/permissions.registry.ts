@@ -30,6 +30,10 @@ export const ACTIONS = {
     AUDIT: {
         VIEW: 'audit:view',
     },
+    TESTIMONIALS: {
+        VIEW: 'testimonials:view',
+        MANAGE: 'testimonials:manage',
+    },
 } as const;
 
 type ValuesOf<T> = T extends Record<string, infer V>
@@ -57,6 +61,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Action, string> = {
     'rbac:view': 'View roles, permissions, assignments and overrides',
     'rbac:manage': 'Create/edit roles, assign roles and set permission overrides',
     'audit:view': 'View the admin audit log',
+    'testimonials:view': 'List and view testimonials',
+    'testimonials:manage': 'Create/edit/delete and publish/unpublish testimonials',
 };
 
 /** `module:action` → { module, action } for the Permission table's split columns. */

@@ -1,5 +1,11 @@
 // admin-app/src/main.ts
 
+// Must be the first import: loads admin-app/.env into process.env before the
+// AppModule import chain reaches @prisma/client, whose generated client
+// auto-loads cykruit-app/.env (schemaEnvPath) and would otherwise win for any
+// key not already set (CORS_ORIGIN, JWT_SECRET, ...).
+import 'dotenv/config';
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AppLogger } from '@cykruit/logger';

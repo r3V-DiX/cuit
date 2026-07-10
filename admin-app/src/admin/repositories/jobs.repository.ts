@@ -14,7 +14,7 @@ export class AdminJobsRepository {
         const skip = (page - 1) * limit;
 
         const where: Prisma.JobWhereInput = {
-            ...(status ? { status } : { status: JobStatus.PENDING }),
+            ...(status ? { status } : {}),
             ...(q
                 ? {
                       OR: [

@@ -104,6 +104,10 @@ export class SubscriptionListQueryDto {
     status?: string;
 
     @IsOptional()
+    @IsString()
+    q?: string;
+
+    @IsOptional()
     @Type(() => Number)
     @IsInt()
     @Min(1)

@@ -10,6 +10,10 @@ export class KycListQueryDto {
     status?: VerificationStatus;
 
     @IsOptional()
+    @IsString()
+    q?: string;
+
+    @IsOptional()
     @Type(() => Number)
     @IsInt()
     @Min(1)

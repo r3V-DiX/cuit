@@ -14,11 +14,13 @@ export class AuditController {
     constructor(private readonly auditQueryService: AuditQueryService) {}
 
     @Get('system')
+    @RequirePermission(ACTIONS.AUDIT.VIEW)
     listSystem(@Query() query: AuditLogQueryDto) {
         return this.auditQueryService.list(query);
     }
 
     @Get('auth')
+    @RequirePermission(ACTIONS.AUDIT.VIEW)
     listAuth(@Query() query: AuthAuditLogQueryDto) {
         return this.auditQueryService.listAuthLogs(query);
     }

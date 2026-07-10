@@ -9,7 +9,7 @@ import { AdminTestimonialsQueryDto, CreateTestimonialDto, UpdateTestimonialDto }
 export class TestimonialsRepository {
     constructor(private readonly prisma: PrismaService) {}
 
-    async findAll(query: AdminTestimonialsQueryDto): Promise<{ items: any[]; total: number }> {
+    async findAll(query: AdminTestimonialsQueryDto): Promise<{ items: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
         const { page = 1, limit = 20, type, published, q } = query;
         const skip = (page - 1) * limit;
 
@@ -37,7 +37,15 @@ export class TestimonialsRepository {
             this.prisma.testimonial.count({ where }),
         ]);
 
-        return { items, total };
+        return {
+            items,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
     }
 
     async findById(id: string) {

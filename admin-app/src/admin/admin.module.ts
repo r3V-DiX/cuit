@@ -39,6 +39,7 @@ import { SubscriptionController } from './controllers/subscription.controller';
 import { AuditController } from './controllers/audit.controller';
 import { DashboardController } from './controllers/dashboard.controller';
 import { TestimonialsController } from './controllers/testimonials.controller';
+import { MeController } from './controllers/me.controller';
 
 // Services
 import { KycService } from './services/kyc.service';
@@ -132,6 +133,7 @@ export class AdminSessionValidator implements ISessionValidator {
         AuditController,
         DashboardController,
         TestimonialsController,
+        MeController,
     ],
     providers: [
         AdminSessionValidator,

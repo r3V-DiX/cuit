@@ -1,7 +1,8 @@
 // admin-app/src/admin/auth/admin-auth.controller.ts
-// POST /admin/auth/login — public (throttled); sets the HttpOnly session cookie.
-// POST /admin/auth/logout — requires a valid session; revokes it + clears cookie.
-// No CSRF in v1 (SameSite=Lax + same-origin proxy) — documented trade-off.
+// POST /admin/auth/login — @Public (throttled): no session exists yet, so it is
+// exempt from the app-wide CsrfGuard; it sets the HttpOnly session cookie plus a
+// readable csrf_token cookie that the UI echoes back as x-csrf-token on mutations.
+// POST /admin/auth/logout — requires a valid session; revokes it + clears cookies.
 
 import {
     Body,
@@ -16,17 +17,22 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 import { LoginRateLimit } from '@cykruit/rate-limit';
+import { CsrfGuard, Public } from '@cykruit/auth-core';
 import { AdminAuthService } from './admin-auth.service';
 import { AdminAuthGuard, ADMIN_SESSION_COOKIE } from './admin-auth.guard';
 import { AdminLoginDto } from './dto/admin-login.dto';
+
+export const CSRF_COOKIE = 'csrf_token';
 
 @Controller('admin/auth')
 export class AdminAuthController {
     constructor(
         private readonly adminAuthService: AdminAuthService,
         private readonly configService: ConfigService,
+        private readonly csrfGuard: CsrfGuard,
     ) {}
 
+    @Public()
     @Post('login')
     @HttpCode(HttpStatus.OK)
     @LoginRateLimit()
@@ -41,10 +47,22 @@ export class AdminAuthController {
             req.headers['user-agent'],
         );
 
+        const isProduction =
+            this.configService.get<string>('NODE_ENV') === 'production';
+
         res.cookie(ADMIN_SESSION_COOKIE, rawToken, {
             httpOnly: true,
             sameSite: 'lax',
-            secure: this.configService.get<string>('NODE_ENV') === 'production',
+            secure: isProduction,
+            path: '/',
+            expires: expiresAt,
+        });
+
+        // Readable by the UI (not HttpOnly) so it can send x-csrf-token on mutations
+        res.cookie(CSRF_COOKIE, this.csrfGuard.generateToken(), {
+            httpOnly: false,
+            sameSite: 'lax',
+            secure: isProduction,
             path: '/',
             expires: expiresAt,
         });
@@ -63,6 +81,7 @@ export class AdminAuthController {
         }
 
         res.clearCookie(ADMIN_SESSION_COOKIE, { path: '/' });
+        res.clearCookie(CSRF_COOKIE, { path: '/' });
         return { message: 'Logged out' };
     }
 }

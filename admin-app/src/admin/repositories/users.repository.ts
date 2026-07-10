@@ -63,29 +63,32 @@ export class UsersRepository {
     async findById(id: string) {
         return this.prisma.user.findUnique({
             where: { id },
-            select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                phone: true,
-                role: true,
-                status: true,
-                isEmailVerified: true,
-                lastLogin: true,
-                createdAt: true,
-                updatedAt: true,
-                profileImage: true,
-                failedLoginAttempts: true,
-                lockedUntil: true,
-            },
+            select: this.detailSelect,
         });
     }
+
+    private readonly detailSelect = {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        phone: true,
+        role: true,
+        status: true,
+        isEmailVerified: true,
+        lastLogin: true,
+        createdAt: true,
+        updatedAt: true,
+        profileImage: true,
+        failedLoginAttempts: true,
+        lockedUntil: true,
+    } satisfies Prisma.UserSelect;
 
     async suspend(id: string) {
         return this.prisma.user.update({
             where: { id },
             data: { status: AccountStatus.SUSPENDED },
+            select: this.detailSelect,
         });
     }
 
@@ -93,6 +96,7 @@ export class UsersRepository {
         return this.prisma.user.update({
             where: { id },
             data: { status: AccountStatus.ACTIVE },
+            select: this.detailSelect,
         });
     }
 }
