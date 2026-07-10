@@ -41,7 +41,7 @@ function mapItem(item: any): SavedJob {
   return {
     id: item.id ?? `${item.seekerId}_${item.jobId}`,
     jobId: j.id,
-    role: j.role?.name ?? "Unknown Role",
+    role: j.jobTitle ?? j.role?.name ?? "Unknown Role",
     company: j.employer?.companyName ?? "Unknown Company",
     location: j.location
       ? [j.location.city, j.location.country].filter(Boolean).join(", ")

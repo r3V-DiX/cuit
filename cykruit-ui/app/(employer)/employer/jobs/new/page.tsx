@@ -274,6 +274,15 @@ export default function PostJobPage() {
         "Manager (8+ yrs)": "SENIOR"
       };
 
+      let finalDesc = description.trim();
+      const resps = responsibilities.filter(r => r.trim());
+      if (resps.length > 0) finalDesc += "\n\n### Responsibilities\n" + resps.map(r => "- " + r).join("\n");
+      const reqs = requirements.filter(r => r.trim());
+      if (reqs.length > 0) finalDesc += "\n\n### Requirements\n" + reqs.map(r => "- " + r).join("\n");
+      const nice = niceToHave.filter(r => r.trim());
+      if (nice.length > 0) finalDesc += "\n\n### Nice to have\n" + nice.map(r => "- " + r).join("\n");
+      if (tags.length > 0) finalDesc += "\n\n### Skills\n" + tags.map(t => "- " + t).join("\n");
+
       const result = await apiFetch("/api/employer/jobs", {
         method: "POST",
         headers: authHeaders(),
@@ -282,11 +291,7 @@ export default function PostJobPage() {
           jobType: typeMap[type],
           workMode: modeMap[remote],
           experienceLevel: levelMap[level],
-          description: description.trim() || undefined,
-          responsibilities: responsibilities.filter(r => r.trim()),
-          requirements: requirements.filter(r => r.trim()),
-          niceToHave: niceToHave.filter(r => r.trim()),
-          skills: tags.length > 0 ? tags : undefined,
+          description: finalDesc || undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
             type: q.type.toUpperCase(),
@@ -349,6 +354,15 @@ export default function PostJobPage() {
         "Manager (8+ yrs)": "SENIOR"
       };
 
+      let finalDesc = description.trim();
+      const resps = responsibilities.filter(r => r.trim());
+      if (resps.length > 0) finalDesc += "\n\n### Responsibilities\n" + resps.map(r => "- " + r).join("\n");
+      const reqs = requirements.filter(r => r.trim());
+      if (reqs.length > 0) finalDesc += "\n\n### Requirements\n" + reqs.map(r => "- " + r).join("\n");
+      const nice = niceToHave.filter(r => r.trim());
+      if (nice.length > 0) finalDesc += "\n\n### Nice to have\n" + nice.map(r => "- " + r).join("\n");
+      if (tags.length > 0) finalDesc += "\n\n### Skills\n" + tags.map(t => "- " + t).join("\n");
+
       await apiFetch("/api/employer/jobs", {
         method: "POST",
         headers: authHeaders(),
@@ -357,11 +371,7 @@ export default function PostJobPage() {
           jobType: typeMap[type],
           workMode: modeMap[remote],
           experienceLevel: levelMap[level],
-          description: description.trim() || undefined,
-          responsibilities: responsibilities.filter(r => r.trim()),
-          requirements: requirements.filter(r => r.trim()),
-          niceToHave: niceToHave.filter(r => r.trim()),
-          skills: tags.length > 0 ? tags : undefined,
+          description: finalDesc || undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
             type: q.type.toUpperCase(),

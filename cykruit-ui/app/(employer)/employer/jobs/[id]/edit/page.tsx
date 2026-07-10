@@ -164,6 +164,11 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
         "Manager (8+ yrs)": "SENIOR"
       };
 
+      let finalDesc = description.trim();
+      if (tags.length > 0) {
+        finalDesc += "\n\n### Skills\n" + tags.map(t => "- " + t).join("\n");
+      }
+
       await apiFetch(`/api/employer/jobs/${id}`, {
         method: "PATCH",
         headers: authHeaders(),
@@ -172,8 +177,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
           jobType: typeMap[type],
           workMode: modeMap[remote],
           experienceLevel: levelMap[level],
-          description: description.trim() || undefined,
-          skills: tags,
+          description: finalDesc || undefined,
         }),
       });
 
