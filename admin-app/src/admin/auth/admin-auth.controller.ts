@@ -77,7 +77,7 @@ export class AdminAuthController {
         const cookies = req.cookies as Record<string, string | undefined> | undefined;
         const rawToken = cookies?.[ADMIN_SESSION_COOKIE];
         if (rawToken) {
-            await this.adminAuthService.logout(rawToken);
+            await this.adminAuthService.logout(rawToken, req.ip, req.headers['user-agent']);
         }
 
         res.clearCookie(ADMIN_SESSION_COOKIE, { path: '/' });

@@ -9,6 +9,7 @@ import { generateRawToken, hashToken, resolveSessionExpiry } from '@cykruit/auth
 import { compare } from 'bcryptjs';
 import type { Admin } from '@prisma/client';
 import { AdminLoginDto } from './dto/admin-login.dto';
+import { AdminAuthAuditLogger } from '../services/admin-auth-audit.logger';
 
 export interface AdminLoginResult {
     admin: Pick<Admin, 'id' | 'email' | 'firstName' | 'lastName'>;
@@ -18,7 +19,10 @@ export interface AdminLoginResult {
 
 @Injectable()
 export class AdminAuthService {
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly authAuditLogger: AdminAuthAuditLogger,
+    ) {}
 
     async login(
         dto: AdminLoginDto,
@@ -29,11 +33,27 @@ export class AdminAuthService {
 
         // Generic error on every failure path — never reveal which part failed
         if (!admin || !admin.isActive) {
+            this.authAuditLogger.log({
+                action: 'ADMIN_LOGIN_FAILURE',
+                status: 'FAILURE',
+                adminId: admin?.id,
+                ipAddress,
+                userAgent,
+                metadata: { email: dto.email, reason: !admin ? 'not_found' : 'inactive' },
+            });
             throw new UnauthorizedException('Invalid credentials');
         }
 
         const passwordValid = await compare(dto.password, admin.password);
         if (!passwordValid) {
+            this.authAuditLogger.log({
+                action: 'ADMIN_LOGIN_FAILURE',
+                status: 'FAILURE',
+                adminId: admin.id,
+                ipAddress,
+                userAgent,
+                metadata: { email: dto.email, reason: 'bad_password' },
+            });
             throw new UnauthorizedException('Invalid credentials');
         }
 
@@ -57,6 +77,14 @@ export class AdminAuthService {
                 data: { lastLogin: new Date(), lastLoginIp: ipAddress },
             }),
         ]);
+
+        this.authAuditLogger.log({
+            action: 'ADMIN_LOGIN_SUCCESS',
+            status: 'SUCCESS',
+            adminId: admin.id,
+            ipAddress,
+            userAgent,
+        });
 
         return {
             admin: {
@@ -98,7 +126,18 @@ export class AdminAuthService {
         return session.admin;
     }
 
-    async logout(rawToken: string): Promise<void> {
-        await this.prisma.adminSession.deleteMany({ where: { token: hashToken(rawToken) } });
+    async logout(rawToken: string, ipAddress?: string, userAgent?: string): Promise<void> {
+        const hashed = hashToken(rawToken);
+        const session = await this.prisma.adminSession.findUnique({ where: { token: hashed } });
+
+        await this.prisma.adminSession.deleteMany({ where: { token: hashed } });
+
+        this.authAuditLogger.log({
+            action: 'ADMIN_LOGOUT',
+            status: 'SUCCESS',
+            adminId: session?.adminId,
+            ipAddress,
+            userAgent,
+        });
     }
 }

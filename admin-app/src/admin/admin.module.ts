@@ -50,6 +50,7 @@ import { SubscriptionService } from './services/subscription.service';
 import { AuditQueryService } from './services/audit.service';
 import { DashboardService } from './services/dashboard.service';
 import { AdminAuditLogger } from './services/admin-audit.logger';
+import { AdminAuthAuditLogger } from './services/admin-auth-audit.logger';
 import { TestimonialsService } from './services/testimonials.service';
 import { PermissionsService } from './services/permissions.service';
 
@@ -142,6 +143,7 @@ export class AdminSessionValidator implements ISessionValidator {
         PermissionsService,
         PermissionsGuard,
         AdminAuditLogger,
+        AdminAuthAuditLogger,
         // Services
         KycService,
         AdminJobsService,

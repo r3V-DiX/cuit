@@ -2,23 +2,21 @@
 
 import { Injectable } from '@nestjs/common';
 import { AuditRepository } from '../repositories/audit.repository';
-import { AuditLogQueryDto, AuthAuditLogQueryDto } from '../dto/audit.dto';
+import { AdminActivityLogQueryDto, UnifiedAuthLogQueryDto, SystemAuditLogQueryDto } from '../dto/audit.dto';
 
 @Injectable()
 export class AuditQueryService {
     constructor(private readonly auditRepository: AuditRepository) {}
 
-    async list(query: AuditLogQueryDto) {
-        return this.auditRepository.findAll(query);
+    async listAdminActivity(query: AdminActivityLogQueryDto) {
+        return this.auditRepository.findAdminActivityLogs(query);
     }
 
-    async listAuthLogs(query: AuthAuditLogQueryDto) {
-        const page = query.page ?? 1;
-        const limit = query.limit ?? 50;
-        const { items, total } = await this.auditRepository.findAuthLogs(query);
-        return {
-            items,
-            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
-        };
+    async listUnifiedAuth(query: UnifiedAuthLogQueryDto) {
+        return this.auditRepository.findUnifiedAuthLogs(query);
+    }
+
+    async listSystemLogs(query: SystemAuditLogQueryDto) {
+        return this.auditRepository.findSystemLogs(query);
     }
 }
