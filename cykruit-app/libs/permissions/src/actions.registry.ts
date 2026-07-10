@@ -35,6 +35,7 @@ export const ACTIONS = {
         REMOVE_MEMBER:  'company:remove_member',
         CHANGE_ROLE:    'company:change_role',
         TRANSFER_OWNER: 'company:transfer_owner',
+        VIEW_ACTIVITY:  'company:view_activity',
     },
 
     // ── Subscription ─────────────────────────────────────────────────

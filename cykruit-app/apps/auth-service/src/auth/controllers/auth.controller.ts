@@ -1,7 +1,3 @@
-// apps/auth-service/src/auth/controllers/auth.controller.ts
-// CHANGES FROM PREVIOUS VERSION:
-//   + login() now passes req to authService.login() so deviceFingerprint gets stored in DB
-
 import {
   Controller,
   Post,
@@ -11,92 +7,98 @@ import {
   Body,
   Res,
   Req,
+  Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
-import { PasswordService } from "../services/password.service";
+import { OtpService } from "../services/otp.service";
+import { SessionService } from "../services/session.service";
 import { TokenService } from "@cykruit/common";
-import { RegisterDto } from "../dto/register.dto";
-import { LoginDto } from "../dto/login.dto";
+import { RequestOtpDto } from "../dto/request-otp.dto";
+import { VerifyOtpDto } from "../dto/verify-otp.dto";
 import { AuthGuard, CsrfGuard, CurrentUser, Public } from "@cykruit/auth-core";
 import { CookieConfig } from "@cykruit/config";
 import { sanitizeIpAddress, sanitizeUserAgent } from "../utils/auth.utils";
 import {
-  LoginRateLimit,
-  RegisterRateLimit,
+  RequestOtpRateLimit,
+  VerifyOtpRateLimit,
   SkipRateLimit,
 } from "@cykruit/rate-limit";
-import { IsString, MinLength, MaxLength, IsOptional } from "class-validator";
+import { IsString, IsOptional } from "class-validator";
 import type { User } from "@prisma/client";
 
-class ChangePasswordDto {
-  @IsString() currentPassword: string;
-  @IsString() @MinLength(8) @MaxLength(100) newPassword: string;
-  @IsString() confirmPassword: string;
-}
-
 class DeleteAccountDto {
-  @IsOptional() @IsString() password?: string;
+  @IsOptional() @IsString() confirmPhrase?: string;
 }
 
 class DeactivateAccountDto {
-  @IsOptional() @IsString() password?: string;
+  @IsOptional() @IsString() confirmPhrase?: string;
 }
 
 @Controller("auth")
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly passwordService: PasswordService,
+    private readonly otpService: OtpService,
+    private readonly sessionService: SessionService,
     private readonly tokenService: TokenService,
     private readonly csrfGuard: CsrfGuard,
   ) {}
 
   @Public()
-  @RegisterRateLimit()
-  @Post("register")
-  @HttpCode(HttpStatus.CREATED)
-  async register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  @RequestOtpRateLimit()
+  @Post("request-otp")
+  @HttpCode(HttpStatus.OK)
+  async requestOtp(@Body() dto: RequestOtpDto, @Req() req: Request) {
+    const ip = sanitizeIpAddress(req.ip ?? req.socket.remoteAddress);
+    const ua = sanitizeUserAgent(req.headers["user-agent"]);
+    return this.otpService.requestOtp(dto.email, dto.role, ip, ua);
   }
 
   @Public()
-  @LoginRateLimit()
-  @Post("login")
+  @VerifyOtpRateLimit()
+  @Post("verify-otp")
   @HttpCode(HttpStatus.OK)
-  async login(
-    @Body() dto: LoginDto,
+  async verifyOtp(
+    @Body() dto: VerifyOtpDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     const ip = sanitizeIpAddress(req.ip ?? req.socket.remoteAddress);
     const ua = sanitizeUserAgent(req.headers["user-agent"]);
 
-    const result = await this.authService.login(dto, ip, ua, req); // ✅ req passed
+    const result = await this.otpService.verifyOtp(
+      dto.email,
+      dto.otp,
+      dto.firstName,
+      dto.lastName,
+      dto.rememberMe ?? false,
+      ip,
+      ua,
+      req,
+    );
 
-    // Session cookie — httpOnly, JS cannot read
     res.cookie(
       CookieConfig.COOKIE_NAMES.SESSION,
       result.data.sessionToken,
       CookieConfig.getSessionCookieOptions(dto.rememberMe),
     );
-
     res.cookie(
       CookieConfig.COOKIE_NAMES.CSRF,
       this.csrfGuard.generateToken(),
       CookieConfig.getCsrfCookieOptions(),
     );
-
     res.cookie(
       CookieConfig.COOKIE_NAMES.ROLE,
       result.data.user.role,
       CookieConfig.getRoleCookieOptions(dto.rememberMe),
     );
 
-    return { data: result.data.user, message: result.message };
+    return { data: result.data.user, message: result.message, isNewUser: result.isNewUser };
   }
 
   @Get("me")
@@ -191,24 +193,65 @@ export class AuthController {
     return { message: "Logged out from all devices successfully" };
   }
 
-  @Patch("change-password")
+  @Get("sessions")
+  @UseGuards(AuthGuard)
+  async listSessions(@CurrentUser() user: User, @Req() req: Request) {
+    const rawToken = req.cookies[CookieConfig.COOKIE_NAMES.SESSION] ?? "";
+    return { data: await this.sessionService.listUserSessions(user.id, rawToken) };
+  }
+
+  @Get("sessions/history")
+  @UseGuards(AuthGuard)
+  async getSessionHistory(
+    @CurrentUser() user: User,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    const p = Math.max(1, parseInt(page ?? "1", 10) || 1);
+    const l = Math.min(50, Math.max(1, parseInt(limit ?? "20", 10) || 20));
+    return this.sessionService.getLoginHistory(user.id, p, l);
+  }
+
+  @Delete("sessions/others")
   @UseGuards(AuthGuard)
   @HttpCode(HttpStatus.OK)
-  async changePassword(
-    @Body() dto: ChangePasswordDto,
+  async revokeOtherSessions(@CurrentUser() user: User, @Req() req: Request) {
+    const rawToken = req.cookies[CookieConfig.COOKIE_NAMES.SESSION] ?? "";
+    const ip = sanitizeIpAddress(req.ip ?? req.socket.remoteAddress);
+    const ua = sanitizeUserAgent(req.headers["user-agent"]);
+    const count = await this.sessionService.revokeAllOtherSessions(user.id, rawToken, { ip, userAgent: ua });
+    return { message: `Signed out of ${count} other device(s).`, count };
+  }
+
+  @Delete("sessions/:id")
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async revokeSession(
+    @Param("id") sessionId: string,
+    @CurrentUser() user: User,
+    @Req() req: Request,
+  ) {
+    const ip = sanitizeIpAddress(req.ip ?? req.socket.remoteAddress);
+    const ua = sanitizeUserAgent(req.headers["user-agent"]);
+    await this.sessionService.revokeSession(sessionId, user.id, { ip, userAgent: ua });
+    return { message: "Session revoked successfully." };
+  }
+
+  @Patch("deactivate")
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async deactivateAccount(
     @CurrentUser() user: User,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const currentSessionToken = req.cookies[CookieConfig.COOKIE_NAMES.SESSION];
+    const ip = sanitizeIpAddress(req.ip ?? req.socket.remoteAddress);
+    const ua = sanitizeUserAgent(req.headers["user-agent"]);
 
-    await this.passwordService.changePassword(
-      user.id,
-      dto.currentPassword,
-      dto.newPassword,
-      dto.confirmPassword,
-      currentSessionToken,
-    );
+    await this.authService.deactivateAccount(user.id, {
+      ip,
+      userAgent: ua,
+    });
 
     res.clearCookie(
       CookieConfig.COOKIE_NAMES.SESSION,
@@ -223,38 +266,8 @@ export class AuthController {
       CookieConfig.getClearRoleCookieOptions(),
     );
 
-    return { message: "Password changed successfully. Please login again." };
-  }
-
-  @Patch("deactivate")
-  @UseGuards(AuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async deactivateAccount(
-    @Body() dto: DeactivateAccountDto,
-    @CurrentUser() user: User,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const ip = sanitizeIpAddress(req.ip ?? req.socket.remoteAddress);
-    const ua = sanitizeUserAgent(req.headers["user-agent"]);
-
-    await this.authService.deactivateAccount(user.id, dto.password, {
-      ip,
-      userAgent: ua,
-    });
-
-    res.clearCookie(
-      CookieConfig.COOKIE_NAMES.SESSION,
-      CookieConfig.getClearCookieOptions(),
-    );
-    res.clearCookie(
-      CookieConfig.COOKIE_NAMES.CSRF,
-      CookieConfig.getClearCsrfCookieOptions(),
-    );
-
     return {
-      message:
-        "Account deactivated successfully. You can reactivate by logging in again.",
+      message: "Account deactivated successfully. Contact support to reactivate.",
     };
   }
 
@@ -272,7 +285,6 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @HttpCode(HttpStatus.OK)
   async deleteAccount(
-    @Body() dto: DeleteAccountDto,
     @CurrentUser() user: User,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -280,7 +292,7 @@ export class AuthController {
     const ip = sanitizeIpAddress(req.ip ?? req.socket.remoteAddress);
     const ua = sanitizeUserAgent(req.headers["user-agent"]);
 
-    await this.authService.deleteAccount(user.id, dto.password, {
+    await this.authService.deleteAccount(user.id, {
       ip,
       userAgent: ua,
     });
@@ -292,6 +304,10 @@ export class AuthController {
     res.clearCookie(
       CookieConfig.COOKIE_NAMES.CSRF,
       CookieConfig.getClearCsrfCookieOptions(),
+    );
+    res.clearCookie(
+      CookieConfig.COOKIE_NAMES.ROLE,
+      CookieConfig.getClearRoleCookieOptions(),
     );
 
     return {

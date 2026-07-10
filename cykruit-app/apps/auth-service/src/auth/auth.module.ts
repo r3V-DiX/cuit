@@ -13,16 +13,13 @@ import { AuditModule } from "@cykruit/audit";
 
 import { AuthController } from "./controllers/auth.controller";
 import { OAuthController } from "./controllers/oauth.controller";
-import { VerificationController } from "./controllers/verification.controller";
-import { PasswordController } from "./controllers/password.controller";
 import { SessionsController } from "./controllers/sessions.controller";
 import { AuditController } from "./controllers/audit.controller";
 
 import { AuthService } from "./services/auth.service";
+import { OtpService } from "./services/otp.service";
 import { SessionService } from "./services/session.service";
 import { SessionMobileService } from "./services/session-mobile.service";
-import { VerificationService } from "./services/verification.service";
-import { PasswordService } from "./services/password.service";
 import { CleanupService } from "./services/cleanup.service";
 import { OAuthBaseService } from "./services/oauth/oauth-base.service";
 import { GoogleOAuthService } from "./services/oauth/google-oauth.service";
@@ -67,26 +64,20 @@ import { AuthRepository } from "./repositories/auth.repository";
   controllers: [
     AuthController,
     OAuthController,
-    VerificationController,
-    PasswordController,
     SessionsController,
     AuditController,
   ],
   providers: [
     AuthService,
+    OtpService,
     SessionService,
     SessionMobileService,
-    VerificationService,
-    PasswordService,
     CleanupService,
     OAuthBaseService,
     GoogleOAuthService,
     GitHubOAuthService,
     AuthRepository,
-    // ✅ CsrfGuard and APP_GUARD registration REMOVED from here
-    // Now handled inside AuthCoreModule.forRoot({ enableCsrf: true })
   ],
-  exports: [AuthService, SessionService],
-  // ✅ CsrfGuard removed from exports — imported from @cykruit/auth-core directly
+  exports: [AuthService, OtpService, SessionService],
 })
 export class AuthModule {}

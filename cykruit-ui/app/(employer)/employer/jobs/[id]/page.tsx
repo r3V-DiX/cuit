@@ -62,7 +62,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               id: rawJob.id,
               title: rawJob.jobTitle,
               domain: rawJob.role?.name || "Cybersecurity",
-              type: rawJob.jobType?.replace("_", "-").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()) || "Full-time",
+              type: rawJob.jobType?.replace("_", "-").toLowerCase().replace(/\b\w/g, (c: string) => (c as string).toUpperCase()) || "Full-time",
               location: rawJob.location?.displayName || "Remote",
               experience: rawJob.experienceLevel || "Mid-level",
               posted: new Date(rawJob.createdAt).toLocaleDateString(),
@@ -324,7 +324,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {sorted.map((a) => {
-                    const cfg = APP_STATUS_CFG[a.status];
+                    const cfg = APP_STATUS_CFG[a.status as AppStatus] ?? APP_STATUS_CFG.New;
                     const score = AI_SCORES[a.id] ?? 50;
                     return (
                       <tr key={a.id} className="hover:bg-slate-50/60 transition-colors group">
@@ -341,7 +341,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                         </td>
                         <td className="px-4 py-3.5 hidden lg:table-cell">
                           <div className="flex flex-wrap gap-1">
-                            {a.skills.slice(0, 2).map((s) => (
+                            {a.skills.slice(0, 2).map((s: string) => (
                               <span key={s} className="px-2 py-0.5 text-[10px] font-mono text-slate-600 bg-slate-100 rounded-md">{s}</span>
                             ))}
                             {a.skills.length > 2 && (

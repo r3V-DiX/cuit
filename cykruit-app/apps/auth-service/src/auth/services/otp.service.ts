@@ -1,0 +1,336 @@
+import { randomInt, createHash } from "node:crypto";
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
+import { PrismaService } from "@cykruit/prisma";
+import { AppLogger } from "@cykruit/logger";
+import { MailService } from "@cykruit/mail";
+import { AuditService, AuditAction } from "@cykruit/audit";
+import { AuthRepository } from "../repositories/auth.repository";
+import { SessionService } from "./session.service";
+import { AccountStatus, UserRole } from "@prisma/client";
+import { formatUserResponse } from "../utils/auth.utils";
+import { isBlockedEmailDomain, getEmailDomain } from "@cykruit/common";
+import type { Request } from "express";
+
+const OTP_TTL_MINUTES = 10;
+const OTP_MAX_ATTEMPTS = 5;
+
+function generateOtp(): string {
+  return String(randomInt(100000, 1000000));
+}
+
+function hashOtp(otp: string): string {
+  return createHash("sha256").update(otp).digest("hex");
+}
+
+@Injectable()
+export class OtpService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly authRepository: AuthRepository,
+    private readonly mailService: MailService,
+    private readonly sessionService: SessionService,
+    private readonly auditService: AuditService,
+    private readonly logger: AppLogger,
+  ) {}
+
+  async requestOtp(
+    email: string,
+    role: UserRole,
+    ip: string,
+    ua: string,
+  ): Promise<{ message: string }> {
+    const reqCtx = { ip, userAgent: ua };
+
+    if (role !== UserRole.SEEKER && role !== UserRole.EMPLOYER) {
+      throw new BadRequestException({
+        code: "INVALID_ROLE",
+        message: "Role must be SEEKER or EMPLOYER.",
+      });
+    }
+
+    if (role === UserRole.EMPLOYER && isBlockedEmailDomain(email)) {
+      const domain = getEmailDomain(email);
+      throw new BadRequestException({
+        code: "EMAIL_DOMAIN_NOT_ALLOWED",
+        message: `@${domain} is a personal email domain. Use your company work email.`,
+      });
+    }
+
+    let user = await this.authRepository.findUserByEmail(email);
+
+    if (user && user.role !== role) {
+      // Don't reveal which role the account is registered under — generic message
+      throw new BadRequestException({
+        code: "ROLE_MISMATCH",
+        message: "No account found for this email on this portal. Try the other sign-in page.",
+      });
+    }
+
+    // Invalidate any existing OTP_LOGIN tokens for this user
+    if (user) {
+      await this.prisma.token.updateMany({
+        where: {
+          userId: user.id,
+          type: "OTP_LOGIN",
+          usedAt: null,
+        },
+        data: { usedAt: new Date() },
+      });
+    }
+
+    const otp = generateOtp();
+    const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60_000);
+
+    if (!user) {
+      // Create stub user — PENDING status, no password, isEmailVerified=false.
+      // token.create is inside the same transaction so user + OTP are atomic.
+      let tokenCreatedInTx = false;
+      try {
+        user = await this.prisma.$transaction(async (tx) => {
+          const newUser = await tx.user.create({
+            data: {
+              email,
+              role,
+              status: AccountStatus.PENDING,
+              isEmailVerified: false,
+              firstName: "",
+              lastName: "",
+            },
+          });
+
+          if (role === UserRole.SEEKER) {
+            await tx.jobSeekerProfile.create({
+              data: {
+                user: { connect: { id: newUser.id } },
+                firstName: "",
+                lastName: "",
+                availability: "Open to offers",
+                profileCompletion: 0,
+              },
+            });
+          } else if (role === UserRole.EMPLOYER) {
+            const slug = `${email.split("@")[0].toLowerCase()}-${Date.now()}`;
+            await tx.employer.create({
+              data: {
+                user: { connect: { id: newUser.id } },
+                companyName: "",
+                slug,
+                companyType: "OTHERS",
+                industry: "OTHER",
+                companySize: "SIZE_1_10",
+                location: "",
+                isVerified: false,
+                profileCompletion: 0,
+              },
+            });
+          }
+
+          await tx.token.create({
+            data: {
+              userId: newUser.id,
+              token: hashOtp(otp),
+              type: "OTP_LOGIN",
+              expiresAt,
+              metadata: JSON.stringify({ attempts: 0 }),
+            },
+          });
+
+          return newUser;
+        });
+
+        tokenCreatedInTx = true;
+        this.logger.log(`OTP stub user created: uid=${user.id}`, "OtpService");
+      } catch (err: any) {
+        if (err?.code === "P2002") {
+          // Concurrent request created this user — re-fetch and fall through
+          user = await this.authRepository.findUserByEmail(email);
+          if (!user) throw err;
+        } else {
+          throw err;
+        }
+      }
+
+      if (tokenCreatedInTx) {
+        this.auditService.log(AuditAction.LOGIN_SUCCESS, "SUCCESS", user.id, reqCtx, {
+          action: "OTP_REQUESTED",
+        });
+        await this.mailService.sendOtp(email, {
+          firstName: user.firstName || email.split("@")[0],
+          otp,
+          expiresInMinutes: OTP_TTL_MINUTES,
+          purpose: "login",
+        });
+        return { message: "OTP sent to your email. It expires in 10 minutes." };
+      }
+    }
+
+    // Existing user path (or race-condition loser that re-fetched)
+    await this.prisma.token.create({
+      data: {
+        userId: user.id,
+        token: hashOtp(otp),
+        type: "OTP_LOGIN",
+        expiresAt,
+        metadata: JSON.stringify({ attempts: 0 }),
+      },
+    });
+
+    this.auditService.log(AuditAction.LOGIN_SUCCESS, "SUCCESS", user.id, reqCtx, {
+      action: "OTP_REQUESTED",
+    });
+
+    await this.mailService.sendOtp(email, {
+      firstName: user.firstName || email.split("@")[0],
+      otp,
+      expiresInMinutes: OTP_TTL_MINUTES,
+      purpose: "login",
+    });
+
+    return {
+      message: "OTP sent to your email. It expires in 10 minutes.",
+    };
+  }
+
+  async verifyOtp(
+    email: string,
+    otpCode: string,
+    firstName: string | undefined,
+    lastName: string | undefined,
+    rememberMe: boolean,
+    ip: string,
+    ua: string,
+    req?: Request,
+  ): Promise<{ data: { user: any; sessionToken: string }; message: string; isNewUser?: boolean }> {
+    const reqCtx = { ip, userAgent: ua };
+
+    const user = await this.authRepository.findUserByEmail(email);
+    if (!user) {
+      throw new UnauthorizedException({
+        code: "OTP_INVALID",
+        message: "Invalid or expired OTP.",
+      });
+    }
+
+    if (user.status === AccountStatus.SUSPENDED) {
+      throw new UnauthorizedException({ code: "ACCOUNT_SUSPENDED", message: "Account suspended." });
+    }
+    if (user.status === AccountStatus.DELETED) {
+      throw new UnauthorizedException({ code: "ACCOUNT_DELETED", message: "Account deleted." });
+    }
+    if (user.status === AccountStatus.INACTIVE) {
+      throw new UnauthorizedException({ code: "ACCOUNT_INACTIVE", message: "Account deactivated. Contact support to reactivate." });
+    }
+    if (user.status === AccountStatus.PENDING_DELETION) {
+      throw new UnauthorizedException({ code: "ACCOUNT_PENDING_DELETION", message: "Account is scheduled for deletion. Use the cancellation link in your email." });
+    }
+
+    const tokenRecord = await this.prisma.token.findFirst({
+      where: {
+        userId: user.id,
+        type: "OTP_LOGIN",
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!tokenRecord) {
+      throw new UnauthorizedException({
+        code: "OTP_INVALID",
+        message: "Invalid or expired OTP. Please request a new one.",
+      });
+    }
+
+    // Track attempts
+    let meta: { attempts: number } = { attempts: 0 };
+    try {
+      meta = JSON.parse(tokenRecord.metadata as string ?? "{}");
+    } catch {
+      meta = { attempts: 0 };
+    }
+
+    if (meta.attempts >= OTP_MAX_ATTEMPTS) {
+      await this.prisma.token.update({
+        where: { id: tokenRecord.id },
+        data: { usedAt: new Date() },
+      });
+      throw new UnauthorizedException({
+        code: "OTP_MAX_ATTEMPTS",
+        message: "Too many incorrect attempts. Please request a new OTP.",
+      });
+    }
+
+    if (tokenRecord.token !== hashOtp(otpCode)) {
+      await this.prisma.token.update({
+        where: { id: tokenRecord.id },
+        data: { metadata: JSON.stringify({ attempts: meta.attempts + 1 }) },
+      });
+      const remaining = OTP_MAX_ATTEMPTS - meta.attempts - 1;
+      throw new UnauthorizedException({
+        code: "OTP_INVALID",
+        message: `Incorrect OTP. ${remaining} attempt(s) remaining.`,
+      });
+    }
+
+    // OTP correct — mark used
+    await this.prisma.token.update({
+      where: { id: tokenRecord.id },
+      data: { usedAt: new Date() },
+    });
+
+    const isNewUser = !user.isEmailVerified;
+
+    // Activate / update profile on first login
+    const updatedUser = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isEmailVerified: true,
+        emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
+        status:
+          user.status === AccountStatus.PENDING ? AccountStatus.ACTIVE : user.status,
+        deactivatedAt: null,
+        ...(isNewUser && firstName ? { firstName } : {}),
+        ...(isNewUser && lastName ? { lastName } : {}),
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        lastLogin: new Date(),
+        lastLoginIp: ip,
+      },
+    });
+
+    // Patch seeker profile name on new user
+    if (isNewUser && firstName && user.role === UserRole.SEEKER) {
+      await this.prisma.jobSeekerProfile.updateMany({
+        where: { userId: user.id },
+        data: { firstName: firstName ?? "", lastName: lastName ?? "" },
+      });
+    }
+
+    const sessionToken = await this.sessionService.createSession(
+      user.id,
+      rememberMe,
+      ua,
+      ip,
+      req,
+    );
+
+    this.auditService.log(AuditAction.LOGIN_SUCCESS, "SUCCESS", user.id, reqCtx, {
+      rememberMe,
+      isNewUser,
+      method: "OTP",
+    });
+
+    this.logger.log(`OTP login success: uid=${user.id} new=${isNewUser}`, "OtpService");
+
+    return {
+      data: { user: formatUserResponse(updatedUser as any), sessionToken },
+      message: isNewUser ? "Account created and signed in." : "Signed in successfully.",
+      isNewUser,
+    };
+  }
+}

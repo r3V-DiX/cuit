@@ -14,26 +14,16 @@ export class JobsService {
 
     const where: any = {
       status: "APPROVED",
-      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
     };
 
     if (dto.search) {
-      where.OR = [
-        {
-          jobTitle: {
-            contains: dto.search,
-            mode: "insensitive",
-          },
-        },
-        {
-          employer: {
-            companyName: {
-              contains: dto.search,
-              mode: "insensitive",
-            },
-          },
-        },
-      ];
+      where.AND.push({
+        OR: [
+          { jobTitle: { contains: dto.search, mode: "insensitive" } },
+          { employer: { companyName: { contains: dto.search, mode: "insensitive" } } },
+        ],
+      });
     }
 
     if (dto.roleId) {

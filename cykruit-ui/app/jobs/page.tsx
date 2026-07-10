@@ -52,13 +52,14 @@ async function fetchJobs(params: {
     url.searchParams.set("page", String(page));
     url.searchParams.set("limit", String(limit));
 
-    const result = await apiFetch(url.toString());
+    const result = await apiFetch<any>(url.toString());
+    const r: any = result;
 
     let rawJobs = [];
     if (Array.isArray(result.data)) rawJobs = result.data;
     else if (result.data && Array.isArray(result.data.jobs)) rawJobs = result.data.jobs;
     else if (result.data && Array.isArray(result.data.data)) rawJobs = result.data.data;
-    else if (Array.isArray(result.jobs)) rawJobs = result.jobs;
+    else if (Array.isArray(r.jobs)) rawJobs = r.jobs;
     else if (Array.isArray(result)) rawJobs = result;
 
     const mapped = rawJobs.map((job: any) => {
@@ -79,7 +80,7 @@ async function fetchJobs(params: {
       tags: job.skills?.map((s: any) => s.name) || [],
       domain: job.role?.name || "Cybersecurity",
       }; });
-    return { data: mapped, total: result.total || result.data?.total || mapped.length, totalPages: result.totalPages || result.data?.totalPages || 1 };
+    return { data: mapped, total: r.total || result.data?.total || mapped.length, totalPages: r.totalPages || result.data?.totalPages || 1 };
   } catch (error) {
     console.error("Failed to fetch jobs:", error);
   }

@@ -53,29 +53,12 @@ export class SessionsController {
   @LoginRateLimit()
   @Post("mobile/login")
   @HttpCode(HttpStatus.OK)
-  async mobileLogin(@Body() dto: MobileLoginDto, @Req() req: Request) {
-    const ip = sanitizeIpAddress(req.ip ?? req.socket.remoteAddress);
-    const ua = sanitizeUserAgent(req.headers["user-agent"]);
-
-    const loginResult = await this.authService.login(
-      { email: dto.email, password: dto.password },
-      ip,
-      ua,
-    );
-
-    return this.sessionMobileService.createMobileSession(
-      loginResult.data.user.id,
-      loginResult.data.user,
-      ip,
-      {
-        deviceType: DeviceType.MOBILE,
-        deviceName: dto.deviceName,
-        deviceModel: dto.deviceModel,
-        platform: dto.platform,
-        appVersion: dto.appVersion,
-        pushToken: dto.pushToken,
-      },
-    );
+  async mobileLogin(@Body() dto: MobileLoginDto) {
+    // Password auth removed — mobile must use OTP flow via /auth/request-otp + /auth/verify-otp
+    throw new BadRequestException({
+      code: "PASSWORD_AUTH_REMOVED",
+      message: "Password authentication is no longer supported. Use OTP login.",
+    });
   }
 
   @Public()

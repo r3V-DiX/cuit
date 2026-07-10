@@ -70,9 +70,9 @@ export default function MyJobsPage() {
         url.searchParams.set("status", filterMap[statusFilter]);
       }
 
-      const result = await apiFetch(url.toString());
+      const result = await apiFetch<any>(url.toString());
 
-      const items = result.data?.items || result.items || [];
+      const items = result.data?.items || (result as any).items || [];
       const mapped = items.map((job: any) => {
         const statusMap: Record<string, JobDisplayStatus> = {
           "APPROVED": "Active",
@@ -96,7 +96,7 @@ export default function MyJobsPage() {
       });
 
       setJobs(mapped);
-      setTotalJobs(result.data?.meta?.total || result.meta?.total || mapped.length);
+      setTotalJobs(result.data?.meta?.total || (result as any).meta?.total || mapped.length);
 
       // Fetch summary counts if possible (otherwise calculate from list)
       if (statusFilter === "All" && !search) {

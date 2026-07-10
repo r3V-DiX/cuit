@@ -18,7 +18,6 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "@cykruit/prisma";
 import { AppLogger } from "@cykruit/logger";
-import { HashService } from "@cykruit/common";
 import { AuditService, AuditAction } from "@cykruit/audit";
 import { SessionType, DeviceType } from "@prisma/client";
 import {
@@ -29,6 +28,8 @@ import {
   compareFingerprints,
 } from "@cykruit/auth-core";
 import type { Request } from "express";
+import { UAParser } from "ua-parser-js";
+import * as geoip from "geoip-lite";
 
 const SESSION_ROTATION_INTERVAL_MS = 15 * 60 * 1000;
 const MAX_SESSIONS_PER_DEVICE_TYPE = 10;
@@ -37,7 +38,6 @@ const MAX_SESSIONS_PER_DEVICE_TYPE = 10;
 export class SessionService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly hashService: HashService,
     private readonly auditService: AuditService,
     private readonly logger: AppLogger,
   ) {}
@@ -365,6 +365,8 @@ export class SessionService {
       lastActivity: s.lastActivity,
       expiresAt: s.expiresAt,
       isCurrent: hashedCurrent ? s.token === hashedCurrent : false,
+      ...this.parseUserAgent(s.userAgent),
+      ...this.parseLocation(s.ipAddress),
     }));
   }
 
@@ -422,6 +424,74 @@ export class SessionService {
           revokedBy: "session_limit",
         },
       });
+    }
+  }
+
+  // ── Login history ─────────────────────────────────────────────
+
+  async getLoginHistory(userId: string, page = 1, limit = 20) {
+    const skip = (page - 1) * limit;
+    const sessions = await this.prisma.session.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        userAgent: true,
+        ipAddress: true,
+        deviceType: true,
+        createdAt: true,
+        lastActivity: true,
+        isActive: true,
+        revokedAt: true,
+        revokedBy: true,
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    });
+
+    const total = await this.prisma.session.count({ where: { userId } });
+
+    return {
+      data: sessions.map((s) => ({
+        ...s,
+        ...this.parseUserAgent(s.userAgent),
+        ...this.parseLocation(s.ipAddress),
+      })),
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+    };
+  }
+
+  // ── UA + Geo helpers ──────────────────────────────────────────
+
+  parseUserAgent(rawUa?: string | null) {
+    if (!rawUa) return { browserName: "Unknown", osName: "Unknown", deviceLabel: "Unknown device" };
+    const p = new UAParser(rawUa);
+    const browser = p.getBrowser().name ?? "Unknown";
+    const os = p.getOS().name ?? "Unknown";
+    const device = p.getDevice().model;
+    return {
+      browserName: browser,
+      osName: os,
+      deviceLabel: device ? `${browser} on ${device}` : `${browser} on ${os}`,
+    };
+  }
+
+  parseLocation(ip?: string | null) {
+    if (!ip || ip === "unknown" || ip === "127.0.0.1" || ip === "::1") {
+      return { city: null, country: null, locationLabel: "Local / Unknown" };
+    }
+    try {
+      const geo = geoip.lookup(ip);
+      if (!geo) return { city: null, country: null, locationLabel: "Unknown location" };
+      return {
+        city: geo.city || null,
+        country: geo.country || null,
+        locationLabel: [geo.city, geo.country].filter(Boolean).join(", ") || "Unknown location",
+      };
+    } catch {
+      return { city: null, country: null, locationLabel: "Unknown location" };
     }
   }
 

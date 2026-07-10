@@ -137,6 +137,7 @@ export class TeamRepository {
         inviterUserId: string,
         rawTokenHash: string,
         expiresAt: Date,
+        employerId: string,
     ) {
         return this.prisma.token.create({
             data: {
@@ -144,6 +145,7 @@ export class TeamRepository {
                 token: rawTokenHash,
                 type: TokenType.EMPLOYER_INVITE,
                 expiresAt,
+                employerId,
             },
         });
     }
@@ -163,6 +165,17 @@ export class TeamRepository {
         return this.prisma.token.update({
             where: { id: tokenId },
             data: { usedAt: new Date() },
+        });
+    }
+
+    async countPendingInvites(employerId: string): Promise<number> {
+        return this.prisma.token.count({
+            where: {
+                employerId,
+                type: TokenType.EMPLOYER_INVITE,
+                usedAt: null,
+                expiresAt: { gt: new Date() },
+            },
         });
     }
 }

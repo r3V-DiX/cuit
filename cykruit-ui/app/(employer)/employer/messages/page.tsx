@@ -115,7 +115,7 @@ export default function EmployerMessagesPage() {
           apiFetch("/api/auth/me"),
         ]);
         const convsData = convsResult.status === "fulfilled" ? convsResult.value : { data: { items: [] } };
-        const meData = meResult.status === "fulfilled" ? meResult.value : {};
+        const meData: any = meResult.status === "fulfilled" ? meResult.value : {};
         const userId: string = meData?.data?.id ?? meData?.id ?? "";
         setCurrentUserId(userId);
         const items: any[] = convsData?.data?.items ?? [];

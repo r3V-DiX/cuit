@@ -13,6 +13,7 @@ import { PrismaService } from '@cykruit/prisma';
 import { HashService } from '@cykruit/common';
 import { MailService } from '@cykruit/mail';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
+import { PermissionsService } from '@cykruit/permissions';
 import { CompanyRepository } from '../repositories/company.repository';
 import { TeamRepository } from '../repositories/team.repository';
 import {
@@ -53,6 +54,7 @@ export class TeamService {
         private readonly hashService: HashService,
         private readonly configService: ConfigService,
         private readonly eventPublisher: EventPublisher,
+        private readonly permissionsService: PermissionsService,
     ) {}
 
     // ── Get Team ─────────────────────────────────────────────────
@@ -75,10 +77,13 @@ export class TeamService {
             );
         }
 
-        // Check subscription limit.
-        const currentMembers = await this.teamRepository.findMembers(employer.id);
+        // Check subscription limit (current members + pending invites combined).
+        const [currentMembers, pendingInvites] = await Promise.all([
+            this.teamRepository.findMembers(employer.id),
+            this.teamRepository.countPendingInvites(employer.id),
+        ]);
         const maxMembers = await this.resolveMaxTeamMembers(employer.id);
-        if (currentMembers.length >= maxMembers) {
+        if (currentMembers.length + pendingInvites >= maxMembers) {
             throw new BadRequestException(
                 `Team member limit reached (${maxMembers}). Upgrade your subscription to invite more.`,
             );
@@ -106,7 +111,7 @@ export class TeamService {
         const hashedToken = this.hashService.hashToken(rawToken);
 
         const expiresAt = new Date(Date.now() + INVITE_TOKEN_TTL_MS);
-        await this.teamRepository.createInviteToken(userId, hashedToken, expiresAt);
+        await this.teamRepository.createInviteToken(userId, hashedToken, expiresAt, employer.id);
 
         // Fetch inviter details for the email.
         const inviterUser = await this.prisma.user.findUnique({
@@ -198,6 +203,7 @@ export class TeamService {
         );
 
         await this.teamRepository.markInviteUsed(tokenRecord.id);
+        await this.permissionsService.invalidateUserCache(userId, employer.id);
 
         return member;
     }
@@ -236,7 +242,9 @@ export class TeamService {
             throw new BadRequestException('Member already has this role.');
         }
 
-        return this.teamRepository.updateMemberRole(dto.memberId, dto.newRole);
+        const updated = await this.teamRepository.updateMemberRole(dto.memberId, dto.newRole);
+        await this.permissionsService.invalidateUserCache(targetMember.userId, employer.id);
+        return updated;
     }
 
     // ── Remove Member ─────────────────────────────────────────────
@@ -279,6 +287,7 @@ export class TeamService {
         }
 
         await this.teamRepository.removeMember(memberId);
+        await this.permissionsService.invalidateUserCache(targetMember.userId, employer.id);
 
         return { message: 'Member removed successfully.' };
     }
@@ -308,6 +317,12 @@ export class TeamService {
             currentOwnerMember.id,
             dto.currentOwnerNewRole,
         );
+
+        // Invalidate cache for both old and new owner — roles swapped
+        await Promise.all([
+            this.permissionsService.invalidateUserCache(userId, employer.id),
+            this.permissionsService.invalidateUserCache(newOwnerMember.userId, employer.id),
+        ]);
 
         return this.teamRepository.findMembers(employer.id);
     }

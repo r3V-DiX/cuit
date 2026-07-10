@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Shield } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
+import { broadcastLogin } from "@/lib/auth-sync";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function AuthCallbackPage() {
       try {
         const { data } = await apiFetch("/api/auth/me");
         const role = data?.role;
+        broadcastLogin(role === "EMPLOYER" ? "EMPLOYER" : "SEEKER");
         toast({ type: "success", message: "Signed in successfully" });
         if (role === "EMPLOYER") {
           const es = data?.employerStatus;

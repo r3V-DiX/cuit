@@ -25,6 +25,7 @@ const EMPLOYER_PREFIXES = [
   "/employer/subscription",
   "/employer/team",
   "/employer/activity",
+  "/employer/accept-invite",
   "/kyc",
 ];
 
@@ -52,10 +53,13 @@ export function proxy(request: NextRequest) {
   const isAdminRoute    = matchesAny(pathname, ADMIN_PREFIXES);
   const isGuestOnly     = matchesAny(pathname, GUEST_ONLY);
 
-  // Unauthenticated → login
+  // Unauthenticated → login (preserve full path + query so invite tokens survive redirect)
   if (!isAuthed && (isSeekerRoute || isEmployerRoute || isAdminRoute)) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
+    const fullPath = request.nextUrl.search
+      ? `${pathname}${request.nextUrl.search}`
+      : pathname;
+    loginUrl.searchParams.set("next", fullPath);
     return NextResponse.redirect(loginUrl);
   }
 

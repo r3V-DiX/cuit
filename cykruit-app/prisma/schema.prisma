@@ -29,9 +29,11 @@ enum AccountStatus {
 }
 
 enum TokenType {
-    EMAIL_VERIFICATION // For verifying email after registration
-    PASSWORD_RESET // For password reset flow
+    EMAIL_VERIFICATION // Legacy — no longer used after OTP migration
+    PASSWORD_RESET // Legacy — no longer used after OTP migration
     EMPLOYER_INVITE // For employer team invitations
+    OTP_LOGIN // 6-digit OTP for passwordless login/register
+    CANCEL_DELETION // Unauthenticated account-deletion cancellation link
 }
 
 enum DeviceType {
@@ -259,7 +261,7 @@ enum OAuthProvider {
 model User {
     id        String   @id @default(uuid())
     email     String   @unique
-    password  String
+    password  String?
     firstName String
     lastName  String
     phone     String?  @unique
@@ -368,20 +370,25 @@ model Session {
 
 // 3. TOKEN MODEL (Email verification & password reset)
 model Token {
-    id        String    @id @default(uuid())
-    token     String    @unique // JWT or random token (hashed)
-    type      TokenType
-    userId    String
-    expiresAt DateTime
-    usedAt    DateTime? // Mark as used instead of deleting
-    createdAt DateTime  @default(now())
+    id         String    @id @default(uuid())
+    token      String    @unique // JWT or random token (hashed)
+    type       TokenType
+    userId     String
+    employerId String?   // Set for EMPLOYER_INVITE tokens to scope by org
+    expiresAt  DateTime
+    usedAt     DateTime? // Mark as used instead of deleting
+    metadata   Json?     // Extra context — e.g. { attempts: N } for OTP tokens
+    createdAt  DateTime  @default(now())
 
     // Relations
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    employer Employer? @relation(fields: [employerId], references: [id], onDelete: Cascade)
 
     @@index([userId, type])
+    @@index([employerId, type])
     @@index([token])
     @@index([expiresAt])
+    @@index([type, expiresAt, usedAt])
     @@map("tokens")
 }
 
@@ -1129,6 +1136,7 @@ model Employer {
     settings            EmployerSettings?
     members             EmployerMember[]
     subscription        EmployerSubscription?
+    inviteTokens        Token[]
 
     @@index([slug])
     @@index([isVerified])
@@ -1374,6 +1382,7 @@ model Job {
     @@index([employerId])
     @@index([roleId])
     @@index([status])
+    @@index([status, expiresAt])
     @@index([jobType])
     @@index([workMode])
     @@index([locationId])

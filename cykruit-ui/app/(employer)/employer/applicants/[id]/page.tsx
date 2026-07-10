@@ -91,7 +91,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
     ],
     strengths: ["Matching skills found in profile"],
     weaknesses: ["Missing some core requirements"],
-    requiredSkillsMatched: (profile.skills || []).map((s: any) => s.skill.name).slice(0, 5),
+    requiredSkillsMatched: (profile.skills || []).map((s: any): string => s.skill.name).slice(0, 5),
     requiredSkillsMissing: []
   };
 
@@ -250,7 +250,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                 <div className="bg-white rounded-xl border border-slate-200 p-4">
                   <p className="text-xs font-bold text-slate-700 mb-2.5">Job Requirements Match</p>
                   <div className="flex flex-wrap gap-2">
-                    {ai.requiredSkillsMatched.map((s) => (
+                    {ai.requiredSkillsMatched.map((s: string) => (
                       <span key={s} className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono font-semibold rounded-lg bg-green-50 text-green-700 border border-green-200">
                         <CheckCircle2 className="w-3 h-3" />{s}
                       </span>

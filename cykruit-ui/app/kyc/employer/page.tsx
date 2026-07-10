@@ -12,16 +12,16 @@ import { apiFetch, authHeaders, getCsrf, ApiError } from "@/lib/api";
 
 type Step = 1 | 2 | 3;
 
-const COMPANY_TYPES: { label: string; value: string }[] = [
-  { label: "Private Limited Company",  value: "PRIVATE_LIMITED_COMPANY" },
-  { label: "Public Limited Company",   value: "PUBLIC_LIMITED_COMPANY"  },
-  { label: "Partnership Firm",         value: "PARTNERSHIP_FIRM"        },
-  { label: "Sole Proprietorship",      value: "SOLE_PROPRIETORSHIP"     },
-  { label: "LLP",                      value: "OTHERS"                  },
-  { label: "NGO / Non-Profit",         value: "NGO"                     },
-  { label: "Educational Institution",  value: "EDUCATIONAL_INSTITUTION" },
-  { label: "Government / PSU",         value: "NATIONALISED_BANK"       },
-  { label: "Others",                   value: "OTHERS"                  },
+const COMPANY_TYPES: { label: string; value: string; key: string }[] = [
+  { label: "Private Limited Company",  value: "PRIVATE_LIMITED_COMPANY", key: "PRIVATE_LIMITED_COMPANY" },
+  { label: "Public Limited Company",   value: "PUBLIC_LIMITED_COMPANY",  key: "PUBLIC_LIMITED_COMPANY"  },
+  { label: "Partnership Firm",         value: "PARTNERSHIP_FIRM",        key: "PARTNERSHIP_FIRM"        },
+  { label: "Sole Proprietorship",      value: "SOLE_PROPRIETORSHIP",     key: "SOLE_PROPRIETORSHIP"     },
+  { label: "LLP",                      value: "OTHERS",                  key: "LLP"                     },
+  { label: "NGO / Non-Profit",         value: "NGO",                     key: "NGO"                     },
+  { label: "Educational Institution",  value: "EDUCATIONAL_INSTITUTION", key: "EDUCATIONAL_INSTITUTION" },
+  { label: "Government / PSU",         value: "NATIONALISED_BANK",       key: "NATIONALISED_BANK"       },
+  { label: "Others",                   value: "OTHERS",                  key: "OTHERS"                  },
 ];
 
 const INDUSTRIES: { label: string; value: string }[] = [
@@ -76,8 +76,12 @@ export default function EmployerKYCPage() {
         const vs = data?.verification?.status;
         if (vs === "PENDING" || vs === "UNDER_REVIEW") { setStep(3); }
         else if (data?.companyId) { setStep(2); }
-      } catch { /* COMPANY_NOT_FOUND → stay on step 1 */ }
-      finally { setChecking(false); }
+      } catch (err: any) {
+        // COMPANY_NOT_FOUND is expected on first visit — stay on step 1
+        if (err?.code !== "COMPANY_NOT_FOUND") {
+          toast({ type: "error", message: "Could not check verification status. Please refresh." });
+        }
+      } finally { setChecking(false); }
     }
     checkStatus();
   }, [router]);
@@ -100,14 +104,29 @@ export default function EmployerKYCPage() {
     });
   }
 
-  // Step 1 state
-  const [legalName,    setLegalName]    = useState("");
-  const [location,     setLocation]     = useState("");
-  const [companyType,  setCompanyType]  = useState("");
-  const [industry,     setIndustry]     = useState("");
-  const [companySize,  setCompanySize]  = useState("");
-  const [website,      setWebsite]      = useState("");
-  const [contactEmail, setContactEmail] = useState("");
+  const DRAFT_KEY = "cykruit_kyc_draft";
+
+  function loadDraft() {
+    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "{}"); } catch { return {}; }
+  }
+  function saveDraft(patch: Record<string, string>) {
+    try {
+      const cur = loadDraft();
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...cur, ...patch }));
+    } catch {}
+  }
+  function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch {} }
+
+  const draft = loadDraft();
+
+  // Step 1 state — seed from draft
+  const [legalName,    setLegalName]    = useState(draft.legalName    ?? "");
+  const [location,     setLocation]     = useState(draft.location     ?? "");
+  const [companyType,  setCompanyType]  = useState(draft.companyType  ?? "");
+  const [industry,     setIndustry]     = useState(draft.industry     ?? "");
+  const [companySize,  setCompanySize]  = useState(draft.companySize  ?? "");
+  const [website,      setWebsite]      = useState(draft.website      ?? "");
+  const [contactEmail, setContactEmail] = useState(draft.contactEmail ?? "");
   const [savingOrg,    setSavingOrg]    = useState(false);
 
   // Step 2 state
@@ -137,10 +156,12 @@ export default function EmployerKYCPage() {
           ...(contactEmail.trim() ? { contactEmail:   contactEmail.trim() } : {}),
         }),
       });
+      clearDraft();
       setStep(2);
     } catch (err: any) {
       if (err instanceof ApiError && err.statusCode === 409) {
-        setStep(2); // company already exists, skip
+        clearDraft();
+        setStep(2);
       } else {
         toast({ type: "error", message: err.message || "Failed to save organization details" });
       }
@@ -250,7 +271,7 @@ export default function EmployerKYCPage() {
                   <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
                     Legal Company Name <span className="text-rose-400">*</span>
                   </label>
-                  <input value={legalName} onChange={(e) => setLegalName(e.target.value)}
+                  <input value={legalName} onChange={(e) => { setLegalName(e.target.value); saveDraft({ legalName: e.target.value }); }}
                     placeholder="e.g. CyberShield Technologies Pvt. Ltd." className={inputCls} />
                 </div>
 
@@ -259,16 +280,16 @@ export default function EmployerKYCPage() {
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
                       Headquarters <span className="text-rose-400">*</span>
                     </label>
-                    <input value={location} onChange={(e) => setLocation(e.target.value)}
+                    <input value={location} onChange={(e) => { setLocation(e.target.value); saveDraft({ location: e.target.value }); }}
                       placeholder="e.g. Mumbai, India" className={inputCls} />
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
                       Company Type <span className="text-rose-400">*</span>
                     </label>
-                    <select value={companyType} onChange={(e) => setCompanyType(e.target.value)} className={selectCls}>
+                    <select value={companyType} onChange={(e) => { setCompanyType(e.target.value); saveDraft({ companyType: e.target.value }); }} className={selectCls}>
                       <option value="">Select type</option>
-                      {COMPANY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      {COMPANY_TYPES.map((t) => <option key={t.key} value={t.value}>{t.label}</option>)}
                     </select>
                   </div>
                 </div>
@@ -278,7 +299,7 @@ export default function EmployerKYCPage() {
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
                       Industry <span className="text-rose-400">*</span>
                     </label>
-                    <select value={industry} onChange={(e) => setIndustry(e.target.value)} className={selectCls}>
+                    <select value={industry} onChange={(e) => { setIndustry(e.target.value); saveDraft({ industry: e.target.value }); }} className={selectCls}>
                       <option value="">Select industry</option>
                       {INDUSTRIES.map((i) => <option key={i.value} value={i.value}>{i.label}</option>)}
                     </select>
@@ -287,7 +308,7 @@ export default function EmployerKYCPage() {
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
                       Company Size <span className="text-rose-400">*</span>
                     </label>
-                    <select value={companySize} onChange={(e) => setCompanySize(e.target.value)} className={selectCls}>
+                    <select value={companySize} onChange={(e) => { setCompanySize(e.target.value); saveDraft({ companySize: e.target.value }); }} className={selectCls}>
                       <option value="">Select size</option>
                       {COMPANY_SIZES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                     </select>
@@ -299,14 +320,14 @@ export default function EmployerKYCPage() {
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
                       Company Website
                     </label>
-                    <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)}
+                    <input type="url" value={website} onChange={(e) => { setWebsite(e.target.value); saveDraft({ website: e.target.value }); }}
                       placeholder="https://yourcompany.com" className={inputCls} />
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
                       Official Contact Email
                     </label>
-                    <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
+                    <input type="email" value={contactEmail} onChange={(e) => { setContactEmail(e.target.value); saveDraft({ contactEmail: e.target.value }); }}
                       placeholder="hr@yourcompany.com" className={inputCls} />
                   </div>
                 </div>
@@ -378,7 +399,7 @@ export default function EmployerKYCPage() {
                       </div>
                       <div className="text-center">
                         <p className="text-sm font-semibold text-slate-700">Drop file here or <span className="text-blue-600">browse</span></p>
-                        <p className="text-[11px] text-slate-400 mt-1">PDF, JPG, PNG · Max 5 MB</p>
+                        <p className="text-[11px] text-slate-400 mt-1">PDF, JPG, PNG · Max 10 MB</p>
                       </div>
                     </div>
                   )}

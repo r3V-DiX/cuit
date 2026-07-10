@@ -22,7 +22,7 @@ import { KycFileValidator } from '../validators/kyc-file.validator';
 const KYC_MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 @Controller('employer/kyc')
-@UseGuards(AuthGuard, CsrfGuard)
+@UseGuards(AuthGuard)
 export class KycController {
     constructor(private readonly kycService: KycService) {}
 
@@ -44,6 +44,7 @@ export class KycController {
 
     @Post('submit')
     @HttpCode(HttpStatus.CREATED)
+    @UseGuards(CsrfGuard)
     @UseInterceptors(FileInterceptor('file'))
     submit(
         @CurrentUser() user: User,
@@ -64,6 +65,7 @@ export class KycController {
 
     @Post('resubmit')
     @HttpCode(HttpStatus.CREATED)
+    @UseGuards(CsrfGuard)
     @UseInterceptors(FileInterceptor('file'))
     resubmit(
         @CurrentUser() user: User,

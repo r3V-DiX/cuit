@@ -101,9 +101,9 @@ export default function ApplicationDetailPage() {
     );
   }
 
-  const cfg = STATUS_CFG[app.status];
+  const cfg = STATUS_CFG[app.status as AppStatus] ?? STATUS_CFG.Applied;
   const isTerminal = app.status === "Rejected" || app.status === "Withdrawn";
-  const activeStep = isTerminal ? -1 : STATUS_CFG[app.status].step;
+  const activeStep = isTerminal ? -1 : (STATUS_CFG[app.status as AppStatus]?.step ?? 1);
 
   async function withdraw() {
     if (!app) return;
@@ -251,7 +251,7 @@ export default function ApplicationDetailPage() {
                 <div className="relative pl-5">
                   <div className="absolute left-2 top-1 bottom-1 w-px bg-slate-200" />
                   <div className="space-y-5">
-                    {app.timeline.map((ev, i) => (
+                    {app.timeline.map((ev: any, i: number) => (
                       <div key={i} className="relative">
                         <div className={`absolute -left-[13px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white ${i === 0 ? "bg-blue-500" : "bg-slate-300"}`} />
                         <div className="flex items-start justify-between gap-2">

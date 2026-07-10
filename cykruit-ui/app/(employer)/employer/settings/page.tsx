@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { useToast } from "@/components/ui/Toast";
-import { useModal } from "@/components/ui/Modal";
 import {
-  User, Bell, Lock, Shield, Eye, EyeOff, Check,
-  Mail, Smartphone, Info, AlertTriangle, Trash2,
+  User, Bell, Shield, Eye, Check,
+  Mail, Smartphone, Info, Trash2, Lock,
   Building2, ChevronDown, Loader2,
 } from "lucide-react";
 import { apiFetch, authHeaders } from "@/lib/api";
+import { SessionsPanel } from "@/components/settings/SessionsPanel";
+import { useSessionGuard } from "@/lib/use-session-guard";
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const inputCls     = "w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-400";
@@ -26,22 +27,6 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${on ? "left-[calc(100%-1.375rem)]" : "left-0.5"}`} />
     </button>
   );
-}
-
-// ── Password strength ─────────────────────────────────────────────────────────
-function passwordStrength(pw: string): { score: number; label: string; color: string } {
-  if (!pw) return { score: 0, label: "", color: "" };
-  let s = 0;
-  if (pw.length >= 8)           s++;
-  if (pw.length >= 12)          s++;
-  if (/[A-Z]/.test(pw))         s++;
-  if (/[0-9]/.test(pw))         s++;
-  if (/[^A-Za-z0-9]/.test(pw)) s++;
-  if (s <= 1) return { score: s, label: "Weak",        color: "bg-red-400"     };
-  if (s <= 2) return { score: s, label: "Fair",        color: "bg-amber-400"   };
-  if (s <= 3) return { score: s, label: "Good",        color: "bg-yellow-400"  };
-  if (s === 4) return { score: s, label: "Strong",     color: "bg-emerald-400" };
-  return               { score: s, label: "Very Strong",color: "bg-emerald-500" };
 }
 
 // ── Section ───────────────────────────────────────────────────────────────────
@@ -75,7 +60,6 @@ const TABS = [
   { id: "account",       label: "Account",       icon: User      },
   { id: "company",       label: "Company",       icon: Building2 },
   { id: "notifications", label: "Notifications", icon: Bell      },
-  { id: "password",      label: "Password",      icon: Lock      },
   { id: "security",      label: "Security",      icon: Shield    },
 ];
 
@@ -84,13 +68,14 @@ const SIZES = ["1–10", "11–50", "51–200", "201–500", "500–1000", "1000
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function EmployerSettingsPage() {
-  const { toast }    = useToast();
-  const { openModal }= useModal();
+  const { toast } = useToast();
   const [tab, setTab]= useState("account");
   const [loading, setLoading] = useState(true);
+  useSessionGuard();
 
   // Account
   const [locked, setLocked] = useState({ name: "", email: "" });
+  const [googleAuth, setGoogleAuth] = useState(false);
   const [phone, setPhone]     = useState("");
   const [timezone, setTimezone] = useState("Pacific Time (PT)");
 
@@ -119,6 +104,7 @@ export default function EmployerSettingsPage() {
         const u = me?.data ?? me;
         const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ");
         setLocked({ name: fullName || u.name || u.fullName || "", email: u.email ?? "" });
+        setGoogleAuth(u.provider === "GOOGLE" || u.provider === "GITHUB");
         const d = s?.data ?? s;
         const general = d?.general ?? d;
         const notifs = d?.notifications;
@@ -175,52 +161,14 @@ export default function EmployerSettingsPage() {
     }
   }
 
-  // Password
-  const [pwForm, setPwForm]   = useState({ current: "", newPw: "", confirm: "" });
-  const [showPw, setShowPw]   = useState({ current: false, newPw: false, confirm: false });
-  const strength               = passwordStrength(pwForm.newPw);
-
-  function changePassword() {
-    if (!pwForm.current)             { toast({ type: "error",   message: "Enter your current password" }); return; }
-    if (pwForm.newPw.length < 8)     { toast({ type: "error",   message: "Password too short", description: "Must be at least 8 characters." }); return; }
-    if (pwForm.newPw !== pwForm.confirm){ toast({ type: "error", message: "Passwords don't match" }); return; }
-    if (strength.score < 2)          { toast({ type: "warning", message: "Password too weak", description: "Please choose a stronger password." }); return; }
-    openModal({
-      title: "Change password?",
-      description: "You will be signed out of all other sessions after changing your password.",
-      variant: "info",
-      confirmLabel: "Yes, change it",
-      onConfirm: async () => {
-        try {
-          await apiFetch("/api/auth/change-password", {
-            method: "POST",
-            headers: authHeaders(),
-            body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.newPw }),
-          });
-          setPwForm({ current: "", newPw: "", confirm: "" });
-          toast({ type: "success", message: "Password updated", description: "You've been signed out of other sessions." });
-        } catch (err: any) {
-          toast({ type: "error", message: err.message || "Failed to change password" });
-        }
-      },
-    });
-  }
-
   // Security
-  const [twoFa, setTwoFa] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [deletePassword, setDeletePassword] = useState("");
 
   async function deleteAccount() {
-    if (!deletePassword) {
-      toast({ type: "error", message: "Password required", description: "Please enter your password to confirm." });
-      return;
-    }
     try {
       await apiFetch("/api/auth/account", {
         method: "DELETE",
         headers: authHeaders(),
-        body: JSON.stringify({ password: deletePassword }),
       });
       toast({ type: "error", message: "Account scheduled for deletion", description: "You will be logged out.", duration: 6000 });
       window.location.href = "/login";
@@ -354,8 +302,7 @@ export default function EmployerSettingsPage() {
                     {showDeleteConfirm && (
                       <div className="p-4 rounded-xl border border-red-200 bg-white">
                          <p className="text-sm font-semibold text-slate-800 mb-2">Confirm Account Deletion</p>
-                         <p className="text-xs text-slate-500 mb-4">This action cannot be undone. Please enter your password to confirm.</p>
-                         <input type="password" value={deletePassword} onChange={e => setDeletePassword(e.target.value)} placeholder="Your password" className={inputCls + " mb-4"} />
+                         <p className="text-xs text-slate-500 mb-4">This will schedule your account for deletion in 30 days. This cannot be undone.</p>
                          <div className="flex gap-2">
                            <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer">Cancel</button>
                            <button onClick={deleteAccount} className="px-4 py-2 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors cursor-pointer">Confirm Delete</button>
@@ -464,93 +411,14 @@ export default function EmployerSettingsPage() {
               </div>
             )}
 
-            {/* ── PASSWORD ── */}
-            {tab === "password" && (
-              <div>
-                <Section title="Change Password" desc="Use a strong, unique password you don't use elsewhere.">
-                  <div className="space-y-4 max-w-md">
-                    <div>
-                      <label className={labelCls}>Current Password</label>
-                      <div className="relative">
-                        <input type={showPw.current ? "text" : "password"} value={pwForm.current}
-                          onChange={(e) => setPwForm({ ...pwForm, current: e.target.value })}
-                          placeholder="••••••••••" className={`${inputCls} pr-10 font-mono`} />
-                        <button type="button" onClick={() => setShowPw({ ...showPw, current: !showPw.current })}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
-                          {showPw.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className={labelCls}>New Password</label>
-                      <div className="relative">
-                        <input type={showPw.newPw ? "text" : "password"} value={pwForm.newPw}
-                          onChange={(e) => setPwForm({ ...pwForm, newPw: e.target.value })}
-                          placeholder="••••••••••" className={`${inputCls} pr-10 font-mono`} />
-                        <button type="button" onClick={() => setShowPw({ ...showPw, newPw: !showPw.newPw })}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
-                          {showPw.newPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      {pwForm.newPw && (
-                        <div className="mt-2 space-y-1">
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                              <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= strength.score ? strength.color : "bg-slate-200"}`} />
-                            ))}
-                          </div>
-                          <p className={`text-[10px] font-semibold ${strength.score <= 1 ? "text-red-500" : strength.score <= 2 ? "text-amber-500" : "text-emerald-600"}`}>
-                            {strength.label}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className={labelCls}>Confirm New Password</label>
-                      <div className="relative">
-                        <input type={showPw.confirm ? "text" : "password"} value={pwForm.confirm}
-                          onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })}
-                          placeholder="••••••••••"
-                          className={`${inputCls} pr-10 font-mono ${pwForm.confirm && pwForm.newPw !== pwForm.confirm ? "border-red-300 focus:border-red-400" : ""}`} />
-                        <button type="button" onClick={() => setShowPw({ ...showPw, confirm: !showPw.confirm })}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
-                          {showPw.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                      {pwForm.confirm && pwForm.newPw !== pwForm.confirm && (
-                        <p className="text-[10px] text-red-500 mt-1 flex items-center gap-1">
-                          <AlertTriangle className="w-3 h-3" /> Passwords don&apos;t match
-                        </p>
-                      )}
-                    </div>
-
-                    <button onClick={changePassword} className={saveBtnCls}>
-                      <Check className="w-3.5 h-3.5" /> Update Password
-                    </button>
-                  </div>
-                </Section>
-              </div>
-            )}
-
             {/* ── SECURITY ── */}
             {tab === "security" && (
               <div>
                 <Section title="Two-Factor Authentication" desc="Add an extra layer of security to your account.">
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200 max-w-md mb-3">
-                    <div>
-                      <p className="text-sm font-medium text-slate-800">Enable 2FA</p>
-                      <p className="text-xs text-slate-400 mt-0.5">Require a verification code in addition to your password</p>
-                    </div>
-                    <Toggle on={twoFa} onChange={setTwoFa} />
+                  <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200 max-w-md">
+                    <Info className="w-4 h-4 text-slate-400 shrink-0" />
+                    <p className="text-xs text-slate-500">Two-factor authentication is coming soon.</p>
                   </div>
-                  {twoFa && (
-                    <div className="flex items-start gap-3 p-3.5 rounded-xl border border-green-200 bg-green-50 max-w-md">
-                      <Check className="w-4 h-4 text-green-600 shrink-0 mt-0.5" />
-                      <p className="text-xs text-green-700">2FA is enabled. You'll be asked for a verification code on each new login.</p>
-                    </div>
-                  )}
                 </Section>
 
                 <Section title="Connected Accounts" desc="Services linked to your Cykruit account for sign-in.">
@@ -569,35 +437,18 @@ export default function EmployerSettingsPage() {
                         <p className="text-xs text-slate-400">{locked.email}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-mono text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                      <Check className="w-3 h-3" /> Connected
-                    </span>
+                    {googleAuth ? (
+                      <span className="text-[10px] font-mono text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                        <Check className="w-3 h-3" /> Connected
+                      </span>
+                    ) : (
+                      <button className="text-xs font-medium text-blue-600 hover:text-blue-700 border border-blue-200 hover:bg-blue-50 px-3 py-1.5 rounded-xl transition-colors">Connect</button>
+                    )}
                   </div>
                 </Section>
 
-                <Section title="Active Sessions" desc="Devices currently signed into your account.">
-                  <div className="space-y-2.5 max-w-md">
-                    {[
-                      { device: "Chrome on Windows",  location: "San Francisco, CA", time: "Now (current)", current: true  },
-                      { device: "Safari on iPhone 14", location: "San Francisco, CA", time: "3 hours ago",   current: false },
-                    ].map((s) => (
-                      <div key={s.device} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50">
-                        <div>
-                          <p className="text-sm font-medium text-slate-800">{s.device}</p>
-                          <p className="text-xs text-slate-400">{s.location} · {s.time}</p>
-                        </div>
-                        {s.current
-                          ? <span className="text-[10px] font-mono text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-md">Current</span>
-                          : <button
-                              onClick={() => openModal({ variant: "danger", title: "Sign out this session?", description: `${s.device} · ${s.location}`, confirmLabel: "Sign out", onConfirm: () => toast({ type: "success", message: "Session signed out" }) })}
-                              className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors cursor-pointer"
-                            >
-                              Sign out
-                            </button>
-                        }
-                      </div>
-                    ))}
-                  </div>
+                <Section title="Sessions & Login History" desc="Manage devices signed into your account and review past activity.">
+                  <SessionsPanel />
                 </Section>
               </div>
             )}

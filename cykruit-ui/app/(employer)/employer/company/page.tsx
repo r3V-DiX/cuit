@@ -68,7 +68,8 @@ export default function CompanyProfilePage() {
 
   useEffect(() => {
     apiFetch("/api/employer/company/me")
-      .then((d) => {
+      .then((res) => {
+        const d: any = res.data ?? res;
         setName(d.name ?? "");
         setIndustry(d.industry ?? "");
         setSize(d.size ?? "");
@@ -123,12 +124,12 @@ export default function CompanyProfilePage() {
     if (!v || perks.some((p) => p.name === v)) return;
     setPerkInput("");
     try {
-      const data = await apiFetch("/api/employer/company/benefits", {
+      const benefitRes = await apiFetch("/api/employer/company/benefits", {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ name: v }),
       });
-      const perkId = data?.data?.id ?? data?.id ?? undefined;
+      const perkId = benefitRes?.data?.id ?? (benefitRes as any)?.id ?? undefined;
       setPerks((prev) => [...prev, { id: perkId, name: v }]);
     } catch {
       setPerks((prev) => [...prev, { name: v }]);
@@ -151,11 +152,12 @@ export default function CompanyProfilePage() {
     const fd = new FormData();
     fd.append("logo", file);
     try {
-      const data = await apiFetch("/api/employer/company/logo", {
+      const res = await apiFetch("/api/employer/company/logo", {
         method: "POST",
         headers: authHeaders(),
         body: fd,
       });
+      const data: any = res.data ?? res;
       if (data.url) setLogoUrl(data.url);
     } catch {}
     e.target.value = "";

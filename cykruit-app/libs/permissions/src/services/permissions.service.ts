@@ -14,10 +14,69 @@ export interface PermissionContext {
 
 export type PermissionResult = 'GRANTED' | 'DENIED';
 
-// Permissions only SEEKER can use
-const SEEKER_ONLY_PREFIXES = ['seekers:', 'applications:read', 'messages:'];
-// Permissions only EMPLOYER/ADMIN can use
-const EMPLOYER_ONLY_PREFIXES = ['jobs:create', 'jobs:update', 'jobs:delete', 'jobs:publish', 'jobs:close', 'company:invite', 'company:remove', 'company:change_role', 'company:transfer', 'applications:update_status', 'applications:add_note', 'applications:read_all'];
+// Permissions only SEEKER can use (exact action strings, no prefix trick)
+const SEEKER_ONLY_ACTIONS = new Set([
+    'seekers:read_profile',
+    'seekers:read_contact',
+    'applications:read',
+    'messages:send',
+    'messages:read',
+]);
+
+// Permissions only EMPLOYER/ADMIN can use (exact action strings)
+const EMPLOYER_ONLY_ACTIONS = new Set([
+    'jobs:create',
+    'jobs:update',
+    'jobs:delete',
+    'jobs:publish',
+    'jobs:close',
+    'company:invite_member',
+    'company:remove_member',
+    'company:change_role',
+    'company:transfer_owner',
+    'company:update',
+    'company:submit_kyc',
+    'company:view_activity',
+    'applications:update_status',
+    'applications:add_note',
+    'applications:read_all',
+]);
+
+// Permissions granted to OWNER only
+const OWNER_ONLY_ACTIONS = new Set([
+    'company:change_role',
+    'company:transfer_owner',
+]);
+
+// Permissions granted to OWNER + HIRING_MANAGER
+const MANAGER_ACTIONS = new Set([
+    'company:invite_member',
+    'company:remove_member',
+    'applications:read_all',
+]);
+
+// Permissions granted to OWNER + HIRING_MANAGER + RECRUITER
+const RECRUITER_ACTIONS = new Set([
+    'jobs:create',
+    'jobs:update',
+    'jobs:delete',
+    'jobs:publish',
+    'jobs:close',
+    'applications:update_status',
+    'applications:add_note',
+]);
+
+// Permissions granted to OWNER + HIRING_MANAGER only
+const MANAGER_EXCLUSIVE_ACTIONS = new Set([
+    'company:update',
+    'company:submit_kyc',
+]);
+
+// Permissions granted to ALL members including VIEWER
+const ALL_MEMBER_ACTIONS = new Set([
+    'company:read',
+    'company:view_activity',
+]);
 
 @Injectable()
 export class PermissionsService {
@@ -57,70 +116,70 @@ export class PermissionsService {
 
         // ADMIN has all permissions
         if (ctx.userRole === UserRole.ADMIN) {
-            SEEKER_ONLY_PREFIXES.forEach(p => granted.add(p));
-            EMPLOYER_ONLY_PREFIXES.forEach(p => granted.add(p));
+            SEEKER_ONLY_ACTIONS.forEach(p => granted.add(p));
+            EMPLOYER_ONLY_ACTIONS.forEach(p => granted.add(p));
             granted.add('*');
             return granted;
         }
 
-        // SEEKER has seeker permissions
+        // SEEKER has seeker permissions only
         if (ctx.userRole === UserRole.SEEKER) {
-            SEEKER_ONLY_PREFIXES.forEach(p => granted.add(p));
-            granted.add('seekers:read');
-            granted.add('seekers:write');
-            granted.add('applications:read');
-            granted.add('messages:read');
-            granted.add('messages:write');
+            SEEKER_ONLY_ACTIONS.forEach(p => granted.add(p));
             return granted;
         }
 
-        // EMPLOYER has employer permissions if they are a member of the employer profile
+        // EMPLOYER: must be a confirmed EmployerMember; role determines permission tier
         if (ctx.userRole === UserRole.EMPLOYER) {
-            let isMember = true;
-            let memberRole = 'RECRUITER';
+            const member = await this.resolveEmployerMember(ctx.userId, ctx.employerId);
+            if (!member) return granted; // not a member of any org → no permissions
 
-            if (ctx.employerId) {
-                const member = await this.prisma.employerMember.findUnique({
-                    where: {
-                        employerId_userId: {
-                            employerId: ctx.employerId,
-                            userId: ctx.userId,
-                        },
-                    },
-                });
-                if (!member) {
-                    isMember = false;
-                } else {
-                    memberRole = member.role;
-                }
+            const role = member.role;
+
+            // All members
+            ALL_MEMBER_ACTIONS.forEach(p => granted.add(p));
+
+            // RECRUITER+
+            if (role === 'RECRUITER' || role === 'HIRING_MANAGER' || role === 'OWNER') {
+                RECRUITER_ACTIONS.forEach(p => granted.add(p));
             }
 
-            if (isMember) {
-                if (memberRole === 'VIEWER') {
-                    granted.add('applications:read_all');
-                } else {
-                    EMPLOYER_ONLY_PREFIXES.forEach(p => granted.add(p));
-                }
+            // HIRING_MANAGER+
+            if (role === 'HIRING_MANAGER' || role === 'OWNER') {
+                MANAGER_ACTIONS.forEach(p => granted.add(p));
+                MANAGER_EXCLUSIVE_ACTIONS.forEach(p => granted.add(p));
+            }
+
+            // OWNER only
+            if (role === 'OWNER') {
+                OWNER_ONLY_ACTIONS.forEach(p => granted.add(p));
             }
         }
 
         return granted;
     }
 
+    /**
+     * Resolves the EmployerMember row for a user.
+     * If employerId is provided, scopes to that org.
+     * If not provided, looks up their org from any membership (single-org assumption).
+     */
+    private async resolveEmployerMember(userId: string, employerId?: string) {
+        if (employerId) {
+            return this.prisma.employerMember.findUnique({
+                where: { employerId_userId: { employerId, userId } },
+            });
+        }
+        // No employerId on request — find their org membership (EMPLOYER users belong to one org)
+        return this.prisma.employerMember.findFirst({
+            where: { userId },
+        });
+    }
+
     private accountTypeGate(role: UserRole, action: string): PermissionResult | null {
-        if (role === UserRole.ADMIN) return null; // ADMIN passes all gates
+        if (role === UserRole.ADMIN) return null;
 
-        if (role === UserRole.SEEKER) {
-            for (const prefix of EMPLOYER_ONLY_PREFIXES) {
-                if (action === prefix || action.startsWith(prefix + ':')) return 'DENIED';
-            }
-        }
-
-        if (role === UserRole.EMPLOYER) {
-            for (const prefix of SEEKER_ONLY_PREFIXES) {
-                if (action === prefix || action.startsWith(prefix + ':')) return 'DENIED';
-            }
-        }
+        if (role === UserRole.SEEKER && EMPLOYER_ONLY_ACTIONS.has(action)) return 'DENIED';
+        if (role === UserRole.EMPLOYER && SEEKER_ONLY_ACTIONS.has(action)) return 'DENIED';
 
         return null;
     }

@@ -2,6 +2,7 @@
 
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "@cykruit/prisma";
+import { hashToken } from "@cykruit/auth-core";
 import {
   User,
   AccountStatus,
@@ -46,7 +47,6 @@ export class AuthRepository {
 
   async createUser(data: {
     email: string;
-    password: string;
     firstName: string;
     lastName: string;
     phone?: string;
@@ -65,13 +65,6 @@ export class AuthRepository {
         emailVerifiedAt: new Date(),
         status: AccountStatus.ACTIVE,
       },
-    });
-  }
-
-  async updatePassword(userId: string, hashedPassword: string): Promise<User> {
-    return this.prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
     });
   }
 
@@ -146,9 +139,9 @@ export class AuthRepository {
     newExpiresAt: Date,
   ): Promise<void> {
     await this.prisma.session.update({
-      where: { token: oldToken },
+      where: { token: hashToken(oldToken) },
       data: {
-        token: newToken,
+        token: hashToken(newToken),
         expiresAt: newExpiresAt,
         lastActivity: new Date(),
         isActive: true,
@@ -158,7 +151,7 @@ export class AuthRepository {
 
   async deleteSession(token: string): Promise<void> {
     await this.prisma.session.updateMany({
-      where: { token },
+      where: { token: hashToken(token) },
       data: { isActive: false, revokedAt: new Date(), revokedBy: "user" },
     });
   }
@@ -313,71 +306,6 @@ export class AuthRepository {
 
   // ── Transactions ─────────────────────────────────────────────
 
-  async createUserWithVerificationToken(userData: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    phone?: string;
-    role: UserRole;
-    verificationToken: string;
-    tokenExpiresAt: Date;
-  }) {
-    return this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          email: userData.email,
-          password: userData.password,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          phone: userData.phone,
-          role: userData.role,
-          status: AccountStatus.PENDING,
-          isEmailVerified: false,
-        },
-      });
-
-      const token = await tx.token.create({
-        data: {
-          userId: user.id,
-          token: userData.verificationToken,
-          type: "EMAIL_VERIFICATION",
-          expiresAt: userData.tokenExpiresAt,
-        },
-      });
-
-      let profile = null;
-      if (userData.role === UserRole.SEEKER) {
-        profile = await tx.jobSeekerProfile.create({
-          data: {
-            user: { connect: { id: user.id } },
-            firstName: userData.firstName,
-            lastName: userData.lastName,
-            availability: "Open to offers",
-            profileCompletion: 0,
-          },
-        });
-      } else if (userData.role === UserRole.EMPLOYER) {
-        const slug = `${userData.email.split("@")[0].toLowerCase()}-${Date.now()}`;
-        profile = await tx.employer.create({
-          data: {
-            user: { connect: { id: user.id } },
-            companyName: "",
-            slug,
-            companyType: "OTHERS",
-            industry: "OTHER",
-            companySize: "SIZE_1_10",
-            location: "",
-            isVerified: false,
-            profileCompletion: 0,
-          },
-        });
-      }
-
-      return { user, token, profile };
-    });
-  }
-
   async verifyEmailAndDeleteToken(tokenId: string, userId: string) {
     return this.prisma.$transaction(async (tx) => {
       const user = await tx.user.update({
@@ -393,52 +321,4 @@ export class AuthRepository {
     });
   }
 
-  async resetPasswordAndCleanup(userId: string, hashedPassword: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.update({
-        where: { id: userId },
-        data: { password: hashedPassword },
-      });
-      await tx.session.updateMany({
-        where: { userId, isActive: true },
-        data: {
-          isActive: false,
-          revokedAt: new Date(),
-          revokedBy: "password_reset",
-        },
-      });
-      await tx.token.deleteMany({ where: { userId, type: "PASSWORD_RESET" } });
-      return user;
-    });
-  }
-
-  async changeEmailWithVerificationToken(
-    userId: string,
-    newEmail: string,
-    verificationToken: string,
-    tokenExpiresAt: Date,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.update({
-        where: { id: userId },
-        data: {
-          email: newEmail,
-          isEmailVerified: false,
-          emailVerifiedAt: null,
-        },
-      });
-      await tx.token.deleteMany({
-        where: { userId, type: "EMAIL_VERIFICATION" },
-      });
-      const token = await tx.token.create({
-        data: {
-          userId,
-          token: verificationToken,
-          type: "EMAIL_VERIFICATION",
-          expiresAt: tokenExpiresAt,
-        },
-      });
-      return { user, token };
-    });
-  }
 }

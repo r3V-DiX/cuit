@@ -63,8 +63,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const result = await apiFetch("/api/auth/me");
-        if (result.success && result.data) setUser(result.data);
+        const result = await apiFetch<any>("/api/auth/me");
+        if (result.data) setUser(result.data);
       } catch (err) {}
     };
     fetchUser();

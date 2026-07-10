@@ -51,3 +51,11 @@ export const RefreshTokenRateLimit = () =>
 /** 20 OAuth callbacks per minute */
 export const OAuthRateLimit = () =>
   Throttle({ oauth: { ttl: 60_000, limit: isDev ? 10000 : 20 } });
+
+/** 3 OTP requests per 10 minutes per IP — prevents OTP spam */
+export const RequestOtpRateLimit = () =>
+  Throttle({ request_otp: { ttl: 10 * 60_000, limit: isDev ? 10000 : 3 } });
+
+/** 5 OTP verify attempts per 10 minutes per IP */
+export const VerifyOtpRateLimit = () =>
+  Throttle({ verify_otp: { ttl: 10 * 60_000, limit: isDev ? 10000 : 5 } });

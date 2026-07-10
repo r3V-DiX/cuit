@@ -12,4 +12,6 @@ export {
   VerifyEmailRateLimit,
   RefreshTokenRateLimit,
   OAuthRateLimit,
+  RequestOtpRateLimit,
+  VerifyOtpRateLimit,
 } from "./rate-limit.decorator";
