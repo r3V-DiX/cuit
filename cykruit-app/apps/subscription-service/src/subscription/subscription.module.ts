@@ -10,6 +10,7 @@ import { CommonModule } from '@cykruit/common';
 import { RateLimitModule } from '@cykruit/rate-limit';
 import { LoggerModule } from '@cykruit/logger';
 import { EventsModule } from '@cykruit/events';
+import { AuditModule } from '@cykruit/audit';
 import {
     AuthCoreModule,
     ISessionValidator,
@@ -75,6 +76,7 @@ export class SubscriptionSessionValidator implements ISessionValidator {
         CommonModule,
         RateLimitModule,
         LoggerModule,
+        AuditModule,
         ScheduleModule.forRoot(),
         EventsModule.forPublisher(),
         EventsModule.forConsumer(),

@@ -58,14 +58,14 @@ export class AdminSubscriptionController {
 
     /** POST /subscriptions/admin/assign — assign or change employer plan */
     @Post('assign')
-    assign(@Body() dto: AssignSubscriptionDto) {
-        return this.subscriptionService.assign(dto);
+    assign(@CurrentUser() user: User, @Body() dto: AssignSubscriptionDto) {
+        return this.subscriptionService.assign(dto, user.id);
     }
 
     /** PATCH /subscriptions/admin/:id/status — manually set status */
     @Patch(':id/status')
-    updateStatus(@Param('id') id: string, @Body() dto: UpdateSubscriptionStatusDto) {
-        return this.subscriptionService.updateStatus(id, dto);
+    updateStatus(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: UpdateSubscriptionStatusDto) {
+        return this.subscriptionService.updateStatus(id, dto, user.id);
     }
 
     /** POST /subscriptions/admin/refresh-usage/:employerId — re-sync usage counters */

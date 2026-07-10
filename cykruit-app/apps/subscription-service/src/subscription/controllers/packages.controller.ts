@@ -13,7 +13,8 @@ import {
     HttpCode,
     HttpStatus,
 } from '@nestjs/common';
-import { AuthGuard, Public } from '@cykruit/auth-core';
+import { AuthGuard, CurrentUser, Public } from '@cykruit/auth-core';
+import type { User } from '@prisma/client';
 import { AdminGuard } from '../guards/admin.guard';
 import { PackagesService } from '../services/packages.service';
 import { CreatePackageDto, UpdatePackageDto } from '../dto/package.dto';
@@ -55,18 +56,18 @@ export class AdminPackagesController {
     }
 
     @Post()
-    create(@Body() dto: CreatePackageDto) {
-        return this.packagesService.create(dto);
+    create(@CurrentUser() user: User, @Body() dto: CreatePackageDto) {
+        return this.packagesService.create(dto, user.id);
     }
 
     @Patch(':id')
-    update(@Param('id') id: string, @Body() dto: UpdatePackageDto) {
-        return this.packagesService.update(id, dto);
+    update(@CurrentUser() user: User, @Param('id') id: string, @Body() dto: UpdatePackageDto) {
+        return this.packagesService.update(id, dto, user.id);
     }
 
     @Delete(':id')
     @HttpCode(HttpStatus.OK)
-    delete(@Param('id') id: string) {
-        return this.packagesService.delete(id);
+    delete(@CurrentUser() user: User, @Param('id') id: string) {
+        return this.packagesService.delete(id, user.id);
     }
 }

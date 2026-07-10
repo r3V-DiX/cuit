@@ -10,6 +10,7 @@ import { SubscriptionRepository } from '../repositories/subscription.repository'
 import { AssignSubscriptionDto, UpdateSubscriptionStatusDto } from '../dto/assign.dto';
 import { SubscriptionListQueryDto } from '../dto/query.dto';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
+import { AuditService } from '@cykruit/audit';
 
 /** Minimum ms between auto-refresh writes to avoid write-on-every-read under load. */
 const USAGE_REFRESH_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -29,6 +30,7 @@ export class SubscriptionService {
     constructor(
         private readonly repo: SubscriptionRepository,
         private readonly eventPublisher: EventPublisher,
+        private readonly auditService: AuditService,
     ) {}
 
     // ── Admin operations ──────────────────────────────────────────────────────
@@ -52,7 +54,7 @@ export class SubscriptionService {
         return { ...sub, effectiveStatus: resolveEffectiveStatus(sub.status, sub.expiresAt) };
     }
 
-    async assign(dto: AssignSubscriptionDto) {
+    async assign(dto: AssignSubscriptionDto, actorId: string) {
         const [employer, pkg] = await Promise.all([
             this.repo.findEmployerById(dto.employerId),
             this.repo.findPackageById(dto.packageId),
@@ -84,10 +86,22 @@ export class SubscriptionService {
             );
         }
 
+        this.auditService.logAction({
+            actorId,
+            actorRole: 'ADMIN',
+            action: 'subscriptions:assign',
+            module: 'SUBSCRIPTIONS',
+            targetType: 'EmployerSubscription',
+            targetId: result.id,
+            newData: { employerId: dto.employerId, packageName: pkg.name },
+            riskLevel: 'MEDIUM',
+            result: 'SUCCESS',
+        });
+
         return result;
     }
 
-    async updateStatus(id: string, dto: UpdateSubscriptionStatusDto) {
+    async updateStatus(id: string, dto: UpdateSubscriptionStatusDto, actorId: string) {
         const sub = await this.repo.findSubscriptionById(id);
         if (!sub) throw new NotFoundException('Subscription not found');
 
@@ -104,7 +118,22 @@ export class SubscriptionService {
             );
         }
 
-        return this.repo.updateSubscriptionStatus(id, dto.status);
+        const updated = await this.repo.updateSubscriptionStatus(id, dto.status);
+
+        this.auditService.logAction({
+            actorId,
+            actorRole: 'ADMIN',
+            action: 'subscriptions:update_status',
+            module: 'SUBSCRIPTIONS',
+            targetType: 'EmployerSubscription',
+            targetId: id,
+            oldData: { status: currentEffective },
+            newData: { status: dto.status },
+            riskLevel: 'MEDIUM',
+            result: 'SUCCESS',
+        });
+
+        return updated;
     }
 
     async refreshUsage(employerId: string) {
