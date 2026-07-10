@@ -11,6 +11,7 @@ export const ACTIONS = {
   SUBSCRIPTIONS: { VIEW: 'subscriptions:view', MANAGE: 'subscriptions:manage' },
   RBAC: { VIEW: 'rbac:view', MANAGE: 'rbac:manage' },
   AUDIT: { VIEW: 'audit:view' },
+  TESTIMONIALS: { VIEW: 'testimonials:view', MANAGE: 'testimonials:manage' },
 } as const;
 
 type ValuesOf<T> = T extends Record<string, infer V>
@@ -20,3 +21,12 @@ type ValuesOf<T> = T extends Record<string, infer V>
   : never;
 
 export type Action = ValuesOf<typeof ACTIONS>;
+
+// Frontend mirror of SYSTEM_ROLES in the backend registry — seed-owned roles
+// that cannot be renamed or deactivated; super_admin's permission set is locked.
+export const SUPER_ADMIN_ROLE = 'super_admin';
+export const SYSTEM_ROLE_NAMES: readonly string[] = [
+  SUPER_ADMIN_ROLE,
+  'platform_admin',
+  'reviewer',
+];

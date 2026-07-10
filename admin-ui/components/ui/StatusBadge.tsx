@@ -35,6 +35,7 @@ const STATUS_MAP: Record<string, string> = {
   APPROVED: 'bg-green-50 text-green-700 border-green-200',
   ACTIVE: 'bg-green-50 text-green-700 border-green-200',
   SUCCESS: 'bg-green-50 text-green-700 border-green-200',
+  PUBLISHED: 'bg-green-50 text-green-700 border-green-200',
   // Red — rejected/suspended/failure/denied/cancelled
   REJECTED: 'bg-red-50 text-red-700 border-red-200',
   SUSPENDED: 'bg-red-50 text-red-700 border-red-200',

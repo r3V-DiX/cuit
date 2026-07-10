@@ -211,6 +211,52 @@ export interface AdminPermissionOverride {
   permission?: Permission;
 }
 
+export interface AdminAccount {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
+  lastLogin?: string;
+  roleAssignments: { id: string; role: { id: string; name: string } }[];
+}
+
+export interface AuthAuditLog {
+  id: string;
+  action: string;
+  status: 'SUCCESS' | 'FAILURE';
+  userId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  sessionId?: string;
+  metadata?: unknown;
+  createdAt: string;
+  user?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  };
+}
+
+export interface Testimonial {
+  id: string;
+  type: 'SEEKER' | 'EMPLOYER';
+  name: string;
+  role: string;
+  company: string;
+  avatar?: string;
+  avatarColor?: string;
+  quote: string;
+  stars: number;
+  tag?: string;
+  isPublished: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ─── API response shapes ──────────────────────────────────────────────────────
 
 export interface Pagination {

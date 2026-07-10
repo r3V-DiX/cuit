@@ -58,11 +58,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
       onConfirm: async () => {
         setActionLoading(true);
         try {
-          // Assuming the endpoint is PATCH /api/admin/users/:id/status or similar.
-          // Let's use a generic PATCH to /api/admin/users/:id for now.
-          const updated = await api.patch<User>(`/api/admin/users/${id}`, {
-            status: isSuspended ? 'ACTIVE' : 'SUSPENDED',
-          });
+          const updated = await api.patch<User>(`/api/admin/users/${id}/${action}`);
           setUser(updated);
           toast({ type: 'success', message: `User ${action}ed successfully.` });
         } catch (err) {

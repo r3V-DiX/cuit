@@ -1,11 +1,13 @@
 'use client';
 
 // admin-ui/app/(admin)/subscriptions/page.tsx
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { ACTIONS } from '@/lib/permissions';
-import type { EmployerSubscription, PaginatedResponse } from '@/lib/types';
+import { usePermissions } from '@/lib/permissions-context';
+import type { EmployerSubscription, SubscriptionPackage, PaginatedResponse } from '@/lib/types';
 import RequirePermission from '@/components/ui/RequirePermission';
 import NoAccess from '@/components/ui/NoAccess';
 import Table from '@/components/ui/Table';
@@ -14,12 +16,18 @@ import FilterBar from '@/components/ui/FilterBar';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { SkeletonTable } from '@/components/ui/Skeleton';
 import EmptyState from '@/components/ui/EmptyState';
-import { CreditCard } from 'lucide-react';
+import { useModal } from '@/components/ui/Modal';
+import { useToast } from '@/components/ui/Toast';
+import { CreditCard, Package, Plus } from 'lucide-react';
 import { format } from 'date-fns';
+import AssignSubscriptionForm from './AssignSubscriptionForm';
 
 function SubscriptionsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { has } = usePermissions();
+  const { openModal, closeModal } = useModal();
+  const { toast } = useToast();
 
   const page = parseInt(searchParams.get('page') ?? '1', 10);
   const q = searchParams.get('q') ?? '';
@@ -28,6 +36,10 @@ function SubscriptionsPageContent() {
   const [data, setData] = useState<PaginatedResponse<EmployerSubscription> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const canManage = has(ACTIONS.SUBSCRIPTIONS.MANAGE);
+  const refresh = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
     async function loadSubscriptions() {
@@ -48,7 +60,7 @@ function SubscriptionsPageContent() {
       }
     }
     loadSubscriptions();
-  }, [page, q, status]);
+  }, [page, q, status, reloadKey]);
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -56,12 +68,57 @@ function SubscriptionsPageContent() {
     router.push(`?${params.toString()}`);
   };
 
+  const openAssign = async () => {
+    try {
+      const packages = await api.get<SubscriptionPackage[]>('/api/admin/subscriptions/packages');
+      openModal({
+        title: 'Assign Subscription',
+        content: (
+          <AssignSubscriptionForm
+            packages={packages}
+            onSaved={() => {
+              closeModal();
+              toast({ type: 'success', message: 'Subscription assigned.' });
+              refresh();
+            }}
+            onCancel={closeModal}
+          />
+        ),
+      });
+    } catch (err) {
+      toast({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to load packages',
+      });
+    }
+  };
+
   return (
     <RequirePermission action={ACTIONS.SUBSCRIPTIONS.VIEW} fallback={<NoAccess />}>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Subscriptions</h2>
-          <p className="text-sm text-slate-500">Monitor employer subscription plans and usage.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Subscriptions</h2>
+            <p className="text-sm text-slate-500">Monitor employer subscription plans and usage.</p>
+          </div>
+          <div className="flex gap-2.5">
+            <Link
+              href="/subscriptions/packages"
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+            >
+              <Package className="h-4 w-4" />
+              Packages
+            </Link>
+            {canManage && (
+              <button
+                onClick={openAssign}
+                className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4" />
+                Assign Subscription
+              </button>
+            )}
+          </div>
         </div>
 
         <FilterBar
@@ -100,11 +157,13 @@ function SubscriptionsPageContent() {
               columns={[
                 {
                   key: 'employer',
-                  header: 'Employer ID',
+                  header: 'Employer',
                   render: (s) => (
-                    <div>
-                      <p className="font-medium text-slate-900">{s.employer?.companyName || s.employerId}</p>
-                    </div>
+                    <Link href={`/subscriptions/${s.id}`} className="group block">
+                      <p className="font-medium text-slate-900 group-hover:text-blue-600">
+                        {s.employer?.companyName || s.employerId}
+                      </p>
+                    </Link>
                   ),
                 },
                 {

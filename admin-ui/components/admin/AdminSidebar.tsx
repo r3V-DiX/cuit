@@ -15,6 +15,7 @@ import {
   CreditCard,
   KeyRound,
   ScrollText,
+  Quote,
   Shield,
   ChevronLeft,
   ChevronRight,
@@ -120,6 +121,12 @@ export default function AdminSidebar() {
       href: '/audit-logs',
       icon: <ScrollText className="h-5 w-5" />,
       action: ACTIONS.AUDIT.VIEW,
+    },
+    {
+      label: 'Testimonials',
+      href: '/testimonials',
+      icon: <Quote className="h-5 w-5" />,
+      action: ACTIONS.TESTIMONIALS.VIEW,
     },
   ];
 

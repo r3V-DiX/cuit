@@ -29,14 +29,26 @@ interface EnvelopeError {
 
 type Envelope<T> = EnvelopeSuccess<T> | EnvelopeError;
 
+const MUTATION_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
+
+function getCsrfToken(): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : undefined;
+}
+
 async function request<T>(
   url: string,
   init: RequestInit = {},
 ): Promise<T> {
+  const csrfToken =
+    init.method && MUTATION_METHODS.has(init.method) ? getCsrfToken() : undefined;
+
   const res = await fetch(url, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
+      ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
       ...(init.headers as Record<string, string>),
     },
   });
