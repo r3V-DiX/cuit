@@ -58,3 +58,25 @@ export interface AuditLogEntry {
   req?: AuditRequestContext;
   metadata?: Record<string, any>;
 }
+
+/**
+ * Entry shape for AuditService.logAction() — writes to the generic AuditLog
+ * model (main-app business actions: jobs, KYC, applications, profile, etc).
+ * Separate from AuditAction/AuditLogEntry above, which are for AuthAuditLog
+ * (login/logout/account events) only.
+ */
+export interface SystemAuditEntry {
+  actorId: string;
+  actorRole: "SEEKER" | "EMPLOYER" | "ADMIN";
+  action: string; // "jobs:create", "kyc:submit", etc. — module:verb convention
+  module: string; // "JOBS", "KYC", "APPLICATIONS", "TEAM", "COMPANY", "PROFILE", "SETTINGS"
+  targetType?: string;
+  targetId?: string;
+  oldData?: Record<string, any>;
+  newData?: Record<string, any>;
+  riskLevel?: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  result: "SUCCESS" | "FAILURE" | "DENIED";
+  reason?: string;
+  ipAddress?: string;
+  metadata?: Record<string, any>;
+}

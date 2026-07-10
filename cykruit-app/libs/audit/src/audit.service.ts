@@ -10,7 +10,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "@cykruit/prisma";
 import { AppLogger } from "@cykruit/logger";
-import { AuditAction, AuditStatus, AuditRequestContext } from "./audit.types";
+import { AuditAction, AuditStatus, AuditRequestContext, SystemAuditEntry } from "./audit.types";
 
 @Injectable()
 export class AuditService {
@@ -58,6 +58,41 @@ export class AuditService {
     metadata?: Record<string, any>,
   ): Promise<void> {
     await this.writeLog(action, status, userId, req, metadata);
+  }
+
+  /**
+   * Record a business-action event (job posted, KYC submitted, profile
+   * edited, etc.) to the generic AuditLog model — the "System Logs" source
+   * for admin-ui, distinct from the auth-only AuthAuditLog above.
+   *
+   * Fire-and-forget, same guarantee as log(): never throws, never blocks
+   * the caller's request on a write failure.
+   */
+  logAction(entry: SystemAuditEntry): void {
+    this.prisma.auditLog
+      .create({
+        data: {
+          actorId: entry.actorId,
+          actorRole: entry.actorRole,
+          action: entry.action,
+          module: entry.module,
+          targetType: entry.targetType,
+          targetId: entry.targetId,
+          oldData: entry.oldData,
+          newData: entry.newData,
+          riskLevel: entry.riskLevel ?? "LOW",
+          result: entry.result,
+          reason: entry.reason,
+          ipAddress: entry.ipAddress,
+          metadata: entry.metadata,
+        },
+      })
+      .catch((err) => {
+        this.logger.warn(
+          `[AUDIT_WRITE_FAILED] action:${entry.action} actor:${entry.actorId} err:${err?.message}`,
+          "AuditService",
+        );
+      });
   }
 
   /**
