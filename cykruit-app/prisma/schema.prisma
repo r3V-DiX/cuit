@@ -1790,6 +1790,7 @@ model Admin {
 
     // Relations
     auditLogs           AdminAuditLog[]
+    authAuditLogs       AdminAuthAuditLog[]
     verificationReviews EmployerVerification[] @relation("VerificationReviewer")
     sessions            AdminSession[]
     roleAssignments     AdminRoleAssignment[]
@@ -1870,6 +1871,29 @@ model AuthAuditLog {
     @@index([createdAt])
     @@index([status])
     @@map("auth_audit_logs")
+}
+
+// Admin console's own login/logout trail — mirrors AuthAuditLog but keyed to Admin.
+// Kept separate from AdminAuditLog (business mutations) so login noise doesn't
+// mix with action history; the two are queried together for the unified
+// "Audit Logs" (auth) tab in admin-ui.
+model AdminAuthAuditLog {
+    id        String   @id @default(uuid())
+    action    String // ADMIN_LOGIN_SUCCESS, ADMIN_LOGIN_FAILURE, ADMIN_LOGOUT
+    status    String // SUCCESS | FAILURE
+    adminId   String?  @db.Uuid // Nullable — failed logins for unknown emails have no adminId
+    ipAddress String?
+    userAgent String?
+    metadata  Json?
+    createdAt DateTime @default(now())
+
+    admin Admin? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+    @@index([adminId])
+    @@index([action])
+    @@index([createdAt])
+    @@index([status])
+    @@map("admin_auth_audit_logs")
 }
 
 // OAuth Provider tracking table
