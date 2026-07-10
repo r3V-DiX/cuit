@@ -167,7 +167,7 @@ export class JobsService {
             ...(dto.description !== undefined ? { description: dto.description } : {}),
             ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
             ...(dto.screeningQuestions !== undefined
-                ? { screeningQuestions: dto.screeningQuestions }
+                ? { screeningQuestions: dto.screeningQuestions as any }
                 : {}),
             ...(dto.contractDuration !== undefined
                 ? { contractDuration: dto.contractDuration }
@@ -197,7 +197,7 @@ export class JobsService {
             ...(dto.description !== undefined ? { description: dto.description } : {}),
             ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
             ...(dto.screeningQuestions !== undefined
-                ? { screeningQuestions: dto.screeningQuestions }
+                ? { screeningQuestions: dto.screeningQuestions as any }
                 : {}),
             ...(dto.contractDuration !== undefined
                 ? { contractDuration: dto.contractDuration }

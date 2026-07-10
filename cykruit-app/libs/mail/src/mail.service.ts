@@ -207,7 +207,7 @@ export class MailService {
   ): Promise<void> {
     try {
       if (process.env.NODE_ENV !== "production") {
-        this.logger.debug(`[DEV] OTP email queued for ${to}`, "MailService");
+        this.logger.debug(`[DEV] OTP email queued for ${to} | OTP: ${data.otp}`, "MailService");
       }
       const { error } = await this.resend.emails.send({
         from: `Cykruit <${this.fromEmail}>`,
