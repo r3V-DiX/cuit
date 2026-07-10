@@ -2,6 +2,7 @@
 
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@cykruit/prisma";
+import { AuditService } from "@cykruit/audit";
 import { EmployerSettingsRepository } from "../repositories/employer-settings.repository";
 import { NotificationPreferenceService } from "./notification-preference.service";
 import { UpdateEmployerGeneralDto } from "../dto/employer/update-employer-general.dto";
@@ -12,6 +13,7 @@ export class EmployerSettingsService {
     private readonly prisma: PrismaService,
     private readonly employerSettingsRepo: EmployerSettingsRepository,
     private readonly notificationPrefService: NotificationPreferenceService,
+    private readonly auditService: AuditService,
   ) {}
 
   // ── GET /settings ─────────────────────────────────────────────
@@ -47,6 +49,17 @@ export class EmployerSettingsService {
       employer.id,
       data,
     );
+
+    this.auditService.logAction({
+      actorId: userId,
+      actorRole: "EMPLOYER",
+      action: "settings:update_general",
+      module: "SETTINGS",
+      targetType: "EmployerSettings",
+      targetId: employer.id,
+      newData: data,
+      result: "SUCCESS",
+    });
 
     return {
       profileVisibility: updated.profileVisibility,

@@ -9,6 +9,7 @@
 
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@cykruit/prisma";
+import { AuditService } from "@cykruit/audit";
 import { SeekerSettingsRepository } from "../repositories/seeker-settings.repository";
 import { NotificationPreferenceService } from "./notification-preference.service";
 import { LocationPreferenceService } from "./location-preference.service";
@@ -21,6 +22,7 @@ export class SeekerSettingsService {
     private readonly seekerSettingsRepo: SeekerSettingsRepository,
     private readonly notificationPrefService: NotificationPreferenceService,
     private readonly locationPrefService: LocationPreferenceService,
+    private readonly auditService: AuditService,
   ) {}
 
   // ── GET /settings ─────────────────────────────────────────────
@@ -74,6 +76,17 @@ export class SeekerSettingsService {
     }
 
     const updated = await this.seekerSettingsRepo.upsert(userId, data);
+
+    this.auditService.logAction({
+      actorId: userId,
+      actorRole: "SEEKER",
+      action: "settings:update_general",
+      module: "SETTINGS",
+      targetType: "JobSeekerSettings",
+      targetId: userId,
+      newData: data,
+      result: "SUCCESS",
+    });
 
     return {
       profileVisibility: updated.profileVisibility,

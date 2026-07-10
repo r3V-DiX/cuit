@@ -7,6 +7,7 @@ import { AuthCoreModule } from "@cykruit/auth-core";
 import { PrismaModule } from "@cykruit/prisma";
 import { CommonModule } from "@cykruit/common";
 import { RateLimitModule } from "@cykruit/rate-limit";
+import { AuditModule } from "@cykruit/audit";
 
 import { SeekerSettingsController } from "./controllers/seeker-settings.controller";
 import { EmployerSettingsController } from "./controllers/employer-settings.controller";
@@ -29,6 +30,7 @@ import { SessionValidatorService } from "./session/session-validator.service";
     ConfigModule,
     PrismaModule,
     RateLimitModule,
+    AuditModule,
 
     JwtModule.registerAsync({
       imports: [ConfigModule],
