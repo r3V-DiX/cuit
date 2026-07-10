@@ -37,6 +37,7 @@ export default async function RootLayout({
     <html
       lang="en"
       className={`${ibmPlexSerif.variable} ${shareTechMono.variable} h-full antialiased`}
+      data-scroll-behavior="smooth"
     >
       <head>
         {nonce && <meta name="csp-nonce" content={nonce} />}
