@@ -284,6 +284,14 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
           verifiedAt: new Date(),
         },
       });
+      // Also link the user as an OWNER of the newly created employer profile
+      await prisma.employerMember.create({
+        data: {
+          employerId: employer.id,
+          userId: user.id,
+          role: 'OWNER',
+        },
+      });
     }
 
     // Create jobs for this employer
