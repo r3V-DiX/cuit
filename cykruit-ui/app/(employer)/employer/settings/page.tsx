@@ -99,7 +99,7 @@ export default function EmployerSettingsPage() {
       try {
         const [me, s] = await Promise.all([
           apiFetch("/api/auth/me"),
-          apiFetch("/api/settings"),
+          apiFetch("/api/settings/employer"),
         ]);
         const u = me?.data ?? me;
         const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ");
@@ -124,7 +124,7 @@ export default function EmployerSettingsPage() {
 
   async function saveGeneral() {
     try {
-      await apiFetch("/api/settings/general", {
+      await apiFetch("/api/settings/employer/general", {
         method: "PATCH",
         headers: authHeaders(),
         body: JSON.stringify({ phone, timezone }),
@@ -137,7 +137,7 @@ export default function EmployerSettingsPage() {
 
   async function saveCompany() {
     try {
-      await apiFetch("/api/settings/general", {
+      await apiFetch("/api/settings/employer/general", {
         method: "PATCH",
         headers: authHeaders(),
         body: JSON.stringify({ companySize, publicEmail }),
@@ -150,7 +150,7 @@ export default function EmployerSettingsPage() {
 
   async function saveNotifs() {
     try {
-      await apiFetch("/api/settings/notifications", {
+      await apiFetch("/api/settings/employer/notifications", {
         method: "PATCH",
         headers: authHeaders(),
         body: JSON.stringify({ notifications: notifs }),

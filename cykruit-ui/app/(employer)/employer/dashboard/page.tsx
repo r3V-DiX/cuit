@@ -21,6 +21,8 @@ const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }> = 
 
 const STATUS_MAP: Record<string, AppStatus> = {
   PENDING: "New",
+  APPLIED: "New",
+  UNDER_REVIEW: "New",
   SHORTLISTED: "Shortlisted",
   REJECTED: "Rejected",
   INTERVIEW: "Interview",
@@ -60,7 +62,7 @@ interface ApiApplication {
   id: string | number;
   jobId?: string | number;
   job?: { jobTitle?: string };
-  applicant?: { firstName?: string; lastName?: string };
+  jobSeeker?: { firstName?: string; lastName?: string };
   status: string;
   appliedAt: string;
 }
@@ -128,7 +130,7 @@ export default function EmployerDashboardPage() {
     .slice(0, 4)
     .map(a => ({
       id: a.id,
-      name: `${a.applicant?.firstName ?? ""} ${a.applicant?.lastName ?? ""}`.trim() || "Unknown",
+      name: `${a.jobSeeker?.firstName ?? ""} ${a.jobSeeker?.lastName ?? ""}`.trim() || "Unknown",
       role: a.job?.jobTitle ?? "—",
       status: (STATUS_MAP[a.status] ?? "New") as AppStatus,
       time: relativeTime(a.appliedAt),

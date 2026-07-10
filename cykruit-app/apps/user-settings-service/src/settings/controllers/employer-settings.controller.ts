@@ -25,7 +25,7 @@ import { NotificationPreferenceService } from "../services/notification-preferen
 import { UpdateEmployerGeneralDto } from "../dto/employer/update-employer-general.dto";
 import { UpdateEmployerNotificationsDto } from "../dto/employer/update-employer-notifications.dto";
 
-@Controller("employer/settings")
+@Controller("settings/employer")
 @UseGuards(AuthGuard, RolesGuard)
 @Roles(UserRole.EMPLOYER)
 export class EmployerSettingsController {
