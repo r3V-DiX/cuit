@@ -60,6 +60,10 @@
     "@aws-sdk/client-ses": "^3.873.0",
     "@aws-sdk/s3-request-presigner": "^3.948.0",
     "@google/generative-ai": "^0.24.1",
+    "@langchain/aws": "^1.4.2",
+    "@langchain/core": "^1.2.2",
+    "@langchain/google-genai": "^2.2.0",
+    "@langchain/openai": "^1.5.5",
     "@nest-lab/throttler-storage-redis": "^1.0.0",
     "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/bull": "^11.0.4",
@@ -101,7 +105,8 @@
     "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
     "ua-parser-js": "^2.0.10",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

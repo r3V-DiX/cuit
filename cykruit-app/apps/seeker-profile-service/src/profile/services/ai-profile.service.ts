@@ -157,14 +157,33 @@ export class AIProfileService {
     if (parsedData.skills && parsedData.skills.length > 0) {
       for (const skillName of parsedData.skills) {
         const searchRes = await this.skillsService.searchSkills({ query: skillName, limit: 1 });
-        if (searchRes.skills.length > 0) {
-          const matchedSkill = searchRes.skills[0];
-          await this.skillsService.addSkill(userId, {
-            skillId: matchedSkill.id,
-            proficiency: "Intermediate" as any, // default
-            yearsOfExperience: 1,
-          }).catch(e => this.logger.warn("Failed saving skill", e.message));
+        let skillId = searchRes.skills[0]?.id;
+
+        if (!skillId) {
+          let category = await this.prisma.skillCategory.findFirst({
+            where: { name: "Other" }
+          });
+          if (!category) {
+            category = await this.prisma.skillCategory.create({
+              data: { name: "Other", description: "Uncategorized skills" }
+            });
+          }
+          
+          const newSkill = await this.prisma.skill.create({
+            data: {
+              name: skillName,
+              categoryId: category.id,
+              isVerified: false
+            }
+          });
+          skillId = newSkill.id;
         }
+
+        await this.skillsService.addSkill(userId, {
+          skillId,
+          proficiency: "Intermediate" as any, // default
+          yearsOfExperience: 1,
+        }).catch(e => this.logger.warn("Failed saving skill", e.message));
       }
     }
 
@@ -172,16 +191,25 @@ export class AIProfileService {
     if (parsedData.certifications && parsedData.certifications.length > 0) {
       for (const cert of parsedData.certifications) {
         if (!cert.name) continue;
-        const validDate = cert.issueDate?.match(/^\d{4}-(0[1-9]|1[0-2])$/) ? cert.issueDate : undefined;
         
         const searchRes = await this.certsService.searchCertifications({ query: cert.name, limit: 1 });
-        if (searchRes.certifications.length > 0) {
-          const matchedCert = searchRes.certifications[0];
-          await this.certsService.addCertification(userId, {
-            certificationId: matchedCert.id,
-            issueDate: cert.issueDate?.match(/^\d{4}-(0[1-9]|1[0-2])$/) ? cert.issueDate : "2020-01",
-          }).catch(e => this.logger.warn("Failed saving certification", e.message));
+        let certId = searchRes.certifications[0]?.id;
+
+        if (!certId) {
+          const newCert = await this.prisma.certification.create({
+            data: {
+              name: cert.name,
+              organization: cert.issuer || "Unknown",
+              isVerified: false
+            }
+          });
+          certId = newCert.id;
         }
+
+        await this.certsService.addCertification(userId, {
+          certificationId: certId,
+          issueDate: cert.issueDate?.match(/^\d{4}-(0[1-9]|1[0-2])$/) ? cert.issueDate : "2020-01",
+        }).catch(e => this.logger.warn("Failed saving certification", e.message));
       }
     }
 
