@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ApplicationStatus } from '@prisma/client';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
+import { AuditService } from '@cykruit/audit';
 import { CompanyRepository } from '../repositories/company.repository';
 import { JobsRepository } from '../repositories/jobs.repository';
 import { EmployerApplicationsRepository } from '../repositories/applications.repository';
@@ -33,6 +34,7 @@ export class EmployerApplicationsService {
         private readonly jobsRepo: JobsRepository,
         private readonly companyRepo: CompanyRepository,
         private readonly eventPublisher: EventPublisher,
+        private readonly auditService: AuditService,
     ) {}
 
     private async resolveEmployer(userId: string) {
@@ -79,7 +81,14 @@ export class EmployerApplicationsService {
         return application;
     }
 
-    async updateStatus(userId: string, applicationId: string, dto: UpdateApplicationStatusDto, jobId?: string) {
+    async updateStatus(
+        userId: string,
+        applicationId: string,
+        dto: UpdateApplicationStatusDto,
+        jobId?: string,
+        ipAddress?: string,
+        userAgent?: string,
+    ) {
         const employer = await this.resolveEmployer(userId);
         const application = await this.applicationsRepo.findByIdAndEmployer(applicationId, employer.id);
         if (!application) throw new NotFoundException('Application not found');
@@ -117,6 +126,21 @@ export class EmployerApplicationsService {
             },
             'employer-service',
         );
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'applications:update_status',
+            module: 'APPLICATIONS',
+            targetType: 'Application',
+            targetId: applicationId,
+            oldData: { status: application.status },
+            newData: { status: dto.status },
+            reason: dto.note,
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
 
         return updated;
     }

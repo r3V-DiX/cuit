@@ -8,11 +8,13 @@ import {
     Delete,
     Body,
     Param,
+    Req,
     ParseUUIDPipe,
     HttpCode,
     HttpStatus,
     UseGuards,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import type { User } from '@prisma/client';
 import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
@@ -46,8 +48,8 @@ export class TeamController {
     @Post('invite')
     @HttpCode(HttpStatus.CREATED)
     @RequirePermission(ACTIONS.COMPANY.INVITE_MEMBER)
-    inviteMember(@CurrentUser() user: User, @Body() dto: InviteMemberDto) {
-        return this.teamService.inviteMember(user.id, dto);
+    inviteMember(@CurrentUser() user: User, @Body() dto: InviteMemberDto, @Req() req: Request) {
+        return this.teamService.inviteMember(user.id, dto, req.ip, req.headers['user-agent']);
     }
 
     /**
@@ -67,8 +69,8 @@ export class TeamController {
      */
     @Patch('role')
     @RequirePermission(ACTIONS.COMPANY.CHANGE_ROLE)
-    updateMemberRole(@CurrentUser() user: User, @Body() dto: UpdateMemberRoleDto) {
-        return this.teamService.updateMemberRole(user.id, dto);
+    updateMemberRole(@CurrentUser() user: User, @Body() dto: UpdateMemberRoleDto, @Req() req: Request) {
+        return this.teamService.updateMemberRole(user.id, dto, req.ip, req.headers['user-agent']);
     }
 
     /**
@@ -78,8 +80,8 @@ export class TeamController {
     @Post('transfer-ownership')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.COMPANY.TRANSFER_OWNER)
-    transferOwnership(@CurrentUser() user: User, @Body() dto: TransferOwnershipDto) {
-        return this.teamService.transferOwnership(user.id, dto);
+    transferOwnership(@CurrentUser() user: User, @Body() dto: TransferOwnershipDto, @Req() req: Request) {
+        return this.teamService.transferOwnership(user.id, dto, req.ip, req.headers['user-agent']);
     }
 
     /**
@@ -91,7 +93,8 @@ export class TeamController {
     removeMember(
         @CurrentUser() user: User,
         @Param('memberId', ParseUUIDPipe) memberId: string,
+        @Req() req: Request,
     ) {
-        return this.teamService.removeMember(user.id, memberId);
+        return this.teamService.removeMember(user.id, memberId, req.ip, req.headers['user-agent']);
     }
 }

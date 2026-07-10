@@ -8,6 +8,7 @@ import {
     Delete,
     Body,
     Param,
+    Req,
     HttpCode,
     HttpStatus,
     UseGuards,
@@ -19,6 +20,7 @@ import {
     ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Request } from 'express';
 import type { User } from '@prisma/client';
 import { UserRole } from '@prisma/client';
 import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
@@ -45,29 +47,29 @@ export class CompanyController {
 
     @Post('setup')
     @HttpCode(HttpStatus.CREATED)
-    setupCompany(@CurrentUser() user: User, @Body() dto: CreateCompanyDto) {
+    setupCompany(@CurrentUser() user: User, @Body() dto: CreateCompanyDto, @Req() req: Request) {
         if (user.role !== UserRole.EMPLOYER) {
             throw new ForbiddenException('Only EMPLOYER accounts can set up a company profile.');
         }
-        return this.companyService.setupCompany(user.id, dto);
+        return this.companyService.setupCompany(user.id, dto, req.ip, req.headers['user-agent']);
     }
 
     @Patch('basic')
     @RequirePermission(ACTIONS.COMPANY.UPDATE)
-    updateBasic(@CurrentUser() user: User, @Body() dto: UpdateCompanyBasicDto) {
-        return this.companyService.updateBasic(user.id, dto);
+    updateBasic(@CurrentUser() user: User, @Body() dto: UpdateCompanyBasicDto, @Req() req: Request) {
+        return this.companyService.updateBasic(user.id, dto, req.ip, req.headers['user-agent']);
     }
 
     @Patch('about')
     @RequirePermission(ACTIONS.COMPANY.UPDATE)
-    updateAbout(@CurrentUser() user: User, @Body() dto: UpdateCompanyAboutDto) {
-        return this.companyService.updateAbout(user.id, dto);
+    updateAbout(@CurrentUser() user: User, @Body() dto: UpdateCompanyAboutDto, @Req() req: Request) {
+        return this.companyService.updateAbout(user.id, dto, req.ip, req.headers['user-agent']);
     }
 
     @Patch('social')
     @RequirePermission(ACTIONS.COMPANY.UPDATE)
-    updateSocial(@CurrentUser() user: User, @Body() dto: UpdateCompanySocialDto) {
-        return this.companyService.updateSocial(user.id, dto);
+    updateSocial(@CurrentUser() user: User, @Body() dto: UpdateCompanySocialDto, @Req() req: Request) {
+        return this.companyService.updateSocial(user.id, dto, req.ip, req.headers['user-agent']);
     }
 
     @Post('logo')

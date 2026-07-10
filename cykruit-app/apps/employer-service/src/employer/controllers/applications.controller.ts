@@ -7,6 +7,7 @@ import {
     Param,
     Body,
     Query,
+    Req,
     UseGuards,
     HttpCode,
     HttpStatus,
@@ -15,6 +16,7 @@ import {
 import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
 import type { User } from '@prisma/client';
+import type { Request } from 'express';
 import { EmployerApplicationsService } from '../services/applications.service';
 import { ApplicationListQueryDto, UpdateApplicationStatusDto } from '../dto/application.dto';
 
@@ -74,8 +76,9 @@ export class ApplicationsController {
         @Param('jobId', ParseUUIDPipe) jobId: string,
         @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: UpdateApplicationStatusDto,
+        @Req() req: Request,
     ) {
-        return this.applicationsService.updateStatus(user.id, id, dto, jobId);
+        return this.applicationsService.updateStatus(user.id, id, dto, jobId, req.ip, req.headers['user-agent']);
     }
 
     // PATCH /employer/applications/:id/status
@@ -86,7 +89,8 @@ export class ApplicationsController {
         @CurrentUser() user: User,
         @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: UpdateApplicationStatusDto,
+        @Req() req: Request,
     ) {
-        return this.applicationsService.updateStatus(user.id, id, dto);
+        return this.applicationsService.updateStatus(user.id, id, dto, undefined, req.ip, req.headers['user-agent']);
     }
 }

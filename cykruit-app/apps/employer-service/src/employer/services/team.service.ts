@@ -14,6 +14,7 @@ import { HashService } from '@cykruit/common';
 import { MailService } from '@cykruit/mail';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { PermissionsService } from '@cykruit/permissions';
+import { AuditService } from '@cykruit/audit';
 import { CompanyRepository } from '../repositories/company.repository';
 import { TeamRepository } from '../repositories/team.repository';
 import {
@@ -55,6 +56,7 @@ export class TeamService {
         private readonly configService: ConfigService,
         private readonly eventPublisher: EventPublisher,
         private readonly permissionsService: PermissionsService,
+        private readonly auditService: AuditService,
     ) {}
 
     // ── Get Team ─────────────────────────────────────────────────
@@ -66,7 +68,7 @@ export class TeamService {
 
     // ── Invite Member ─────────────────────────────────────────────
 
-    async inviteMember(userId: string, dto: InviteMemberDto) {
+    async inviteMember(userId: string, dto: InviteMemberDto, ipAddress?: string, userAgent?: string) {
         const employer = await this.requireEmployer(userId);
 
         // Verify inviter has sufficient role.
@@ -164,6 +166,19 @@ export class TeamService {
             'employer-service',
         );
 
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'team:invite',
+            module: 'TEAM',
+            targetType: 'Employer',
+            targetId: employer.id,
+            newData: { invitedEmail: dto.email, role: dto.role },
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
         return { message: 'Invitation sent successfully.' };
     }
 
@@ -239,7 +254,7 @@ export class TeamService {
 
     // ── Update Member Role ────────────────────────────────────────
 
-    async updateMemberRole(userId: string, dto: UpdateMemberRoleDto) {
+    async updateMemberRole(userId: string, dto: UpdateMemberRoleDto, ipAddress?: string, userAgent?: string) {
         const employer = await this.requireEmployer(userId);
 
         const requesterMember = await this.teamRepository.findMember(employer.id, userId);
@@ -273,12 +288,28 @@ export class TeamService {
 
         const updated = await this.teamRepository.updateMemberRole(dto.memberId, dto.newRole);
         await this.permissionsService.invalidateUserCache(targetMember.userId, employer.id);
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'team:change_role',
+            module: 'TEAM',
+            targetType: 'EmployerMember',
+            targetId: dto.memberId,
+            oldData: { role: targetMember.role },
+            newData: { role: dto.newRole },
+            riskLevel: 'MEDIUM',
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
         return updated;
     }
 
     // ── Remove Member ─────────────────────────────────────────────
 
-    async removeMember(userId: string, memberId: string) {
+    async removeMember(userId: string, memberId: string, ipAddress?: string, userAgent?: string) {
         const employer = await this.requireEmployer(userId);
 
         const requesterMember = await this.teamRepository.findMember(employer.id, userId);
@@ -318,12 +349,26 @@ export class TeamService {
         await this.teamRepository.removeMember(memberId);
         await this.permissionsService.invalidateUserCache(targetMember.userId, employer.id);
 
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'team:remove_member',
+            module: 'TEAM',
+            targetType: 'EmployerMember',
+            targetId: memberId,
+            oldData: { userId: targetMember.userId, role: targetMember.role },
+            riskLevel: 'MEDIUM',
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
         return { message: 'Member removed successfully.' };
     }
 
     // ── Transfer Ownership ────────────────────────────────────────
 
-    async transferOwnership(userId: string, dto: TransferOwnershipDto) {
+    async transferOwnership(userId: string, dto: TransferOwnershipDto, ipAddress?: string, userAgent?: string) {
         const employer = await this.requireEmployer(userId);
 
         const currentOwnerMember = await this.teamRepository.findMember(employer.id, userId);
@@ -352,6 +397,21 @@ export class TeamService {
             this.permissionsService.invalidateUserCache(userId, employer.id),
             this.permissionsService.invalidateUserCache(newOwnerMember.userId, employer.id),
         ]);
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'team:transfer_ownership',
+            module: 'TEAM',
+            targetType: 'Employer',
+            targetId: employer.id,
+            oldData: { ownerUserId: userId },
+            newData: { ownerUserId: newOwnerMember.userId },
+            riskLevel: 'HIGH',
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
 
         return this.teamRepository.findMembers(employer.id);
     }

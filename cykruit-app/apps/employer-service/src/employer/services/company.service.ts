@@ -11,6 +11,7 @@ import { PrismaService } from '@cykruit/prisma';
 import { UploadService, UPLOAD_CONFIGS } from '@cykruit/upload';
 import { EmployerCompletionService, CompanyErrorCodes } from '@cykruit/common';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
+import { AuditService } from '@cykruit/audit';
 import { CompanyRepository } from '../repositories/company.repository';
 import {
     CreateCompanyDto,
@@ -29,6 +30,7 @@ export class CompanyService {
         private readonly prisma: PrismaService,
         private readonly uploadService: UploadService,
         private readonly eventPublisher: EventPublisher,
+        private readonly auditService: AuditService,
     ) { }
 
     async getMyCompany(userId: string) {
@@ -39,7 +41,7 @@ export class CompanyService {
         return employer;
     }
 
-    async setupCompany(userId: string, dto: CreateCompanyDto) {
+    async setupCompany(userId: string, dto: CreateCompanyDto, ipAddress?: string, userAgent?: string) {
         const existing = await this.companyRepository.findByMemberId(userId);
         if (existing) {
             throw new ConflictException(CompanyErrorCodes.INVALID_COMPANY_DATA);
@@ -69,10 +71,23 @@ export class CompanyService {
             'employer-service',
         );
 
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'company:setup',
+            module: 'COMPANY',
+            targetType: 'Employer',
+            targetId: employer.id,
+            newData: { companyName: employer.companyName },
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
         return { ...employer, profileCompletion: completion.percentage };
     }
 
-    async updateBasic(userId: string, dto: UpdateCompanyBasicDto) {
+    async updateBasic(userId: string, dto: UpdateCompanyBasicDto, ipAddress?: string, userAgent?: string) {
         const employer = await this.getMyCompany(userId);
 
         const updateData: Record<string, any> = {};
@@ -91,10 +106,23 @@ export class CompanyService {
         const completion = await this.completionService.calculateCompletion(employer.id);
         await this.companyRepository.updateCompletion(employer.id, completion.percentage);
 
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'company:update_basic',
+            module: 'COMPANY',
+            targetType: 'Employer',
+            targetId: employer.id,
+            newData: updateData,
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
         return { ...updated, profileCompletion: completion.percentage };
     }
 
-    async updateAbout(userId: string, dto: UpdateCompanyAboutDto) {
+    async updateAbout(userId: string, dto: UpdateCompanyAboutDto, ipAddress?: string, userAgent?: string) {
         const employer = await this.getMyCompany(userId);
 
         const updateData: Record<string, any> = {};
@@ -108,10 +136,22 @@ export class CompanyService {
         const completion = await this.completionService.calculateCompletion(employer.id);
         await this.companyRepository.updateCompletion(employer.id, completion.percentage);
 
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'company:update_about',
+            module: 'COMPANY',
+            targetType: 'Employer',
+            targetId: employer.id,
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
         return { ...updated, profileCompletion: completion.percentage };
     }
 
-    async updateSocial(userId: string, dto: UpdateCompanySocialDto) {
+    async updateSocial(userId: string, dto: UpdateCompanySocialDto, ipAddress?: string, userAgent?: string) {
         const employer = await this.getMyCompany(userId);
 
         const updateData: Record<string, any> = {};
@@ -124,6 +164,18 @@ export class CompanyService {
 
         const completion = await this.completionService.calculateCompletion(employer.id);
         await this.companyRepository.updateCompletion(employer.id, completion.percentage);
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'company:update_social',
+            module: 'COMPANY',
+            targetType: 'Employer',
+            targetId: employer.id,
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
 
         return { ...updated, profileCompletion: completion.percentage };
     }
@@ -146,6 +198,16 @@ export class CompanyService {
         const completion = await this.completionService.calculateCompletion(employer.id);
         await this.companyRepository.updateCompletion(employer.id, completion.percentage);
 
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'company:upload_logo',
+            module: 'COMPANY',
+            targetType: 'Employer',
+            targetId: employer.id,
+            result: 'SUCCESS',
+        });
+
         return { companyLogo: result.fileUrl, profileCompletion: completion.percentage };
     }
 
@@ -167,12 +229,22 @@ export class CompanyService {
         const completion = await this.completionService.calculateCompletion(employer.id);
         await this.companyRepository.updateCompletion(employer.id, completion.percentage);
 
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'company:upload_banner',
+            module: 'COMPANY',
+            targetType: 'Employer',
+            targetId: employer.id,
+            result: 'SUCCESS',
+        });
+
         return { companyBanner: result.fileUrl, profileCompletion: completion.percentage };
     }
 
     async addOfficeLocation(userId: string, dto: AddOfficeLocationDto) {
         const employer = await this.getMyCompany(userId);
-        return this.companyRepository.upsertOfficeLocation(employer.id, {
+        const location = await this.companyRepository.upsertOfficeLocation(employer.id, {
             type: dto.type,
             address: dto.address,
             city: dto.city,
@@ -180,6 +252,19 @@ export class CompanyService {
             country: dto.country,
             isHeadquarters: dto.isHeadquarters,
         });
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'company:add_location',
+            module: 'COMPANY',
+            targetType: 'Employer',
+            targetId: employer.id,
+            newData: { city: dto.city, country: dto.country },
+            result: 'SUCCESS',
+        });
+
+        return location;
     }
 
     async removeOfficeLocation(userId: string, locationId: string) {
@@ -188,16 +273,41 @@ export class CompanyService {
         if (result.count === 0) {
             throw new NotFoundException('Office location not found');
         }
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'company:remove_location',
+            module: 'COMPANY',
+            targetType: 'Employer',
+            targetId: employer.id,
+            reason: `locationId: ${locationId}`,
+            result: 'SUCCESS',
+        });
+
         return { message: 'Office location removed successfully' };
     }
 
     async addBenefit(userId: string, dto: AddCompanyBenefitDto) {
         const employer = await this.getMyCompany(userId);
-        return this.companyRepository.addBenefit(employer.id, {
+        const benefit = await this.companyRepository.addBenefit(employer.id, {
             title: dto.title,
             description: dto.description,
             ...(dto.icon ? { icon: dto.icon } : {}),
         });
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'company:add_benefit',
+            module: 'COMPANY',
+            targetType: 'Employer',
+            targetId: employer.id,
+            newData: { title: dto.title },
+            result: 'SUCCESS',
+        });
+
+        return benefit;
     }
 
     async removeBenefit(userId: string, benefitId: string) {
@@ -206,6 +316,18 @@ export class CompanyService {
         if (result.count === 0) {
             throw new NotFoundException('Company benefit not found');
         }
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'company:remove_benefit',
+            module: 'COMPANY',
+            targetType: 'Employer',
+            targetId: employer.id,
+            reason: `benefitId: ${benefitId}`,
+            result: 'SUCCESS',
+        });
+
         return { message: 'Company benefit removed successfully' };
     }
 

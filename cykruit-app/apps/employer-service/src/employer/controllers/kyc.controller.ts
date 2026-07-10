@@ -4,6 +4,7 @@ import {
     Controller,
     Get,
     Post,
+    Req,
     HttpCode,
     HttpStatus,
     UseGuards,
@@ -13,6 +14,7 @@ import {
     MaxFileSizeValidator,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Request } from 'express';
 import type { User } from '@prisma/client';
 import { AuthGuard, CsrfGuard, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
@@ -50,6 +52,7 @@ export class KycController {
     @UseInterceptors(FileInterceptor('file'))
     submit(
         @CurrentUser() user: User,
+        @Req() req: Request,
         @UploadedFile(
             new ParseFilePipe({
                 validators: [
@@ -60,7 +63,7 @@ export class KycController {
         )
         file: Express.Multer.File,
     ) {
-        return this.kycService.submit(user.id, file);
+        return this.kycService.submit(user.id, file, req.ip, req.headers['user-agent']);
     }
 
     // ─── POST /employer/kyc/resubmit ──────────────────────────────────────────
@@ -72,6 +75,7 @@ export class KycController {
     @UseInterceptors(FileInterceptor('file'))
     resubmit(
         @CurrentUser() user: User,
+        @Req() req: Request,
         @UploadedFile(
             new ParseFilePipe({
                 validators: [
@@ -82,6 +86,6 @@ export class KycController {
         )
         file: Express.Multer.File,
     ) {
-        return this.kycService.resubmit(user.id, file);
+        return this.kycService.resubmit(user.id, file, req.ip, req.headers['user-agent']);
     }
 }

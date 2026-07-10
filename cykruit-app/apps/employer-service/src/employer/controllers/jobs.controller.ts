@@ -9,6 +9,7 @@ import {
     Body,
     Param,
     Query,
+    Req,
     UseGuards,
     HttpCode,
     HttpStatus,
@@ -16,6 +17,7 @@ import {
 import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
 import type { User } from '@prisma/client';
+import type { Request } from 'express';
 import { JobsService } from '../services/jobs.service';
 import { CreateJobDto, UpdateJobDto, CloseJobDto, JobListQueryDto } from '../dto/job.dto';
 
@@ -45,8 +47,8 @@ export class JobsController {
     @Post()
     @HttpCode(HttpStatus.CREATED)
     @RequirePermission(ACTIONS.JOBS.CREATE)
-    create(@CurrentUser() user: User, @Body() dto: CreateJobDto) {
-        return this.jobsService.create(user.id, dto);
+    create(@CurrentUser() user: User, @Body() dto: CreateJobDto, @Req() req: Request) {
+        return this.jobsService.create(user.id, dto, req.ip, req.headers['user-agent']);
     }
 
     // ── PATCH /employer/jobs/:id ────────────────────────────────────────────
@@ -57,8 +59,9 @@ export class JobsController {
         @CurrentUser() user: User,
         @Param('id') id: string,
         @Body() dto: UpdateJobDto,
+        @Req() req: Request,
     ) {
-        return this.jobsService.update(user.id, id, dto);
+        return this.jobsService.update(user.id, id, dto, req.ip, req.headers['user-agent']);
     }
 
     // ── POST /employer/jobs/:id/submit ──────────────────────────────────────
@@ -66,8 +69,8 @@ export class JobsController {
     @Post(':id/submit')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.JOBS.PUBLISH)
-    submit(@CurrentUser() user: User, @Param('id') id: string) {
-        return this.jobsService.submit(user.id, id);
+    submit(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
+        return this.jobsService.submit(user.id, id, req.ip, req.headers['user-agent']);
     }
 
     // ── POST /employer/jobs/:id/close ───────────────────────────────────────
@@ -79,16 +82,17 @@ export class JobsController {
         @CurrentUser() user: User,
         @Param('id') id: string,
         @Body() dto: CloseJobDto,
+        @Req() req: Request,
     ) {
-        return this.jobsService.close(user.id, id, dto);
+        return this.jobsService.close(user.id, id, dto, req.ip, req.headers['user-agent']);
     }
 
     // ── DELETE /employer/jobs/:id ───────────────────────────────────────────
 
     @Delete(':id')
     @RequirePermission(ACTIONS.JOBS.DELETE)
-    remove(@CurrentUser() user: User, @Param('id') id: string) {
-        return this.jobsService.delete(user.id, id);
+    remove(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
+        return this.jobsService.delete(user.id, id, req.ip, req.headers['user-agent']);
     }
 
     // ── POST /employer/jobs/:id/reopen ──────────────────────────────────────
@@ -96,7 +100,7 @@ export class JobsController {
     @Post(':id/reopen')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.JOBS.PUBLISH)
-    reopen(@CurrentUser() user: User, @Param('id') id: string) {
-        return this.jobsService.reopen(user.id, id);
+    reopen(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
+        return this.jobsService.reopen(user.id, id, req.ip, req.headers['user-agent']);
     }
 }

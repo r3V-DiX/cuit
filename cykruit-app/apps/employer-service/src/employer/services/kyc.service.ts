@@ -11,6 +11,7 @@ import { EmployerMemberRole, VerificationStatus } from '@prisma/client';
 import { PrismaService } from '@cykruit/prisma';
 import { UploadService, UPLOAD_CONFIGS } from '@cykruit/upload';
 import { CompanyErrorCodes } from '@cykruit/common';
+import { AuditService } from '@cykruit/audit';
 import { KycRepository } from '../repositories/kyc.repository';
 import { CompanyRepository } from '../repositories/company.repository';
 
@@ -27,6 +28,7 @@ export class KycService {
         private readonly companyRepository: CompanyRepository,
         private readonly uploadService: UploadService,
         private readonly prisma: PrismaService,
+        private readonly auditService: AuditService,
     ) {}
 
     // ─── Public API ──────────────────────────────────────────────────────────
@@ -62,7 +64,7 @@ export class KycService {
      *  - Company must have all required snapshot fields populated.
      *  - A new submission is blocked when latest is PENDING or UNDER_REVIEW.
      */
-    async submit(userId: string, file: Express.Multer.File) {
+    async submit(userId: string, file: Express.Multer.File, ipAddress?: string, userAgent?: string) {
         const { company, member } = await this.resolveCompanyAndMemberOrThrow(userId);
 
         this.assertCanSubmitKyc(member.role);
@@ -81,7 +83,7 @@ export class KycService {
             UPLOAD_CONFIGS.KYC_DOCUMENT,
         );
 
-        return this.kycRepository.create(company.id, {
+        const verification = await this.kycRepository.create(company.id, {
             documentUrl: uploadResult.fileUrl,
             documentKey: uploadResult.key,
             documentFileName: uploadResult.fileName,
@@ -92,13 +94,27 @@ export class KycService {
             companySize: company.companySize,
             location: company.location,
         });
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'kyc:submit',
+            module: 'KYC',
+            targetType: 'EmployerVerification',
+            targetId: verification.id,
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent, employerId: company.id },
+        });
+
+        return verification;
     }
 
     /**
      * Resubmits a KYC document after a REJECTED decision.
      * All the same checks as submit() apply, plus the latest must be REJECTED.
      */
-    async resubmit(userId: string, file: Express.Multer.File) {
+    async resubmit(userId: string, file: Express.Multer.File, ipAddress?: string, userAgent?: string) {
         const { company, member } = await this.resolveCompanyAndMemberOrThrow(userId);
 
         this.assertCanSubmitKyc(member.role);
@@ -121,7 +137,7 @@ export class KycService {
             UPLOAD_CONFIGS.KYC_DOCUMENT,
         );
 
-        return this.kycRepository.create(company.id, {
+        const verification = await this.kycRepository.create(company.id, {
             documentUrl: uploadResult.fileUrl,
             documentKey: uploadResult.key,
             documentFileName: uploadResult.fileName,
@@ -132,6 +148,21 @@ export class KycService {
             companySize: company.companySize,
             location: company.location,
         });
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'kyc:resubmit',
+            module: 'KYC',
+            targetType: 'EmployerVerification',
+            targetId: verification.id,
+            reason: `Previous submission rejected: ${latest.id}`,
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent, employerId: company.id },
+        });
+
+        return verification;
     }
 
     // ─── Private helpers ─────────────────────────────────────────────────────

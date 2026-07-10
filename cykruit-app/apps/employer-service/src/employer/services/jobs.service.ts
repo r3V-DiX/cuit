@@ -9,6 +9,7 @@ import {
 import { PrismaService } from '@cykruit/prisma';
 import { JobStatus, ApplicationType } from '@prisma/client';
 import { JobErrorCodes } from '@cykruit/common';
+import { AuditService } from '@cykruit/audit';
 import { JobsRepository } from '../repositories/jobs.repository';
 import { CompanyRepository } from '../repositories/company.repository';
 import { CreateJobDto, UpdateJobDto, CloseJobDto, JobListQueryDto } from '../dto/job.dto';
@@ -25,6 +26,7 @@ export class JobsService {
         private readonly jobsRepository: JobsRepository,
         private readonly companyRepository: CompanyRepository,
         private readonly prisma: PrismaService,
+        private readonly auditService: AuditService,
     ) {}
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -136,7 +138,7 @@ export class JobsService {
         return job;
     }
 
-    async create(userId: string, dto: CreateJobDto) {
+    async create(userId: string, dto: CreateJobDto, ipAddress?: string, userAgent?: string) {
         const employer = await this.resolveVerifiedEmployer(userId);
 
         // External URL is mandatory for EXTERNAL application type
@@ -174,10 +176,23 @@ export class JobsService {
                 : {}),
         });
 
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'jobs:create',
+            module: 'JOBS',
+            targetType: 'Job',
+            targetId: job.id,
+            newData: { jobTitle: job.jobTitle, status: job.status },
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
         return job;
     }
 
-    async update(userId: string, jobId: string, dto: UpdateJobDto) {
+    async update(userId: string, jobId: string, dto: UpdateJobDto, ipAddress?: string, userAgent?: string) {
         const { job } = await this.resolveJobForEmployer(userId, jobId);
 
         if (job.status === JobStatus.CLOSED || job.status === JobStatus.EXPIRED) {
@@ -215,10 +230,24 @@ export class JobsService {
                 : {}),
         });
 
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'jobs:update',
+            module: 'JOBS',
+            targetType: 'Job',
+            targetId: jobId,
+            oldData: { jobTitle: job.jobTitle, status: job.status },
+            newData: { jobTitle: updated.jobTitle, status: updated.status },
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
         return updated;
     }
 
-    async submit(userId: string, jobId: string) {
+    async submit(userId: string, jobId: string, ipAddress?: string, userAgent?: string) {
         const { employer, job } = await this.resolveJobForEmployer(userId, jobId);
 
         if (job.status !== JobStatus.DRAFT && job.status !== JobStatus.REJECTED) {
@@ -234,20 +263,50 @@ export class JobsService {
             rejectionReason: null,
         });
 
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'jobs:submit',
+            module: 'JOBS',
+            targetType: 'Job',
+            targetId: jobId,
+            oldData: { status: job.status },
+            newData: { status: submitted.status },
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
         return submitted;
     }
 
-    async close(userId: string, jobId: string, dto: CloseJobDto) {
+    async close(userId: string, jobId: string, dto: CloseJobDto, ipAddress?: string, userAgent?: string) {
         const { job } = await this.resolveJobForEmployer(userId, jobId);
 
         if (job.status !== JobStatus.APPROVED && job.status !== JobStatus.PENDING) {
             throw new BadRequestException(JobErrorCodes.JOB_ALREADY_CLOSED);
         }
 
-        return this.jobsRepository.close(jobId, dto.reason);
+        const closed = await this.jobsRepository.close(jobId, dto.reason);
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'jobs:close',
+            module: 'JOBS',
+            targetType: 'Job',
+            targetId: jobId,
+            oldData: { status: job.status },
+            reason: dto.reason,
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
+        return closed;
     }
 
-    async delete(userId: string, jobId: string) {
+    async delete(userId: string, jobId: string, ipAddress?: string, userAgent?: string) {
         const { job } = await this.resolveJobForEmployer(userId, jobId);
 
         if (job.status !== JobStatus.DRAFT) {
@@ -255,10 +314,25 @@ export class JobsService {
         }
 
         await this.jobsRepository.delete(jobId);
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'jobs:delete',
+            module: 'JOBS',
+            targetType: 'Job',
+            targetId: jobId,
+            oldData: { jobTitle: job.jobTitle, status: job.status },
+            riskLevel: 'MEDIUM',
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
         return { message: 'Job deleted successfully' };
     }
 
-    async reopen(userId: string, jobId: string) {
+    async reopen(userId: string, jobId: string, ipAddress?: string, userAgent?: string) {
         const { employer, job } = await this.resolveJobForEmployer(userId, jobId);
 
         if (job.status !== JobStatus.CLOSED) {
@@ -278,6 +352,20 @@ export class JobsService {
             publishedAt,
             expiresAt,
             rejectionReason: null,
+        });
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'jobs:reopen',
+            module: 'JOBS',
+            targetType: 'Job',
+            targetId: jobId,
+            oldData: { status: job.status },
+            newData: { status: reopened.status },
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
         });
 
         return reopened;
