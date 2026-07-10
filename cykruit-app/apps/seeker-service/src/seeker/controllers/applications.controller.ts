@@ -8,12 +8,14 @@ import {
     Body,
     Param,
     Query,
+    Req,
     UseGuards,
     HttpCode,
     HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
 import type { User } from '@prisma/client';
+import type { Request } from 'express';
 import { ApplicationsService } from '../services/applications.service';
 import {
     ApplyJobDto,
@@ -34,8 +36,9 @@ export class ApplicationsController {
         @CurrentUser() user: User,
         @Param('id') jobId: string,
         @Body() dto: ApplyJobDto,
+        @Req() req: Request,
     ) {
-        return this.applicationsService.apply(user.id, jobId, dto);
+        return this.applicationsService.apply(user.id, jobId, dto, req.ip, req.headers['user-agent']);
     }
 
     // ── DELETE /applications/:id (withdraw) ──────────────────────────────────
@@ -47,8 +50,9 @@ export class ApplicationsController {
         @CurrentUser() user: User,
         @Param('id') applicationId: string,
         @Body() dto: WithdrawApplicationDto,
+        @Req() req: Request,
     ) {
-        return this.applicationsService.withdraw(user.id, applicationId, dto);
+        return this.applicationsService.withdraw(user.id, applicationId, dto, req.ip, req.headers['user-agent']);
     }
 
     // ── GET /applications ─────────────────────────────────────────────────────

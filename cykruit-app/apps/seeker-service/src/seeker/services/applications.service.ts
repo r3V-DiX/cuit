@@ -11,6 +11,7 @@ import { AIService } from '@cykruit/ai';
 import { ApplicationStatus, ApplicationType, JobStatus } from '@prisma/client';
 import { ApplicationErrorCodes, UserErrorCodes } from '@cykruit/common';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
+import { AuditService } from '@cykruit/audit';
 import { ApplicationsRepository } from '../repositories/applications.repository';
 import { ApplyJobDto, WithdrawApplicationDto, ApplicationListQueryDto } from '../dto/apply-job.dto';
 
@@ -31,6 +32,7 @@ export class ApplicationsService {
         private readonly prisma: PrismaService,
         private readonly aiService: AIService,
         private readonly eventPublisher: EventPublisher,
+        private readonly auditService: AuditService,
     ) {}
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -146,7 +148,7 @@ Return ONLY a JSON object: {"score": <0-100>, "breakdown": {"skills": <0-40>, "e
 
     // ── Public methods ────────────────────────────────────────────────────────
 
-    async apply(seekerId: string, jobId: string, dto: ApplyJobDto) {
+    async apply(seekerId: string, jobId: string, dto: ApplyJobDto, ipAddress?: string, userAgent?: string) {
         const job = await this.resolveJobForApplication(jobId);
 
         // Prevent employer from applying to own company job
@@ -234,10 +236,23 @@ Return ONLY a JSON object: {"score": <0-100>, "breakdown": {"skills": <0-40>, "e
             );
         }
 
+        this.auditService.logAction({
+            actorId: seekerId,
+            actorRole: 'SEEKER',
+            action: 'applications:apply',
+            module: 'APPLICATIONS',
+            targetType: 'Application',
+            targetId: application.id,
+            newData: { jobId, status: application.status },
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
         return application;
     }
 
-    async withdraw(seekerId: string, applicationId: string, dto: WithdrawApplicationDto) {
+    async withdraw(seekerId: string, applicationId: string, dto: WithdrawApplicationDto, ipAddress?: string, userAgent?: string) {
         const application = await this.applicationsRepository.findByIdAndSeeker(
             applicationId,
             seekerId,
@@ -280,6 +295,20 @@ Return ONLY a JSON object: {"score": <0-100>, "breakdown": {"skills": <0-40>, "e
                 'seeker-service',
             );
         }
+
+        this.auditService.logAction({
+            actorId: seekerId,
+            actorRole: 'SEEKER',
+            action: 'applications:withdraw',
+            module: 'APPLICATIONS',
+            targetType: 'Application',
+            targetId: applicationId,
+            oldData: { status: application.status },
+            reason: dto.reason,
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
 
         return updated;
     }
