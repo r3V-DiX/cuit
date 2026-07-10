@@ -229,11 +229,12 @@ export class MessagingRepository {
 
     // ── Soft-delete a message ─────────────────────────────────────────────────
 
-    async deleteMessage(messageId: string, userId: string): Promise<void> {
+    async deleteMessage(messageId: string, userId: string, conversationId: string): Promise<void> {
         await this.prisma.message.updateMany({
             where: {
                 id: messageId,
                 senderId: userId,
+                conversationId,
             },
             data: {
                 isDeleted: true,

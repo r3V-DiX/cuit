@@ -196,7 +196,6 @@ export class ProfilesService {
         name: t.name,
         role: t.role,
         profileImage: t.profileImage,
-        email: t.email,
       })),
       media: employer.companyMedia,
       activeJobCount: employer.jobs.length,

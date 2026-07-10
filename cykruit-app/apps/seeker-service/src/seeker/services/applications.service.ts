@@ -21,6 +21,7 @@ const MIN_PROFILE_COMPLETION = 40;
 const NON_WITHDRAWABLE_STATUSES: ApplicationStatus[] = [
     ApplicationStatus.WITHDRAWN,
     ApplicationStatus.REJECTED,
+    ApplicationStatus.SHORTLISTED,
 ];
 
 @Injectable()

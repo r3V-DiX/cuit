@@ -92,7 +92,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           })));
         }
       } catch (e) {
-        console.error(e);
+        if (process.env.NODE_ENV === 'development') console.error(e);
       } finally {
         setLoading(false);
       }

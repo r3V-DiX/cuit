@@ -110,7 +110,7 @@ export default function MyJobsPage() {
         setCounts(countMap);
       }
     } catch (err: any) {
-      console.error(err);
+      if (process.env.NODE_ENV === 'development') console.error(err);
       toast({ type: "error", message: "Failed to load jobs" });
     } finally {
       setLoading(false);

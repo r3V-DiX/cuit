@@ -14,7 +14,7 @@ export class CookieConfig {
     return {
       httpOnly: true,
       secure: isSecure,
-      sameSite: isSecure ? "none" : "lax",
+      sameSite: "strict",
       maxAge: rememberMe
         ? 30 * 24 * 60 * 60 * 1000 // 30 days
         : 24 * 60 * 60 * 1000, // 24 hours
@@ -29,7 +29,7 @@ export class CookieConfig {
     return {
       httpOnly: true,
       secure: isSecure,
-      sameSite: isSecure ? "none" : "lax",
+      sameSite: "strict",
       path: "/",
       domain: process.env.COOKIE_DOMAIN || undefined,
     };
@@ -44,9 +44,9 @@ export class CookieConfig {
     const isSecure = process.env.COOKIE_SECURE === "true";
 
     return {
-      httpOnly: false, // ← intentionally readable by JS
+      httpOnly: false, // ← intentionally readable by JS for double-submit CSRF pattern
       secure: isSecure,
-      sameSite: isSecure ? "none" : "lax",
+      sameSite: "strict",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours, matches session
       path: "/",
       domain: process.env.COOKIE_DOMAIN || undefined,
@@ -59,7 +59,7 @@ export class CookieConfig {
     return {
       httpOnly: false,
       secure: isSecure,
-      sameSite: isSecure ? "none" : "lax",
+      sameSite: "strict",
       path: "/",
       domain: process.env.COOKIE_DOMAIN || undefined,
     };
@@ -70,7 +70,7 @@ export class CookieConfig {
     return {
       httpOnly: false, // readable by proxy — not sensitive, just EMPLOYER|SEEKER string
       secure: isSecure,
-      sameSite: isSecure ? "none" : "lax",
+      sameSite: "strict",
       maxAge: rememberMe
         ? 30 * 24 * 60 * 60 * 1000
         : 24 * 60 * 60 * 1000,
@@ -84,7 +84,7 @@ export class CookieConfig {
     return {
       httpOnly: false,
       secure: isSecure,
-      sameSite: isSecure ? "none" : "lax",
+      sameSite: "strict",
       path: "/",
       domain: process.env.COOKIE_DOMAIN || undefined,
     };

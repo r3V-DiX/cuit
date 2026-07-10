@@ -1,6 +1,6 @@
 // admin-app/src/admin/repositories/subscription.repository.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { Prisma } from '@prisma/client';
 import { CreatePackageDto, UpdatePackageDto, SubscriptionListQueryDto } from '../dto/subscription.dto';
@@ -110,6 +110,17 @@ export class SubscriptionRepository {
     }
 
     async updateSubscriptionStatus(id: string, status: string) {
+        const existing = await this.prisma.employerSubscription.findUnique({
+            where: { id },
+            select: { id: true, status: true },
+        });
+        if (!existing) throw new NotFoundException('Subscription not found');
+
+        // Prevent re-activating an already-ACTIVE subscription to avoid quota reset abuse
+        if (existing.status === 'ACTIVE' && status === 'ACTIVE') {
+            throw new BadRequestException('Subscription is already ACTIVE');
+        }
+
         return this.prisma.employerSubscription.update({
             where: { id },
             data: { status },

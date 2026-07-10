@@ -15,9 +15,11 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import { AdminAuthGuard } from '../auth/admin-auth.guard';
+import { CurrentAdmin } from '../auth/current-admin.decorator';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RequirePermission } from '../decorators/require-permission.decorator';
 import { ACTIONS } from '../rbac/permissions.registry';
+import type { Admin } from '@prisma/client';
 import { SubscriptionService } from '../services/subscription.service';
 import {
     CreatePackageDto,
@@ -25,6 +27,7 @@ import {
     AssignSubscriptionDto,
     SubscriptionListQueryDto,
 } from '../dto/subscription.dto';
+import { UpdateSubscriptionStatusDto } from '../dto/update-subscription-status.dto';
 
 @Controller('admin/subscriptions')
 @UseGuards(AdminAuthGuard, PermissionsGuard)
@@ -89,14 +92,14 @@ export class SubscriptionController {
     @Post('assign')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.MANAGE)
-    assignSubscription(@Body() dto: AssignSubscriptionDto) {
-        return this.subscriptionService.assignSubscription(dto);
+    assignSubscription(@CurrentAdmin() admin: Admin, @Body() dto: AssignSubscriptionDto) {
+        return this.subscriptionService.assignSubscription(admin.id, dto);
     }
 
     @Patch(':id/status')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.MANAGE)
-    updateStatus(@Param('id') id: string, @Body('status') status: string) {
-        return this.subscriptionService.updateSubscriptionStatus(id, status);
+    updateStatus(@CurrentAdmin() admin: Admin, @Param('id') id: string, @Body() dto: UpdateSubscriptionStatusDto) {
+        return this.subscriptionService.updateSubscriptionStatus(admin.id, id, dto.status);
     }
 }

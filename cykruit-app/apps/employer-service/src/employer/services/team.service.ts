@@ -8,7 +8,7 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EmployerMemberRole } from '@prisma/client';
+import { EmployerMemberRole, UserRole } from '@prisma/client';
 import { PrismaService } from '@cykruit/prisma';
 import { HashService } from '@cykruit/common';
 import { MailService } from '@cykruit/mail';
@@ -74,6 +74,17 @@ export class TeamService {
         if (!inviterMember || !CAN_INVITE.has(inviterMember.role)) {
             throw new ForbiddenException(
                 'Only OWNER or HIRING_MANAGER can invite team members.',
+            );
+        }
+
+        // HIRING_MANAGER can only invite roles below their tier (RECRUITER, VIEWER).
+        // Only OWNER can issue HIRING_MANAGER invitations.
+        if (
+            inviterMember.role === EmployerMemberRole.HIRING_MANAGER &&
+            dto.role === EmployerMemberRole.HIRING_MANAGER
+        ) {
+            throw new ForbiddenException(
+                'HIRING_MANAGER can only invite members at RECRUITER tier or below.',
             );
         }
 
@@ -182,12 +193,18 @@ export class TeamService {
         // Verify accepting user's email matches the invited email.
         const acceptingUser = await this.prisma.user.findUnique({
             where: { id: userId },
-            select: { email: true },
+            select: { email: true, role: true },
         });
         const invitedEmail = (tokenRecord.metadata as { invitedEmail?: string } | null)?.invitedEmail;
         if (!acceptingUser || !invitedEmail || acceptingUser.email.toLowerCase() !== invitedEmail.toLowerCase()) {
             throw new ForbiddenException(
                 'This invitation was issued to a different email address.',
+            );
+        }
+
+        if (acceptingUser.role !== UserRole.EMPLOYER) {
+            throw new ForbiddenException(
+                'Only EMPLOYER accounts can join a company team.',
             );
         }
 
@@ -356,7 +373,15 @@ export class TeamService {
             where: { employerId },
             include: { package: true },
         });
-        return subscription?.package?.maxTeamMembers ?? DEFAULT_MAX_TEAM_MEMBERS;
+        const now = new Date();
+        if (
+            subscription &&
+            subscription.status === 'ACTIVE' &&
+            (!subscription.expiresAt || subscription.expiresAt > now)
+        ) {
+            return subscription.package?.maxTeamMembers ?? DEFAULT_MAX_TEAM_MEMBERS;
+        }
+        return DEFAULT_MAX_TEAM_MEMBERS;
     }
 
     private parseRole(segment: string): EmployerMemberRole {

@@ -1,6 +1,6 @@
 // apps/notification-service/src/messaging/dto/messaging.dto.ts
 
-import { IsString, IsNotEmpty, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsUUID, MaxLength } from 'class-validator';
 
 export class SendMessageDto {
     @IsString()
@@ -10,11 +10,10 @@ export class SendMessageDto {
 }
 
 export class StartConversationDto {
-    @IsString()
-    @IsNotEmpty()
+    @IsUUID()
     targetUserId: string;
 
-    @IsString()
     @IsOptional()
+    @IsUUID()
     jobId?: string;
 }

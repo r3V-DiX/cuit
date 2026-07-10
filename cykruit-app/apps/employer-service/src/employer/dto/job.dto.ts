@@ -7,14 +7,39 @@ import {
     IsUUID,
     IsUrl,
     IsInt,
+    IsArray,
+    IsBoolean,
     MaxLength,
     MinLength,
     Min,
     Max,
     ValidateIf,
+    ValidateNested,
+    ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { JobType, WorkMode, ExperienceLevel, ApplicationType, JobStatus } from '@prisma/client';
+
+enum QuestionType {
+    TEXT = 'TEXT',
+    BOOLEAN = 'BOOLEAN',
+    MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
+}
+
+export class ScreeningQuestionDto {
+    @IsUUID()
+    id: string;
+
+    @IsString()
+    @MaxLength(500)
+    question: string;
+
+    @IsBoolean()
+    required: boolean;
+
+    @IsEnum(QuestionType)
+    type: QuestionType;
+}
 
 // ── Create ────────────────────────────────────────────────────────────────────
 
@@ -58,7 +83,11 @@ export class CreateJobDto {
     externalUrl?: string;
 
     @IsOptional()
-    screeningQuestions?: any;
+    @IsArray()
+    @ArrayMaxSize(15)
+    @ValidateNested({ each: true })
+    @Type(() => ScreeningQuestionDto)
+    screeningQuestions?: ScreeningQuestionDto[];
 
     /** Only meaningful for CONTRACT jobType. */
     @IsOptional()
@@ -110,7 +139,11 @@ export class UpdateJobDto {
     externalUrl?: string;
 
     @IsOptional()
-    screeningQuestions?: any;
+    @IsArray()
+    @ArrayMaxSize(15)
+    @ValidateNested({ each: true })
+    @Type(() => ScreeningQuestionDto)
+    screeningQuestions?: ScreeningQuestionDto[];
 
     @IsOptional()
     @IsInt()

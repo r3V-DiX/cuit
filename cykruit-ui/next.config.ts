@@ -10,10 +10,15 @@ const SEEKER_URL    = process.env.SEEKER_SERVICE_URL    || "http://127.0.0.1:400
 const NOTIF_URL     = process.env.NOTIF_SERVICE_URL     || "http://127.0.0.1:4007";
 const SUBS_URL      = process.env.SUBS_SERVICE_URL      || "http://127.0.0.1:4008";
 
+// WS origin for CSP — restrict to the known notification service WS endpoint
+const WS_ORIGIN = process.env.NEXT_PUBLIC_WS_URL || "ws://127.0.0.1:4007 wss://127.0.0.1:4007";
+
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
   {
     key: "Content-Security-Policy",
     value: [
@@ -22,7 +27,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
-      "connect-src 'self' ws: wss: http://127.0.0.1:* http://localhost:*",
+      `connect-src 'self' ${WS_ORIGIN} http://127.0.0.1:* http://localhost:*`,
       "frame-ancestors 'none'",
     ].join("; "),
   },

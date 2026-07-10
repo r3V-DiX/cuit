@@ -290,7 +290,7 @@ export default async function PublicProfilePage({
                         {entry.rank}
                       </span>
                     )}
-                    {entry.profileUrl && (
+                    {entry.profileUrl && /^https?:\/\//i.test(entry.profileUrl) && (
                       <a href={entry.profileUrl} target="_blank" rel="noopener noreferrer"
                         className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors">
                         <ExternalLink className="w-3.5 h-3.5" />

@@ -4,7 +4,11 @@ import {
   BadRequestException,
   NotFoundException,
   UnauthorizedException,
+  HttpException,
+  HttpStatus,
 } from "@nestjs/common";
+import { InjectRedis } from "@nestjs-modules/ioredis";
+import type Redis from "ioredis";
 import { PrismaService } from "@cykruit/prisma";
 import { AppLogger } from "@cykruit/logger";
 import { MailService } from "@cykruit/mail";
@@ -18,6 +22,8 @@ import type { Request } from "express";
 
 const OTP_TTL_MINUTES = 10;
 const OTP_MAX_ATTEMPTS = 5;
+const OTP_EMAIL_LIMIT = 5;        // max OTP requests per email per window
+const OTP_EMAIL_WINDOW_S = 600;   // 10 minutes
 
 function generateOtp(): string {
   return String(randomInt(100000, 1000000));
@@ -30,6 +36,7 @@ function hashOtp(otp: string): string {
 @Injectable()
 export class OtpService {
   constructor(
+    @InjectRedis() private readonly redis: Redis,
     private readonly prisma: PrismaService,
     private readonly authRepository: AuthRepository,
     private readonly mailService: MailService,
@@ -38,6 +45,21 @@ export class OtpService {
     private readonly logger: AppLogger,
   ) {}
 
+  private async enforceEmailRateLimit(email: string): Promise<void> {
+    const key = `otp:email:${email.toLowerCase()}`;
+    const count = await this.redis.incr(key);
+    if (count === 1) {
+      // First request in window — set expiry
+      await this.redis.expire(key, OTP_EMAIL_WINDOW_S);
+    }
+    if (count > OTP_EMAIL_LIMIT) {
+      throw new HttpException(
+        { code: "OTP_EMAIL_RATE_LIMITED", message: "Too many OTP requests for this email. Try again in 10 minutes." },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+  }
+
   async requestOtp(
     email: string,
     role: UserRole,
@@ -45,6 +67,8 @@ export class OtpService {
     ua: string,
   ): Promise<{ message: string }> {
     const reqCtx = { ip, userAgent: ua };
+
+    await this.enforceEmailRateLimit(email);
 
     if (role !== UserRole.SEEKER && role !== UserRole.EMPLOYER) {
       throw new BadRequestException({

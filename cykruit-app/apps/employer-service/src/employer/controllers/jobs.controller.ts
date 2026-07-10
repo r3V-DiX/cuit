@@ -27,6 +27,7 @@ export class JobsController {
     // ── GET /employer/jobs ──────────────────────────────────────────────────
 
     @Get()
+    @RequirePermission(ACTIONS.JOBS.READ)
     list(@CurrentUser() user: User, @Query() query: JobListQueryDto) {
         return this.jobsService.list(user.id, query);
     }
@@ -34,6 +35,7 @@ export class JobsController {
     // ── GET /employer/jobs/:id ──────────────────────────────────────────────
 
     @Get(':id')
+    @RequirePermission(ACTIONS.JOBS.READ)
     getOne(@CurrentUser() user: User, @Param('id') id: string) {
         return this.jobsService.getOne(user.id, id);
     }

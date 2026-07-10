@@ -19,7 +19,7 @@ import {
 import { PrismaService } from "@cykruit/prisma";
 import { AppLogger } from "@cykruit/logger";
 import { AuditService, AuditAction } from "@cykruit/audit";
-import { SessionType, DeviceType } from "@prisma/client";
+import { SessionType, DeviceType, AccountStatus } from "@prisma/client";
 import {
   generateRawToken,
   hashToken,
@@ -233,6 +233,15 @@ export class SessionService {
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException("User not found");
+
+    if (
+      user.status === AccountStatus.SUSPENDED ||
+      user.status === AccountStatus.DELETED ||
+      user.status === AccountStatus.INACTIVE ||
+      user.status === AccountStatus.PENDING_DELETION
+    ) {
+      throw new UnauthorizedException("Account is not active");
+    }
 
     return { user, newToken };
   }

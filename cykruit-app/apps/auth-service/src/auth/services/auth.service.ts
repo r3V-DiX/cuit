@@ -12,6 +12,7 @@ import {
   ErrorCodes,
   EmployerCompletionService,
 } from "@cykruit/common";
+import { hashToken } from "@cykruit/auth-core";
 import { MailService } from "@cykruit/mail";
 import { AuditService, AuditAction } from "@cykruit/audit";
 import { AuthRepository } from "../repositories/auth.repository";
@@ -205,7 +206,7 @@ export class AuthService {
     await this.prisma.token.create({
       data: {
         userId,
-        token: cancelToken,
+        token: hashToken(cancelToken),
         type: "CANCEL_DELETION",
         expiresAt: deletionScheduledAt,
       },

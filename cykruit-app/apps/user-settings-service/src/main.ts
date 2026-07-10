@@ -76,7 +76,7 @@ async function bootstrap() {
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
@@ -95,8 +95,8 @@ async function bootstrap() {
     exposedHeaders: ["Set-Cookie"],
   });
 
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  app.use(express.json({ limit: '256kb' }));
+  app.use(express.urlencoded({ extended: true, limit: '256kb' }));
   app.use(cookieParser());
   app.use(compression());
 

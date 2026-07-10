@@ -1,4 +1,4 @@
-import { IsString, IsEmail, MinLength } from "class-validator";
+import { IsString, IsEmail, MinLength, MaxLength } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
 export class CreateContactDto {
@@ -9,6 +9,7 @@ export class CreateContactDto {
   })
   @IsString()
   @MinLength(2, { message: "Full name must be at least 2 characters long" })
+  @MaxLength(100)
   fullName: string;
 
   @ApiProperty({
@@ -25,5 +26,6 @@ export class CreateContactDto {
   })
   @IsString()
   @MinLength(10, { message: "Message must be at least 10 characters long" })
+  @MaxLength(5000)
   message: string;
 }

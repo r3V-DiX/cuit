@@ -5,12 +5,13 @@ import {
   IsNotEmpty,
   IsOptional,
   IsUrl,
+  IsUUID,
   MaxLength,
   Matches,
 } from "class-validator";
 
 export class AddCertificationDto {
-  @IsString() @IsNotEmpty() certificationId: string;
+  @IsUUID() certificationId: string;
   @IsString()
   @IsNotEmpty()
   @Matches(/^\d{4}-(0[1-9]|1[0-2])$/)

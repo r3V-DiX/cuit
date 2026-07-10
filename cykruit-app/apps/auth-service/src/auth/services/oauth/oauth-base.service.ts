@@ -163,6 +163,22 @@ export class OAuthBaseService {
       : null;
 
     if (existingUserByEmail) {
+      if (existingUserByEmail.status === AccountStatus.SUSPENDED)
+        throw new UnauthorizedException({
+          code: "ACCOUNT_SUSPENDED",
+          message: "Account is suspended.",
+        });
+      if (existingUserByEmail.status === AccountStatus.DELETED)
+        throw new UnauthorizedException({
+          code: "ACCOUNT_DELETED",
+          message: "Account no longer exists.",
+        });
+      if (existingUserByEmail.status === AccountStatus.INACTIVE)
+        throw new UnauthorizedException({
+          code: "ACCOUNT_INACTIVE",
+          message: "Account is inactive. Contact support to reactivate.",
+        });
+
       await this.prisma.userOAuthProvider.create({
         data: {
           userId: existingUserByEmail.id,

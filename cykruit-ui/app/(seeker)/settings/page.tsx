@@ -171,7 +171,7 @@ export default function SettingsPage() {
           });
         }
       } catch (err) {
-        console.error(err);
+        if (process.env.NODE_ENV === 'development') console.error(err);
       }
     }
     loadAllSettings();

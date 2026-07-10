@@ -44,7 +44,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
         if (data.status === "WITHDRAWN") mappedStatus = "Withdrawn";
         setStatus(mappedStatus);
       } catch (err) {
-        console.error(err);
+        if (process.env.NODE_ENV === 'development') console.error(err);
       } finally {
         setLoading(false);
       }

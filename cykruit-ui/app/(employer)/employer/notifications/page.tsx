@@ -196,8 +196,9 @@ export default function EmployerNotificationsPage() {
                     </div>
                   );
 
-                  return n.actionUrl ? (
-                    <Link key={n.id} href={n.actionUrl} onClick={() => markRead(n.id)} className="block">
+                  const safeActionUrl = n.actionUrl && /^\//.test(n.actionUrl) ? n.actionUrl : undefined;
+                  return safeActionUrl ? (
+                    <Link key={n.id} href={safeActionUrl} onClick={() => markRead(n.id)} className="block">
                       {Inner}
                     </Link>
                   ) : (

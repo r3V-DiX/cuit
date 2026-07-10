@@ -49,7 +49,7 @@ export default function ApplicationsPage() {
         }));
         setApps(mapped);
       } catch (err) {
-        console.error("Failed to fetch apps", err);
+        if (process.env.NODE_ENV === 'development') console.error("Failed to fetch apps", err);
       }
     }
     fetchApps();

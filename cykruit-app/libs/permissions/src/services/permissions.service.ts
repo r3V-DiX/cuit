@@ -25,6 +25,7 @@ const SEEKER_ONLY_ACTIONS = new Set([
 
 // Permissions only EMPLOYER/ADMIN can use (exact action strings)
 const EMPLOYER_ONLY_ACTIONS = new Set([
+    'jobs:read',
     'jobs:create',
     'jobs:update',
     'jobs:delete',
@@ -76,6 +77,7 @@ const MANAGER_EXCLUSIVE_ACTIONS = new Set([
 const ALL_MEMBER_ACTIONS = new Set([
     'company:read',
     'company:view_activity',
+    'jobs:read',
 ]);
 
 @Injectable()
@@ -172,6 +174,7 @@ export class PermissionsService {
         // No employerId on request — find their org membership (EMPLOYER users belong to one org)
         return this.prisma.employerMember.findFirst({
             where: { userId },
+            orderBy: { createdAt: 'asc' },
         });
     }
 

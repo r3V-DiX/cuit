@@ -1,6 +1,6 @@
 // apps/employer-service/src/employer/dto/team.dto.ts
 
-import { IsEmail, IsEnum, IsString, IsUUID, NotEquals } from 'class-validator';
+import { IsEmail, IsEnum, IsString, IsUUID, MaxLength, NotEquals } from 'class-validator';
 import { EmployerMemberRole } from '@prisma/client';
 
 export class InviteMemberDto {
@@ -38,5 +38,6 @@ export class TransferOwnershipDto {
 
 export class AcceptInviteDto {
     @IsString()
+    @MaxLength(500)
     token: string;
 }

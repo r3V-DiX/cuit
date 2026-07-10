@@ -107,15 +107,15 @@ export default function EmployerKYCPage() {
   const DRAFT_KEY = "cykruit_kyc_draft";
 
   function loadDraft() {
-    try { return JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "{}"); } catch { return {}; }
+    try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY) ?? "{}"); } catch { return {}; }
   }
   function saveDraft(patch: Record<string, string>) {
     try {
       const cur = loadDraft();
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...cur, ...patch }));
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ ...cur, ...patch }));
     } catch {}
   }
-  function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch {} }
+  function clearDraft() { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} }
 
   const draft = loadDraft();
 

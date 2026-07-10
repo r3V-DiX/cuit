@@ -34,6 +34,7 @@ export class TeamController {
      * Returns all team members for the authenticated user's company.
      */
     @Get()
+    @RequirePermission(ACTIONS.COMPANY.READ)
     getTeam(@CurrentUser() user: User) {
         return this.teamService.getTeam(user.id);
     }

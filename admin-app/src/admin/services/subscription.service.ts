@@ -9,10 +9,14 @@ import {
     SubscriptionListQueryDto,
 } from '../dto/subscription.dto';
 import { SubscriptionRepository } from '../repositories/subscription.repository';
+import { AdminAuditLogger } from './admin-audit.logger';
 
 @Injectable()
 export class SubscriptionService {
-    constructor(private readonly repository: SubscriptionRepository) {}
+    constructor(
+        private readonly repository: SubscriptionRepository,
+        private readonly auditLogger: AdminAuditLogger,
+    ) {}
 
     // ── Packages ──────────────────────────────────────────────────────────────
 
@@ -46,15 +50,36 @@ export class SubscriptionService {
         return this.repository.findSubscriptionById(id);
     }
 
-    async assignSubscription(dto: AssignSubscriptionDto) {
-        return this.repository.assignSubscription(dto.employerId, dto.packageId, dto.status ?? 'ACTIVE');
+    async assignSubscription(adminId: string, dto: AssignSubscriptionDto) {
+        const result = await this.repository.assignSubscription(dto.employerId, dto.packageId, dto.status ?? 'ACTIVE');
+        this.auditLogger.log({
+            adminId,
+            action: 'subscription:assign',
+            module: 'subscription',
+            resource: 'EmployerSubscription',
+            resourceId: result.id,
+            riskLevel: 'MEDIUM',
+            result: 'SUCCESS',
+        });
+        return result;
     }
 
     async getEmployerSubscription(employerId: string) {
         return this.repository.findSubscriptionByEmployer(employerId);
     }
 
-    async updateSubscriptionStatus(id: string, status: string) {
-        return this.repository.updateSubscriptionStatus(id, status);
+    async updateSubscriptionStatus(adminId: string, id: string, status: string) {
+        const result = await this.repository.updateSubscriptionStatus(id, status);
+        this.auditLogger.log({
+            adminId,
+            action: 'subscription:update-status',
+            module: 'subscription',
+            resource: 'EmployerSubscription',
+            resourceId: id,
+            riskLevel: 'HIGH',
+            result: 'SUCCESS',
+            metadata: { newStatus: status },
+        });
+        return result;
     }
 }

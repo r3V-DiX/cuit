@@ -1,6 +1,6 @@
 // apps/employer-service/src/employer/dto/application.dto.ts
 
-import { IsEnum, IsInt, IsIn, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsIn, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApplicationStatus } from '@prisma/client';
 
@@ -36,5 +36,6 @@ export class UpdateApplicationStatusDto {
 
     @IsOptional()
     @IsString()
+    @MaxLength(2000)
     note?: string;
 }

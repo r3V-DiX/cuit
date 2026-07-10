@@ -18,6 +18,7 @@ export class AdminTestimonialsQueryDto {
 
     @IsOptional()
     @IsString()
+    @MaxLength(200)
     q?: string;
 
     @IsOptional()

@@ -1,6 +1,7 @@
-import { Controller, Get, Param, HttpCode, HttpStatus } from "@nestjs/common";
+import { Controller, Get, Param, HttpCode, HttpStatus, ParseUUIDPipe } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from "@nestjs/swagger";
 import { Public } from "@cykruit/auth-core";
+import { RateLimit } from "@cykruit/rate-limit";
 import { ProfilesService } from "./profiles.service";
 
 @ApiTags("profiles")
@@ -25,7 +26,8 @@ export class ProfilesController {
     status: 404,
     description: "Profile not found or set to private.",
   })
-  async getSeekerProfile(@Param("id") userId: string) {
+  @RateLimit({ public_search: { ttl: 60_000, limit: 30 } })
+  async getSeekerProfile(@Param("id", ParseUUIDPipe) userId: string) {
     return this.profilesService.getSeekerProfile(userId);
   }
 

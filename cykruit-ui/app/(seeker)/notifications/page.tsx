@@ -321,7 +321,7 @@ export default function NotificationsPage() {
                           <Clock className="w-3 h-3" />
                           {formatTime(notif.createdAt)}
                         </span>
-                        {notif.actionUrl && (
+                        {notif.actionUrl && /^\//.test(notif.actionUrl) && (
                           <Link
                             href={notif.actionUrl}
                             onClick={() => markRead(notif.id)}

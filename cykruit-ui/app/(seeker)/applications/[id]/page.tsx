@@ -69,7 +69,7 @@ export default function ApplicationDetailPage() {
           })) : [{ date: new Date(data.appliedAt).toLocaleDateString(), event: "Application submitted" }]
         });
       } catch (err) {
-        console.error(err);
+        if (process.env.NODE_ENV === 'development') console.error(err);
       } finally {
         setLoading(false);
       }

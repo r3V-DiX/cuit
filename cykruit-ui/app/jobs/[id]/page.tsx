@@ -104,7 +104,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           return;
         }
       } catch (err) {
-        console.error("Failed to load job", err);
+        if (process.env.NODE_ENV === 'development') console.error("Failed to load job", err);
       }
       setLoading(false);
     }

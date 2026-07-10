@@ -1,12 +1,14 @@
 // apps/notification-service/src/messaging/services/messaging.service.ts
 
-import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Optional } from '@nestjs/common';
+import { PrismaService } from '@cykruit/prisma';
 import { MessagingRepository } from '../repositories/messaging.repository';
 import { MessagingGateway } from '../gateways/messaging.gateway';
 
 @Injectable()
 export class MessagingService {
     constructor(
+        private readonly prisma: PrismaService,
         private readonly messagingRepository: MessagingRepository,
         @Optional() private readonly gateway?: MessagingGateway,
     ) {}
@@ -37,7 +39,18 @@ export class MessagingService {
     // ── Start a conversation ──────────────────────────────────────────────────
 
     async startConversation(userId: string, targetUserId: string, jobId?: string) {
-        // Current user is the initiator; determine seeker/employer from context.
+        // Validate target exists and has EMPLOYER role — prevents messaging admins or other seekers.
+        const targetUser = await this.prisma.user.findUnique({
+            where: { id: targetUserId },
+            select: { id: true, role: true },
+        });
+        if (!targetUser) {
+            throw new NotFoundException('Target user not found');
+        }
+        if (targetUser.role !== 'EMPLOYER') {
+            throw new ForbiddenException('You can only start a conversation with an employer.');
+        }
+
         // We pass userId as seekerId and targetUserId as employerId — the repository
         // reads actual roles from the DB to set participant.role correctly.
         const conversation = await this.messagingRepository.findOrCreateConversation(
@@ -108,7 +121,7 @@ export class MessagingService {
             throw new NotFoundException('CONVERSATION_NOT_FOUND');
         }
 
-        await this.messagingRepository.deleteMessage(messageId, userId);
+        await this.messagingRepository.deleteMessage(messageId, userId, conversationId);
         return { message: 'Message deleted' };
     }
 

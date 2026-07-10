@@ -13,8 +13,8 @@ import { JobsRepository } from '../repositories/jobs.repository';
 import { CompanyRepository } from '../repositories/company.repository';
 import { CreateJobDto, UpdateJobDto, CloseJobDto, JobListQueryDto } from '../dto/job.dto';
 
-/** Default limits when no EmployerSubscription row exists. */
-const DEFAULT_MAX_ACTIVE_JOBS = 5;
+/** Default limits when no active EmployerSubscription row exists. Matches Free plan seed (3). */
+const DEFAULT_MAX_ACTIVE_JOBS = 3;
 
 /** Days until a published job automatically expires. */
 const JOB_EXPIRY_DAYS = 45;
@@ -65,7 +65,15 @@ export class JobsService {
             where: { employerId },
             include: { package: true },
         });
-        return subscription?.package?.maxActiveJobs ?? DEFAULT_MAX_ACTIVE_JOBS;
+        const now = new Date();
+        if (
+            subscription &&
+            subscription.status === 'ACTIVE' &&
+            (!subscription.expiresAt || subscription.expiresAt > now)
+        ) {
+            return subscription.package?.maxActiveJobs ?? DEFAULT_MAX_ACTIVE_JOBS;
+        }
+        return DEFAULT_MAX_ACTIVE_JOBS;
     }
 
     /**

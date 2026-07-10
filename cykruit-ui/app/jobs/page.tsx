@@ -82,7 +82,7 @@ async function fetchJobs(params: {
       }; });
     return { data: mapped, total: r.total || result.data?.total || mapped.length, totalPages: r.totalPages || result.data?.totalPages || 1 };
   } catch (error) {
-    console.error("Failed to fetch jobs:", error);
+    if (process.env.NODE_ENV === 'development') console.error("Failed to fetch jobs:", error);
   }
 
   return { data: [], total: 0, totalPages: 0 };

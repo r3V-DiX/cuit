@@ -5,22 +5,23 @@ import {
   IsOptional,
   IsUrl,
   IsUUID,
+  MaxLength,
   ValidateNested,
   IsObject,
 } from "class-validator";
 import { Type } from "class-transformer";
 
 class LocationDataDto {
-  @IsString() city: string;
-  @IsOptional() @IsString() state?: string;
-  @IsString() country: string;
+  @IsString() @MaxLength(100) city: string;
+  @IsOptional() @IsString() @MaxLength(100) state?: string;
+  @IsString() @MaxLength(100) country: string;
 }
 
 export class UpdateBasicInfoDto {
-  @IsOptional() @IsString() firstName?: string;
-  @IsOptional() @IsString() lastName?: string;
-  @IsOptional() @IsString() title?: string;
-  @IsOptional() @IsString() phone?: string;
+  @IsOptional() @IsString() @MaxLength(100) firstName?: string;
+  @IsOptional() @IsString() @MaxLength(100) lastName?: string;
+  @IsOptional() @IsString() @MaxLength(150) title?: string;
+  @IsOptional() @IsString() @MaxLength(20) phone?: string;
   @IsOptional() @IsUUID() locationId?: string;
   @IsOptional()
   @ValidateNested()
@@ -30,6 +31,6 @@ export class UpdateBasicInfoDto {
   @IsOptional() @IsUrl() linkedin?: string;
   @IsOptional() @IsUrl() github?: string;
   @IsOptional() @IsUrl() portfolio?: string;
-  @IsOptional() @IsString() availability?: string;
-  @IsOptional() @IsString() professionalEmail?: string;
+  @IsOptional() @IsString() @MaxLength(100) availability?: string;
+  @IsOptional() @IsString() @MaxLength(254) professionalEmail?: string;
 }

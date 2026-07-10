@@ -1,6 +1,6 @@
 // admin-app/src/admin/dto/users.dto.ts
 
-import { IsEnum, IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsInt, Min, Max, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UserRole, AccountStatus } from '@prisma/client';
 
@@ -15,6 +15,7 @@ export class AdminUserListQueryDto {
 
     @IsOptional()
     @IsString()
+    @MaxLength(200)
     q?: string;
 
     @IsOptional()
@@ -34,11 +35,13 @@ export class AdminUserListQueryDto {
 export class SuspendUserDto {
     @IsOptional()
     @IsString()
+    @MaxLength(1000)
     reason?: string;
 }
 
 export class UnsuspendUserDto {
     @IsOptional()
     @IsString()
+    @MaxLength(1000)
     reason?: string;
 }

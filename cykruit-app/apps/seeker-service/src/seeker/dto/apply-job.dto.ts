@@ -4,6 +4,7 @@ import {
     IsUUID,
     IsOptional,
     IsArray,
+    ArrayMaxSize,
     ValidateNested,
     IsString,
     IsEnum,
@@ -17,7 +18,7 @@ import { Type } from 'class-transformer';
 import { ApplicationStatus } from '@prisma/client';
 
 export class ScreeningAnswerDto {
-    @IsString()
+    @IsUUID()
     questionId: string;
 
     @IsString()
@@ -37,6 +38,7 @@ export class ApplyJobDto {
 
     @IsOptional()
     @IsArray()
+    @ArrayMaxSize(20)
     @ValidateNested({ each: true })
     @Type(() => ScreeningAnswerDto)
     screeningAnswers?: ScreeningAnswerDto[];

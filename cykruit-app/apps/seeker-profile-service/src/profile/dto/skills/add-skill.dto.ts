@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsEnum,
   IsOptional,
+  IsUUID,
   IsInt,
   Min,
   Max,
@@ -17,7 +18,7 @@ enum SkillProficiency {
 }
 
 export class AddSkillDto {
-  @IsString() @IsNotEmpty() skillId: string;
+  @IsUUID() skillId: string;
   @IsEnum(SkillProficiency) proficiency: SkillProficiency;
   @IsOptional() @IsInt() @Min(0) @Max(50) yearsOfExperience?: number;
 }

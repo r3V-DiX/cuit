@@ -11,6 +11,7 @@ export class CompanyRepository {
     async findByMemberId(userId: string) {
         const member = await this.prisma.employerMember.findFirst({
             where: { userId },
+            orderBy: { createdAt: 'asc' },
             include: {
                 employer: {
                     include: {
