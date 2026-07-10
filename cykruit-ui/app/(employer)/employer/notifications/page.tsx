@@ -163,7 +163,7 @@ export default function EmployerNotificationsPage() {
             ) : (
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm divide-y divide-slate-100">
                 {shown.map((n) => {
-                  const cfg = TYPE_CFG[n.type as NotifType];
+                  const cfg = TYPE_CFG[n.type as NotifType] || TYPE_CFG.system;
                   const Inner = (
                     <div className={`flex items-start gap-4 px-5 py-4 transition-colors group ${!n.isRead ? "bg-blue-50/40" : "hover:bg-slate-50/60"}`}>
                       <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 mt-0.5 ${cfg.color}`}>

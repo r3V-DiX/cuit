@@ -10,10 +10,24 @@ import {
 import { apiFetch, authHeaders, getCsrf } from "@/lib/api";
 
 const INDUSTRIES = [
-  "Cybersecurity", "Information Technology", "Financial Services",
-  "Healthcare", "Government & Defense", "Consulting", "SaaS / Software",
+  { id: "TECHNOLOGY", label: "Technology" },
+  { id: "HEALTHCARE", label: "Healthcare" },
+  { id: "FINANCE", label: "Finance" },
+  { id: "EDUCATION", label: "Education" },
+  { id: "RETAIL", label: "Retail" },
+  { id: "MANUFACTURING", label: "Manufacturing" },
+  { id: "CONSULTING", label: "Consulting" },
+  { id: "OTHER", label: "Other" },
 ];
-const SIZES = ["1–10", "11–50", "51–200", "201–500", "500–1000", "1000+"];
+
+const SIZES = [
+  { id: "SIZE_1_10", label: "1–10 employees" },
+  { id: "SIZE_11_50", label: "11–50 employees" },
+  { id: "SIZE_51_200", label: "51–200 employees" },
+  { id: "SIZE_201_500", label: "201–500 employees" },
+  { id: "SIZE_501_1000", label: "501–1000 employees" },
+  { id: "SIZE_1000_PLUS", label: "1000+ employees" },
+];
 
 const inputCls = "w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-400";
 const labelCls = "block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5";
@@ -70,25 +84,25 @@ export default function CompanyProfilePage() {
     apiFetch("/api/employer/company/me")
       .then((res) => {
         const d: any = res.data ?? res;
-        setName(d.name ?? "");
+        setName(d.companyName ?? d.name ?? "");
         setIndustry(d.industry ?? "");
-        setSize(d.size ?? "");
-        setWebsite(d.website ?? "");
+        setSize(d.companySize ?? d.size ?? "");
+        setWebsite(d.companyWebsite ?? d.website ?? "");
         setLocation(d.location ?? d.headquarters ?? "");
-        setFounded(d.founded ? String(d.founded) : "");
-        setBio(d.bio ?? d.description ?? "");
-        setCulture(d.culture ?? "");
+        setFounded(d.foundedYear ? String(d.foundedYear) : d.founded ? String(d.founded) : "");
+        setBio(d.about ?? d.bio ?? d.description ?? "");
+        setCulture(d.cultureDescription ?? d.culture ?? "");
         setLinkedin(d.linkedin ?? d.linkedinUrl ?? "");
         setTwitter(d.twitter ?? d.twitterUrl ?? "");
-        const raw = d.benefits ?? d.perks ?? [];
+        const raw = d.benefits ?? d.EmployerBenefit ?? d.perks ?? [];
         setPerks(
           Array.isArray(raw)
             ? raw.map((p: any) =>
-                typeof p === "string" ? { name: p } : { id: p.id, name: p.name ?? p.label }
+                typeof p === "string" ? { name: p } : { id: p.id, name: p.title ?? p.name ?? p.label }
               )
             : []
         );
-        if (d.logoUrl) setLogoUrl(d.logoUrl);
+        if (d.companyLogo || d.logoUrl) setLogoUrl(d.companyLogo || d.logoUrl);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -101,12 +115,19 @@ export default function CompanyProfilePage() {
         apiFetch("/api/employer/company/basic", {
           method: "PATCH",
           headers: authHeaders(),
-          body: JSON.stringify({ name, industry, size, website, location, founded }),
+          body: JSON.stringify({ 
+            companyName: name, 
+            industry: industry || undefined, 
+            companySize: size || undefined, 
+            companyWebsite: website, 
+            location, 
+            foundedYear: parseInt(founded) || undefined 
+          }),
         }),
         apiFetch("/api/employer/company/about", {
           method: "PATCH",
           headers: authHeaders(),
-          body: JSON.stringify({ bio, culture }),
+          body: JSON.stringify({ about: bio, cultureDescription: culture }),
         }),
         apiFetch("/api/employer/company/social", {
           method: "PATCH",
@@ -127,7 +148,7 @@ export default function CompanyProfilePage() {
       const benefitRes = await apiFetch("/api/employer/company/benefits", {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ name: v }),
+        body: JSON.stringify({ title: v, description: "" }),
       });
       const perkId = benefitRes?.data?.id ?? (benefitRes as any)?.id ?? undefined;
       setPerks((prev) => [...prev, { id: perkId, name: v }]);
@@ -233,7 +254,7 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">{name || "Your Company"}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{industry} · {location || "—"}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{INDUSTRIES.find(i => i.id === industry)?.label || industry} · {location || "—"}</p>
                   <button
                     onClick={() => logoInputRef.current?.click()}
                     className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer">
@@ -255,7 +276,8 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
                   <label className={labelCls}>Industry <span className="text-rose-400">*</span></label>
                   <div className="relative">
                     <select value={industry} onChange={(e) => setIndustry(e.target.value)} className={selectCls}>
-                      {INDUSTRIES.map((o) => <option key={o}>{o}</option>)}
+                      <option value="">Select industry...</option>
+                      {INDUSTRIES.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
                     </select>
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>
@@ -264,7 +286,8 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
                   <label className={labelCls}>Company Size <span className="text-rose-400">*</span></label>
                   <div className="relative">
                     <select value={size} onChange={(e) => setSize(e.target.value)} className={selectCls}>
-                      {SIZES.map((o) => <option key={o}>{o}</option>)}
+                      <option value="">Select size...</option>
+                      {SIZES.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
                     </select>
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>
@@ -430,7 +453,7 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-900 truncate">{name || "Your Company"}</p>
-                  <p className="text-xs text-slate-400">{industry} · {size} employees</p>
+                  <p className="text-xs text-slate-400">{INDUSTRIES.find(i => i.id === industry)?.label || industry} · {SIZES.find(s => s.id === size)?.label || size}</p>
                 </div>
               </div>
               <p className="text-xs text-slate-500 mt-2 leading-relaxed line-clamp-3">{bio || "Company bio will appear here…"}</p>
