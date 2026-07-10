@@ -55,6 +55,7 @@ export class ProfileService {
         github: transformed.github,
         portfolio: transformed.portfolio,
         availability: transformed.availability,
+        professionalEmail: transformed.professionalEmail,
       },
       summary: transformed.professionalSummary,
       experiences: transformed.experiences,
@@ -144,6 +145,9 @@ export class ProfileService {
           ...(dto.portfolio !== undefined && { portfolio: dto.portfolio }),
           ...(dto.availability !== undefined && {
             availability: dto.availability,
+          }),
+          ...(dto.professionalEmail !== undefined && {
+            professionalEmail: dto.professionalEmail,
           }),
         },
       });

@@ -287,10 +287,11 @@ export default function ProfilePage() {
   }
 
   // Basic details
-  type BasicDetails = { name: string; email: string; title: string; location: string; phone: string; linkedin: string; github: string; portfolio: string; twitter: string };
+  type BasicDetails = { name: string; email: string; professionalEmail: string; title: string; location: string; phone: string; linkedin: string; github: string; portfolio: string; twitter: string };
   const [basics, setBasics] = useState<BasicDetails>({
     name: "User",
     email: "",
+    professionalEmail: "",
     title: "",
     location: "",
     phone: "",
@@ -300,7 +301,18 @@ export default function ProfilePage() {
     twitter: "",
   });
   const [editingBasics, setEditingBasics] = useState(false);
-  const [basicsBuffer, setBasicsBuffer] = useState(basics);
+  const [basicsBuffer, setBasicsBuffer] = useState<BasicDetails>({
+    name: "User",
+    email: "",
+    professionalEmail: "",
+    title: "",
+    location: "",
+    phone: "",
+    linkedin: "",
+    github: "",
+    portfolio: "",
+    twitter: "",
+  });
 
   const [countryName, setCountryName] = useState("");
   const [stateName, setStateName] = useState("");
@@ -369,6 +381,7 @@ export default function ProfilePage() {
         firstName,
         lastName,
         title: basicsBuffer.title || "",
+        professionalEmail: basicsBuffer.professionalEmail || "",
       };
       if (basicsBuffer.phone !== undefined) body.phone = basicsBuffer.phone;
       if (selectedCountry) {
@@ -929,6 +942,7 @@ export default function ProfilePage() {
           const initialBasics = {
             name: [b.firstName, b.lastName].filter(Boolean).join(" ") || "User",
             email: userEmail,
+            professionalEmail: b.professionalEmail || "",
             title: b.title || "",
             location: b.location?.displayName || b.location?.city || "",
             phone: b.phone || "",
@@ -1186,17 +1200,18 @@ export default function ProfilePage() {
                           <input value={basicsBuffer.title} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, title: e.target.value })} placeholder="e.g. Senior Penetration Tester" maxLength={100} className={field} />
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
-                          <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Email address</label>
-                          <div className="relative">
-                            <input value={basicsBuffer.email || ""} disabled className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 text-sm cursor-not-allowed select-none" />
-                            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-300 pointer-events-none" />
-                          </div>
+                          <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Account Email (Login)</label>
+                          <input value={basicsBuffer.email || ""} disabled className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 text-sm cursor-not-allowed select-none" />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Professional Email</label>
+                          <input value={basicsBuffer.professionalEmail} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, professionalEmail: e.target.value })} placeholder="you@professional.com" className={field} />
                         </div>
                         <div>
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Phone number</label>
-                          <input value={basicsBuffer.phone} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, phone: e.target.value })} placeholder="+91 98765 43210" maxLength={20} className={field} />
+                          <input value={basicsBuffer.phone} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, phone: e.target.value })} placeholder="+1 (555) 000-0000" className={field} />
                         </div>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1268,10 +1283,11 @@ export default function ProfilePage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
                           { label: "Full name", value: basics.name },
-                          { label: "Email address", value: basics.email, locked: true },
                           { label: "Job title", value: basics.title },
-                          { label: "Phone", value: basics.phone },
                           { label: "Location", value: basics.location },
+                          { label: "Account Email", value: basics.email, locked: true },
+                          { label: "Professional Email", value: basics.professionalEmail },
+                          { label: "Phone", value: basics.phone },
                         ].map(({ label, value, locked }) => (
                           <div key={label} className={`p-3.5 rounded-xl border ${locked ? "bg-slate-50/50 border-slate-200" : "bg-slate-50 border-slate-200"}`}>
                             <div className="flex items-center gap-1 mb-0.5">

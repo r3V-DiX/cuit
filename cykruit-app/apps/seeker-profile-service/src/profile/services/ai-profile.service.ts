@@ -12,6 +12,7 @@ import { SearchSkillsDto } from "../dto/skills/search-skills.dto";
 const ResumeSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
+  email: z.string().optional(),
   title: z.string().optional(),
   location: z.string().optional(),
   linkedin: z.string().optional(),
@@ -53,6 +54,8 @@ const ResumeSchema = z.object({
     .optional(),
 });
 
+import { PrismaService } from "@cykruit/prisma";
+
 @Injectable()
 export class AIProfileService {
   private readonly logger = new Logger(AIProfileService.name);
@@ -64,6 +67,7 @@ export class AIProfileService {
     private readonly educationService: EducationService,
     private readonly skillsService: SkillsService,
     private readonly certsService: CertificationsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async parseResumeAndApply(userId: string, pdfBuffer: Buffer) {
@@ -78,12 +82,34 @@ export class AIProfileService {
 
     this.logger.log(`Applying parsed data to DB`);
     
+    // Get the profile ID to clear existing data
+    const profile = await this.prisma.jobSeekerProfile.findUnique({
+      where: { userId },
+      select: { id: true }
+    });
+
+    if (profile) {
+      this.logger.log(`Clearing existing profile arrays for override`);
+      await this.prisma.experience.deleteMany({ where: { profileId: profile.id } });
+      await this.prisma.education.deleteMany({ where: { profileId: profile.id } });
+      await this.prisma.jobSeekerSkill.deleteMany({ where: { profileId: profile.id } });
+      await this.prisma.jobSeekerCertification.deleteMany({ where: { profileId: profile.id } });
+    }
+
     // 1. Basic Info & Summary
     const basicInfo: any = {};
     if (parsedData.firstName) basicInfo.firstName = parsedData.firstName;
     if (parsedData.lastName) basicInfo.lastName = parsedData.lastName;
-    if (parsedData.title) basicInfo.jobTitle = parsedData.title;
-    if (parsedData.location) basicInfo.location = parsedData.location;
+    if (parsedData.email) basicInfo.professionalEmail = parsedData.email;
+    if (parsedData.title) basicInfo.title = parsedData.title;
+    if (parsedData.location) {
+      const parts = parsedData.location.split(',').map((p: string) => p.trim());
+      if (parts.length >= 2) {
+        basicInfo.location = { city: parts[0], state: parts.length > 2 ? parts[1] : undefined, country: parts[parts.length - 1] };
+      } else {
+        basicInfo.location = { city: parts[0], country: "Unknown" };
+      }
+    }
     if (parsedData.linkedin) basicInfo.linkedinUrl = parsedData.linkedin;
     if (parsedData.github) basicInfo.githubUrl = parsedData.github;
     if (parsedData.portfolio) basicInfo.portfolioUrl = parsedData.portfolio;
@@ -153,13 +179,13 @@ export class AIProfileService {
           const matchedCert = searchRes.certifications[0];
           await this.certsService.addCertification(userId, {
             certificationId: matchedCert.id,
-            issueDate: validDate,
-          }).catch(e => this.logger.warn("Failed saving cert", e.message));
+            issueDate: cert.issueDate?.match(/^\d{4}-(0[1-9]|1[0-2])$/) ? cert.issueDate : "2020-01",
+          }).catch(e => this.logger.warn("Failed saving certification", e.message));
         }
       }
     }
 
-    return { message: "Resume parsed and profile updated successfully", parsedData };
+    return { message: "Resume parsed and profile updated successfully.", parsedData };
   }
 
   async generateBio(userId: string) {

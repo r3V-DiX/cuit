@@ -31,4 +31,5 @@ export class UpdateBasicInfoDto {
   @IsOptional() @IsUrl() github?: string;
   @IsOptional() @IsUrl() portfolio?: string;
   @IsOptional() @IsString() availability?: string;
+  @IsOptional() @IsString() professionalEmail?: string;
 }
