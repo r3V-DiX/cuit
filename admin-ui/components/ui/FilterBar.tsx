@@ -19,16 +19,28 @@ export interface FilterConfig {
   options: FilterOption[];
 }
 
+export interface SortConfig {
+  key: string;
+  label: string;
+  options: FilterOption[];
+}
+
 interface FilterBarProps {
   filters: FilterConfig[];
   searchKey?: string;
   searchPlaceholder?: string;
+  /** Optional from/to date inputs — pass URL param keys to enable. */
+  dateRange?: { fromKey: string; toKey: string };
+  /** Optional sort-order select, rendered as another pill. */
+  sort?: SortConfig;
 }
 
 export default function FilterBar({
   filters,
   searchKey = 'q',
   searchPlaceholder = 'Search…',
+  dateRange,
+  sort,
 }: FilterBarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -55,7 +67,9 @@ export default function FilterBar({
 
   const hasActiveFilters =
     filters.some((f) => searchParams.get(f.key)) ||
-    !!searchParams.get(searchKey);
+    !!searchParams.get(searchKey) ||
+    (!!dateRange && (!!searchParams.get(dateRange.fromKey) || !!searchParams.get(dateRange.toKey))) ||
+    (!!sort && !!searchParams.get(sort.key));
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -83,6 +97,48 @@ export default function FilterBar({
           </select>
         );
       })}
+
+      {/* Sort */}
+      {sort && (
+        <select
+          id={`filter-${sort.key}`}
+          value={searchParams.get(sort.key) ?? ''}
+          onChange={(e) => updateParam(sort.key, e.target.value)}
+          className={`h-9 rounded-xl border px-3 font-mono text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+            searchParams.get(sort.key)
+              ? 'border-blue-300 bg-blue-50 text-blue-700'
+              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+          }`}
+        >
+          <option value="">{sort.label}</option>
+          {sort.options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {/* Date range */}
+      {dateRange && (
+        <div className="flex items-center gap-1.5">
+          <input
+            id={`filter-${dateRange.fromKey}`}
+            type="date"
+            value={searchParams.get(dateRange.fromKey) ?? ''}
+            onChange={(e) => updateParam(dateRange.fromKey, e.target.value)}
+            className="h-9 rounded-xl border border-slate-200 bg-white px-3 font-mono text-xs text-slate-600 transition-colors focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-slate-300"
+          />
+          <span className="text-xs text-slate-400">to</span>
+          <input
+            id={`filter-${dateRange.toKey}`}
+            type="date"
+            value={searchParams.get(dateRange.toKey) ?? ''}
+            onChange={(e) => updateParam(dateRange.toKey, e.target.value)}
+            className="h-9 rounded-xl border border-slate-200 bg-white px-3 font-mono text-xs text-slate-600 transition-colors focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-slate-300"
+          />
+        </div>
+      )}
 
       {/* Search */}
       {searchKey && (

@@ -145,7 +145,8 @@ export interface EmployerSubscription {
   employer?: Employer;
 }
 
-export interface AuditLog {
+// Tab 3: Admin Activity Logs — console mutations (AdminAuditLog)
+export interface AdminActivityLog {
   id: string;
   adminId: string;
   action: string;
@@ -166,6 +167,49 @@ export interface AuditLog {
     firstName: string;
     lastName: string;
   };
+}
+
+// Tab 2: System Logs — main app business actions (AuditLog)
+export interface SystemAuditLog {
+  id: string;
+  actorId: string;
+  actorRole: string;
+  action: string;
+  module: string;
+  targetType?: string;
+  targetId?: string;
+  oldData?: unknown;
+  newData?: unknown;
+  riskLevel: RiskLevel;
+  result: AuditResult;
+  reason?: string;
+  ipAddress?: string;
+  metadata?: unknown;
+  createdAt: string;
+  actor?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  };
+}
+
+// Tab 1: Audit Logs — unified auth trail, merged from AuthAuditLog (main app)
+// + AdminAuthAuditLog (admin console) via a single sorted/paginated query.
+export interface UnifiedAuthLog {
+  id: string;
+  action: string;
+  status: 'SUCCESS' | 'FAILURE';
+  source: 'MAIN_APP' | 'ADMIN_CONSOLE';
+  actorId?: string;
+  actorEmail?: string;
+  actorFirstName?: string;
+  actorLastName?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  metadata?: unknown;
+  createdAt: string;
 }
 
 export interface RbacRole {
@@ -219,25 +263,6 @@ export interface AdminAccount {
   isActive: boolean;
   lastLogin?: string;
   roleAssignments: { id: string; role: { id: string; name: string } }[];
-}
-
-export interface AuthAuditLog {
-  id: string;
-  action: string;
-  status: 'SUCCESS' | 'FAILURE';
-  userId?: string;
-  ipAddress?: string;
-  userAgent?: string;
-  sessionId?: string;
-  metadata?: unknown;
-  createdAt: string;
-  user?: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-  };
 }
 
 export interface Testimonial {
