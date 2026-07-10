@@ -137,9 +137,11 @@ export class JobsService {
 
   async getJobBySlug(slugOrId: string) {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
+    const now = new Date();
     const job = await this.prisma.job.findFirst({
       where: {
         status: "APPROVED",
+        AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
         OR: [
           { slug: slugOrId },
           ...(isUuid ? [{ id: slugOrId }] : []),
@@ -159,7 +161,6 @@ export class JobsService {
         publishedAt: true,
         expiresAt: true,
         viewCount: true,
-        applicationCount: true,
         employer: {
           select: {
             id: true,

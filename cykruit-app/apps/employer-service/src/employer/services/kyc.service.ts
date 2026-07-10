@@ -10,6 +10,7 @@ import {
 import { EmployerMemberRole, VerificationStatus } from '@prisma/client';
 import { PrismaService } from '@cykruit/prisma';
 import { UploadService, UPLOAD_CONFIGS } from '@cykruit/upload';
+import { CompanyErrorCodes } from '@cykruit/common';
 import { KycRepository } from '../repositories/kyc.repository';
 import { CompanyRepository } from '../repositories/company.repository';
 
@@ -139,9 +140,10 @@ export class KycService {
     private async resolveCompanyOrThrow(userId: string) {
         const company = await this.companyRepository.findByMemberId(userId);
         if (!company) {
-            throw new NotFoundException(
-                'No company found for this user. Please create or join a company first.',
-            );
+            throw new NotFoundException({
+                code: CompanyErrorCodes.COMPANY_NOT_FOUND,
+                message: 'No company found for this user. Please create or join a company first.',
+            });
         }
         return company;
     }

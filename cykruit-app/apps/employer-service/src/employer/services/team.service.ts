@@ -111,7 +111,7 @@ export class TeamService {
         const hashedToken = this.hashService.hashToken(rawToken);
 
         const expiresAt = new Date(Date.now() + INVITE_TOKEN_TTL_MS);
-        await this.teamRepository.createInviteToken(userId, hashedToken, expiresAt, employer.id);
+        await this.teamRepository.createInviteToken(userId, hashedToken, expiresAt, employer.id, dto.email);
 
         // Fetch inviter details for the email.
         const inviterUser = await this.prisma.user.findUnique({
@@ -177,6 +177,18 @@ export class TeamService {
 
         if (new Date() > tokenRecord.expiresAt) {
             throw new BadRequestException('Invite token has expired. Please request a new invitation.');
+        }
+
+        // Verify accepting user's email matches the invited email.
+        const acceptingUser = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true },
+        });
+        const invitedEmail = (tokenRecord.metadata as { invitedEmail?: string } | null)?.invitedEmail;
+        if (!acceptingUser || !invitedEmail || acceptingUser.email.toLowerCase() !== invitedEmail.toLowerCase()) {
+            throw new ForbiddenException(
+                'This invitation was issued to a different email address.',
+            );
         }
 
         // Derive employer from the inviter's membership.

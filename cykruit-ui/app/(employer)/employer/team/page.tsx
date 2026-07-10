@@ -130,6 +130,7 @@ export default function TeamPage() {
 
   const canManage = myRole === "OWNER" || myRole === "HIRING_MANAGER";
   const canInvite = canManage;
+  const canChangeRole = myRole === "OWNER";
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
@@ -302,15 +303,20 @@ export default function TeamPage() {
                           </button>
                           {openMenu === member.id && (
                             <div className="absolute right-0 top-9 z-20 bg-white rounded-xl border border-slate-200 shadow-lg shadow-slate-200/60 py-1 w-48">
-                              <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Change Role</p>
-                              {ASSIGNABLE_ROLES.map((r) => (
-                                <button key={r} onClick={() => handleRoleChange(member.id, r)}
-                                  className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-slate-50 transition-colors ${member.role === r ? "font-semibold text-blue-700" : "text-slate-700"}`}>
-                                  {ROLE_META[r].icon} {ROLE_META[r].label}
-                                  {member.role === r && <span className="ml-auto text-blue-600">✓</span>}
-                                </button>
-                              ))}
-                              <div className="border-t border-slate-100 mt-1 pt-1">
+                              {canChangeRole && (
+                                <>
+                                  <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Change Role</p>
+                                  {ASSIGNABLE_ROLES.map((r) => (
+                                    <button key={r} onClick={() => handleRoleChange(member.id, r)}
+                                      className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-slate-50 transition-colors ${member.role === r ? "font-semibold text-blue-700" : "text-slate-700"}`}>
+                                      {ROLE_META[r].icon} {ROLE_META[r].label}
+                                      {member.role === r && <span className="ml-auto text-blue-600">✓</span>}
+                                    </button>
+                                  ))}
+                                  <div className="border-t border-slate-100 mt-1" />
+                                </>
+                              )}
+                              <div className="pt-1">
                                 <button onClick={() => { setOpenMenu(null); confirmRemove(member); }}
                                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left text-rose-600 hover:bg-rose-50 transition-colors">
                                   <Trash2 className="w-3.5 h-3.5" /> Remove member

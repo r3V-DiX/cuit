@@ -173,6 +173,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
           workMode: modeMap[remote],
           experienceLevel: levelMap[level],
           description: description.trim() || undefined,
+          skills: tags,
         }),
       });
 
@@ -311,7 +312,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
                      : "text-amber-700 bg-amber-50 border-amber-200"}`}>
                   <CheckCircle2 className="w-3 h-3" /> {statusDisplay}
                 </span>
-                <Link href={`/employer/jobs/${id}/applicants`} className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                <Link href={`/employer/jobs/${id}`} className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">
                   View applicants →
                 </Link>
               </div>

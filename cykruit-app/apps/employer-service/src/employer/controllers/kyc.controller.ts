@@ -15,6 +15,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { User } from '@prisma/client';
 import { AuthGuard, CsrfGuard, CurrentUser } from '@cykruit/auth-core';
+import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
 import { KycService } from '../services/kyc.service';
 import { KycFileValidator } from '../validators/kyc-file.validator';
 
@@ -22,7 +23,7 @@ import { KycFileValidator } from '../validators/kyc-file.validator';
 const KYC_MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 @Controller('employer/kyc')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, PermissionGuard)
 export class KycController {
     constructor(private readonly kycService: KycService) {}
 
@@ -45,6 +46,7 @@ export class KycController {
     @Post('submit')
     @HttpCode(HttpStatus.CREATED)
     @UseGuards(CsrfGuard)
+    @RequirePermission(ACTIONS.COMPANY.SUBMIT_KYC)
     @UseInterceptors(FileInterceptor('file'))
     submit(
         @CurrentUser() user: User,
@@ -66,6 +68,7 @@ export class KycController {
     @Post('resubmit')
     @HttpCode(HttpStatus.CREATED)
     @UseGuards(CsrfGuard)
+    @RequirePermission(ACTIONS.COMPANY.SUBMIT_KYC)
     @UseInterceptors(FileInterceptor('file'))
     resubmit(
         @CurrentUser() user: User,

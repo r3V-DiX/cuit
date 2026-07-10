@@ -16,9 +16,11 @@ import {
     ParseFilePipe,
     MaxFileSizeValidator,
     FileTypeValidator,
+    ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { User } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
 import { CompanyService } from '../services/company.service';
@@ -44,6 +46,9 @@ export class CompanyController {
     @Post('setup')
     @HttpCode(HttpStatus.CREATED)
     setupCompany(@CurrentUser() user: User, @Body() dto: CreateCompanyDto) {
+        if (user.role !== UserRole.EMPLOYER) {
+            throw new ForbiddenException('Only EMPLOYER accounts can set up a company profile.');
+        }
         return this.companyService.setupCompany(user.id, dto);
     }
 

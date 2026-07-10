@@ -174,6 +174,7 @@ export default function EmployerKYCPage() {
     try {
       const fd = new FormData();
       fd.append("file", file as File);
+      fd.append("documentType", docType);
       await apiFetch("/api/employer/kyc/submit", {
         method: "POST",
         headers: { "x-csrf-token": getCsrf() },

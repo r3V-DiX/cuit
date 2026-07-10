@@ -7,7 +7,7 @@ import {
   Save, ChevronDown, Plus, X, Camera,
   CheckCircle2, AlertCircle, PlusCircle, ArrowRight, Loader2,
 } from "lucide-react";
-import { apiFetch, authHeaders } from "@/lib/api";
+import { apiFetch, authHeaders, getCsrf } from "@/lib/api";
 
 const INDUSTRIES = [
   "Cybersecurity", "Information Technology", "Financial Services",
@@ -146,15 +146,28 @@ export default function CompanyProfilePage() {
     }
   }
 
+const LOGO_ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const LOGO_MAX_BYTES = 5 * 1024 * 1024;
+
   async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!LOGO_ALLOWED_TYPES.includes(file.type)) {
+      alert("Only JPEG, PNG, WebP, or GIF images are allowed.");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > LOGO_MAX_BYTES) {
+      alert("Logo must be smaller than 5 MB.");
+      e.target.value = "";
+      return;
+    }
     const fd = new FormData();
     fd.append("logo", file);
     try {
       const res = await apiFetch("/api/employer/company/logo", {
         method: "POST",
-        headers: authHeaders(),
+        headers: { "x-csrf-token": getCsrf() },
         body: fd,
       });
       const data: any = res.data ?? res;

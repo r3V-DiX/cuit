@@ -25,9 +25,13 @@ const EMPLOYER_PREFIXES = [
   "/employer/subscription",
   "/employer/team",
   "/employer/activity",
-  "/employer/accept-invite",
   "/kyc",
 ];
+
+// NOTE: /employer/accept-invite is intentionally NOT in EMPLOYER_PREFIXES.
+// It must be accessible to authenticated users of any role (including SEEKER)
+// so that invitees can accept an employer team invitation regardless of their
+// current account role.
 
 const ADMIN_PREFIXES = ["/admin"];
 
@@ -89,8 +93,13 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization)
      * - favicon.ico
-     * - /api/* (backend proxy rewrites)
+     * - /api/* (backend proxy rewrites — auth enforced by NestJS guards, NOT this middleware)
      * - public files with extensions
+     *
+     * NOTE: /api/* is intentionally excluded. All /api/* routes are proxy rewrites
+     * to the NestJS backend, which enforces auth via its own guards (JwtAuthGuard,
+     * RolesGuard, etc.). Do NOT add any /api/* route that relies solely on this
+     * middleware for access control.
      */
     "/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|woff|woff2|ttf|otf)).*)",
   ],

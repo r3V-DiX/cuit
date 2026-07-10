@@ -21,7 +21,7 @@ const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode; labe
   Withdrawn:      { color: "text-slate-500 bg-slate-100 border-slate-200",   icon: <Minus        className="w-3.5 h-3.5" />, label: "Withdrawn"   },
 };
 
-const STATUS_FLOW: AppStatus[] = ["New", "Under Review", "Shortlisted", "Rejected"];
+const STATUS_FLOW: AppStatus[] = ["Under Review", "Shortlisted", "Rejected"];
 
 export default function ApplicantDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -73,9 +73,8 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
   const cfg = STATUS_CFG[status];
 
   // Format seeker profile data safely
-  const profile = app.seeker?.profile || {};
-  const user = app.seeker || {};
-  const name = `${profile.firstName || ""} ${profile.lastName || ""}`.trim() || "Applicant";
+  const seeker = app.jobSeeker || {};
+  const name = `${seeker.firstName || ""} ${seeker.lastName || ""}`.trim() || "Applicant";
 
   // AI score data safely parsed
   const aiScoreData = app.aiScoreData || {};
@@ -91,7 +90,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
     ],
     strengths: ["Matching skills found in profile"],
     weaknesses: ["Missing some core requirements"],
-    requiredSkillsMatched: (profile.skills || []).map((s: any): string => s.skill.name).slice(0, 5),
+    requiredSkillsMatched: (seeker.skills || []).map((s: any): string => s.skill?.name ?? s).slice(0, 5),
     requiredSkillsMissing: []
   };
 
@@ -121,11 +120,11 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                   <Sparkles className="w-3 h-3" /> {ai.score}% AI Match
                 </span>
               </div>
-              <p className="text-sm text-slate-500 mt-0.5">{profile.headline || "Job Seeker"}</p>
+              <p className="text-sm text-slate-500 mt-0.5">{seeker.headline || "Job Seeker"}</p>
               <div className="flex flex-wrap gap-4 mt-2.5 text-xs text-slate-500">
-                <span className="flex items-center gap-1.5"><MapPin    className="w-3.5 h-3.5 text-slate-400" />{profile.location || "Remote"}</span>
-                <span className="flex items-center gap-1.5"><Mail      className="w-3.5 h-3.5 text-slate-400" />{user.email}</span>
-                {profile.phone && <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-slate-400" />{profile.phone}</span>}
+                <span className="flex items-center gap-1.5"><MapPin    className="w-3.5 h-3.5 text-slate-400" />{seeker.location || "Remote"}</span>
+                <span className="flex items-center gap-1.5"><Mail      className="w-3.5 h-3.5 text-slate-400" />{seeker.email}</span>
+                {seeker.phone && <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-slate-400" />{seeker.phone}</span>}
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
@@ -269,21 +268,24 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
             {/* Summary */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5">
               <h2 className="text-sm font-bold text-slate-900 mb-2">Summary</h2>
-              <p className="text-sm text-slate-600 leading-relaxed">{profile.bio || "No summary provided."}</p>
+              <p className="text-sm text-slate-600 leading-relaxed">{seeker.bio || "No summary provided."}</p>
             </div>
 
             {/* Skills */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5">
               <h2 className="text-sm font-bold text-slate-900 mb-3">Skills</h2>
               <div className="flex flex-wrap gap-2">
-                {(profile.skills || []).map((s: any) => (
-                  <span key={s.id} className={`px-2.5 py-1 text-xs font-mono font-medium rounded-lg border ${
-                    ai.requiredSkillsMatched.includes(s.skill.name)
-                      ? "text-green-700 bg-green-50 border-green-200"
-                      : "text-slate-700 bg-slate-100 border-slate-200"
-                  }`}>{s.skill.name}</span>
-                ))}
-                {(!profile.skills || profile.skills.length === 0) && (
+                {(seeker.skills || []).map((s: any) => {
+                  const skillName = s.skill?.name ?? s;
+                  return (
+                    <span key={skillName} className={`px-2.5 py-1 text-xs font-mono font-medium rounded-lg border ${
+                      ai.requiredSkillsMatched.includes(skillName)
+                        ? "text-green-700 bg-green-50 border-green-200"
+                        : "text-slate-700 bg-slate-100 border-slate-200"
+                    }`}>{skillName}</span>
+                  );
+                })}
+                {(!seeker.skills || seeker.skills.length === 0) && (
                   <p className="text-sm text-slate-500">No skills listed.</p>
                 )}
               </div>
@@ -296,7 +298,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
             <div className="bg-white rounded-2xl border border-slate-200 p-5">
               <h2 className="text-sm font-bold text-slate-900 mb-3">Experience</h2>
               <div className="space-y-4">
-                {(profile.experience || []).map((e: any) => (
+                {(seeker.experience || []).map((e: any) => (
                   <div key={e.id} className="flex gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 mt-2" />
                     <div>
@@ -306,7 +308,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                   </div>
                 ))}
-                {(!profile.experience || profile.experience.length === 0) && (
+                {(!seeker.experience || seeker.experience.length === 0) && (
                   <p className="text-sm text-slate-500">No experience listed.</p>
                 )}
               </div>
@@ -334,8 +336,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                   return (
                     <button key={s} onClick={async () => {
                         try {
-                          let backendStatus = "APPLIED";
-                          if (s === "Under Review") backendStatus = "UNDER_REVIEW";
+                          let backendStatus = "UNDER_REVIEW";
                           if (s === "Shortlisted") backendStatus = "SHORTLISTED";
                           if (s === "Rejected") backendStatus = "REJECTED";
 
@@ -345,8 +346,8 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                             body: JSON.stringify({ status: backendStatus })
                           });
                           setStatus(s);
-                        } catch (err) {
-                          console.error(err);
+                        } catch (err: any) {
+                          alert(err?.message || "Failed to update status");
                         }
                       }}
                       disabled={status === "Withdrawn"}
@@ -372,7 +373,20 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                 rows={4}
                 className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 resize-none"
               />
-              <button className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer">
+              <button
+                onClick={async () => {
+                  try {
+                    await apiFetch(`/api/employer/applications/${id}/note`, {
+                      method: "PATCH",
+                      headers: authHeaders(),
+                      body: JSON.stringify({ note: notes }),
+                    });
+                  } catch (err: any) {
+                    alert(err?.message || "Failed to save note");
+                  }
+                }}
+                className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+              >
                 Save note
               </button>
             </div>

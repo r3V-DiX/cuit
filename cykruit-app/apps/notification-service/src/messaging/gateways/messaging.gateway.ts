@@ -13,7 +13,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { MessagingRepository } from '../repositories/messaging.repository';
 
 interface WsPayload {
@@ -46,7 +46,7 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
 
     constructor(
         private readonly configService: ConfigService,
-        @Optional() private readonly messagingRepository?: MessagingRepository,
+        private readonly messagingRepository: MessagingRepository,
     ) {}
 
     async handleConnection(client: Socket) {
@@ -112,13 +112,11 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
         }
 
         // CRITICAL: verify user is a participant in this conversation
-        if (this.messagingRepository) {
-            const conv = await this.messagingRepository.findConversationById(
-                data.conversationId,
-                userId,
-            );
-            if (!conv) throw new WsException('Forbidden');
-        }
+        const conv = await this.messagingRepository.findConversationById(
+            data.conversationId,
+            userId,
+        );
+        if (!conv) throw new WsException('Forbidden');
 
         client.join(`conv:${data.conversationId}`);
         return { ok: true };

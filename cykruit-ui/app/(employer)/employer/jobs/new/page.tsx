@@ -283,6 +283,10 @@ export default function PostJobPage() {
           workMode: modeMap[remote],
           experienceLevel: levelMap[level],
           description: description.trim() || undefined,
+          responsibilities: responsibilities.filter(r => r.trim()),
+          requirements: requirements.filter(r => r.trim()),
+          niceToHave: niceToHave.filter(r => r.trim()),
+          skills: tags.length > 0 ? tags : undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
             type: q.type.toUpperCase(),
@@ -354,6 +358,10 @@ export default function PostJobPage() {
           workMode: modeMap[remote],
           experienceLevel: levelMap[level],
           description: description.trim() || undefined,
+          responsibilities: responsibilities.filter(r => r.trim()),
+          requirements: requirements.filter(r => r.trim()),
+          niceToHave: niceToHave.filter(r => r.trim()),
+          skills: tags.length > 0 ? tags : undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
             type: q.type.toUpperCase(),

@@ -138,6 +138,7 @@ export class TeamRepository {
         rawTokenHash: string,
         expiresAt: Date,
         employerId: string,
+        invitedEmail: string,
     ) {
         return this.prisma.token.create({
             data: {
@@ -146,6 +147,7 @@ export class TeamRepository {
                 type: TokenType.EMPLOYER_INVITE,
                 expiresAt,
                 employerId,
+                metadata: { invitedEmail },
             },
         });
     }
