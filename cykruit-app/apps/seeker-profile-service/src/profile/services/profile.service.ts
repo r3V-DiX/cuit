@@ -14,6 +14,7 @@ import {
   UploadErrorCodes,
 } from "@cykruit/common";
 import { UPLOAD_CONFIGS } from "@cykruit/upload";
+import { AuditService } from "@cykruit/audit";
 import { ProfileHelpers } from "../utils/profile.helpers";
 import { UpdateBasicInfoDto } from "../dto/update-basic-info.dto";
 import { UpdateSummaryDto } from "../dto/update-summary.dto";
@@ -25,6 +26,7 @@ export class ProfileService {
     private readonly helpers: ProfileHelpers,
     private readonly uploadService: UploadService,
     private readonly logger: AppLogger,
+    private readonly auditService: AuditService,
   ) {}
 
   async getProfile(userId: string) {
@@ -155,6 +157,16 @@ export class ProfileService {
 
     await this.helpers.updateProfileCompletion(userId);
 
+    this.auditService.logAction({
+      actorId: userId,
+      actorRole: "SEEKER",
+      action: "profile:update_basic_info",
+      module: "PROFILE",
+      targetType: "JobSeekerProfile",
+      targetId: userId,
+      result: "SUCCESS",
+    });
+
     return { message: "Basic info updated successfully" };
   }
 
@@ -189,6 +201,16 @@ export class ProfileService {
 
     await this.helpers.updateProfileCompletion(userId);
 
+    this.auditService.logAction({
+      actorId: userId,
+      actorRole: "SEEKER",
+      action: "profile:upload_image",
+      module: "PROFILE",
+      targetType: "User",
+      targetId: userId,
+      result: "SUCCESS",
+    });
+
     return { message: "Profile image uploaded successfully" };
   }
 
@@ -206,6 +228,16 @@ export class ProfileService {
     });
 
     await this.helpers.updateProfileCompletion(userId);
+
+    this.auditService.logAction({
+      actorId: userId,
+      actorRole: "SEEKER",
+      action: "profile:delete_image",
+      module: "PROFILE",
+      targetType: "User",
+      targetId: userId,
+      result: "SUCCESS",
+    });
 
     return { message: "Profile image deleted successfully" };
   }

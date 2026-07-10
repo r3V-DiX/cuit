@@ -8,6 +8,7 @@ import { UploadModule } from "@cykruit/upload";
 import { CommonModule } from "@cykruit/common";
 import { AuthCoreModule } from "@cykruit/auth-core";
 import { RateLimitModule } from "@cykruit/rate-limit";
+import { AuditModule } from "@cykruit/audit";
 
 import { SessionValidatorService } from "./session/session-validator.service";
 
@@ -44,6 +45,7 @@ import { AIModule } from "@cykruit/ai";
     UploadModule,
     CommonModule,
     RateLimitModule,
+    AuditModule,
     AIModule,
     AuthCoreModule.forRoot({
       sessionValidatorClass: SessionValidatorService,

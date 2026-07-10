@@ -5,6 +5,7 @@ import { PrismaService } from "@cykruit/prisma";
 import { UploadService } from "@cykruit/upload";
 import { GeneralErrorCodes } from "@cykruit/common";
 import { UPLOAD_CONFIGS } from "@cykruit/upload";
+import { AuditService } from "@cykruit/audit";
 import { ProfileHelpers } from "../utils/profile.helpers";
 import { PROFILE_LIMITS } from "../utils/constants";
 
@@ -14,6 +15,7 @@ export class ResumeService {
     private readonly prisma: PrismaService,
     private readonly uploadService: UploadService,
     private readonly helpers: ProfileHelpers,
+    private readonly auditService: AuditService,
   ) {}
 
   async getResumes(userId: string) {
@@ -52,7 +54,7 @@ export class ResumeService {
       UPLOAD_CONFIGS.RESUME,
     );
 
-    await this.prisma.resume.create({
+    const resume = await this.prisma.resume.create({
       data: {
         profileId,
         fileName: uploadResult.fileName,
@@ -63,6 +65,17 @@ export class ResumeService {
     });
 
     await this.helpers.updateProfileCompletion(userId);
+
+    this.auditService.logAction({
+      actorId: userId,
+      actorRole: "SEEKER",
+      action: "profile:upload_resume",
+      module: "PROFILE",
+      targetType: "Resume",
+      targetId: resume.id,
+      newData: { fileName: resume.fileName },
+      result: "SUCCESS",
+    });
 
     return { message: "Resume uploaded successfully" };
   }
@@ -96,6 +109,18 @@ export class ResumeService {
       },
     });
 
+    this.auditService.logAction({
+      actorId: userId,
+      actorRole: "SEEKER",
+      action: "profile:replace_resume",
+      module: "PROFILE",
+      targetType: "Resume",
+      targetId: resumeId,
+      oldData: { fileName: resume.fileName },
+      newData: { fileName: uploadResult.fileName },
+      result: "SUCCESS",
+    });
+
     return { message: "Resume replaced successfully" };
   }
 
@@ -110,6 +135,17 @@ export class ResumeService {
     await this.helpers.deleteFileOrThrow(resume.fileUrl);
     await this.prisma.resume.delete({ where: { id: resumeId } });
     await this.helpers.updateProfileCompletion(userId);
+
+    this.auditService.logAction({
+      actorId: userId,
+      actorRole: "SEEKER",
+      action: "profile:delete_resume",
+      module: "PROFILE",
+      targetType: "Resume",
+      targetId: resumeId,
+      oldData: { fileName: resume.fileName },
+      result: "SUCCESS",
+    });
 
     return { message: "Resume deleted successfully" };
   }
