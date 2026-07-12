@@ -12,6 +12,9 @@ const ORDER_SELECT = {
     razorpayOrderId: true,
     billingCycle: true,
     amountPaise: true,
+    discountAmountPaise: true,
+    discountId: true,
+    couponCode: true,
     gstAmountPaise: true,
     totalAmountPaise: true,
     currency: true,
@@ -31,6 +34,9 @@ export class PaymentRepository {
         razorpayOrderId: string;
         billingCycle: BillingCycle;
         amountPaise: number;
+        discountAmountPaise: number;
+        discountId?: string;
+        couponCode?: string;
         gstAmountPaise: number;
         totalAmountPaise: number;
         expiresAt: Date;
@@ -129,6 +135,7 @@ export class PaymentRepository {
                 id: true,
                 razorpayOrderId: true,
                 amountPaise: true,
+                discountAmountPaise: true,
                 gstAmountPaise: true,
                 totalAmountPaise: true,
                 currency: true,

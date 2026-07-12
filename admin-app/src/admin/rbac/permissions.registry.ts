@@ -34,6 +34,10 @@ export const ACTIONS = {
         VIEW: 'testimonials:view',
         MANAGE: 'testimonials:manage',
     },
+    DISCOUNTS: {
+        VIEW: 'discounts:view',
+        MANAGE: 'discounts:manage',
+    },
 } as const;
 
 type ValuesOf<T> = T extends Record<string, infer V>
@@ -63,6 +67,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Action, string> = {
     'audit:view': 'View the admin audit log',
     'testimonials:view': 'List and view testimonials',
     'testimonials:manage': 'Create/edit/delete and publish/unpublish testimonials',
+    'discounts:view': 'List and view discount/coupon records and usage stats',
+    'discounts:manage': 'Create/edit/deactivate discounts and coupon codes',
 };
 
 /** `module:action` → { module, action } for the Permission table's split columns. */

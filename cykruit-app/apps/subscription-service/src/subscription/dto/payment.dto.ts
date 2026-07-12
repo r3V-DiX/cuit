@@ -1,6 +1,6 @@
 // apps/subscription-service/src/subscription/dto/payment.dto.ts
 
-import { IsEnum, IsUUID, IsString, IsNotEmpty } from 'class-validator';
+import { IsEnum, IsUUID, IsString, IsNotEmpty, IsOptional, Length } from 'class-validator';
 
 export enum BillingCycleInput {
     MONTHLY = 'MONTHLY',
@@ -13,6 +13,11 @@ export class CreateOrderDto {
 
     @IsEnum(BillingCycleInput)
     billingCycle: BillingCycleInput;
+
+    @IsOptional()
+    @IsString()
+    @Length(1, 50)
+    couponCode?: string;
 }
 
 export class VerifyPaymentDto {

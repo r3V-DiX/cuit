@@ -1138,6 +1138,7 @@ model Employer {
     members             EmployerMember[]
     subscription        EmployerSubscription?
     paymentOrders       PaymentOrder[]
+    discountUsages      DiscountUsage[]
     inviteTokens        Token[]
 
     @@index([slug])
@@ -1969,6 +1970,27 @@ enum BillingCycle {
     YEARLY
 }
 
+enum DiscountTrigger {
+    COUPON_CODE // Employer enters a code at checkout
+    AUTOMATIC   // Applied automatically based on rules, no code needed
+}
+
+enum DiscountType {
+    PERCENTAGE // e.g. 20% off base price
+    FLAT       // e.g. ₹500 off (stored as paise)
+}
+
+enum DiscountStatus {
+    ACTIVE
+    INACTIVE
+    EXPIRED
+}
+
+enum DiscountApplicability {
+    ALL_PACKAGES     // applies to every subscription package
+    SPECIFIC_PACKAGES // only packages listed in DiscountPackage pivot
+}
+
 enum PaymentOrderStatus {
     CREATED
     PAID
@@ -2003,8 +2025,9 @@ model SubscriptionPackage {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    subscriptions EmployerSubscription[]
-    paymentOrders PaymentOrder[]
+    subscriptions    EmployerSubscription[]
+    paymentOrders    PaymentOrder[]
+    discountPackages DiscountPackage[]
 
     @@index([isActive])
     @@map("subscription_packages")
@@ -2048,12 +2071,18 @@ model PaymentOrder {
 
     razorpayOrderId String             @unique
     billingCycle    BillingCycle
-    amountPaise     Int                // base amount (pre-GST) in paisa
-    gstAmountPaise  Int                // 18% GST in paisa
-    totalAmountPaise Int               // amountPaise + gstAmountPaise
+    amountPaise          Int                // base price (pre-discount, pre-GST) in paisa
+    discountAmountPaise  Int                @default(0) // discount applied in paisa
+    gstAmountPaise       Int                // 18% GST on (base - discount) in paisa
+    totalAmountPaise     Int                // (base - discount) + gst in paisa
     currency        String             @default("INR")
     status          PaymentOrderStatus @default(CREATED)
     expiresAt       DateTime
+
+    // Discount applied (nullable — no discount = null)
+    discountId   String?   @db.Uuid
+    discount     Discount? @relation(fields: [discountId], references: [id], onDelete: SetNull)
+    couponCode   String?   // denormalized code used; populated only for COUPON_CODE trigger
 
     createdAt DateTime  @default(now())
     updatedAt DateTime  @updatedAt
@@ -2063,6 +2092,7 @@ model PaymentOrder {
     @@index([status])
     @@index([razorpayOrderId])
     @@index([expiresAt])
+    @@index([discountId])
     @@map("payment_orders")
 }
 
@@ -2084,6 +2114,88 @@ model Payment {
     @@map("payments")
 }
 
+
+// ==========================
+// Discount System
+// ==========================
+
+model Discount {
+    id   String @id @default(uuid()) @db.Uuid
+    name String // e.g. "Summer Sale", "Annual Billing Deal"
+    code String? @unique // coupon code (null for AUTOMATIC discounts)
+
+    trigger         DiscountTrigger
+    discountType    DiscountType
+    value           Decimal  @db.Decimal(10, 2) // percentage (0–100) or flat amount in INR (stored as rupees, converted to paise at apply time)
+    maxDiscountCap  Int?     // max discount in paise for PERCENTAGE type; null = uncapped
+    minOrderAmountPaise Int? // minimum base order amount (paise) required to apply discount
+
+    applicability   DiscountApplicability @default(ALL_PACKAGES)
+    billingCycles   BillingCycle[]        // empty = both cycles; set to [YEARLY] to restrict to annual only
+
+    // Usage limits
+    maxTotalUses    Int?  // null = unlimited global uses
+    maxUsesPerUser  Int   @default(1) // how many times one employer can use this
+
+    // Validity window
+    startsAt  DateTime
+    expiresAt DateTime?
+
+    status    DiscountStatus @default(ACTIVE)
+
+    // Admin who created/last modified
+    createdBy String  @db.Uuid
+    updatedBy String? @db.Uuid
+
+    // Conditions JSON for AUTOMATIC type (evaluated by discount.service.ts)
+    // Schema: { firstOrderOnly?: boolean, minTeamSize?: number, billingCycle?: "MONTHLY"|"YEARLY" }
+    conditions Json?
+
+    description String? // internal note for admin UI
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    packages      DiscountPackage[]
+    usages        DiscountUsage[]
+    paymentOrders PaymentOrder[]
+
+    @@index([code])
+    @@index([status])
+    @@index([trigger])
+    @@index([startsAt, expiresAt])
+    @@map("discounts")
+}
+
+// Pivot: which packages a SPECIFIC_PACKAGES discount applies to
+model DiscountPackage {
+    id         String  @id @default(uuid()) @db.Uuid
+    discountId String  @db.Uuid
+    discount   Discount            @relation(fields: [discountId], references: [id], onDelete: Cascade)
+    packageId  String
+    package    SubscriptionPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+    @@unique([discountId, packageId])
+    @@map("discount_packages")
+}
+
+// Audit trail: one row per successful discount application
+model DiscountUsage {
+    id         String   @id @default(uuid()) @db.Uuid
+    discountId String   @db.Uuid
+    discount   Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+    employerId String
+    employer   Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+    orderId    String   @unique // one usage row per order
+    amountSavedPaise Int // actual paise saved on this order
+
+    createdAt DateTime @default(now())
+
+    @@index([discountId])
+    @@index([employerId])
+    @@index([createdAt])
+    @@map("discount_usages")
+}
 
 // ==========================
 // General Audit Log (admin-app)

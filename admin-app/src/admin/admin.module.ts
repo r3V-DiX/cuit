@@ -39,6 +39,7 @@ import { SubscriptionController } from './controllers/subscription.controller';
 import { AuditController } from './controllers/audit.controller';
 import { DashboardController } from './controllers/dashboard.controller';
 import { TestimonialsController } from './controllers/testimonials.controller';
+import { DiscountsController } from './controllers/discounts.controller';
 import { MeController } from './controllers/me.controller';
 
 // Services
@@ -52,6 +53,7 @@ import { DashboardService } from './services/dashboard.service';
 import { AdminAuditLogger } from './services/admin-audit.logger';
 import { AdminAuthAuditLogger } from './services/admin-auth-audit.logger';
 import { TestimonialsService } from './services/testimonials.service';
+import { DiscountsService } from './services/discounts.service';
 import { PermissionsService } from './services/permissions.service';
 
 // Repositories
@@ -62,6 +64,7 @@ import { RbacRepository } from './repositories/rbac.repository';
 import { AuditRepository } from './repositories/audit.repository';
 import { DashboardRepository } from './repositories/dashboard.repository';
 import { TestimonialsRepository } from './repositories/testimonials.repository';
+import { DiscountsRepository } from './repositories/discounts.repository';
 import { SubscriptionRepository } from './repositories/subscription.repository';
 
 @Injectable()
@@ -134,6 +137,7 @@ export class AdminSessionValidator implements ISessionValidator {
         AuditController,
         DashboardController,
         TestimonialsController,
+        DiscountsController,
         MeController,
     ],
     providers: [
@@ -153,6 +157,7 @@ export class AdminSessionValidator implements ISessionValidator {
         AuditQueryService,
         DashboardService,
         TestimonialsService,
+        DiscountsService,
         // Repositories
         KycRepository,
         AdminJobsRepository,
@@ -161,6 +166,7 @@ export class AdminSessionValidator implements ISessionValidator {
         AuditRepository,
         DashboardRepository,
         TestimonialsRepository,
+        DiscountsRepository,
         SubscriptionRepository,
     ],
 })

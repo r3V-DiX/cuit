@@ -16,6 +16,7 @@ import { AppLogger } from '@cykruit/logger';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { SubscriptionRepository } from '../repositories/subscription.repository';
 import { PaymentRepository } from '../repositories/payment.repository';
+import { DiscountService } from './discount.service';
 import { CreateOrderDto, BillingCycleInput } from '../dto/payment.dto';
 
 const GST_RATE = 0.18;
@@ -32,6 +33,7 @@ export class PaymentService {
         private readonly prisma: PrismaService,
         private readonly subRepo: SubscriptionRepository,
         private readonly payRepo: PaymentRepository,
+        private readonly discountService: DiscountService,
         private readonly eventPublisher: EventPublisher,
         private readonly logger: AppLogger,
     ) {
@@ -63,6 +65,7 @@ export class PaymentService {
                 currency: existingOrder.currency,
                 breakdown: {
                     baseAmountPaise: existingOrder.amountPaise,
+                    discountAmountPaise: existingOrder.discountAmountPaise,
                     gstAmountPaise: existingOrder.gstAmountPaise,
                     totalAmountPaise: existingOrder.totalAmountPaise,
                     gstPercent: 18,
@@ -79,8 +82,39 @@ export class PaymentService {
         }
 
         const basePaise = Math.round(Number(basePrice) * 100);
-        const gstPaise = Math.round(basePaise * GST_RATE);
-        const totalPaise = basePaise + gstPaise;
+
+        // Resolve discount: coupon code takes priority over automatic
+        let discountAmountPaise = 0;
+        let discountId: string | undefined;
+        let couponCode: string | undefined;
+
+        if (dto.couponCode) {
+            const preview = await this.discountService.validateCoupon(
+                dto.couponCode,
+                employerId,
+                dto.packageId,
+                dto.billingCycle as BillingCycle,
+                basePaise,
+            );
+            discountAmountPaise = preview.discountAmountPaise;
+            discountId = preview.discountId;
+            couponCode = dto.couponCode.toUpperCase();
+        } else {
+            const autoPreview = await this.discountService.findApplicableAutoDiscount(
+                employerId,
+                dto.packageId,
+                dto.billingCycle as BillingCycle,
+                basePaise,
+            );
+            if (autoPreview) {
+                discountAmountPaise = autoPreview.discountAmountPaise;
+                discountId = autoPreview.discountId;
+            }
+        }
+
+        const discountedBasePaise = basePaise - discountAmountPaise;
+        const gstPaise = Math.round(discountedBasePaise * GST_RATE);
+        const totalPaise = discountedBasePaise + gstPaise;
 
         const rzOrder = await this.razorpay.orders.create({
             amount: totalPaise,
@@ -99,6 +133,9 @@ export class PaymentService {
             razorpayOrderId: rzOrder.id,
             billingCycle: dto.billingCycle as BillingCycle,
             amountPaise: basePaise,
+            discountAmountPaise,
+            discountId,
+            couponCode,
             gstAmountPaise: gstPaise,
             totalAmountPaise: totalPaise,
             expiresAt: new Date(Date.now() + ORDER_TTL_MS),
@@ -111,10 +148,12 @@ export class PaymentService {
             currency: 'INR',
             breakdown: {
                 baseAmountPaise: basePaise,
+                discountAmountPaise,
                 gstAmountPaise: gstPaise,
                 totalAmountPaise: totalPaise,
                 gstPercent: 18,
             },
+            ...(discountId && { discountApplied: { id: discountId, code: couponCode ?? null } }),
             packageName: pkg.name,
             billingCycle: dto.billingCycle,
             keyId: this.config.getOrThrow<string>('RAZORPAY_KEY_ID'),
@@ -279,6 +318,17 @@ export class PaymentService {
                 data: { status: 'PAID', subscriptionId: sub.id },
                 select: { id: true },
             });
+
+            // Record discount usage inside the same transaction if a discount was applied
+            if (order.discountId && order.discountAmountPaise > 0) {
+                await this.discountService.applyDiscount(
+                    tx,
+                    order.discountId,
+                    order.employerId,
+                    order.id,
+                    order.discountAmountPaise,
+                );
+            }
 
             return { subscription: sub };
         });

@@ -25,6 +25,7 @@ import { PackagesService } from './services/packages.service';
 import { SubscriptionService } from './services/subscription.service';
 import { SubscriptionExpiryService } from './services/subscription-expiry.service';
 import { PaymentService } from './services/payment.service';
+import { DiscountService } from './services/discount.service';
 import { EmployerEventsProcessor } from './processors/employer-events.processor';
 import { AdminGuard } from './guards/admin.guard';
 import {
@@ -102,6 +103,7 @@ export class SubscriptionSessionValidator implements ISessionValidator {
         SubscriptionService,
         SubscriptionExpiryService,
         PaymentService,
+        DiscountService,
         EmployerEventsProcessor,
         AdminGuard,
         SubscriptionSessionValidator,
