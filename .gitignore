@@ -45,3 +45,6 @@ coverage/
 .eslintcache
 .agents/
 .codex/.next/
+
+# Docs
+docs/
