@@ -5,16 +5,19 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Shield, Activity, LogOut, ChevronRight,
-  Users, Settings, BarChart3, FileText, Lock,
+  Users, BarChart3, Lock, Briefcase, CreditCard, ShieldAlert,
 } from "lucide-react";
 import { apiFetch, authHeaders } from "@/lib/api";
 
 const NAV = [
-  { label: "Dashboard", href: "/admin", icon: BarChart3, exact: true },
-  { label: "Auth Logs", href: "/admin/logs/auth", icon: Lock },
-  { label: "System Logs", href: "/admin/logs/system", icon: Activity },
-  { label: "Users", href: "/admin/users", icon: Users },
-  { label: "Settings", href: "/admin/settings", icon: Settings },
+  { label: "Dashboard",      href: "/admin/dashboard",           icon: BarChart3,   exact: true },
+  { label: "Users",          href: "/admin/users",               icon: Users        },
+  { label: "KYC",            href: "/admin/kyc",                 icon: Shield       },
+  { label: "Jobs",           href: "/admin/jobs",                icon: Briefcase    },
+  { label: "Subscriptions",  href: "/admin/subscriptions",       icon: CreditCard   },
+  { label: "Auth Logs",      href: "/admin/logs/auth",           icon: Lock         },
+  { label: "System Logs",    href: "/admin/logs/system",         icon: Activity     },
+  { label: "Admin Activity", href: "/admin/logs/admin-activity", icon: ShieldAlert  },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

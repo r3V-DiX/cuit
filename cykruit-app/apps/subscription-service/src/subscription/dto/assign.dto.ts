@@ -1,6 +1,6 @@
 // apps/subscription-service/src/subscription/dto/assign.dto.ts
 
-import { IsString, IsNotEmpty, IsOptional, IsIn, IsDateString, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsDateString, IsUUID, IsEnum } from 'class-validator';
 
 export class AssignSubscriptionDto {
     @IsUUID()
@@ -14,8 +14,14 @@ export class AssignSubscriptionDto {
     expiresAt?: string;
 }
 
+export enum SubscriptionStatusInput {
+    EXPIRED = 'EXPIRED',
+    CANCELLED = 'CANCELLED',
+}
+
 export class UpdateSubscriptionStatusDto {
-    @IsString()
-    @IsIn(['ACTIVE', 'EXPIRED', 'CANCELLED'])
-    status: string;
+    @IsEnum(SubscriptionStatusInput, {
+        message: 'status must be EXPIRED or CANCELLED. Use assign() to reactivate.',
+    })
+    status: SubscriptionStatusInput;
 }

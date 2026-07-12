@@ -11,6 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import Razorpay from 'razorpay';
 import { BillingCycle } from '@prisma/client';
+import { PrismaService } from '@cykruit/prisma';
 import { AppLogger } from '@cykruit/logger';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { SubscriptionRepository } from '../repositories/subscription.repository';
@@ -28,6 +29,7 @@ export class PaymentService {
 
     constructor(
         private readonly config: ConfigService,
+        private readonly prisma: PrismaService,
         private readonly subRepo: SubscriptionRepository,
         private readonly payRepo: PaymentRepository,
         private readonly eventPublisher: EventPublisher,
@@ -49,6 +51,27 @@ export class PaymentService {
         const pkg = await this.subRepo.findPackageById(dto.packageId);
         if (!pkg) throw new NotFoundException('Package not found');
         if (!pkg.isActive) throw new BadRequestException('Package is not active');
+
+        // Idempotency guard — return existing live order if one already exists for this
+        // employer+package+billingCycle to prevent double-charging on rapid retries.
+        const existingOrder = await this.payRepo.findLiveOrder(employerId, dto.packageId, dto.billingCycle as BillingCycle);
+        if (existingOrder) {
+            return {
+                orderId: existingOrder.id,
+                razorpayOrderId: existingOrder.razorpayOrderId,
+                amount: existingOrder.totalAmountPaise,
+                currency: existingOrder.currency,
+                breakdown: {
+                    baseAmountPaise: existingOrder.amountPaise,
+                    gstAmountPaise: existingOrder.gstAmountPaise,
+                    totalAmountPaise: existingOrder.totalAmountPaise,
+                    gstPercent: 18,
+                },
+                packageName: pkg.name,
+                billingCycle: dto.billingCycle,
+                keyId: this.config.getOrThrow<string>('RAZORPAY_KEY_ID'),
+            };
+        }
 
         const basePrice = this.resolveBasePrice(pkg, dto.billingCycle);
         if (basePrice === null) {
@@ -113,11 +136,21 @@ export class PaymentService {
         }
     }
 
+    // ── Order history (employer-facing) ──────────────────────────────────────
+
+    async getMyOrders(userId: string, page = 1, limit = 50) {
+        const employerId = await this.subRepo.resolveEmployerIdFromUser(userId);
+        if (!employerId) throw new ForbiddenException('Employer account required');
+        return this.payRepo.findOrdersByEmployer(employerId, page, limit);
+    }
+
     // ── Free-tier activation (called by event processor) ─────────────────────
 
     async activateFreeTierIfEligible(employerId: string): Promise<void> {
         const existing = await this.subRepo.findSubscriptionByEmployer(employerId);
-        if (existing) return; // already has a subscription
+        // Only skip if there is an active subscription.
+        // CANCELLED or EXPIRED employers should receive the free tier.
+        if (existing && existing.status === 'ACTIVE') return;
 
         const freePkg = await this.payRepo.findFreePackage();
         if (!freePkg) {
@@ -143,7 +176,14 @@ export class PaymentService {
             .update(rawBody)
             .digest('hex');
 
-        if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature))) {
+        const expectedBuf = Buffer.from(expected);
+        const receivedBuf = Buffer.from(signature);
+
+        // timingSafeEqual throws a RangeError when lengths differ — guard first.
+        if (expectedBuf.length !== receivedBuf.length) {
+            throw new UnprocessableEntityException('Invalid webhook signature');
+        }
+        if (!crypto.timingSafeEqual(expectedBuf, receivedBuf)) {
             throw new UnprocessableEntityException('Invalid webhook signature');
         }
     }
@@ -167,7 +207,12 @@ export class PaymentService {
 
         const razorpayPaymentId = paymentEntity?.['id'] as string;
         const razorpayOrderId = paymentEntity?.['order_id'] as string;
-        const razorpaySignature = (paymentEntity?.['description'] as string) ?? '';
+        // Store HMAC(orderId|paymentId) as an audit proof token.
+        // The real webhook signature was already verified by verifyWebhookSignature().
+        const razorpaySignature = crypto
+            .createHmac('sha256', this.webhookSecret)
+            .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+            .digest('hex');
 
         if (!razorpayOrderId || !razorpayPaymentId) {
             this.logger.warn('payment.captured webhook missing order_id or payment id', 'PaymentService');
@@ -182,32 +227,65 @@ export class PaymentService {
 
         if (order.status === 'PAID') return; // idempotent
 
+        // Reject captures for expired orders — Razorpay may send the event late
+        if (order.status === 'EXPIRED' || (order.expiresAt && order.expiresAt < new Date())) {
+            this.logger.warn(
+                `payment.captured received for expired order razorpayOrderId=${razorpayOrderId}`,
+                'PaymentService',
+            );
+            return;
+        }
+
         const pkg = await this.subRepo.findPackageById(order.packageId);
         if (!pkg) return;
 
         const expiresAt = this.computeExpiry(order.billingCycle as BillingCycle);
 
-        const subscription = await this.subRepo.assignSubscription(
-            order.employerId,
-            order.packageId,
-            expiresAt,
-        );
+        // Atomic: all DB writes succeed or all roll back
+        const { subscription } = await this.prisma.$transaction(async (tx) => {
+            const sub = await tx.employerSubscription.upsert({
+                where: { employerId: order.employerId },
+                create: {
+                    employerId: order.employerId,
+                    packageId: order.packageId,
+                    status: 'ACTIVE',
+                    startedAt: new Date(),
+                    expiresAt,
+                    billingCycle: order.billingCycle as BillingCycle,
+                },
+                update: {
+                    packageId: order.packageId,
+                    status: 'ACTIVE',
+                    startedAt: new Date(),
+                    expiresAt,
+                    billingCycle: order.billingCycle as BillingCycle,
+                },
+                select: { id: true },
+            });
 
-        // Update billingCycle on the subscription
-        await this.subRepo.updateBillingCycle(subscription.id, order.billingCycle as BillingCycle);
+            await tx.payment.create({
+                data: {
+                    orderId: order.id,
+                    razorpayPaymentId,
+                    razorpaySignature,
+                    capturedAt: new Date(),
+                    status: 'CAPTURED',
+                },
+                select: { id: true },
+            });
 
-        await this.payRepo.createPayment({
-            orderId: order.id,
-            razorpayPaymentId,
-            razorpaySignature,
-            capturedAt: new Date(),
+            await tx.paymentOrder.update({
+                where: { id: order.id },
+                data: { status: 'PAID', subscriptionId: sub.id },
+                select: { id: true },
+            });
+
+            return { subscription: sub };
         });
-
-        await this.payRepo.markOrderPaid(order.id, subscription.id);
 
         const ownerUserId = await this.subRepo.findOwnerUserIdForEmployer(order.employerId);
         if (ownerUserId) {
-            this.eventPublisher.publish(
+            await this.eventPublisher.publish(
                 DomainEventType.SUBSCRIPTION_PAYMENT_CAPTURED,
                 {
                     orderId: order.id,
@@ -219,9 +297,11 @@ export class PaymentService {
                     amountPaise: order.totalAmountPaise,
                 },
                 'subscription-service',
+            ).catch((err: unknown) =>
+                this.logger.warn(`SUBSCRIPTION_PAYMENT_CAPTURED publish failed: ${String(err)}`, 'PaymentService'),
             );
 
-            this.eventPublisher.publish(
+            await this.eventPublisher.publish(
                 DomainEventType.SUBSCRIPTION_RENEWED,
                 {
                     subscriptionId: subscription.id,
@@ -232,6 +312,8 @@ export class PaymentService {
                     expiresAt: expiresAt.toISOString(),
                 },
                 'subscription-service',
+            ).catch((err: unknown) =>
+                this.logger.warn(`SUBSCRIPTION_RENEWED publish failed: ${String(err)}`, 'PaymentService'),
             );
         }
     }
@@ -248,10 +330,10 @@ export class PaymentService {
     private computeExpiry(billingCycle: BillingCycle): Date {
         const now = new Date();
         if (billingCycle === BillingCycle.MONTHLY) {
-            now.setMonth(now.getMonth() + 1);
-        } else {
-            now.setFullYear(now.getFullYear() + 1);
+            return new Date(now.getFullYear(), now.getMonth() + 1, now.getDate(),
+                now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
         }
-        return now;
+        return new Date(now.getFullYear() + 1, now.getMonth(), now.getDate(),
+            now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
     }
 }

@@ -75,6 +75,44 @@ never `db push` — and never accept a `migrate dev` reset prompt against this s
 - `next.config.ts` no longer sets a static CSP
 - `app/layout.tsx` reads nonce from `await headers()` and passes to `<Providers>`
 
+### Subscription bug fixes & hardening (July 2026)
+- `DomainEventType.SUBSCRIPTION_CANCELLED` added to `libs/events`; `SubscriptionCancelledPayload` exported
+- `POST /subscriptions/cancel` endpoint added (employer self-cancel) with audit log + event publish
+- `timingSafeEqual` crash on length mismatch: length-check guard added in `PaymentService.verifyWebhookSignature`
+- Free-tier limits now read from DB (`findFreePackage()`) not hardcoded
+- Order idempotency: `findLiveOrder()` before `orders.create()`; duplicate orders return existing
+- `expireStaleOrders` wired via `@Cron(EVERY_5_MINUTES)` — was dead code
+- `findOrdersByEmployer`: paginated with `skip/take`, max 100 per call
+- All subscription repository methods use `select` not `include` (project rule)
+- `@RequirePermission` + `PermissionGuard` applied to all admin subscription + package endpoints
+- Notification processor handles `PAYMENT_CAPTURED`, `RENEWED`, `CANCELLED` events
+
+### Subscription UI fixes (July 2026)
+- `success/page.tsx`: `inr()` now divides paise by 100 (was showing 100× inflated amounts)
+- `subscription/page.tsx`: Cancel button calls `POST /api/subscriptions/cancel`; error state shows on data load failure
+- `settings/page.tsx`: Plan & Billing card reads live data from `GET /api/subscriptions/usage`
+- `jobs/new/page.tsx`: Publish blocked + banner shown when `jobsUsed >= jobsLimit`
+- `team/page.tsx`: Invite blocked + banner shown when `members.length >= teamLimit`
+
+### cykruit-ui Admin Panel (July 2026)
+The `cykruit-ui` Next.js app has its own admin section at `/admin/*` — separate from `admin-app`/`admin-ui`. It uses `user.role === "ADMIN"` (User model) for access. All admin API calls proxy to the existing microservices:
+
+- `GET|PATCH /api/admin/kyc/*` → employer-service `employer/admin/kyc/*`
+- `GET|PATCH /api/admin/jobs/*` → employer-service `employer/admin/jobs/*`
+- `GET|PATCH /api/admin/subscriptions/*` → subscription-service `subscriptions/admin/*`
+- `GET|PATCH /api/admin/users/*` → auth-service `auth/admin/users/*`
+- `GET /api/admin/dashboard` → auth-service `auth/admin/dashboard`
+- `GET /api/admin/audit-logs/*` → auth-service `auth/admin/audit-logs/*`
+
+Admin controllers were built in each service with `AdminGuard` (checks `user.role === UserRole.ADMIN`). Auth-service hosts users, dashboard, and audit-log endpoints. Employer-service hosts KYC and job approval endpoints.
+
+**Key conventions for cykruit-ui admin pages:**
+- Audit log pages (auth/system/admin-activity) use `Fragment` with explicit `key` for expandable `<tr>` pairs.
+- `relTime()` handles both past and future ISO strings (subscriptions show future expiry as "in 5d").
+- `apiFetch` redirects to `/login` on `401` only — not `403`. A `403` is a permission error shown as a toast.
+- Admin list endpoints return `{ items, pagination }`. Audit log endpoints return `{ items, meta }`.
+- `PaginationMeta` and `DashboardStats` in auth-service admin services must be `export interface` (TS4053).
+
 ## Known Issues / Deviations
 - **`admin-app` `start:prod` is broken** (pre-existing): the build emits
   `dist/admin-app/src/main.js` + `dist/cykruit-app/libs/**` (lib sources live

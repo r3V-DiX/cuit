@@ -1,6 +1,6 @@
 // apps/subscription-service/src/subscription/dto/query.dto.ts
 
-import { IsOptional, IsInt, IsBoolean, IsString, IsIn, IsUUID, Min } from 'class-validator';
+import { IsOptional, IsInt, IsBoolean, IsString, IsIn, IsUUID, Min, Max } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
 export class PackageListQueryDto {
@@ -13,6 +13,7 @@ export class PackageListQueryDto {
     @IsOptional()
     @IsInt()
     @Min(1)
+    @Max(100)
     @Type(() => Number)
     limit?: number;
 
@@ -37,6 +38,7 @@ export class SubscriptionListQueryDto {
     @IsOptional()
     @IsInt()
     @Min(1)
+    @Max(100)
     @Type(() => Number)
     limit?: number;
 

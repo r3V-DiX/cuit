@@ -7,13 +7,15 @@ const ROLE_COOKIE    = "user_role";
 const WS_ORIGIN = process.env.NEXT_PUBLIC_WS_URL ?? "ws://127.0.0.1:4007 wss://127.0.0.1:4007";
 
 function buildCsp(nonce: string): string {
+  const isDev = process.env.NODE_ENV === "development";
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'unsafe-eval'`,
-    `style-src 'self' 'nonce-${nonce}'`,
+    `script-src 'self' 'nonce-${nonce}' https://checkout.razorpay.com${isDev ? " 'unsafe-eval'" : ""}`,
+    `style-src 'self' 'nonce-${nonce}' https://checkout.razorpay.com`,
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src 'self' ${WS_ORIGIN} http://127.0.0.1:* http://localhost:*`,
+    `connect-src 'self' ${WS_ORIGIN} http://127.0.0.1:* http://localhost:* https://api.razorpay.com https://checkout.razorpay.com`,
+    "frame-src https://api.razorpay.com https://checkout.razorpay.com",
     "frame-ancestors 'none'",
   ].join("; ");
 }

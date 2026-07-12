@@ -298,6 +298,65 @@ export class DomainEventProcessor {
                 break;
             }
 
+            case DomainEventType.SUBSCRIPTION_PAYMENT_CAPTURED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                const amountRupees = p.amountPaise ? `₹${Math.round(p.amountPaise / 100).toLocaleString('en-IN')}` : '';
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.PLATFORM_ANNOUNCEMENT,
+                    title: 'Payment Successful',
+                    message: `Payment of ${amountRupees} received for your ${p.packageName} plan (${p.billingCycle?.toLowerCase()}).`,
+                    actionUrl: `/employer/subscription`,
+                    relatedEntityType: 'PaymentOrder',
+                    relatedEntityId: p.orderId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
+            case DomainEventType.SUBSCRIPTION_RENEWED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                const expiry = p.expiresAt ? new Date(p.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.PLATFORM_ANNOUNCEMENT,
+                    title: 'Subscription Renewed',
+                    message: `Your ${p.packageName} plan (${p.billingCycle?.toLowerCase()}) has been renewed. Active until ${expiry}.`,
+                    actionUrl: `/employer/subscription`,
+                    relatedEntityType: 'EmployerSubscription',
+                    relatedEntityId: p.subscriptionId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
+            case DomainEventType.SUBSCRIPTION_CANCELLED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.PLATFORM_ANNOUNCEMENT,
+                    title: 'Subscription Cancelled',
+                    message: `Your ${p.packageName} plan has been cancelled. You'll retain access until the end of your billing period.`,
+                    actionUrl: `/employer/subscription`,
+                    relatedEntityType: 'EmployerSubscription',
+                    relatedEntityId: p.subscriptionId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
             default:
                 this.logger.warn(
                     `[DomainEventProcessor] Unhandled event type: ${(event as any).type}`,

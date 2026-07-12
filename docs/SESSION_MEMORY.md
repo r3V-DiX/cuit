@@ -1,5 +1,13 @@
 # Session Memory
 
+## 2026-07-12 — cykruit-ui admin panel + TS fixes
+
+- **Mistake:** `interface PaginationMeta` and `interface DashboardStats` defined without `export` in auth-service admin services. TS4053 fired because controller return types referenced them. Fix: always `export` interfaces that are used as return types of public controller methods.
+- **Fix:** `Fragment` with explicit `key` required when mapping to multiple sibling `<tr>` elements (expandable rows). `<>` short-form cannot hold a `key`. Applied to `auth/page.tsx`, `system/page.tsx`, `admin-activity/page.tsx` log pages.
+- **Fix:** `apiFetch` was redirecting to `/login` on `403` for admin routes. Wrong — `403` = forbidden (permission error), should surface as toast. Only `401` = unauthenticated, should redirect. Updated to `response.status === 401` unconditionally.
+- **Convention:** cykruit-ui admin list endpoints expect `{ items, pagination }` response shape. Audit log endpoints expect `{ items, meta }`. Do not mix.
+- **Dead proxy route removed:** `ADMIN_URL` pointing to non-existent port 4010 replaced with 6 specific rewrites to correct services. Never use a catch-all proxy rewrite that points to a port with no service.
+
 ## 2026-07-10 — admin-app CORS debugging
 
 - **Mistake:** Assumed the stray `CORS_ORIGIN` value came from a leftover shell

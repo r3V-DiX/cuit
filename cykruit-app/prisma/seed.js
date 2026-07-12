@@ -199,6 +199,63 @@ async function seedAdmins() {
     info('Admin credentials → email: admin@cykruit.com | password: Admin@123');
 }
 
+async function seedSubscriptionPackages() {
+    log('Seeding subscription packages...');
+
+    const packages = [
+        {
+            name: 'Free',
+            description: 'Get started with the basics — no credit card required.',
+            isActive: true,
+            maxActiveJobs: 2,
+            maxTeamMembers: 1,
+            featuredJobSlots: 0,
+            aiScoringEnabled: false,
+            priceMonthly: null,
+            priceYearly: null,
+        },
+        {
+            name: 'Starter',
+            description: 'Perfect for small teams starting their hiring journey.',
+            isActive: true,
+            maxActiveJobs: 5,
+            maxTeamMembers: 3,
+            featuredJobSlots: 0,
+            aiScoringEnabled: false,
+            priceMonthly: 3999,
+            priceYearly: 3199,
+        },
+        {
+            name: 'Growth',
+            description: 'Scale your hiring with AI scoring and advanced features.',
+            isActive: true,
+            maxActiveJobs: 25,
+            maxTeamMembers: 10,
+            featuredJobSlots: 3,
+            aiScoringEnabled: true,
+            priceMonthly: 9999,
+            priceYearly: 7999,
+        },
+    ];
+
+    for (const pkg of packages) {
+        await prisma.subscriptionPackage.upsert({
+            where: { name: pkg.name },
+            update: {
+                description: pkg.description,
+                isActive: pkg.isActive,
+                maxActiveJobs: pkg.maxActiveJobs,
+                maxTeamMembers: pkg.maxTeamMembers,
+                featuredJobSlots: pkg.featuredJobSlots,
+                aiScoringEnabled: pkg.aiScoringEnabled,
+            },
+            create: pkg,
+        });
+    }
+
+    success(`Subscription packages seeded: ${packages.length} records`);
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 async function main() {
@@ -212,6 +269,7 @@ async function main() {
     await seedInstitutes();
     await seedLocations();
     await seedAdmins();
+    await seedSubscriptionPackages();
 
     console.log('\n================================================');
     console.log('        ✅ Seeding completed successfully!');

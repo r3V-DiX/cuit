@@ -1,6 +1,5 @@
 import type { NextConfig } from "next";
 
-const ADMIN_URL     = process.env.ADMIN_SERVICE_URL     || "http://127.0.0.1:4010";
 const AUTH_URL      = process.env.AUTH_SERVICE_URL      || "http://127.0.0.1:4001";
 const SETTINGS_URL  = process.env.SETTINGS_SERVICE_URL  || "http://127.0.0.1:4002";
 const PROFILE_URL   = process.env.PROFILE_SERVICE_URL   || "http://127.0.0.1:4003";
@@ -98,8 +97,28 @@ const nextConfig: NextConfig = {
         destination: `${PUBLIC_URL}/public/:path*`,
       },
       {
-        source: "/api/admin/:path*",
-        destination: `${ADMIN_URL}/admin/:path*`,
+        source: "/api/admin/users/:path*",
+        destination: `${AUTH_URL}/auth/admin/users/:path*`,
+      },
+      {
+        source: "/api/admin/dashboard",
+        destination: `${AUTH_URL}/auth/admin/dashboard`,
+      },
+      {
+        source: "/api/admin/audit-logs/:path*",
+        destination: `${AUTH_URL}/auth/admin/audit-logs/:path*`,
+      },
+      {
+        source: "/api/admin/kyc/:path*",
+        destination: `${EMPLOYER_URL}/employer/admin/kyc/:path*`,
+      },
+      {
+        source: "/api/admin/jobs/:path*",
+        destination: `${EMPLOYER_URL}/employer/admin/jobs/:path*`,
+      },
+      {
+        source: "/api/admin/subscriptions/:path*",
+        destination: `${SUBS_URL}/subscriptions/admin/:path*`,
       },
     ];
   },

@@ -20,8 +20,8 @@ const PLAN_FEATURES: Record<string, string[]> = {
   growth:  ["25 active job listings", "AI candidate scoring", "3 team seats", "Analytics dashboard", "Priority support"],
 };
 
-function inr(n: number) {
-  return "₹" + n.toLocaleString("en-IN");
+function inr(paise: number) {
+  return "₹" + Math.round(paise / 100).toLocaleString("en-IN");
 }
 
 function SuccessContent() {

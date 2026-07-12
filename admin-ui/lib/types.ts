@@ -129,11 +129,16 @@ export interface SubscriptionPackage {
   updatedAt: string;
 }
 
+export type BillingCycle = 'MONTHLY' | 'YEARLY';
+export type PaymentOrderStatus = 'CREATED' | 'PAID' | 'FAILED' | 'EXPIRED';
+export type PaymentStatus = 'CAPTURED' | 'FAILED' | 'REFUNDED';
+
 export interface EmployerSubscription {
   id: string;
   employerId: string;
   packageId: string;
   status: SubscriptionStatus;
+  billingCycle?: BillingCycle;
   startedAt: string;
   expiresAt?: string;
   currentActiveJobs: number;
@@ -143,6 +148,24 @@ export interface EmployerSubscription {
   updatedAt: string;
   package?: SubscriptionPackage;
   employer?: Employer;
+}
+
+export interface PaymentOrder {
+  id: string;
+  employerId: string;
+  packageId: string;
+  razorpayOrderId: string;
+  billingCycle: BillingCycle;
+  amountPaise: number;
+  gstAmountPaise: number;
+  totalAmountPaise: number;
+  currency: string;
+  status: PaymentOrderStatus;
+  expiresAt: string;
+  createdAt: string;
+  employer?: { id: string; companyName?: string; slug?: string };
+  package?: { id: string; name: string };
+  payment?: { razorpayPaymentId: string; capturedAt?: string; status: PaymentStatus } | null;
 }
 
 // Tab 3: Admin Activity Logs — console mutations (AdminAuditLog)

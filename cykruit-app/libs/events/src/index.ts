@@ -21,5 +21,6 @@ export {
     SubscriptionAssignedPayload,
     SubscriptionPaymentCapturedPayload,
     SubscriptionRenewedPayload,
+    SubscriptionCancelledPayload,
     EmployerSetupCompletePayload,
 } from './events.types';

@@ -11,6 +11,7 @@ import { RateLimitModule } from '@cykruit/rate-limit';
 import { LoggerModule } from '@cykruit/logger';
 import { EventsModule } from '@cykruit/events';
 import { AuditModule } from '@cykruit/audit';
+import { PermissionsModule } from '@cykruit/permissions';
 import {
     AuthCoreModule,
     ISessionValidator,
@@ -77,6 +78,7 @@ export class SubscriptionSessionValidator implements ISessionValidator {
         RateLimitModule,
         LoggerModule,
         AuditModule,
+        PermissionsModule,
         ScheduleModule.forRoot(),
         EventsModule.forPublisher(),
         EventsModule.forConsumer(),
@@ -103,6 +105,7 @@ export class SubscriptionSessionValidator implements ISessionValidator {
         EmployerEventsProcessor,
         AdminGuard,
         SubscriptionSessionValidator,
+        // AppLogger is provided by LoggerModule (imported above) — listed here for clarity.
     ],
 })
 export class SubscriptionModule {}

@@ -65,15 +65,22 @@ function proxy(target: string, pathRewrite?: Record<string, string>) {
 }
 
 // ── Route table ────────────────────────────────────────────────────────
-// /auth/*            → auth-service:4001
-// /settings/*        → user-settings-service:4002
-// /seeker-profile/*  → seeker-profile-service:4003
-// /employer/*        → employer-service:4004
-// /seeker/*          → seeker-service:4005
-// /public/*          → public-service:4006  (service uses setGlobalPrefix("public"))
-// /notifications/*   → notification-service:4007
-// /subscriptions/*   → subscription-service:4008
-// /ws/*              → notification-service:4007  (WebSocket)
+// /auth/*                    → auth-service:4001
+// /auth/admin/*              → auth-service:4001       (users, dashboard, audit-logs)
+// /settings/*                → user-settings-service:4002
+// /seeker-profile/*          → seeker-profile-service:4003
+// /employer/*                → employer-service:4004
+// /employer/admin/*          → employer-service:4004   (kyc, jobs)
+// /seeker/*                  → seeker-service:4005
+// /public/*                  → public-service:4006     (service uses setGlobalPrefix("public"))
+// /notifications/*           → notification-service:4007
+// /subscriptions/*           → subscription-service:4008
+// /subscriptions/admin/*     → subscription-service:4008 (subscription admin)
+// /ws/*                      → notification-service:4007 (WebSocket)
+//
+// NOTE: /api/admin/* routes are rewritten directly by Next.js to individual
+// services (auth:4001, employer:4004, subscription:4008) and do NOT pass
+// through this gateway.
 
 app.use('/auth', proxy(SERVICES.auth, { '^/': '/auth/' }));
 app.use('/settings', proxy(SERVICES.settings));

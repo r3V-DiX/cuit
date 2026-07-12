@@ -28,6 +28,8 @@ import { JobsController } from './controllers/jobs.controller';
 import { TeamController } from './controllers/team.controller';
 import { ApplicationsController } from './controllers/applications.controller';
 import { ActivityController } from './controllers/activity.controller';
+import { AdminKycController } from './controllers/admin-kyc.controller';
+import { AdminJobsController } from './controllers/admin-jobs.controller';
 
 // Services
 import { CompanyService } from './services/company.service';
@@ -37,6 +39,8 @@ import { TeamService } from './services/team.service';
 import { EmployerApplicationsService } from './services/applications.service';
 import { JobExpiryService } from './services/job-expiry.service';
 import { ActivityService } from './services/activity.service';
+import { AdminKycService } from './services/admin-kyc.service';
+import { AdminJobsService } from './services/admin-jobs.service';
 
 // Repositories
 import { CompanyRepository } from './repositories/company.repository';
@@ -121,6 +125,8 @@ export class EmployerSessionValidator implements ISessionValidator {
         TeamController,
         ApplicationsController,
         ActivityController,
+        AdminKycController,
+        AdminJobsController,
     ],
     providers: [
         CompanyService,
@@ -137,6 +143,8 @@ export class EmployerSessionValidator implements ISessionValidator {
         ActivityService,
         ActivityRepository,
         EmployerSessionValidator,
+        AdminKycService,
+        AdminJobsService,
     ],
     exports: [CompanyService],
 })

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { inferDomain } from "@/lib/jobs-data";
 import { Save, Send, ChevronDown, Plus, X, ArrowLeft, CheckCircle2, Circle, Sparkles, GripVertical, ToggleLeft, AlignLeft, ListChecks, Trash2, Wand2 } from "lucide-react";
@@ -147,10 +147,29 @@ function ListInput({
   );
 }
 
+interface UsageLimits {
+  jobsUsed: number;
+  jobsLimit: number;
+}
+
 export default function PostJobPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [publishing, setPublishing]     = useState(false);
+  const [usageLimits, setUsageLimits]   = useState<UsageLimits | null>(null);
+
+  useEffect(() => {
+    apiFetch<{ usage?: { currentActiveJobs: number }; limits?: { maxActiveJobs: number } }>("/api/subscriptions/usage")
+      .then((res) => {
+        if (res.data?.usage != null && res.data?.limits != null) {
+          setUsageLimits({
+            jobsUsed:  res.data.usage.currentActiveJobs,
+            jobsLimit: res.data.limits.maxActiveJobs,
+          });
+        }
+      })
+      .catch(() => null);
+  }, []);
   const [title, setTitle]               = useState("");
   const [domain, setDomain]             = useState("");
   const [type, setType]                 = useState("");
@@ -197,30 +216,11 @@ export default function PostJobPage() {
   }
 
   function generateAITags() {
-    setTagsGenerating(true);
-    setTimeout(() => {
-      const suggested = ["Burp Suite", "Metasploit", "OSCP", "Python", "Web App Testing", "Network Pentesting", "Kali Linux", "Nmap", "AWS Red Team", "Active Directory"];
-      setTags((prev) => {
-        const merged = [...prev];
-        suggested.forEach((t) => { if (!merged.includes(t)) merged.push(t); });
-        return merged;
-      });
-      setTagsGenerating(false);
-    }, 1200);
+    toast({ type: "error", message: "AI tag suggestions coming soon" });
   }
 
   function generateAIQuestions() {
-    setSqGenerating(true);
-    setTimeout(() => {
-      setQuestions([
-        { id: 1, type: "boolean", question: "Do you hold an active OSCP or equivalent certification?", options: ["Yes", "No"], required: true  },
-        { id: 2, type: "single",  question: "How many years of penetration testing experience do you have?", options: ["Less than 1 year", "1–3 years", "3–5 years", "5+ years"], required: true  },
-        { id: 3, type: "text",    question: "Briefly describe the most complex penetration test you have conducted.", options: [], required: true  },
-        { id: 4, type: "boolean", question: "Are you comfortable working remotely and attending async stand-ups?", options: ["Yes", "No"], required: false },
-        { id: 5, type: "single",  question: "Which of the following tools are you most proficient with?", options: ["Burp Suite", "Metasploit", "Cobalt Strike", "Custom tooling"], required: false },
-      ]);
-      setSqGenerating(false);
-    }, 1800);
+    toast({ type: "error", message: "AI question generation coming soon" });
   }
 
   const TYPE_CFG: Record<QuestionType, { label: string; icon: React.ReactNode; color: string }> = {
@@ -230,6 +230,14 @@ export default function PostJobPage() {
   };
 
   async function handlePublish() {
+    if (usageLimits && usageLimits.jobsLimit > 0 && usageLimits.jobsUsed >= usageLimits.jobsLimit) {
+      toast({
+        type: "error",
+        message: `Job limit reached (${usageLimits.jobsUsed}/${usageLimits.jobsLimit})`,
+        description: "Upgrade your plan to post more jobs.",
+      });
+      return;
+    }
     if (!title.trim()) {
       toast({ type: "error", message: "Job title is required" });
       return;
@@ -314,8 +322,8 @@ export default function PostJobPage() {
 
       toast({ type: "success", message: "Job published successfully!" });
       router.push("/employer/jobs");
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Something went wrong" });
+    } catch (err: unknown) {
+      toast({ type: "error", message: (err instanceof Error ? err.message : "Something went wrong") });
     } finally {
       setPublishing(false);
     }
@@ -384,8 +392,8 @@ export default function PostJobPage() {
 
       toast({ type: "success", message: "Draft saved successfully!" });
       router.push("/employer/jobs");
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Something went wrong" });
+    } catch (err: unknown) {
+      toast({ type: "error", message: (err instanceof Error ? err.message : "Something went wrong") });
     } finally {
       setPublishing(false);
     }
@@ -655,10 +663,21 @@ export default function PostJobPage() {
               </div>
             </section>
 
+            {usageLimits && usageLimits.jobsLimit > 0 && usageLimits.jobsUsed >= usageLimits.jobsLimit && (
+              <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50">
+                <span className="text-amber-500 text-lg leading-none shrink-0">⚠</span>
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">Job listing limit reached ({usageLimits.jobsUsed}/{usageLimits.jobsLimit})</p>
+                  <p className="text-xs text-amber-600 mt-0.5">You cannot publish more jobs on your current plan.</p>
+                  <Link href="/employer/subscription?tab=plans" className="text-xs font-semibold text-amber-700 underline mt-1 inline-block">Upgrade plan →</Link>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center gap-3 pb-6">
               <button
                 onClick={handlePublish}
-                disabled={publishing}
+                disabled={publishing || !!(usageLimits && usageLimits.jobsLimit > 0 && usageLimits.jobsUsed >= usageLimits.jobsLimit)}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shadow-blue-500/20 cursor-pointer"
               >
                 {publishing ? (
@@ -740,7 +759,7 @@ export default function PostJobPage() {
             {/* Quick publish */}
             <button
               onClick={handlePublish}
-              disabled={publishing}
+              disabled={publishing || !!(usageLimits && usageLimits.jobsLimit > 0 && usageLimits.jobsUsed >= usageLimits.jobsLimit)}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shadow-blue-500/20 cursor-pointer"
             >
               {publishing ? (

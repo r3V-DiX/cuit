@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Users, UserPlus, Crown, Briefcase, Eye, Trash2,
-  MoreVertical, Mail, Loader2, Shield, ChevronDown,
+  MoreVertical, Mail, Loader2, Shield, ChevronDown, AlertTriangle,
 } from "lucide-react";
+import Link from "next/link";
 import { apiFetch, authHeaders, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
@@ -42,6 +43,7 @@ export default function TeamPage() {
   const [myRole,  setMyRole]      = useState<MemberRole | null>(null);
   const [myUserId, setMyUserId]   = useState<string | null>(null);
   const [openMenu, setOpenMenu]   = useState<string | null>(null);
+  const [teamLimit, setTeamLimit] = useState<number | null>(null);
 
   // Invite form
   const [showInvite, setShowInvite] = useState(false);
@@ -54,9 +56,10 @@ export default function TeamPage() {
 
   async function load() {
     try {
-      const [teamRes, meRes] = await Promise.all([
+      const [teamRes, meRes, usageRes] = await Promise.all([
         apiFetch("/api/employer/team"),
         apiFetch("/api/auth/me"),
+        apiFetch<{ limits?: { maxTeamMembers: number } }>("/api/subscriptions/usage").catch(() => null),
       ]);
       const items: Member[] = teamRes.data?.items ?? teamRes.data ?? [];
       setMembers(items);
@@ -64,8 +67,11 @@ export default function TeamPage() {
       setMyUserId(myId);
       const me = items.find((m) => m.userId === myId);
       setMyRole(me?.role ?? null);
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Failed to load team" });
+      if (usageRes?.data?.limits?.maxTeamMembers != null) {
+        setTeamLimit(usageRes.data.limits.maxTeamMembers);
+      }
+    } catch (err: unknown) {
+      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to load team") });
     } finally {
       setLoading(false);
     }
@@ -75,6 +81,14 @@ export default function TeamPage() {
 
   async function handleInvite() {
     if (!inviteEmail.trim() || inviting) return;
+    if (teamLimit !== null && teamLimit > 0 && members.length >= teamLimit) {
+      toast({
+        type: "error",
+        message: `Team limit reached (${members.length}/${teamLimit})`,
+        description: "Upgrade your plan to add more members.",
+      });
+      return;
+    }
     setInviting(true);
     try {
       await apiFetch("/api/employer/team/invite", {
@@ -86,8 +100,8 @@ export default function TeamPage() {
       setInviteEmail("");
       setShowInvite(false);
       load();
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Failed to send invitation" });
+    } catch (err: unknown) {
+      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to send invitation") });
     } finally { setInviting(false); }
   }
 
@@ -101,8 +115,8 @@ export default function TeamPage() {
       toast({ type: "success", message: "Role updated" });
       setOpenMenu(null);
       load();
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Failed to update role" });
+    } catch (err: unknown) {
+      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to update role") });
     }
   }
 
@@ -121,8 +135,8 @@ export default function TeamPage() {
           });
           toast({ type: "success", message: "Member removed" });
           load();
-        } catch (err: any) {
-          toast({ type: "error", message: err.message || "Failed to remove member" });
+        } catch (err: unknown) {
+          toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to remove member") });
         }
       },
     });
@@ -143,15 +157,33 @@ export default function TeamPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-bold text-slate-900">Team Members</h1>
-              <p className="text-sm text-slate-500 mt-0.5">Manage who has access to your organization</p>
+              <p className="text-sm text-slate-500 mt-0.5">
+                Manage who has access to your organization
+                {teamLimit !== null && teamLimit > 0 && (
+                  <span className="ml-2 text-slate-400">({members.length}/{teamLimit})</span>
+                )}
+              </p>
             </div>
             {canInvite && (
-              <button onClick={() => setShowInvite(!showInvite)}
-                className="flex items-center gap-2 h-10 px-4 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20">
+              <button
+                onClick={() => setShowInvite(!showInvite)}
+                disabled={teamLimit !== null && teamLimit > 0 && members.length >= teamLimit}
+                className="flex items-center gap-2 h-10 px-4 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shadow-blue-500/20">
                 <UserPlus className="w-4 h-4" /> Invite Member
               </button>
             )}
           </div>
+
+          {teamLimit !== null && teamLimit > 0 && members.length >= teamLimit && (
+            <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50">
+              <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">Team member limit reached ({members.length}/{teamLimit})</p>
+                <p className="text-xs text-amber-600 mt-0.5">Upgrade your plan to invite more team members.</p>
+                <Link href="/employer/subscription?tab=plans" className="text-xs font-semibold text-amber-700 underline mt-1 inline-block">Upgrade plan →</Link>
+              </div>
+            </div>
+          )}
 
           {/* Invite form */}
           {showInvite && (

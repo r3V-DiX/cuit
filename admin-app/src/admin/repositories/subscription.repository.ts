@@ -109,6 +109,50 @@ export class SubscriptionRepository {
         });
     }
 
+    async findPaymentOrders(query: { employerId?: string; page?: number; limit?: number }) {
+        const { employerId, page = 1, limit = 20 } = query;
+        const skip = (page - 1) * limit;
+        const where = employerId ? { employerId } : {};
+        const [items, total] = await this.prisma.$transaction([
+            this.prisma.paymentOrder.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    employer: { select: { id: true, companyName: true, slug: true } },
+                    package: { select: { id: true, name: true } },
+                    payment: { select: { razorpayPaymentId: true, capturedAt: true, status: true } },
+                },
+            }),
+            this.prisma.paymentOrder.count({ where }),
+        ]);
+        return { items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+    }
+
+    async findPaymentOrderById(id: string) {
+        return this.prisma.paymentOrder.findUnique({
+            where: { id },
+            include: {
+                employer: { select: { id: true, companyName: true, slug: true } },
+                package: { select: { id: true, name: true } },
+                payment: true,
+            },
+        });
+    }
+
+    async refreshEmployerUsage(employerId: string) {
+        const [activeJobs, teamMembers] = await this.prisma.$transaction([
+            this.prisma.job.count({ where: { employerId, status: { in: ['APPROVED', 'PENDING'] } } }),
+            this.prisma.employerMember.count({ where: { employerId } }),
+        ]);
+        return this.prisma.employerSubscription.update({
+            where: { employerId },
+            data: { currentActiveJobs: activeJobs, currentTeamMembers: teamMembers },
+            include: { package: true },
+        });
+    }
+
     async updateSubscriptionStatus(id: string, status: string) {
         const existing = await this.prisma.employerSubscription.findUnique({
             where: { id },

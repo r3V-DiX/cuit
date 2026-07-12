@@ -43,6 +43,11 @@ export async function apiFetch<T = any>(
     return { data: undefined as unknown as T };
   }
 
+  if (response.status === 401 && typeof window !== 'undefined') {
+    window.location.replace('/login');
+    return { data: undefined as unknown as T };
+  }
+
   // Check if body is the standard envelope (has a top-level `success` boolean)
   if (body !== null && typeof body === 'object' && 'success' in body) {
     if (body.success === false) {

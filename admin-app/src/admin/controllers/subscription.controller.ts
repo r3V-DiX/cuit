@@ -89,6 +89,35 @@ export class SubscriptionController {
         return this.subscriptionService.getEmployerSubscription(employerId);
     }
 
+    @Post('employer/:employerId/refresh-usage')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.SUBSCRIPTIONS.MANAGE)
+    refreshUsage(@CurrentAdmin() admin: Admin, @Param('employerId') employerId: string) {
+        return this.subscriptionService.refreshUsage(admin.id, employerId);
+    }
+
+    // ── Payment orders ────────────────────────────────────────────────────────
+
+    @Get('payment-orders')
+    @RequirePermission(ACTIONS.SUBSCRIPTIONS.VIEW)
+    listPaymentOrders(
+        @Query('employerId') employerId?: string,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+    ) {
+        return this.subscriptionService.listPaymentOrders({
+            employerId,
+            page: page ? parseInt(page, 10) : undefined,
+            limit: limit ? parseInt(limit, 10) : undefined,
+        });
+    }
+
+    @Get('payment-orders/:id')
+    @RequirePermission(ACTIONS.SUBSCRIPTIONS.VIEW)
+    getPaymentOrder(@Param('id') id: string) {
+        return this.subscriptionService.getPaymentOrder(id);
+    }
+
     @Post('assign')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.MANAGE)

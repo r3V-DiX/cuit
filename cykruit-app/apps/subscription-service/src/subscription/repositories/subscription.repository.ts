@@ -21,7 +21,19 @@ const PACKAGE_SELECT = {
     updatedAt: true,
 } satisfies Prisma.SubscriptionPackageSelect;
 
-const SUBSCRIPTION_INCLUDE = {
+const SUBSCRIPTION_SELECT = {
+    id: true,
+    employerId: true,
+    packageId: true,
+    status: true,
+    billingCycle: true,
+    startedAt: true,
+    expiresAt: true,
+    currentActiveJobs: true,
+    currentTeamMembers: true,
+    usedFeaturedJobSlots: true,
+    createdAt: true,
+    updatedAt: true,
     package: {
         select: PACKAGE_SELECT,
     },
@@ -30,11 +42,9 @@ const SUBSCRIPTION_INCLUDE = {
             id: true,
             companyName: true,
             slug: true,
-            companyLogo: true,
-            contactEmail: true,
         },
     },
-} satisfies Prisma.EmployerSubscriptionInclude;
+} satisfies Prisma.EmployerSubscriptionSelect;
 
 @Injectable()
 export class SubscriptionRepository {
@@ -144,7 +154,7 @@ export class SubscriptionRepository {
                 skip,
                 take: limit,
                 orderBy: { createdAt: 'desc' },
-                include: SUBSCRIPTION_INCLUDE,
+                select: SUBSCRIPTION_SELECT,
             }),
             this.prisma.employerSubscription.count({ where }),
         ]);
@@ -155,14 +165,14 @@ export class SubscriptionRepository {
     async findSubscriptionByEmployer(employerId: string) {
         return this.prisma.employerSubscription.findUnique({
             where: { employerId },
-            include: SUBSCRIPTION_INCLUDE,
+            select: SUBSCRIPTION_SELECT,
         });
     }
 
     async findSubscriptionById(id: string) {
         return this.prisma.employerSubscription.findUnique({
             where: { id },
-            include: SUBSCRIPTION_INCLUDE,
+            select: SUBSCRIPTION_SELECT,
         });
     }
 
@@ -185,7 +195,7 @@ export class SubscriptionRepository {
                 // Do NOT reset usage counters here — live counts come from refreshUsage().
                 // Resetting would cause the limit check in employer-service to show wrong headroom.
             },
-            include: SUBSCRIPTION_INCLUDE,
+            select: SUBSCRIPTION_SELECT,
         });
     }
 
@@ -193,7 +203,7 @@ export class SubscriptionRepository {
         return this.prisma.employerSubscription.update({
             where: { id },
             data: { status },
-            include: SUBSCRIPTION_INCLUDE,
+            select: SUBSCRIPTION_SELECT,
         });
     }
 
@@ -218,13 +228,16 @@ export class SubscriptionRepository {
         return member?.employerId ?? null;
     }
 
-    /** Find all ACTIVE subscriptions whose expiresAt has passed — for expiry cron. */
-    async findExpiredActive(): Promise<Array<{ id: string; employerId: string; package: { name: string } }>> {
+    /** Find ACTIVE subscriptions whose expiresAt has passed — for expiry cron.
+     *  @param batchSize Cap results per call; caller loops until empty to process all. */
+    async findExpiredActive(batchSize = 200): Promise<Array<{ id: string; employerId: string; package: { name: string } }>> {
         return this.prisma.employerSubscription.findMany({
             where: {
                 status: 'ACTIVE',
                 expiresAt: { lt: new Date() },
             },
+            take: batchSize,
+            orderBy: { expiresAt: 'asc' },
             select: {
                 id: true,
                 employerId: true,
@@ -271,7 +284,7 @@ export class SubscriptionRepository {
                 currentActiveJobs: activeJobs,
                 currentTeamMembers: teamMembers,
             },
-            include: SUBSCRIPTION_INCLUDE,
+            select: SUBSCRIPTION_SELECT,
         });
     }
 }

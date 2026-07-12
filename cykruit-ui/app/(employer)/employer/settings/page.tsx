@@ -63,8 +63,21 @@ const TABS = [
   { id: "security",      label: "Security",      icon: Shield    },
 ];
 
-const PLAN_FEATURES = ["25 active job listings", "AI candidate scoring", "3 team seats", "Analytics dashboard", "Priority support"];
 const SIZES = ["1–10", "11–50", "51–200", "201–500", "500–1000", "1000+"];
+
+interface SubSummary {
+  hasSubscription: boolean;
+  effectiveStatus?: string;
+  expiresAt?: string;
+  packageName?: string;
+  billingCycle?: string;
+  limits?: {
+    maxActiveJobs: number;
+    maxTeamMembers: number;
+    featuredJobSlots: number;
+    aiScoringEnabled: boolean;
+  };
+}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function EmployerSettingsPage() {
@@ -83,6 +96,9 @@ export default function EmployerSettingsPage() {
   const [companySize, setCompanySize] = useState("51–200");
   const [publicEmail, setPublicEmail] = useState("");
 
+  // Subscription summary
+  const [subSummary, setSubSummary] = useState<SubSummary | null>(null);
+
   // Notifications
   const [notifs, setNotifs] = useState({
     newApplication:   true,
@@ -97,9 +113,10 @@ export default function EmployerSettingsPage() {
   useEffect(() => {
     async function loadSettings() {
       try {
-        const [me, s] = await Promise.all([
+        const [me, s, subRes] = await Promise.all([
           apiFetch("/api/auth/me"),
           apiFetch("/api/settings/employer"),
+          apiFetch<SubSummary>("/api/subscriptions/usage").catch(() => null),
         ]);
         const u = me?.data ?? me;
         const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ");
@@ -113,6 +130,7 @@ export default function EmployerSettingsPage() {
         if (general.companySize   !== undefined) setCompanySize(general.companySize);
         if (general.publicEmail   !== undefined) setPublicEmail(general.publicEmail);
         if (notifs !== undefined) setNotifs((prev) => ({ ...prev, ...notifs }));
+        if (subRes?.data) setSubSummary(subRes.data);
       } catch {
         // silent — fields remain at defaults
       } finally {
@@ -130,8 +148,8 @@ export default function EmployerSettingsPage() {
         body: JSON.stringify({ phone, timezone }),
       });
       toast({ type: "success", message: "Contact details saved" });
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Failed to save details" });
+    } catch (err: unknown) {
+      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to save details") });
     }
   }
 
@@ -143,8 +161,8 @@ export default function EmployerSettingsPage() {
         body: JSON.stringify({ companySize, publicEmail }),
       });
       toast({ type: "success", message: "Company settings saved" });
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Failed to save settings" });
+    } catch (err: unknown) {
+      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to save settings") });
     }
   }
 
@@ -156,8 +174,8 @@ export default function EmployerSettingsPage() {
         body: JSON.stringify({ notifications: notifs }),
       });
       toast({ type: "success", message: "Notification preferences saved" });
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Failed to save preferences" });
+    } catch (err: unknown) {
+      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to save preferences") });
     }
   }
 
@@ -172,8 +190,8 @@ export default function EmployerSettingsPage() {
       });
       toast({ type: "error", message: "Account scheduled for deletion", description: "You will be logged out.", duration: 6000 });
       window.location.href = "/login";
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Failed to delete account" });
+    } catch (err: unknown) {
+      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to delete account") });
     }
   }
 
@@ -261,25 +279,55 @@ export default function EmployerSettingsPage() {
                 </Section>
 
                 <Section title="Plan & Billing" desc="Your current subscription plan and billing details.">
-                  <div className="flex items-start justify-between p-4 rounded-xl border border-violet-200 bg-violet-50/50 mb-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-semibold text-slate-900">Growth Plan</p>
-                        <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md border text-violet-700 bg-violet-100 border-violet-200">Active</span>
+                  {subSummary ? (
+                    <div className="flex items-start justify-between p-4 rounded-xl border border-violet-200 bg-violet-50/50 mb-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-sm font-semibold text-slate-900">
+                            {subSummary.hasSubscription && subSummary.packageName ? `${subSummary.packageName} Plan` : "Free Tier"}
+                          </p>
+                          {subSummary.hasSubscription && subSummary.effectiveStatus && (
+                            <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md border ${
+                              subSummary.effectiveStatus === "ACTIVE" ? "text-violet-700 bg-violet-100 border-violet-200"
+                              : subSummary.effectiveStatus === "CANCELLED" ? "text-slate-600 bg-slate-100 border-slate-200"
+                              : "text-amber-700 bg-amber-100 border-amber-200"
+                            }`}>{subSummary.effectiveStatus.charAt(0) + subSummary.effectiveStatus.slice(1).toLowerCase()}</span>
+                          )}
+                        </div>
+                        {subSummary.hasSubscription && subSummary.expiresAt && (
+                          <p className="text-xs text-slate-500 mb-2">
+                            {subSummary.billingCycle === "YEARLY" ? "Billed annually" : "Billed monthly"}
+                            {" · "}
+                            {subSummary.effectiveStatus === "CANCELLED" ? "Expires" : "Renews"} {subSummary.expiresAt.slice(0, 10)}
+                          </p>
+                        )}
+                        {subSummary.limits && (
+                          <ul className="space-y-1">
+                            {[
+                              `${subSummary.limits.maxActiveJobs} active job listings`,
+                              `${subSummary.limits.maxTeamMembers} team members`,
+                              subSummary.limits.featuredJobSlots > 0 ? `${subSummary.limits.featuredJobSlots} featured slots` : null,
+                              subSummary.limits.aiScoringEnabled ? "AI candidate scoring" : null,
+                            ].filter(Boolean).map((f) => (
+                              <li key={f as string} className="flex items-center gap-2 text-xs text-slate-500">
+                                <Check className="w-3 h-3 text-green-500 shrink-0" />{f}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
-                      <p className="text-xs text-slate-500 mb-2">$149/mo · Renews 2026-07-23</p>
-                      <ul className="space-y-1">
-                        {PLAN_FEATURES.map((f) => (
-                          <li key={f} className="flex items-center gap-2 text-xs text-slate-500">
-                            <Check className="w-3 h-3 text-green-500 shrink-0" />{f}
-                          </li>
-                        ))}
-                      </ul>
+                      <a href="/employer/subscription" className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer shrink-0">
+                        Manage →
+                      </a>
                     </div>
-                    <a href="/employer/subscription" className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer shrink-0">
-                      Manage →
-                    </a>
-                  </div>
+                  ) : (
+                    <div className="flex items-start justify-between p-4 rounded-xl border border-slate-200 bg-slate-50 mb-4">
+                      <p className="text-sm text-slate-400">Loading plan details…</p>
+                      <a href="/employer/subscription" className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer shrink-0">
+                        Manage →
+                      </a>
+                    </div>
+                  )}
                   <a href="/employer/subscription?tab=history" className="flex items-center gap-2 text-xs text-blue-600 hover:text-blue-700 font-semibold transition-colors">
                     View billing history & invoices →
                   </a>

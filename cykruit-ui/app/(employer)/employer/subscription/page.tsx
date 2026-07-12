@@ -5,81 +5,95 @@ import Link from "next/link";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
+import { apiFetch, authHeaders } from "@/lib/api";
 import {
-  CreditCard, Check, Zap, Building2, Shield, ArrowRight, Clock,
+  CreditCard, Check, Zap, Building2, Shield, Clock,
   AlertTriangle, Download, ExternalLink, ChevronRight, Star,
   TrendingUp, Users, Briefcase, RefreshCw, XCircle, Loader2,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface SubscriptionPackage {
+
+interface SubPackage {
   id: string;
   name: string;
-  price: number;
-  features: string[];
+  description?: string;
+  isActive: boolean;
+  maxActiveJobs: number;
+  maxTeamMembers: number;
+  featuredJobSlots: number;
+  aiScoringEnabled: boolean;
+  priceMonthly?: string | null;
+  priceYearly?: string | null;
 }
 
-interface Subscription {
+interface MySubscription {
+  hasSubscription: boolean;
+  effectiveStatus?: string;
+  id?: string;
+  packageId?: string;
+  billingCycle?: string;
+  expiresAt?: string;
+  startedAt?: string;
+  package?: SubPackage;
+}
+
+interface MyUsage {
+  hasSubscription: boolean;
+  effectiveStatus?: string;
+  expiresAt?: string;
+  packageName?: string;
+  limits?: {
+    maxActiveJobs: number;
+    maxTeamMembers: number;
+    featuredJobSlots: number;
+    aiScoringEnabled: boolean;
+  };
+  usage?: {
+    currentActiveJobs: number;
+    currentTeamMembers: number;
+    usedFeaturedJobSlots: number;
+  };
+}
+
+interface PaymentOrder {
   id: string;
-  packageId: string;
-  status: "active" | "cancelled" | "past_due" | "trialing";
-  startDate: string;
-  endDate: string | null;
-  billingCycle: "monthly" | "yearly";
-  package: SubscriptionPackage;
+  razorpayOrderId: string;
+  billingCycle: string;
+  amountPaise: number;
+  gstAmountPaise: number;
+  totalAmountPaise: number;
+  currency: string;
+  status: "CREATED" | "PAID" | "FAILED" | "EXPIRED";
+  createdAt: string;
+  package?: { id: string; name: string };
+  payment?: { razorpayPaymentId: string; capturedAt?: string } | null;
 }
-
-interface Usage {
-  jobsUsed: number;
-  jobsLimit: number;
-  applicantsViewedUsed: number;
-  applicantsViewedLimit: number;
-  [key: string]: number;
-}
-
-interface ApiPackage {
-  id: string;
-  name: string;
-  price: number;
-  features: string[];
-}
-
-// ── Static UI config (icon/color/yearlyPrice not returned by API) ─────────────
-const PLAN_UI: Record<string, { yearlyPrice: number; icon: React.ElementType; color: string }> = {
-  starter:    { yearlyPrice: 39,  icon: Shield,    color: "blue"    },
-  growth:     { yearlyPrice: 119, icon: Zap,       color: "violet"  },
-  enterprise: { yearlyPrice: 319, icon: Building2, color: "emerald" },
-};
-
-const PAYMENT_METHODS = [
-  { id: "pm_1", brand: "Visa", last4: "4242", expiry: "09/27", isDefault: true },
-];
-
-const INVOICES = [
-  { id: "INV-2026-006", date: "2026-06-01", amount: 149, status: "paid",   period: "Jun 2026" },
-  { id: "INV-2026-005", date: "2026-05-01", amount: 149, status: "paid",   period: "May 2026" },
-  { id: "INV-2026-004", date: "2026-04-01", amount: 149, status: "paid",   period: "Apr 2026" },
-  { id: "INV-2026-003", date: "2026-03-01", amount: 149, status: "paid",   period: "Mar 2026" },
-  { id: "INV-2026-002", date: "2026-02-01", amount: 149, status: "paid",   period: "Feb 2026" },
-  { id: "INV-2026-001", date: "2026-01-01", amount: 149, status: "paid",   period: "Jan 2026" },
-];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const statusConfig = {
-  active:    { label: "Active",    cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  trialing:  { label: "Trial",     cls: "bg-blue-100 text-blue-700 border-blue-200"          },
-  past_due:  { label: "Past Due",  cls: "bg-amber-100 text-amber-700 border-amber-200"       },
-  cancelled: { label: "Cancelled", cls: "bg-slate-100 text-slate-500 border-slate-200"       },
+
+const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
+  ACTIVE:    { label: "Active",    cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  EXPIRED:   { label: "Expired",   cls: "bg-amber-100 text-amber-700 border-amber-200"       },
+  CANCELLED: { label: "Cancelled", cls: "bg-slate-100 text-slate-500 border-slate-200"       },
 };
 
-function cardBrandIcon(brand: string) {
-  if (brand === "Visa") return (
-    <svg className="w-8 h-5" viewBox="0 0 48 32" fill="none">
-      <rect width="48" height="32" rx="4" fill="#1A1F71"/>
-      <text x="6" y="22" fill="white" fontSize="14" fontFamily="Arial" fontWeight="bold">VISA</text>
-    </svg>
-  );
-  return <CreditCard className="w-5 h-5 text-slate-400" />;
+const ORDER_STATUS_CLS: Record<string, string> = {
+  PAID:    "bg-emerald-50 text-emerald-700 border-emerald-200",
+  CREATED: "bg-blue-50 text-blue-700 border-blue-200",
+  FAILED:  "bg-red-50 text-red-700 border-red-200",
+  EXPIRED: "bg-slate-100 text-slate-400 border-slate-200",
+};
+
+function paise(n: number) {
+  return "₹" + (n / 100).toLocaleString("en-IN", { minimumFractionDigits: 0 });
+}
+
+function priceLabel(pkg: SubPackage | undefined, billing: string): string {
+  if (!pkg) return "—";
+  const raw = billing === "YEARLY" ? pkg.priceYearly : pkg.priceMonthly;
+  if (!raw) return "Free";
+  return "₹" + Number(raw).toLocaleString("en-IN") + (billing === "YEARLY" ? "/yr" : "/mo");
 }
 
 function UsageBar({ used, limit, color }: { used: number; limit: number; color: string }) {
@@ -102,36 +116,44 @@ function UsageBar({ used, limit, color }: { used: number; limit: number; color: 
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function SubscriptionPage() {
   const { toast } = useToast();
   const { openModal } = useModal();
-  const [tab, setTab] = useState<"overview" | "plans" | "payment" | "history">("overview");
+  const [tab, setTab] = useState<"overview" | "plans" | "history">("overview");
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [usage, setUsage] = useState<Usage | null>(null);
-  const [packages, setPackages] = useState<ApiPackage[]>([]);
+  const [sub, setSub] = useState<MySubscription | null>(null);
+  const [usage, setUsage] = useState<MyUsage | null>(null);
+  const [packages, setPackages] = useState<SubPackage[]>([]);
+  const [orders, setOrders] = useState<PaymentOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     async function load() {
+      setLoadError(false);
       try {
-        const [subData, usageData, pkgData] = await Promise.all([
-          fetch("/api/subscriptions/my", { credentials: "include" })
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null),
-          fetch("/api/subscriptions/usage", { credentials: "include" })
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null),
-          fetch("/api/subscriptions/packages", { credentials: "include" })
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null),
+        const [subRes, usageRes, pkgRes, ordersRes] = await Promise.all([
+          apiFetch<MySubscription>("/api/subscriptions/my").catch(() => null),
+          apiFetch<MyUsage>("/api/subscriptions/usage").catch(() => null),
+          apiFetch<SubPackage[]>("/api/subscriptions/packages").catch(() => null),
+          apiFetch<PaymentOrder[]>("/api/subscriptions/orders").catch(() => null),
         ]);
-        if (subData)  setSubscription(subData?.data ?? subData);
-        if (usageData) setUsage(usageData?.data ?? usageData);
-        if (pkgData)  setPackages(pkgData?.data ?? pkgData);
+        if (subRes?.data) setSub(subRes.data);
+        if (usageRes?.data) setUsage(usageRes.data);
+        if (pkgRes?.data) {
+          const arr = Array.isArray(pkgRes.data) ? pkgRes.data : [];
+          setPackages(arr.filter((p) => p.priceMonthly != null || p.priceYearly != null));
+        }
+        if (ordersRes?.data) {
+          const arr = Array.isArray(ordersRes.data) ? ordersRes.data : [];
+          setOrders(arr);
+        }
+        if (!subRes && !usageRes && !pkgRes) setLoadError(true);
       } catch {
-        // silently ignore; UI shows fallbacks
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
@@ -139,56 +161,78 @@ export default function SubscriptionPage() {
     load();
   }, []);
 
-  const planStatus = subscription?.status ?? "active";
-  const sc = statusConfig[planStatus] ?? statusConfig.active;
-  const planName = subscription?.package?.name ?? "No active plan";
-  const planPrice = subscription?.package?.price ?? 0;
-  const planBilling = subscription?.billingCycle ?? "monthly";
-  const planRenewsAt = subscription?.endDate ? subscription.endDate.slice(0, 10) : "—";
-  const planPackageId = subscription?.packageId ?? "";
+  const planStatus = sub?.effectiveStatus ?? usage?.effectiveStatus ?? "";
+  const sc = STATUS_CONFIG[planStatus] ?? STATUS_CONFIG.ACTIVE;
+  const planName = sub?.package?.name ?? usage?.packageName ?? "No active plan";
+  const planBilling = sub?.billingCycle ?? "MONTHLY";
+  const planRenewsAt = sub?.expiresAt ? sub.expiresAt.slice(0, 10) : "—";
+  const planPackageId = sub?.packageId ?? "";
 
-  const jobsUsed = usage?.jobsUsed ?? 0;
-  const jobsLimit = usage?.jobsLimit ?? 0;
-  const applicantsUsed = usage?.applicantsViewedUsed ?? 0;
-  const applicantsLimit = usage?.applicantsViewedLimit ?? 0;
+  const jobsUsed = usage?.usage?.currentActiveJobs ?? 0;
+  const jobsLimit = usage?.limits?.maxActiveJobs ?? 0;
+  const teamUsed = usage?.usage?.currentTeamMembers ?? 0;
+  const teamLimit = usage?.limits?.maxTeamMembers ?? 0;
+
+  const hasActiveSub = sub?.hasSubscription && planStatus === "ACTIVE";
 
   function handleCancelPlan() {
     openModal({
       variant: "danger",
       title: "Cancel subscription?",
-      description: `Your ${planName} plan will remain active until ${planRenewsAt}. After that you'll be moved to the free tier and excess job listings will be paused.`,
+      description: `Your ${planName} plan will remain active until ${planRenewsAt}. After that you'll be moved to the free tier.`,
       confirmLabel: "Yes, cancel plan",
-      onConfirm: () => {
-        toast({ type: "info", message: "Subscription cancelled", description: `Access continues until ${planRenewsAt}.` });
-      },
-    });
-  }
-
-  function handleRemoveCard(last4: string) {
-    openModal({
-      variant: "danger",
-      title: "Remove payment method?",
-      description: `Remove card ending in ${last4}? You'll need to add a new card before your next renewal.`,
-      confirmLabel: "Remove card",
-      onConfirm: () => {
-        toast({ type: "success", message: "Payment method removed" });
+      onConfirm: async () => {
+        setCancelling(true);
+        try {
+          await apiFetch("/api/subscriptions/cancel", {
+            method: "POST",
+            headers: authHeaders(),
+          });
+          toast({ type: "success", message: "Subscription cancelled", description: `Access continues until ${planRenewsAt}.` });
+          setSub((prev) => prev ? { ...prev, effectiveStatus: "CANCELLED" } : prev);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : "Failed to cancel subscription";
+          toast({ type: "error", message: msg });
+        } finally {
+          setCancelling(false);
+        }
       },
     });
   }
 
   const TABS = [
-    { id: "overview", label: "Overview"        },
-    { id: "plans",    label: "Change Plan"      },
-    { id: "payment",  label: "Payment Methods"  },
-    { id: "history",  label: "Billing History"  },
+    { id: "overview", label: "Overview"      },
+    { id: "plans",    label: "Change Plan"    },
+    { id: "history",  label: "Billing History"},
   ] as const;
 
   if (loading) {
     return (
       <>
         <EmployerTopbar title="Subscription" />
-        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center min-h-100">
+        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
           <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
+        </main>
+      </>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <>
+        <EmployerTopbar title="Subscription" />
+        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
+          <div className="text-center">
+            <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto mb-3" />
+            <p className="text-sm font-semibold text-slate-700">Failed to load subscription data</p>
+            <p className="text-xs text-slate-400 mt-1 mb-4">Check your connection and try again.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors mx-auto cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> Retry
+            </button>
+          </div>
         </main>
       </>
     );
@@ -199,24 +243,23 @@ export default function SubscriptionPage() {
       <EmployerTopbar title="Subscription" />
       <main className="flex-1 overflow-y-auto p-6">
 
-        {/* Header strip */}
         <div className="flex items-start justify-between mb-6">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Subscription & Billing</h2>
-            <p className="text-sm text-slate-400 mt-0.5">Manage your plan, payment methods, and invoices.</p>
+            <p className="text-sm text-slate-400 mt-0.5">Manage your plan and payment history.</p>
           </div>
           <Link
             href="/pricing"
             target="_blank"
             className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
           >
-            View pricing page <ExternalLink className="w-3 h-3" />
+            View pricing <ExternalLink className="w-3 h-3" />
           </Link>
         </div>
 
         <div className="flex flex-col md:flex-row gap-5 items-start">
 
-          {/* ── Left tab sidebar ── */}
+          {/* Tab sidebar */}
           <div className="w-full md:w-48 md:shrink-0 bg-white rounded-2xl border border-slate-200 p-2 flex flex-row md:flex-col gap-0.5 overflow-x-auto md:sticky md:top-6">
             {TABS.map(({ id, label }) => (
               <button key={id} onClick={() => setTab(id)}
@@ -229,29 +272,26 @@ export default function SubscriptionPage() {
             ))}
           </div>
 
-          {/* ── Content ── */}
           <div className="flex-1 min-w-0 space-y-4">
 
             {/* ══ OVERVIEW ══ */}
             {tab === "overview" && (
               <>
-                {/* Past due alert */}
-                {planStatus === "past_due" && (
+                {planStatus === "EXPIRED" && (
                   <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50">
                     <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-semibold text-amber-800">Payment failed</p>
-                      <p className="text-xs text-amber-600 mt-0.5">Your last payment could not be processed. Please update your payment method to avoid interruption.</p>
-                      <button onClick={() => setTab("payment")} className="text-xs font-semibold text-amber-700 underline mt-1">Update payment method →</button>
+                      <p className="text-sm font-semibold text-amber-800">Subscription expired</p>
+                      <p className="text-xs text-amber-600 mt-0.5">Your plan expired on {planRenewsAt}. Upgrade to restore full access.</p>
+                      <button onClick={() => setTab("plans")} className="text-xs font-semibold text-amber-700 underline mt-1">Upgrade now →</button>
                     </div>
                   </div>
                 )}
 
-                {/* No subscription state */}
-                {!subscription && (
+                {!sub?.hasSubscription && (
                   <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
                     <p className="text-sm font-semibold text-slate-600">No active plan</p>
-                    <p className="text-xs text-slate-400 mt-1 mb-4">You don&apos;t have an active subscription yet.</p>
+                    <p className="text-xs text-slate-400 mt-1 mb-4">You don&apos;t have a paid subscription yet.</p>
                     <button
                       onClick={() => setTab("plans")}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
@@ -261,8 +301,7 @@ export default function SubscriptionPage() {
                   </div>
                 )}
 
-                {/* Current plan card */}
-                {subscription && (
+                {sub?.hasSubscription && (
                   <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
                     <div className="px-6 py-5 border-b border-slate-100">
                       <div className="flex items-start justify-between gap-4">
@@ -273,12 +312,12 @@ export default function SubscriptionPage() {
                             <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${sc.cls}`}>{sc.label}</span>
                           </div>
                           <p className="text-sm text-slate-400">
-                            ${planPrice}/mo · {planBilling === "yearly" ? "billed annually" : "billed monthly"}
+                            {priceLabel(sub.package, planBilling)} · {planBilling === "YEARLY" ? "billed annually" : "billed monthly"}
                           </p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-0.5">
-                            {planStatus === "cancelled" ? "Expires" : "Renews"}
+                            {planStatus === "CANCELLED" ? "Expires" : "Renews"}
                           </p>
                           <p className="text-sm font-semibold text-slate-700 flex items-center gap-1.5 justify-end">
                             <Clock className="w-3.5 h-3.5 text-slate-400" /> {planRenewsAt}
@@ -287,7 +326,6 @@ export default function SubscriptionPage() {
                       </div>
                     </div>
 
-                    {/* Usage */}
                     <div className="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
                       <div>
                         <div className="flex items-center gap-2 mb-3">
@@ -299,43 +337,35 @@ export default function SubscriptionPage() {
                       <div>
                         <div className="flex items-center gap-2 mb-3">
                           <Users className="w-3.5 h-3.5 text-slate-400" />
-                          <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Applicants Viewed</p>
+                          <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Team Members</p>
                         </div>
-                        <UsageBar used={applicantsUsed} limit={applicantsLimit} color="bg-blue-500" />
+                        <UsageBar used={teamUsed} limit={teamLimit} color="bg-blue-500" />
                       </div>
                     </div>
 
-                    {/* Quick actions */}
                     <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-wrap gap-3">
                       <button
                         onClick={() => setTab("plans")}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
                       >
-                        <TrendingUp className="w-3.5 h-3.5" /> Upgrade Plan
-                      </button>
-                      <button
-                        onClick={() => setTab("payment")}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
-                      >
-                        <CreditCard className="w-3.5 h-3.5" /> Manage Payment
+                        <TrendingUp className="w-3.5 h-3.5" /> Change Plan
                       </button>
                       <button
                         onClick={() => setTab("history")}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
                       >
-                        <Download className="w-3.5 h-3.5" /> Download Invoices
+                        <Download className="w-3.5 h-3.5" /> Billing History
                       </button>
                     </div>
                   </div>
                 )}
 
-                {/* Stats row */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { label: "Active Listings",   value: jobsUsed,                          icon: Briefcase,  color: "text-violet-600"  },
-                    { label: "Applicants Viewed",  value: applicantsUsed,                    icon: Users,      color: "text-blue-600"    },
-                    { label: "Jobs Remaining",     value: Math.max(0, jobsLimit - jobsUsed), icon: Clock,      color: "text-slate-500"   },
-                    { label: "Total Invoiced",     value: `$${INVOICES.reduce((s, i) => s + i.amount, 0)}`, icon: CreditCard, color: "text-emerald-600" },
+                    { label: "Active Listings",  value: jobsUsed,                          icon: Briefcase, color: "text-violet-600" },
+                    { label: "Team Members",      value: teamUsed,                          icon: Users,     color: "text-blue-600"   },
+                    { label: "Jobs Remaining",    value: Math.max(0, jobsLimit - jobsUsed), icon: Clock,     color: "text-slate-500"  },
+                    { label: "Payments Made",     value: orders.filter(o => o.status === "PAID").length, icon: CreditCard, color: "text-emerald-600" },
                   ].map(({ label, value, icon: Icon, color }) => (
                     <div key={label} className="bg-white rounded-2xl border border-slate-200 p-4">
                       <Icon className={`w-4 h-4 mb-2 ${color}`} />
@@ -345,19 +375,20 @@ export default function SubscriptionPage() {
                   ))}
                 </div>
 
-                {/* Cancel zone */}
-                {subscription && planStatus !== "cancelled" && (
+                {hasActiveSub && (
                   <div className="bg-white rounded-2xl border border-slate-200 p-5">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-semibold text-slate-700">Cancel subscription</p>
-                        <p className="text-xs text-slate-400 mt-0.5">You&apos;ll retain access until {planRenewsAt}. This cannot be undone.</p>
+                        <p className="text-xs text-slate-400 mt-0.5">You&apos;ll retain access until {planRenewsAt}.</p>
                       </div>
                       <button
                         onClick={handleCancelPlan}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50 transition-colors cursor-pointer"
+                        disabled={cancelling}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                       >
-                        <XCircle className="w-3.5 h-3.5" /> Cancel Plan
+                        {cancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+                        {cancelling ? "Cancelling…" : "Cancel Plan"}
                       </button>
                     </div>
                   </div>
@@ -371,9 +402,10 @@ export default function SubscriptionPage() {
                 <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">Available Plans</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">You&apos;re currently on <span className="font-semibold text-slate-600">{planName} ({planBilling === "yearly" ? "Annual" : "Monthly"})</span></p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Currently on <span className="font-semibold text-slate-600">{planName}</span>
+                    </p>
                   </div>
-                  {/* Billing toggle */}
                   <div className="flex items-center gap-2 p-1 rounded-xl bg-slate-100 border border-slate-200">
                     <button onClick={() => setBillingCycle("monthly")} className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${billingCycle === "monthly" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>Monthly</button>
                     <button onClick={() => setBillingCycle("yearly")}  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${billingCycle === "yearly"  ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"}`}>
@@ -384,22 +416,20 @@ export default function SubscriptionPage() {
 
                 <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                   {packages.map((pkg) => {
-                    const ui = PLAN_UI[pkg.id.toLowerCase()] ?? PLAN_UI[pkg.name.toLowerCase()] ?? { yearlyPrice: Math.round(pkg.price * 0.8), icon: Zap, color: "violet" };
-                    const price = billingCycle === "yearly" ? ui.yearlyPrice : pkg.price;
                     const isCurrent = pkg.id === planPackageId || pkg.name === planName;
-                    const Icon = ui.icon;
-                    const isEnterprise = pkg.id === "enterprise" || pkg.name.toLowerCase() === "enterprise";
-                    const accent =
-                      ui.color === "violet"  ? { btn: "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20", badge: "bg-violet-50 border-violet-200 text-violet-700", border: "border-violet-200 ring-2 ring-violet-200/50" }
-                    : ui.color === "emerald" ? { btn: "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20", badge: "bg-emerald-50 border-emerald-200 text-emerald-700", border: "border-emerald-200 ring-2 ring-emerald-200/50" }
-                    : { btn: "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20", badge: "bg-blue-50 border-blue-200 text-blue-700", border: "border-blue-200 ring-2 ring-blue-200/50" };
-
-                    const currentPkgPrice = packages.find(x => x.id === planPackageId || x.name === planName)?.price ?? 0;
+                    const price = billingCycle === "yearly"
+                      ? (pkg.priceYearly ? Number(pkg.priceYearly) : null)
+                      : (pkg.priceMonthly ? Number(pkg.priceMonthly) : null);
+                    const isEnterprise = pkg.name.toLowerCase() === "enterprise";
+                    const Icon = pkg.name.toLowerCase() === "growth" ? Zap : pkg.name.toLowerCase() === "enterprise" ? Building2 : Shield;
+                    const accentBtn = pkg.name.toLowerCase() === "growth" ? "bg-violet-600 hover:bg-violet-700" : "bg-blue-600 hover:bg-blue-700";
+                    const currentPrice = packages.find(p => p.id === planPackageId || p.name === planName);
+                    const currentPriceVal = currentPrice?.priceMonthly ? Number(currentPrice.priceMonthly) : 0;
 
                     return (
-                      <div key={pkg.id} className={`relative rounded-2xl border p-5 flex flex-col gap-4 ${isCurrent ? accent.border : "border-slate-200"}`}>
+                      <div key={pkg.id} className={`relative rounded-2xl border p-5 flex flex-col gap-4 ${isCurrent ? "border-blue-200 ring-2 ring-blue-200/50" : "border-slate-200"}`}>
                         {isCurrent && (
-                          <span className={`absolute top-3 right-3 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${accent.badge}`}>Current</span>
+                          <span className="absolute top-3 right-3 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border bg-blue-50 border-blue-200 text-blue-700">Current</span>
                         )}
                         <div>
                           <div className="flex items-center gap-2 mb-1">
@@ -407,24 +437,36 @@ export default function SubscriptionPage() {
                             <span className="text-sm font-bold text-slate-900">{pkg.name}</span>
                           </div>
                           <div className="flex items-end gap-1">
-                            <span className="text-2xl font-bold text-slate-900">{isEnterprise ? "Custom" : `$${price}`}</span>
-                            {!isEnterprise && <span className="text-xs text-slate-400 mb-1">/mo</span>}
+                            <span className="text-2xl font-bold text-slate-900">
+                              {isEnterprise ? "Custom" : price != null ? `₹${price.toLocaleString("en-IN")}` : "—"}
+                            </span>
+                            {!isEnterprise && price != null && <span className="text-xs text-slate-400 mb-1">/mo</span>}
                           </div>
-                          {billingCycle === "yearly" && !isEnterprise && (
-                            <p className="text-[10px] font-mono text-emerald-600 mt-0.5">Save ${(pkg.price - ui.yearlyPrice) * 12}/yr</p>
-                          )}
+                          {pkg.description && <p className="text-xs text-slate-400 mt-1">{pkg.description}</p>}
                         </div>
-
+                        <ul className="space-y-1.5">
+                          {[
+                            `${pkg.maxActiveJobs} active job listings`,
+                            `${pkg.maxTeamMembers} team members`,
+                            pkg.featuredJobSlots > 0 ? `${pkg.featuredJobSlots} featured slots` : null,
+                            pkg.aiScoringEnabled ? "AI candidate scoring" : null,
+                          ].filter(Boolean).map((f) => (
+                            <li key={f} className="flex items-center gap-2 text-xs text-slate-600">
+                              <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" strokeWidth={2.5} />
+                              {f}
+                            </li>
+                          ))}
+                        </ul>
                         {isCurrent ? (
                           <button disabled className="w-full h-10 rounded-xl bg-slate-100 text-slate-400 text-xs font-semibold cursor-not-allowed flex items-center justify-center gap-1.5">
                             <Check className="w-3.5 h-3.5" /> Current Plan
                           </button>
                         ) : (
                           <Link
-                            href={isEnterprise ? "/contact" : `/employer/subscription/checkout?plan=${pkg.id}&billing=${billingCycle}&from=subscription`}
-                            className={`w-full h-10 rounded-xl text-white text-xs font-semibold transition-all shadow-md flex items-center justify-center gap-1.5 ${accent.btn}`}
+                            href={isEnterprise ? "/contact" : `/employer/subscription/checkout?packageId=${pkg.id}&billing=${billingCycle.toUpperCase()}`}
+                            className={`w-full h-10 rounded-xl text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${accentBtn}`}
                           >
-                            {isEnterprise ? "Contact Sales" : pkg.price > currentPkgPrice ? "Upgrade" : "Downgrade"}
+                            {isEnterprise ? "Contact Sales" : price != null && Number(currentPriceVal) > 0 && price > currentPriceVal ? "Upgrade" : "Select Plan"}
                             <ChevronRight className="w-3.5 h-3.5" />
                           </Link>
                         )}
@@ -435,111 +477,68 @@ export default function SubscriptionPage() {
                     <div className="col-span-3 py-8 text-center text-sm text-slate-400">No packages available.</div>
                   )}
                 </div>
-
-                <div className="px-6 pb-5 text-center">
-                  <p className="text-[10px] text-slate-400 font-mono">Upgrades are prorated. Downgrades take effect next cycle.</p>
-                </div>
-              </div>
-            )}
-
-            {/* ══ PAYMENT METHODS ══ */}
-            {tab === "payment" && (
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-900">Payment Methods</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">Cards used for subscription billing.</p>
-                  </div>
-                  <Link
-                    href="/employer/subscription/checkout?action=add_card"
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors"
-                  >
-                    + Add Card
-                  </Link>
-                </div>
-
-                <div className="divide-y divide-slate-100">
-                  {PAYMENT_METHODS.map((pm) => (
-                    <div key={pm.id} className="px-6 py-4 flex items-center gap-4">
-                      {cardBrandIcon(pm.brand)}
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-slate-800">{pm.brand} ending in {pm.last4}</p>
-                        <p className="text-xs text-slate-400">Expires {pm.expiry}</p>
-                      </div>
-                      {pm.isDefault && (
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">Default</span>
-                      )}
-                      <button
-                        onClick={() => handleRemoveCard(pm.last4)}
-                        className="text-xs text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="px-6 py-4 bg-slate-50 border-t border-slate-100">
-                  <p className="text-[10px] text-slate-400 flex items-center gap-1.5">
-                    <Shield className="w-3 h-3" /> Card details are encrypted and never stored on our servers. Powered by Stripe.
-                  </p>
-                </div>
               </div>
             )}
 
             {/* ══ BILLING HISTORY ══ */}
             {tab === "history" && (
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div className="px-6 py-5 border-b border-slate-100">
-                  <h3 className="text-sm font-bold text-slate-900">Billing History</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">All invoices for your account.</p>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-100">
-                        <th className="px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Invoice</th>
-                        <th className="px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Period</th>
-                        <th className="px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Date</th>
-                        <th className="px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Amount</th>
-                        <th className="px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Status</th>
-                        <th className="px-6 py-3 text-right text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Receipt</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {INVOICES.map((inv) => (
-                        <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-6 py-3.5 font-mono text-xs text-slate-600">{inv.id}</td>
-                          <td className="px-6 py-3.5 text-slate-700">{inv.period}</td>
-                          <td className="px-6 py-3.5 text-slate-500 text-xs">{inv.date}</td>
-                          <td className="px-6 py-3.5 font-semibold text-slate-800">${inv.amount}</td>
-                          <td className="px-6 py-3.5">
-                            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${
-                              inv.status === "paid" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-amber-50 text-amber-700 border-amber-200"
-                            }`}>
-                              {inv.status.toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="px-6 py-3.5 text-right">
-                            <button
-                              onClick={() => toast({ type: "info", message: `Downloading ${inv.id}...` })}
-                              className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 ml-auto cursor-pointer"
-                            >
-                              <Download className="w-3 h-3" /> PDF
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                  <p className="text-xs text-slate-400">Showing {INVOICES.length} invoices</p>
-                  <button className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors cursor-pointer">
+                <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">Billing History</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">All Razorpay payment orders for your account.</p>
+                  </div>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 transition-colors cursor-pointer"
+                  >
                     <RefreshCw className="w-3 h-3" /> Refresh
                   </button>
+                </div>
+
+                {orders.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <CreditCard className="w-8 h-8 text-slate-200 mx-auto mb-3" />
+                    <p className="text-sm text-slate-400">No payment orders yet.</p>
+                    <p className="text-xs text-slate-300 mt-1">Orders will appear here once you subscribe to a paid plan.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          {["Package", "Cycle", "Base", "GST", "Total", "Status", "Date"].map((h) => (
+                            <th key={h} className="px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {orders.map((o) => (
+                          <tr key={o.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-3.5 text-slate-700 font-medium">{o.package?.name ?? "—"}</td>
+                            <td className="px-6 py-3.5 font-mono text-xs text-slate-500">{o.billingCycle}</td>
+                            <td className="px-6 py-3.5 font-mono text-xs text-slate-600">{paise(o.amountPaise)}</td>
+                            <td className="px-6 py-3.5 font-mono text-xs text-slate-500">{paise(o.gstAmountPaise)}</td>
+                            <td className="px-6 py-3.5 font-mono text-xs font-semibold text-slate-900">{paise(o.totalAmountPaise)}</td>
+                            <td className="px-6 py-3.5">
+                              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${ORDER_STATUS_CLS[o.status] ?? ORDER_STATUS_CLS.EXPIRED}`}>
+                                {o.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-3.5 text-xs text-slate-500">
+                              {new Date(o.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                <div className="px-6 py-4 bg-slate-50 border-t border-slate-100">
+                  <p className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                    <Shield className="w-3 h-3" /> Payments processed securely via Razorpay. All amounts in INR including 18% GST.
+                  </p>
                 </div>
               </div>
             )}

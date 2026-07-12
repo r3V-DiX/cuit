@@ -68,6 +68,28 @@ export class SubscriptionService {
         return this.repository.findSubscriptionByEmployer(employerId);
     }
 
+    async listPaymentOrders(query: { employerId?: string; page?: number; limit?: number }) {
+        return this.repository.findPaymentOrders(query);
+    }
+
+    async getPaymentOrder(id: string) {
+        return this.repository.findPaymentOrderById(id);
+    }
+
+    async refreshUsage(adminId: string, employerId: string) {
+        const result = await this.repository.refreshEmployerUsage(employerId);
+        this.auditLogger.log({
+            adminId,
+            action: 'subscription:refresh-usage',
+            module: 'subscription',
+            resource: 'EmployerSubscription',
+            resourceId: employerId,
+            riskLevel: 'LOW',
+            result: 'SUCCESS',
+        });
+        return result;
+    }
+
     async updateSubscriptionStatus(adminId: string, id: string, status: string) {
         const result = await this.repository.updateSubscriptionStatus(id, status);
         this.auditLogger.log({

@@ -2,6 +2,7 @@
 
 import {
     Controller,
+    Get,
     Post,
     Body,
     Req,
@@ -28,6 +29,13 @@ export class PaymentController {
     @UseGuards(AuthGuard)
     createOrder(@CurrentUser() user: User, @Body() dto: CreateOrderDto) {
         return this.paymentService.createOrder(user.id, dto);
+    }
+
+    /** GET /subscriptions/orders — employer's payment order history */
+    @Get('orders')
+    @UseGuards(AuthGuard)
+    getMyOrders(@CurrentUser() user: User) {
+        return this.paymentService.getMyOrders(user.id);
     }
 
     /** POST /subscriptions/webhook — Razorpay webhook (public, signature-verified) */

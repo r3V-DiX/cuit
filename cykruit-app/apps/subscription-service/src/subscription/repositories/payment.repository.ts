@@ -103,7 +103,61 @@ export class PaymentRepository {
                 priceMonthly: null,
                 priceYearly: null,
             },
-            select: { id: true, name: true },
+            select: {
+                id: true,
+                name: true,
+                maxActiveJobs: true,
+                maxTeamMembers: true,
+                featuredJobSlots: true,
+                aiScoringEnabled: true,
+            },
+        });
+    }
+
+    /** Return an existing non-expired CREATED order for the same employer+package+cycle (idempotency). */
+    async findLiveOrder(employerId: string, packageId: string, billingCycle: BillingCycle) {
+        return this.prisma.paymentOrder.findFirst({
+            where: {
+                employerId,
+                packageId,
+                billingCycle,
+                status: PaymentOrderStatus.CREATED,
+                expiresAt: { gt: new Date() },
+            },
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true,
+                razorpayOrderId: true,
+                amountPaise: true,
+                gstAmountPaise: true,
+                totalAmountPaise: true,
+                currency: true,
+            },
+        });
+    }
+
+    async findOrdersByEmployer(employerId: string, page = 1, limit = 50) {
+        const skip = (page - 1) * limit;
+        const safeLimit = Math.min(limit, 100);
+        return this.prisma.paymentOrder.findMany({
+            where: { employerId },
+            orderBy: { createdAt: 'desc' },
+            skip,
+            take: safeLimit,
+            select: {
+                id: true,
+                razorpayOrderId: true,
+                billingCycle: true,
+                amountPaise: true,
+                gstAmountPaise: true,
+                totalAmountPaise: true,
+                currency: true,
+                status: true,
+                expiresAt: true,
+                createdAt: true,
+                package: { select: { id: true, name: true } },
+                payment: { select: { razorpayPaymentId: true, capturedAt: true } },
+            },
         });
     }
 

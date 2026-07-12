@@ -98,8 +98,9 @@ export function SessionsPanel({ onSignedOutAll }: { onSignedOutAll?: () => void 
   const loadSessions = useCallback(async () => {
     setLoadingSessions(true);
     try {
-      const res = await apiFetch("/api/auth/sessions");
-      const arr = Array.isArray(res) ? res : (res?.data ?? res?.items ?? []);
+      const res = await apiFetch<any>("/api/auth/sessions");
+      const body = res?.data;
+      const arr = Array.isArray(body) ? body : (body?.items ?? body ?? []);
       setSessions(Array.isArray(arr) ? arr : []);
     } catch {
       toast({ type: "error", message: "Could not load sessions" });
@@ -114,9 +115,10 @@ export function SessionsPanel({ onSignedOutAll }: { onSignedOutAll?: () => void 
     setLoadingHistory(true);
     try {
       const res = await apiFetch<any>(`/api/auth/sessions/history?page=${page}&limit=10`);
-      const arr = Array.isArray(res) ? res : (res?.data ?? res?.items ?? []);
+      const body = res?.data;
+      const arr = Array.isArray(body) ? body : (body?.items ?? body ?? []);
       setHistory(Array.isArray(arr) ? arr : []);
-      setHistoryTotal(res?.total ?? res?.data?.total ?? 0);
+      setHistoryTotal(body?.total ?? 0);
       setHistoryPage(page);
     } catch {
       toast({ type: "error", message: "Could not load login history" });
