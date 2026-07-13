@@ -11,31 +11,72 @@ import { broadcastLogin } from "@/lib/auth-sync";
 // ── OTP digit input ──────────────────────────────────────────────────────────
 
 function OtpInput({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled: boolean }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const digits = value.padEnd(6, " ").split("");
+  const refs = useRef<Array<HTMLInputElement | null>>([]);
+
+  function handleChange(i: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const digit = e.target.value.replace(/\D/g, "").slice(-1);
+    if (!digit) return;
+    const newOtp = value.slice(0, i) + digit + value.slice(i + 1);
+    onChange(newOtp.slice(0, 6));
+    if (i < 5) refs.current[i + 1]?.focus();
+  }
+
+  function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      if (value[i]) {
+        onChange(value.slice(0, i) + value.slice(i + 1));
+      } else if (i > 0) {
+        onChange(value.slice(0, i - 1) + value.slice(i));
+        refs.current[i - 1]?.focus();
+      }
+    } else if (e.key === "ArrowLeft" && i > 0) {
+      e.preventDefault();
+      refs.current[i - 1]?.focus();
+    } else if (e.key === "ArrowRight" && i < 5) {
+      e.preventDefault();
+      refs.current[i + 1]?.focus();
+    }
+  }
+
+  function handlePaste(e: React.ClipboardEvent) {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    onChange(pasted);
+    refs.current[Math.min(pasted.length, 5)]?.focus();
+  }
+
+  function handleFocus(i: number) {
+    const nextEmpty = value.length;
+    if (i > nextEmpty) refs.current[nextEmpty]?.focus();
+  }
+
   return (
-    <div className="relative">
-      <input
-        ref={inputRef}
-        type="text"
-        inputMode="numeric"
-        autoComplete="one-time-code"
-        value={value}
-        onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 6))}
-        disabled={disabled}
-        maxLength={6}
-        className="absolute inset-0 opacity-0 w-full cursor-text z-10"
-        autoFocus
-        aria-label="OTP code"
-      />
-      <div className="flex gap-2 cursor-text" onClick={() => inputRef.current?.focus()}>
-        {digits.map((d, i) => (
-          <div key={i} className={`w-11 h-13 rounded-xl border-2 flex items-center justify-center text-xl font-bold font-mono transition-all ${
-            value.length === i ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm" :
-            d.trim() ? "border-slate-300 bg-white text-slate-900" : "border-slate-200 bg-slate-50 text-transparent"
-          }`}>{d.trim() || "·"}</div>
-        ))}
-      </div>
+    <div className="flex gap-2">
+      {Array.from({ length: 6 }, (_, i) => (
+        <input
+          key={i}
+          ref={(el) => { refs.current[i] = el; }}
+          type="text"
+          inputMode="numeric"
+          autoComplete={i === 0 ? "one-time-code" : "off"}
+          maxLength={2}
+          value={value[i] ?? ""}
+          onChange={(e) => handleChange(i, e)}
+          onKeyDown={(e) => handleKeyDown(i, e)}
+          onPaste={handlePaste}
+          onFocus={() => handleFocus(i)}
+          disabled={disabled}
+          autoFocus={i === 0}
+          className={`w-11 h-13 rounded-xl border-2 text-center text-xl font-bold font-mono transition-all focus:outline-none ${
+            value.length === i
+              ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
+              : value[i]
+              ? "border-slate-300 bg-white text-slate-900"
+              : "border-slate-200 bg-slate-50 text-slate-900"
+          }`}
+        />
+      ))}
     </div>
   );
 }
