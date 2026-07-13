@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, Suspense } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Shield, ArrowRight, ChevronLeft, Mail, RefreshCw } from "lucide-react";
@@ -134,6 +134,27 @@ function LoginForm() {
   // Pre-select role from nextPath hint, but user can change it
   const hintRole = nextPath.startsWith("/employer") || nextPath.startsWith("/kyc") ? "EMPLOYER" : "SEEKER";
   const [role, setRole] = useState<"SEEKER" | "EMPLOYER">(hintRole);
+
+  // Show OAuth error redirected back from backend (e.g. ?error=GOOGLE_AUTH_FAILED)
+  const OAUTH_ERROR_MESSAGES: Record<string, string> = {
+    GOOGLE_AUTH_FAILED:    "Google sign-in failed. Please try again.",
+    GITHUB_AUTH_FAILED:    "GitHub sign-in failed. Please try again.",
+    OAUTH_INVALID_ROLE:    "Invalid role selected. Please choose Seeker or Employer.",
+    INVALID_OAUTH_STATE:   "Sign-in session expired. Please try again.",
+    GOOGLE_TOKEN_INVALID:  "Google returned an invalid token. Please try again.",
+    OAUTH_EMAIL_MISSING:   "Google did not share your email. Enable email access and retry.",
+    OAUTH_ACCOUNT_CONFLICT: "An account with this email already exists with a different sign-in method.",
+  };
+  useEffect(() => {
+    const errCode = searchParams.get("error");
+    if (errCode) {
+      toast({
+        type: "error",
+        message: OAUTH_ERROR_MESSAGES[errCode] ?? "Sign-in failed. Please try again.",
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
