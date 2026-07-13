@@ -11,6 +11,7 @@ import { accountDeletionScheduledTemplate } from "./templates/account-deletion-s
 import { otpTemplate } from "./templates/otp.template";
 import { employerInviteTemplate } from "./templates/employer-invite.template";
 import { companyJoinRequestTemplate } from "./templates/company-join-request.template";
+import { adminInviteTemplate } from "./templates/admin-invite.template";
 
 @Injectable()
 export class MailService {
@@ -277,6 +278,50 @@ export class MailService {
       );
       throw new InternalServerErrorException(
         "Failed to send employer invite email",
+      );
+    }
+  }
+
+  async sendAdminInvite(
+    to: string,
+    data: {
+      inviteeEmail: string;
+      inviterName: string;
+      inviteUrl: string;
+      expiresInHours: number;
+    },
+  ): Promise<void> {
+    try {
+      if (process.env.NODE_ENV !== "production") {
+        this.logger.log(
+          `[DEV] Admin invite email queued for ${to}`,
+          "MailService",
+        );
+      }
+      const { error } = await this.resend.emails.send({
+        from: `Cykruit <${this.fromEmail}>`,
+        replyTo: "support@cykruit.com",
+        to,
+        subject: "Invitation to join the Cykruit admin console",
+        text: `Hi,\n\n${data.inviterName} has invited you to join the Cykruit admin console.\n\nAccept invite: ${data.inviteUrl}\n\nExpires in ${data.expiresInHours} hours.\n\n-- Cykruit Team`,
+        html: adminInviteTemplate(
+          data.inviteeEmail,
+          data.inviterName,
+          data.inviteUrl,
+          data.expiresInHours,
+        ),
+      });
+
+      if (error) throw new Error(error.message);
+      this.logger.log(`Admin invite email sent to ${to}`, "MailService");
+    } catch (err) {
+      this.logger.error(
+        "Failed to send admin invite email",
+        err,
+        "MailService",
+      );
+      throw new InternalServerErrorException(
+        "Failed to send admin invite email",
       );
     }
   }
