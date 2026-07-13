@@ -10,6 +10,8 @@ export const ACTIONS = {
     USERS: {
         VIEW: 'users:view',
         SUSPEND: 'users:suspend',
+        DELETE: 'users:delete',
+        UNLOCK: 'users:unlock',
     },
     KYC: {
         VIEW: 'kyc:view',
@@ -38,6 +40,22 @@ export const ACTIONS = {
         VIEW: 'discounts:view',
         MANAGE: 'discounts:manage',
     },
+    ADMINS: {
+        VIEW: 'admins:view',
+        MANAGE: 'admins:manage',
+    },
+    CONTACT: {
+        VIEW: 'contact:view',
+        MANAGE: 'contact:manage',
+    },
+    SETTINGS: {
+        VIEW: 'settings:view',
+        MANAGE: 'settings:manage',
+    },
+    REPORTS: {
+        VIEW: 'reports:view',
+        MANAGE: 'reports:manage',
+    },
 } as const;
 
 type ValuesOf<T> = T extends Record<string, infer V>
@@ -56,6 +74,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Action, string> = {
     'dashboard:view': 'View the overview dashboard and platform stats',
     'users:view': 'List and view user accounts',
     'users:suspend': 'Suspend and unsuspend user accounts',
+    'users:delete': 'Soft-delete user accounts',
+    'users:unlock': 'Clear failed-login lockouts on user accounts',
     'kyc:view': 'View employer verification (KYC) submissions',
     'kyc:review': 'Approve or reject employer verifications',
     'jobs:view': 'View the job moderation queue and job details',
@@ -69,6 +89,14 @@ export const PERMISSION_DESCRIPTIONS: Record<Action, string> = {
     'testimonials:manage': 'Create/edit/delete and publish/unpublish testimonials',
     'discounts:view': 'List and view discount/coupon records and usage stats',
     'discounts:manage': 'Create/edit/deactivate discounts and coupon codes',
+    'admins:view': 'List and view admin console accounts',
+    'admins:manage': 'Invite, deactivate and reactivate admin console accounts',
+    'contact:view': 'List and view contact form submissions',
+    'contact:manage': 'Update the status/notes on contact form submissions',
+    'settings:view': 'View platform feature-flag settings',
+    'settings:manage': 'Change platform feature-flag values',
+    'reports:view': 'List and view flagged-content reports',
+    'reports:manage': 'Resolve or dismiss flagged-content reports',
 };
 
 /** `module:action` → { module, action } for the Permission table's split columns. */
@@ -95,8 +123,16 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
     },
     {
         name: 'platform_admin',
-        description: 'Day-to-day operations staff — everything except managing RBAC',
-        grants: ALL_ACTIONS.filter((a) => a !== ACTIONS.RBAC.MANAGE),
+        description:
+            'Day-to-day operations staff — everything except managing RBAC, admin accounts, platform settings, and deleting users',
+        grants: ALL_ACTIONS.filter(
+            (a) =>
+                a !== ACTIONS.RBAC.MANAGE &&
+                a !== ACTIONS.ADMINS.VIEW &&
+                a !== ACTIONS.ADMINS.MANAGE &&
+                a !== ACTIONS.USERS.DELETE &&
+                a !== ACTIONS.SETTINGS.MANAGE,
+        ),
     },
     {
         name: 'reviewer',
@@ -108,6 +144,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
             ACTIONS.KYC.REVIEW,
             ACTIONS.JOBS.VIEW,
             ACTIONS.JOBS.REVIEW,
+            ACTIONS.REPORTS.VIEW,
         ],
     },
 ];

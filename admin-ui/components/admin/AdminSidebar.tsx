@@ -22,6 +22,10 @@ import {
   LogOut,
   Menu,
   X,
+  Mail,
+  Settings2,
+  Flag,
+  UserCog,
 } from 'lucide-react';
 import { useModal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
@@ -127,6 +131,30 @@ export default function AdminSidebar() {
       href: '/testimonials',
       icon: <Quote className="h-5 w-5" />,
       action: ACTIONS.TESTIMONIALS.VIEW,
+    },
+    {
+      label: 'Contact',
+      href: '/contact',
+      icon: <Mail className="h-5 w-5" />,
+      action: ACTIONS.CONTACT.VIEW,
+    },
+    {
+      label: 'Reports',
+      href: '/reports',
+      icon: <Flag className="h-5 w-5" />,
+      action: ACTIONS.REPORTS.VIEW,
+    },
+    {
+      label: 'Admins',
+      href: '/admins',
+      icon: <UserCog className="h-5 w-5" />,
+      action: ACTIONS.ADMINS.VIEW,
+    },
+    {
+      label: 'Settings',
+      href: '/settings',
+      icon: <Settings2 className="h-5 w-5" />,
+      action: ACTIONS.SETTINGS.MANAGE,
     },
   ];
 

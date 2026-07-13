@@ -288,6 +288,66 @@ export interface AdminAccount {
   roleAssignments: { id: string; role: { id: string; name: string } }[];
 }
 
+export type ContactFormStatus = 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'SPAM';
+
+export interface ContactForm {
+  id: string;
+  fullName: string;
+  email: string;
+  message: string;
+  ipAddress?: string;
+  userAgent?: string;
+  status: ContactFormStatus;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlatformSetting {
+  id: string;
+  key: string;
+  value: string;
+  description?: string;
+  updatedBy?: string;
+  updatedAt: string;
+  createdAt: string;
+}
+
+export type FlaggedContentType = 'JOB' | 'EMPLOYER_PROFILE' | 'SEEKER_PROFILE' | 'MESSAGE';
+
+export type FlagReason =
+  | 'SPAM'
+  | 'INAPPROPRIATE'
+  | 'MISLEADING'
+  | 'FAKE_COMPANY'
+  | 'HARASSMENT'
+  | 'OTHER';
+
+export type FlagStatus = 'PENDING' | 'UNDER_REVIEW' | 'RESOLVED_REMOVED' | 'RESOLVED_DISMISSED';
+
+export interface ContentReport {
+  id: string;
+  reporterId: string;
+  reporter?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  contentType: FlaggedContentType;
+  contentId: string;
+  reason: FlagReason;
+  description?: string;
+  status: FlagStatus;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Testimonial {
   id: string;
   type: 'SEEKER' | 'EMPLOYER';

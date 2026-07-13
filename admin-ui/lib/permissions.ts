@@ -5,13 +5,17 @@
 
 export const ACTIONS = {
   DASHBOARD: { VIEW: 'dashboard:view' },
-  USERS: { VIEW: 'users:view', SUSPEND: 'users:suspend' },
+  USERS: { VIEW: 'users:view', SUSPEND: 'users:suspend', DELETE: 'users:delete', UNLOCK: 'users:unlock' },
   KYC: { VIEW: 'kyc:view', REVIEW: 'kyc:review' },
   JOBS: { VIEW: 'jobs:view', REVIEW: 'jobs:review' },
   SUBSCRIPTIONS: { VIEW: 'subscriptions:view', MANAGE: 'subscriptions:manage' },
   RBAC: { VIEW: 'rbac:view', MANAGE: 'rbac:manage' },
   AUDIT: { VIEW: 'audit:view' },
   TESTIMONIALS: { VIEW: 'testimonials:view', MANAGE: 'testimonials:manage' },
+  ADMINS: { VIEW: 'admins:view', MANAGE: 'admins:manage' },
+  CONTACT: { VIEW: 'contact:view', MANAGE: 'contact:manage' },
+  SETTINGS: { VIEW: 'settings:view', MANAGE: 'settings:manage' },
+  REPORTS: { VIEW: 'reports:view', MANAGE: 'reports:manage' },
 } as const;
 
 type ValuesOf<T> = T extends Record<string, infer V>

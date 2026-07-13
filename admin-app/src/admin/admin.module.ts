@@ -40,6 +40,11 @@ import { AuditController } from './controllers/audit.controller';
 import { DashboardController } from './controllers/dashboard.controller';
 import { TestimonialsController } from './controllers/testimonials.controller';
 import { DiscountsController } from './controllers/discounts.controller';
+import { AdminsController } from './controllers/admins.controller';
+import { AdminInviteAcceptController } from './controllers/admin-invite-accept.controller';
+import { ContactController } from './controllers/contact.controller';
+import { SettingsController } from './controllers/settings.controller';
+import { ReportsController } from './controllers/reports.controller';
 import { MeController } from './controllers/me.controller';
 
 // Services
@@ -54,6 +59,10 @@ import { AdminAuditLogger } from './services/admin-audit.logger';
 import { AdminAuthAuditLogger } from './services/admin-auth-audit.logger';
 import { TestimonialsService } from './services/testimonials.service';
 import { DiscountsService } from './services/discounts.service';
+import { AdminsService } from './services/admins.service';
+import { ContactService } from './services/contact.service';
+import { SettingsService } from './services/settings.service';
+import { ReportsService } from './services/reports.service';
 import { PermissionsService } from './services/permissions.service';
 
 // Repositories
@@ -65,6 +74,10 @@ import { AuditRepository } from './repositories/audit.repository';
 import { DashboardRepository } from './repositories/dashboard.repository';
 import { TestimonialsRepository } from './repositories/testimonials.repository';
 import { DiscountsRepository } from './repositories/discounts.repository';
+import { AdminsRepository } from './repositories/admins.repository';
+import { ContactRepository } from './repositories/contact.repository';
+import { SettingsRepository } from './repositories/settings.repository';
+import { ReportsRepository } from './repositories/reports.repository';
 import { SubscriptionRepository } from './repositories/subscription.repository';
 
 @Injectable()
@@ -138,6 +151,11 @@ export class AdminSessionValidator implements ISessionValidator {
         DashboardController,
         TestimonialsController,
         DiscountsController,
+        AdminsController,
+        AdminInviteAcceptController,
+        ContactController,
+        SettingsController,
+        ReportsController,
         MeController,
     ],
     providers: [
@@ -158,6 +176,10 @@ export class AdminSessionValidator implements ISessionValidator {
         DashboardService,
         TestimonialsService,
         DiscountsService,
+        AdminsService,
+        ContactService,
+        SettingsService,
+        ReportsService,
         // Repositories
         KycRepository,
         AdminJobsRepository,
@@ -167,6 +189,10 @@ export class AdminSessionValidator implements ISessionValidator {
         DashboardRepository,
         TestimonialsRepository,
         DiscountsRepository,
+        AdminsRepository,
+        ContactRepository,
+        SettingsRepository,
+        ReportsRepository,
         SubscriptionRepository,
     ],
 })
