@@ -29,7 +29,6 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
   const [loading, setLoading] = useState(true);
 
   const [status, setStatus] = useState<AppStatus>("New");
-  const [notes, setNotes]   = useState("");
 
   useEffect(() => {
     async function fetchApp() {
@@ -363,33 +362,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
               </div>
             </div>
 
-            {/* Internal notes */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5">
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Internal Notes</p>
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add notes about this applicant…"
-                rows={4}
-                className="w-full text-xs bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 resize-none"
-              />
-              <button
-                onClick={async () => {
-                  try {
-                    await apiFetch(`/api/employer/applications/${id}/note`, {
-                      method: "PATCH",
-                      headers: authHeaders(),
-                      body: JSON.stringify({ note: notes }),
-                    });
-                  } catch (err: any) {
-                    alert(err?.message || "Failed to save note");
-                  }
-                }}
-                className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
-              >
-                Save note
-              </button>
-            </div>
+
 
             {/* Applied for */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5">
