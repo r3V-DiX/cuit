@@ -13,7 +13,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import { useModal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import Skeleton from '@/components/ui/Skeleton';
-import { ArrowLeft, User as UserIcon, ShieldAlert, Mail, Calendar, LogIn, Activity } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, ShieldAlert, Mail, Calendar, LogIn, Activity, Trash2, BadgeCheck, LockKeyholeOpen } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
@@ -67,6 +67,54 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     });
   };
 
+  const handleDelete = () => {
+    if (!user) return;
+    openModal({
+      title: 'Delete User',
+      description: `"${user.firstName} ${user.lastName}" will be soft-deleted and lose access immediately. This cannot be undone from this page.`,
+      variant: 'danger',
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          const updated = await api.del<User>(`/api/admin/users/${id}`);
+          setUser(updated);
+          toast({ type: 'success', message: 'User deleted.' });
+        } catch (err) {
+          toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to delete user' });
+        } finally {
+          setActionLoading(false);
+        }
+      },
+    });
+  };
+
+  const handleVerifyEmail = async () => {
+    setActionLoading(true);
+    try {
+      const updated = await api.patch<User>(`/api/admin/users/${id}/verify-email`);
+      setUser(updated);
+      toast({ type: 'success', message: 'Email marked as verified.' });
+    } catch (err) {
+      toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to verify email' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUnlock = async () => {
+    setActionLoading(true);
+    try {
+      const updated = await api.patch<User>(`/api/admin/users/${id}/unlock`);
+      setUser(updated);
+      toast({ type: 'success', message: 'User unlocked.' });
+    } catch (err) {
+      toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to unlock user' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (!loading && error) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -118,16 +166,56 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                         <p className="font-mono text-sm text-slate-500">{user.email}</p>
                       </div>
                     </div>
-                    <RequirePermission action={ACTIONS.USERS.SUSPEND}>
-                      <Button
-                        variant={user.status === 'SUSPENDED' ? 'secondary' : 'danger'}
-                        onClick={handleToggleSuspend}
-                        loading={actionLoading}
-                        icon={<ShieldAlert className="h-4 w-4" />}
-                      >
-                        {user.status === 'SUSPENDED' ? 'Unsuspend' : 'Suspend'}
-                      </Button>
-                    </RequirePermission>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {user.status !== 'DELETED' && (
+                        <RequirePermission action={ACTIONS.USERS.SUSPEND}>
+                          <Button
+                            variant={user.status === 'SUSPENDED' ? 'secondary' : 'danger'}
+                            onClick={handleToggleSuspend}
+                            loading={actionLoading}
+                            icon={<ShieldAlert className="h-4 w-4" />}
+                          >
+                            {user.status === 'SUSPENDED' ? 'Unsuspend' : 'Suspend'}
+                          </Button>
+                        </RequirePermission>
+                      )}
+                      {!user.isEmailVerified && user.status !== 'DELETED' && (
+                        <RequirePermission action={ACTIONS.USERS.SUSPEND}>
+                          <Button
+                            variant="secondary"
+                            onClick={handleVerifyEmail}
+                            loading={actionLoading}
+                            icon={<BadgeCheck className="h-4 w-4" />}
+                          >
+                            Verify Email
+                          </Button>
+                        </RequirePermission>
+                      )}
+                      {(user.failedLoginAttempts > 0 || user.lockedUntil) && user.status !== 'DELETED' && (
+                        <RequirePermission action={ACTIONS.USERS.UNLOCK}>
+                          <Button
+                            variant="secondary"
+                            onClick={handleUnlock}
+                            loading={actionLoading}
+                            icon={<LockKeyholeOpen className="h-4 w-4" />}
+                          >
+                            Unlock
+                          </Button>
+                        </RequirePermission>
+                      )}
+                      {user.status !== 'DELETED' && (
+                        <RequirePermission action={ACTIONS.USERS.DELETE}>
+                          <Button
+                            variant="danger"
+                            onClick={handleDelete}
+                            loading={actionLoading}
+                            icon={<Trash2 className="h-4 w-4" />}
+                          >
+                            Delete
+                          </Button>
+                        </RequirePermission>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-4">

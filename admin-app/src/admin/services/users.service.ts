@@ -93,4 +93,67 @@ export class UsersService {
 
         return updated;
     }
+
+    async delete(id: string, adminId: string) {
+        const user = await this.getById(id);
+        if (user.status === AccountStatus.DELETED) {
+            throw new BadRequestException('User is already deleted');
+        }
+
+        const updated = await this.usersRepository.softDelete(id);
+
+        this.auditLogger.log({
+            adminId,
+            action: 'users:delete',
+            module: 'users',
+            resource: 'User',
+            resourceId: id,
+            riskLevel: 'CRITICAL',
+            result: 'SUCCESS',
+        });
+
+        return updated;
+    }
+
+    async verifyEmail(id: string, adminId: string) {
+        const user = await this.getById(id);
+        if (user.isEmailVerified) {
+            throw new BadRequestException('User email is already verified');
+        }
+
+        const updated = await this.usersRepository.verifyEmail(id);
+
+        this.auditLogger.log({
+            adminId,
+            action: 'users:verify-email',
+            module: 'users',
+            resource: 'User',
+            resourceId: id,
+            riskLevel: 'MEDIUM',
+            result: 'SUCCESS',
+        });
+
+        return updated;
+    }
+
+    async unlock(id: string, adminId: string) {
+        const user = await this.getById(id);
+        if (!user.lockedUntil && user.failedLoginAttempts === 0) {
+            throw new BadRequestException('User is not locked');
+        }
+
+        const updated = await this.usersRepository.unlock(id);
+
+        this.auditLogger.log({
+            adminId,
+            action: 'users:unlock',
+            module: 'users',
+            resource: 'User',
+            resourceId: id,
+            riskLevel: 'MEDIUM',
+            result: 'SUCCESS',
+        });
+
+        return updated;
+    }
 }

@@ -4,6 +4,7 @@ import {
     Controller,
     Get,
     Patch,
+    Delete,
     Param,
     Body,
     Query,
@@ -61,5 +62,29 @@ export class UsersController {
         @Body() dto: UnsuspendUserDto,
     ) {
         return this.usersService.unsuspend(id, admin.id, dto);
+    }
+
+    // DELETE /admin/users/:id — soft delete (status = DELETED)
+    @Delete(':id')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.USERS.DELETE)
+    delete(@CurrentAdmin() admin: Admin, @Param('id') id: string) {
+        return this.usersService.delete(id, admin.id);
+    }
+
+    // PATCH /admin/users/:id/verify-email
+    @Patch(':id/verify-email')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.USERS.SUSPEND)
+    verifyEmail(@CurrentAdmin() admin: Admin, @Param('id') id: string) {
+        return this.usersService.verifyEmail(id, admin.id);
+    }
+
+    // PATCH /admin/users/:id/unlock
+    @Patch(':id/unlock')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.USERS.UNLOCK)
+    unlock(@CurrentAdmin() admin: Admin, @Param('id') id: string) {
+        return this.usersService.unlock(id, admin.id);
     }
 }

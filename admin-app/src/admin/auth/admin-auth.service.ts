@@ -102,7 +102,26 @@ export class AdminAuthService {
     async validateSession(rawToken: string): Promise<Admin> {
         const session = await this.prisma.adminSession.findUnique({
             where: { token: hashToken(rawToken) },
-            include: { admin: true },
+            select: {
+                id: true,
+                expiresAt: true,
+                admin: {
+                    select: {
+                        id: true,
+                        email: true,
+                        password: true,
+                        firstName: true,
+                        lastName: true,
+                        phone: true,
+                        profileImage: true,
+                        isActive: true,
+                        lastLogin: true,
+                        lastLoginIp: true,
+                        createdAt: true,
+                        updatedAt: true,
+                    },
+                },
+            },
         });
 
         if (!session) {

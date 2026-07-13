@@ -5,11 +5,26 @@ import { PrismaService } from '@cykruit/prisma';
 import { AccountStatus, Prisma } from '@prisma/client';
 import { AdminUserListQueryDto } from '../dto/users.dto';
 
+const USER_LIST_SELECT = {
+    id: true,
+    email: true,
+    firstName: true,
+    lastName: true,
+    role: true,
+    status: true,
+    isEmailVerified: true,
+    lastLogin: true,
+    createdAt: true,
+    profileImage: true,
+} satisfies Prisma.UserSelect;
+
+type UserListItem = Prisma.UserGetPayload<{ select: typeof USER_LIST_SELECT }>;
+
 @Injectable()
 export class UsersRepository {
     constructor(private readonly prisma: PrismaService) {}
 
-    async findAll(query: AdminUserListQueryDto): Promise<{ items: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
+    async findAll(query: AdminUserListQueryDto): Promise<{ items: UserListItem[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
         const { page = 1, limit = 20, role, status, q } = query;
         const skip = (page - 1) * limit;
 
@@ -33,18 +48,7 @@ export class UsersRepository {
                 skip,
                 take: limit,
                 orderBy: { createdAt: 'desc' },
-                select: {
-                    id: true,
-                    email: true,
-                    firstName: true,
-                    lastName: true,
-                    role: true,
-                    status: true,
-                    isEmailVerified: true,
-                    lastLogin: true,
-                    createdAt: true,
-                    profileImage: true,
-                },
+                select: USER_LIST_SELECT,
             }),
             this.prisma.user.count({ where }),
         ]);
@@ -106,6 +110,30 @@ export class UsersRepository {
         return this.prisma.user.update({
             where: { id },
             data: { status: AccountStatus.ACTIVE },
+            select: this.detailSelect,
+        });
+    }
+
+    async softDelete(id: string) {
+        return this.prisma.user.update({
+            where: { id },
+            data: { status: AccountStatus.DELETED },
+            select: this.detailSelect,
+        });
+    }
+
+    async verifyEmail(id: string) {
+        return this.prisma.user.update({
+            where: { id },
+            data: { isEmailVerified: true, emailVerifiedAt: new Date() },
+            select: this.detailSelect,
+        });
+    }
+
+    async unlock(id: string) {
+        return this.prisma.user.update({
+            where: { id },
+            data: { failedLoginAttempts: 0, lockedUntil: null, lastFailedLoginAt: null },
             select: this.detailSelect,
         });
     }
