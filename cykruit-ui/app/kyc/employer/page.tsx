@@ -5,6 +5,7 @@ import {
   Building2, FileText, CheckCircle2, ChevronRight,
   Upload, X, Shield, AlertCircle, ArrowRight, ChevronLeft, LogOut, Loader2,
 } from "lucide-react";
+import Link from "next/link";
 import { useModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { useRouter } from "next/navigation";
@@ -74,17 +75,35 @@ export default function EmployerKYCPage() {
         const { data } = await apiFetch("/api/employer/kyc/status");
         if (data?.isVerified) { router.replace("/employer/dashboard"); return; }
         const vs = data?.verification?.status;
-        if (vs === "PENDING" || vs === "UNDER_REVIEW") { setStep(3); }
-        else if (data?.companyId) { setStep(2); }
+        if (vs === "PENDING" || vs === "UNDER_REVIEW") {
+          setStep(3);
+        } else if (data?.companyId) {
+          // Company already set up — fetch real data to populate step-1 fields
+          // so the user sees their saved details if they navigate back.
+          try {
+            const { data: co } = await apiFetch("/api/employer/company/me");
+            if (co) {
+              setLegalName(co.companyName ?? "");
+              setLocation(co.location ?? "");
+              setCompanyType(co.companyType ?? "");
+              setIndustry(co.industry ?? "");
+              setCompanySize(co.companySize ?? "");
+              setWebsite(co.companyWebsite ?? "");
+              setContactEmail(co.contactEmail ?? "");
+            }
+          } catch {}
+          setStep(2);
+        }
       } catch (err: any) {
-        // COMPANY_NOT_FOUND is expected on first visit — stay on step 1
-        if (err?.code !== "COMPANY_NOT_FOUND") {
+        if (err?.code === "COMPANY_NOT_FOUND") {
+          try { sessionStorage.removeItem("cykruit_kyc_draft"); } catch {}
+        } else {
           toast({ type: "error", message: "Could not check verification status. Please refresh." });
         }
       } finally { setChecking(false); }
     }
     checkStatus();
-  }, [router]);
+  }, [router, toast]);
 
   function handleLogout() {
     openModal({
@@ -117,16 +136,14 @@ export default function EmployerKYCPage() {
   }
   function clearDraft() { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} }
 
-  const draft = loadDraft();
-
-  // Step 1 state — seed from draft
-  const [legalName,    setLegalName]    = useState(draft.legalName    ?? "");
-  const [location,     setLocation]     = useState(draft.location     ?? "");
-  const [companyType,  setCompanyType]  = useState(draft.companyType  ?? "");
-  const [industry,     setIndustry]     = useState(draft.industry     ?? "");
-  const [companySize,  setCompanySize]  = useState(draft.companySize  ?? "");
-  const [website,      setWebsite]      = useState(draft.website      ?? "");
-  const [contactEmail, setContactEmail] = useState(draft.contactEmail ?? "");
+  // Step 1 state — lazy init from draft (runs once on mount, not every render)
+  const [legalName,    setLegalName]    = useState(() => { const d = loadDraft(); return d.legalName    ?? ""; });
+  const [location,     setLocation]     = useState(() => { const d = loadDraft(); return d.location     ?? ""; });
+  const [companyType,  setCompanyType]  = useState(() => { const d = loadDraft(); return d.companyType  ?? ""; });
+  const [industry,     setIndustry]     = useState(() => { const d = loadDraft(); return d.industry     ?? ""; });
+  const [companySize,  setCompanySize]  = useState(() => { const d = loadDraft(); return d.companySize  ?? ""; });
+  const [website,      setWebsite]      = useState(() => { const d = loadDraft(); return d.website      ?? ""; });
+  const [contactEmail, setContactEmail] = useState(() => { const d = loadDraft(); return d.contactEmail ?? ""; });
   const [savingOrg,    setSavingOrg]    = useState(false);
 
   // Step 2 state
@@ -192,7 +209,7 @@ export default function EmployerKYCPage() {
       fd.append("documentType", docType);
       await apiFetch("/api/employer/kyc/submit", {
         method: "POST",
-        headers: authHeaders(),
+        headers: { "x-csrf-token": getCsrf() },
         body: fd,
       });
       setStep(3);
@@ -458,10 +475,10 @@ export default function EmployerKYCPage() {
                     <span className="font-semibold text-slate-700">1–2 business days</span>.
                   </p>
                 </div>
-                <a href="/employer/dashboard"
+                <Link href="/employer/dashboard"
                   className="flex items-center gap-2 h-10 px-5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors shadow-sm shadow-blue-500/20">
                   Go to Dashboard
-                </a>
+                </Link>
                 <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
                   You can access the dashboard in limited mode while verification is pending. Job posting unlocks once approved.
                 </p>

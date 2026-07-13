@@ -34,15 +34,18 @@ export class JobsService {
 
     // ── Private helpers ───────────────────────────────────────────────────────
 
-    /**
-     * Resolve the employer record for the acting user and assert it is verified.
-     * Throws ForbiddenException if not verified, NotFoundException if no company.
-     */
-    private async resolveVerifiedEmployer(userId: string) {
+    /** Resolve employer record — no verification check. Throws 404 if no company. */
+    private async resolveEmployer(userId: string) {
         const employer = await this.companyRepository.findByMemberId(userId);
         if (!employer) {
             throw new NotFoundException(JobErrorCodes.COMPANY_NOT_VERIFIED);
         }
+        return employer;
+    }
+
+    /** Resolve employer and assert it is verified. Throws 403 if not verified. */
+    private async resolveVerifiedEmployer(userId: string) {
+        const employer = await this.resolveEmployer(userId);
         if (!employer.isVerified) {
             throw new ForbiddenException(JobErrorCodes.COMPANY_NOT_VERIFIED);
         }
@@ -119,7 +122,7 @@ export class JobsService {
     // ── Public methods ────────────────────────────────────────────────────────
 
     async list(userId: string, query: JobListQueryDto) {
-        const employer = await this.resolveVerifiedEmployer(userId);
+        const employer = await this.resolveEmployer(userId);
         const { items, total } = await this.jobsRepository.findByEmployer(employer.id, query);
 
         const page = query.page ?? 1;
@@ -137,7 +140,11 @@ export class JobsService {
     }
 
     async getOne(userId: string, jobId: string) {
-        const { job } = await this.resolveJobForEmployer(userId, jobId);
+        const employer = await this.resolveEmployer(userId);
+        const job = await this.jobsRepository.findByIdAndEmployer(jobId, employer.id);
+        if (!job) {
+            throw new NotFoundException(JobErrorCodes.JOB_NOT_FOUND);
+        }
         return job;
     }
 

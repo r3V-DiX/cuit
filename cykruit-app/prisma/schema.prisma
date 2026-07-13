@@ -1376,7 +1376,7 @@ model Job {
     updatedAt DateTime @updatedAt
 
     // AI — vector stored via raw SQL; Prisma treats it as Unsupported
-    embedding  Unsupported("vector(1536)")?
+    // embedding  Unsupported("vector(1536)")?  // commented out: pgvector not installed on this machine
     embeddedAt DateTime?
 
     // Relations
@@ -2215,7 +2215,7 @@ model ResumeEmbedding {
     seekerId   String           @unique
     seeker     JobSeekerProfile @relation(fields: [seekerId], references: [id], onDelete: Cascade)
     // vector(1536) — text-embedding-3-small output; stored via raw SQL, not Prisma client
-    embedding  Unsupported("vector(1536)")
+    // embedding  Unsupported("vector(1536)")  // commented out: pgvector not installed on this machine
     embeddedAt DateTime         @default(now())
     updatedAt  DateTime         @updatedAt
 

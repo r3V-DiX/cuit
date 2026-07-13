@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api";
+import { KycGate } from "@/components/employer/KycGate";
 
 type AppStatus = "APPLIED" | "UNDER_REVIEW" | "SHORTLISTED" | "INTERVIEW" | "OFFERED" | "REJECTED" | "HIRED" | "WITHDRAWN" | "New" | "Shortlisted" | "Interview" | "Rejected";
 
@@ -74,6 +75,7 @@ export default function ApplicantsPage() {
   return (
     <>
       <EmployerTopbar title="Applicants" />
+      <KycGate>
       <main className="flex-1 overflow-y-auto p-6">
 
         {/* Summary stats */}
@@ -261,6 +263,7 @@ export default function ApplicantsPage() {
 
         <p className="text-xs font-mono text-slate-400 mt-3">{filtered.length} of {applicants.length} applicants shown</p>
       </main>
+      </KycGate>
     </>
   );
 }

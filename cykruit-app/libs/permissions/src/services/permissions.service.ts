@@ -130,15 +130,15 @@ export class PermissionsService {
             return granted;
         }
 
-        // EMPLOYER: must be a confirmed EmployerMember; role determines permission tier
+        // EMPLOYER: basic reads are available to any EMPLOYER user (e.g. during KYC setup).
+        // Role-gated actions require a confirmed EmployerMember row.
         if (ctx.userRole === UserRole.EMPLOYER) {
+            ALL_MEMBER_ACTIONS.forEach(p => granted.add(p));
+
             const member = await this.resolveEmployerMember(ctx.userId, ctx.employerId);
-            if (!member) return granted; // not a member of any org → no permissions
+            if (!member) return granted; // no org membership yet — read-only access
 
             const role = member.role;
-
-            // All members
-            ALL_MEMBER_ACTIONS.forEach(p => granted.add(p));
 
             // RECRUITER+
             if (role === 'RECRUITER' || role === 'HIRING_MANAGER' || role === 'OWNER') {

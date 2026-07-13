@@ -6,6 +6,7 @@ import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Save, ChevronDown, Plus, X, Camera,
   CheckCircle2, AlertCircle, PlusCircle, ArrowRight, Loader2,
+  ShieldAlert, ShieldCheck, Clock,
 } from "lucide-react";
 import { apiFetch, authHeaders, getCsrf } from "@/lib/api";
 
@@ -63,6 +64,7 @@ type Perk = { id?: string; name: string };
 export default function CompanyProfilePage() {
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [name, setName]         = useState("");
   const [industry, setIndustry] = useState("");
   const [size, setSize]         = useState("");
@@ -79,6 +81,18 @@ export default function CompanyProfilePage() {
   const logoInputRef            = useRef<HTMLInputElement>(null);
 
   const hasLogo = !!logoUrl;
+
+  useEffect(() => {
+    apiFetch("/api/employer/kyc/status")
+      .then((res) => {
+        const d = res.data;
+        if (d?.isVerified) { setKycStatus("APPROVED"); return; }
+        const vs = d?.verification?.status;
+        if (vs === "PENDING" || vs === "UNDER_REVIEW") setKycStatus(vs);
+        else setKycStatus("NOT_SUBMITTED");
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     apiFetch("/api/employer/company/me")
@@ -229,6 +243,36 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
   return (
     <>
       <EmployerTopbar title="Company Profile" />
+
+      {/* KYC status banner */}
+      {kycStatus === "NOT_SUBMITTED" && (
+        <div className="mx-6 mt-4 flex items-start gap-3 px-5 py-4 bg-amber-50 border border-amber-200 rounded-2xl">
+          <ShieldAlert className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-amber-800">KYC verification required</p>
+            <p className="text-xs text-amber-700 mt-0.5">You can fill your company profile here, but job posting is locked until KYC is approved.</p>
+          </div>
+          <Link href="/kyc/employer" className="shrink-0 h-8 px-3 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700 transition-colors flex items-center gap-1.5">
+            Complete KYC <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
+      {(kycStatus === "PENDING" || kycStatus === "UNDER_REVIEW") && (
+        <div className="mx-6 mt-4 flex items-start gap-3 px-5 py-4 bg-blue-50 border border-blue-200 rounded-2xl">
+          <Clock className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-blue-800">Verification under review</p>
+            <p className="text-xs text-blue-700 mt-0.5">Your KYC documents are being reviewed. Job posting unlocks once approved (1–2 business days).</p>
+          </div>
+        </div>
+      )}
+      {kycStatus === "APPROVED" && (
+        <div className="mx-6 mt-4 flex items-center gap-3 px-5 py-3.5 bg-green-50 border border-green-200 rounded-2xl">
+          <ShieldCheck className="w-5 h-5 text-green-500 shrink-0" />
+          <p className="text-sm font-semibold text-green-800">Organisation verified — job posting is active</p>
+        </div>
+      )}
+
       <main className="flex-1 overflow-y-auto p-6">
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
 

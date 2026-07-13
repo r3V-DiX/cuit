@@ -43,6 +43,8 @@ function OtpInput({ value, onChange, disabled }: { value: string; onChange: (v: 
         onChange(value.slice(0, i - 1) + value.slice(i));
         refs.current[i - 1]?.focus();
       }
+    } else if (e.key === "Enter" && value.length === 6) {
+      (e.target as HTMLInputElement).form?.requestSubmit();
     } else if (e.key === "ArrowLeft" && i > 0) {
       e.preventDefault();
       refs.current[i - 1]?.focus();
@@ -135,7 +137,7 @@ export default function EmployerRegisterPage() {
       await apiFetch("/api/auth/request-otp", {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ email: email.trim().toLowerCase(), role: "EMPLOYER" }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), role: "EMPLOYER", flow: "register" }),
       });
       setStep("otp");
       startResendCooldown();
@@ -143,6 +145,11 @@ export default function EmployerRegisterPage() {
     } catch (err: any) {
       if (err instanceof ApiError && err.code === "EMAIL_DOMAIN_NOT_ALLOWED") {
         setEmailError(err.message);
+        return;
+      }
+      if (err instanceof ApiError && err.code === "ACCOUNT_EXISTS") {
+        toast({ type: "error", message: "An account with this email already exists. Sign in instead." });
+        router.push("/login");
         return;
       }
       toast({ type: "error", message: err.message || "Failed to send OTP" });

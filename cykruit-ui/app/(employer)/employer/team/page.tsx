@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { apiFetch, authHeaders, ApiError } from "@/lib/api";
+import { KycGate } from "@/components/employer/KycGate";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
 
@@ -149,7 +150,7 @@ export default function TeamPage() {
   return (
     <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
       <EmployerTopbar title="Team" />
-
+      <KycGate>
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
 
@@ -367,6 +368,7 @@ export default function TeamPage() {
 
         </div>
       </div>
+      </KycGate>
 
       {/* Close menu on outside click */}
       {openMenu && (

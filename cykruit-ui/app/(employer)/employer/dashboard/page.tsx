@@ -43,10 +43,10 @@ function relativeTime(dateStr: string | null | undefined): string {
 }
 
 const QUICK_LINKS = [
-  { label: "Post a Job",      href: "/employer/jobs/new",   icon: <PlusCircle  className="w-4 h-4" /> },
-  { label: "View Applicants", href: "/employer/applicants", icon: <Users       className="w-4 h-4" /> },
-  { label: "My Jobs",         href: "/employer/jobs",       icon: <Briefcase   className="w-4 h-4" /> },
-  { label: "Company Profile", href: "/employer/company",    icon: <Building2   className="w-4 h-4" /> },
+  { label: "Post a Job",      href: "/employer/jobs/new",   icon: <PlusCircle  className="w-4 h-4" />, requiresKyc: true  },
+  { label: "View Applicants", href: "/employer/applicants", icon: <Users       className="w-4 h-4" />, requiresKyc: false },
+  { label: "My Jobs",         href: "/employer/jobs",       icon: <Briefcase   className="w-4 h-4" />, requiresKyc: false },
+  { label: "Company Profile", href: "/employer/company",    icon: <Building2   className="w-4 h-4" />, requiresKyc: false },
 ];
 
 interface ApiJob {
@@ -154,6 +154,7 @@ export default function EmployerDashboardPage() {
   const funnelInterview = applications.filter(a => a.status === "INTERVIEW").length;
   const funnelOffer = applications.filter(a => a.status === "OFFER_SENT" || a.status === "OFFERED").length;
 
+  const canPost = verificationStatus === "APPROVED";
   const statVal = (val: number) => (loading ? null : error ? "—" : val);
 
   return (
@@ -209,12 +210,18 @@ export default function EmployerDashboardPage() {
               <h1 className="text-xl font-bold text-slate-900 leading-snug">Good morning, {displayName}</h1>
               <p className="text-sm text-slate-500 mt-0.5">Here's your hiring overview for today</p>
             </div>
-            <Link
-              href="/employer/jobs/new"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 shrink-0"
-            >
-              <PlusCircle className="w-4 h-4" /> Post a Job
-            </Link>
+            {canPost ? (
+              <Link
+                href="/employer/jobs/new"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 shrink-0"
+              >
+                <PlusCircle className="w-4 h-4" /> Post a Job
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-100 text-slate-400 text-sm font-semibold cursor-not-allowed shrink-0 select-none" title="Complete KYC verification to post jobs">
+                <PlusCircle className="w-4 h-4" /> Post a Job
+              </div>
+            )}
           </div>
 
           {/* Stats row */}
@@ -300,16 +307,28 @@ export default function EmployerDashboardPage() {
                 <h2 className="text-sm font-semibold text-slate-900">Quick Links</h2>
               </div>
               <div className="grid grid-cols-2 gap-2 flex-1 content-start">
-                {QUICK_LINKS.map(({ label, href, icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="flex flex-col items-center gap-2 py-3 px-2 rounded-xl border border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-all group"
-                  >
-                    <span className="text-slate-400 group-hover:text-blue-500 transition-colors">{icon}</span>
-                    <span className="text-[11px] font-medium text-center leading-snug">{label}</span>
-                  </Link>
-                ))}
+                {QUICK_LINKS.map(({ label, href, icon, requiresKyc }) => {
+                  const locked = requiresKyc && !canPost;
+                  return locked ? (
+                    <div
+                      key={href}
+                      title="Complete KYC to unlock"
+                      className="flex flex-col items-center gap-2 py-3 px-2 rounded-xl border border-slate-200 text-slate-300 cursor-not-allowed select-none"
+                    >
+                      <span>{icon}</span>
+                      <span className="text-[11px] font-medium text-center leading-snug">{label}</span>
+                    </div>
+                  ) : (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="flex flex-col items-center gap-2 py-3 px-2 rounded-xl border border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-all group"
+                    >
+                      <span className="text-slate-400 group-hover:text-blue-500 transition-colors">{icon}</span>
+                      <span className="text-[11px] font-medium text-center leading-snug">{label}</span>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>

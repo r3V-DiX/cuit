@@ -6,7 +6,7 @@ import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   PlusCircle, Eye, Users, Edit3, Trash2, Search,
   Briefcase, CheckCircle2, Clock, XCircle,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, ShieldAlert, ArrowRight,
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
@@ -47,9 +47,16 @@ export default function MyJobsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalJobs, setTotalJobs] = useState(0);
+  const [isVerified, setIsVerified] = useState<boolean | null>(null);
 
   // Status counts (fetched once or calculated)
   const [counts, setCounts] = useState({ active: 0, pending: 0, draft: 0, closed: 0 });
+
+  useEffect(() => {
+    apiFetch("/api/employer/kyc/status")
+      .then((res) => setIsVerified(res.data?.isVerified === true))
+      .catch(() => setIsVerified(false));
+  }, []);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -118,8 +125,9 @@ export default function MyJobsPage() {
   };
 
   useEffect(() => {
-    fetchJobs();
-  }, [page, statusFilter, search]);
+    if (isVerified === true) fetchJobs();
+    else if (isVerified === false) setLoading(false);
+  }, [page, statusFilter, search, isVerified]);
 
   const handleDelete = async (jobId: string) => {
     if (!confirm("Are you sure you want to delete this job draft?")) return;
@@ -142,6 +150,33 @@ export default function MyJobsPage() {
   function goPage(n: number) { setPage(Math.max(1, Math.min(n, totalPages))); }
   function setStatusAndReset(s: StatusFilterType) { setStatusFilter(s); setPage(1); }
   function setSearchAndReset(s: string) { setSearch(s); setPage(1); }
+
+  if (isVerified === false) {
+    return (
+      <>
+        <EmployerTopbar title="My Jobs" />
+        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
+          <div className="max-w-sm w-full text-center flex flex-col items-center gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-amber-50 border-2 border-amber-200 flex items-center justify-center">
+              <ShieldAlert className="w-8 h-8 text-amber-500" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">KYC verification required</h2>
+              <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
+                Complete your organisation verification first. Once approved, you can post jobs and they'll appear here.
+              </p>
+            </div>
+            <Link
+              href="/kyc/employer"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 transition-colors shadow-sm shadow-amber-500/20"
+            >
+              Complete KYC <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>

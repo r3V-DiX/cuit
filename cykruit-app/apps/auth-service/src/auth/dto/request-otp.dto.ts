@@ -1,4 +1,4 @@
-import { IsEmail, IsIn } from "class-validator";
+import { IsEmail, IsIn, IsOptional } from "class-validator";
 import { Transform } from "class-transformer";
 import { UserRole } from "@prisma/client";
 
@@ -9,4 +9,8 @@ export class RequestOtpDto {
 
   @IsIn([UserRole.SEEKER, UserRole.EMPLOYER], { message: "Role must be SEEKER or EMPLOYER" })
   role: UserRole;
+
+  @IsOptional()
+  @IsIn(["login", "register"], { message: "flow must be login or register" })
+  flow?: "login" | "register";
 }

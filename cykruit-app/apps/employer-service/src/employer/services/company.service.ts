@@ -49,7 +49,7 @@ export class CompanyService {
 
         const slug = await this.generateUniqueSlug(dto.companyName);
 
-        const employer = await this.companyRepository.create(userId, {
+        const companyData = {
             companyName: dto.companyName,
             companyType: dto.companyType,
             industry: dto.industry,
@@ -58,7 +58,14 @@ export class CompanyService {
             slug,
             ...(dto.companyWebsite ? { companyWebsite: dto.companyWebsite } : {}),
             ...(dto.contactEmail ? { contactEmail: dto.contactEmail } : {}),
-        });
+        };
+
+        // OTP stub creates an Employer row with userId but no EmployerMember.
+        // If that stub exists, update it with real data instead of creating a duplicate.
+        const stub = await this.prisma.employer.findFirst({ where: { userId } });
+        const employer = stub
+            ? await this.companyRepository.update(stub.id, companyData)
+            : await this.companyRepository.create(userId, companyData);
 
         await this.companyRepository.addMember(employer.id, userId, EmployerMemberRole.OWNER);
 

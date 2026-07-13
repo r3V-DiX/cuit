@@ -56,7 +56,7 @@ export class AuthController {
   async requestOtp(@Body() dto: RequestOtpDto, @Req() req: Request) {
     const ip = sanitizeIpAddress(req.ip ?? req.socket.remoteAddress);
     const ua = sanitizeUserAgent(req.headers["user-agent"]);
-    return this.otpService.requestOtp(dto.email, dto.role, ip, ua);
+    return this.otpService.requestOtp(dto.email, dto.role, ip, ua, dto.flow);
   }
 
   @Public()

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Shield, ArrowRight, User, ChevronLeft, Lock, Mail, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
-import { apiFetch, authHeaders } from "@/lib/api";
+import { apiFetch, authHeaders, ApiError } from "@/lib/api";
 import { broadcastLogin } from "@/lib/auth-sync";
 
 // ── OTP digit input ──────────────────────────────────────────────────────────
@@ -30,6 +30,8 @@ function OtpInput({ value, onChange, disabled }: { value: string; onChange: (v: 
         onChange(value.slice(0, i - 1) + value.slice(i));
         refs.current[i - 1]?.focus();
       }
+    } else if (e.key === "Enter" && value.length === 6) {
+      (e.target as HTMLInputElement).form?.requestSubmit();
     } else if (e.key === "ArrowLeft" && i > 0) {
       e.preventDefault();
       refs.current[i - 1]?.focus();
@@ -110,12 +112,17 @@ export default function SeekerRegisterPage() {
       await apiFetch("/api/auth/request-otp", {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ email: email.trim().toLowerCase(), role: "SEEKER" }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), role: "SEEKER", flow: "register" }),
       });
       setStep("otp");
       startResendCooldown();
       toast({ type: "success", message: "OTP sent", description: "Check your inbox for a 6-digit code." });
     } catch (err: any) {
+      if (err instanceof ApiError && err.code === "ACCOUNT_EXISTS") {
+        toast({ type: "error", message: "An account with this email already exists. Sign in instead." });
+        router.push("/login");
+        return;
+      }
       toast({ type: "error", message: err.message || "Failed to send OTP" });
     } finally {
       setLoading(false);

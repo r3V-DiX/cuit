@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Shield, ArrowRight, ChevronLeft, Mail, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
-import { apiFetch, authHeaders } from "@/lib/api";
+import { apiFetch, authHeaders, ApiError } from "@/lib/api";
 import { broadcastLogin } from "@/lib/auth-sync";
 
 // ── Background decorations (reused) ──────────────────────────────────────────
@@ -143,12 +143,17 @@ function LoginForm() {
       await apiFetch("/api/auth/request-otp", {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ email: email.trim().toLowerCase(), role }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), role, flow: "login" }),
       });
       setStep("otp");
       startResendCooldown();
       toast({ type: "success", message: "OTP sent", description: "Check your inbox for a 6-digit code." });
     } catch (err: any) {
+      if (err instanceof ApiError && (err.code === "ACCOUNT_NOT_FOUND" || err.code === "REGISTRATION_INCOMPLETE")) {
+        toast({ type: "error", message: err.message });
+        router.push("/register");
+        return;
+      }
       toast({ type: "error", message: err.message || "Failed to send OTP" });
     } finally {
       setLoading(false);
@@ -165,15 +170,10 @@ function LoginForm() {
         headers: authHeaders(),
         body: JSON.stringify({ email: email.trim().toLowerCase(), otp, rememberMe: true }),
       });
-      const role = result.data?.role;
-      broadcastLogin(role === "EMPLOYER" ? "EMPLOYER" : "SEEKER");
+      const userRole = result.data?.role;
+      broadcastLogin(userRole === "EMPLOYER" ? "EMPLOYER" : "SEEKER");
       const safeNext = nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : null;
-      if (role === "EMPLOYER") {
-        const es = result.data?.employerStatus;
-        if (!es?.hasProfile || es?.needsVerification) {
-          router.push("/kyc/employer");
-          return;
-        }
+      if (userRole === "EMPLOYER") {
         router.push(safeNext && safeNext.startsWith("/employer") ? safeNext : "/employer/dashboard");
         return;
       }
@@ -206,7 +206,7 @@ function LoginForm() {
       await apiFetch("/api/auth/request-otp", {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ email: email.trim().toLowerCase(), role }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), role, flow: "login" }),
       });
       setOtp("");
       startResendCooldown();

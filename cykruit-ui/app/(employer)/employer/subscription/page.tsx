@@ -130,17 +130,20 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [isKycVerified, setIsKycVerified] = useState(false);
 
   useEffect(() => {
     async function load() {
       setLoadError(false);
       try {
-        const [subRes, usageRes, pkgRes, ordersRes] = await Promise.all([
+        const [subRes, usageRes, pkgRes, ordersRes, kycRes] = await Promise.all([
           apiFetch<MySubscription>("/api/subscriptions/my").catch(() => null),
           apiFetch<MyUsage>("/api/subscriptions/usage").catch(() => null),
           apiFetch<SubPackage[]>("/api/subscriptions/packages").catch(() => null),
           apiFetch<PaymentOrder[]>("/api/subscriptions/orders").catch(() => null),
+          apiFetch("/api/employer/kyc/status").catch(() => null),
         ]);
+        if (kycRes?.data?.isVerified) setIsKycVerified(true);
         if (subRes?.data) setSub(subRes.data);
         if (usageRes?.data) setUsage(usageRes.data);
         if (pkgRes?.data) {
@@ -461,13 +464,20 @@ export default function SubscriptionPage() {
                           <button disabled className="w-full h-10 rounded-xl bg-slate-100 text-slate-400 text-xs font-semibold cursor-not-allowed flex items-center justify-center gap-1.5">
                             <Check className="w-3.5 h-3.5" /> Current Plan
                           </button>
-                        ) : (
+                        ) : isKycVerified ? (
                           <Link
                             href={isEnterprise ? "/contact" : `/employer/subscription/checkout?packageId=${pkg.id}&billing=${billingCycle.toUpperCase()}`}
                             className={`w-full h-10 rounded-xl text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${accentBtn}`}
                           >
                             {isEnterprise ? "Contact Sales" : price != null && Number(currentPriceVal) > 0 && price > currentPriceVal ? "Upgrade" : "Select Plan"}
                             <ChevronRight className="w-3.5 h-3.5" />
+                          </Link>
+                        ) : (
+                          <Link
+                            href="/kyc/employer"
+                            className="w-full h-10 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
+                          >
+                            Complete KYC to purchase <ChevronRight className="w-3.5 h-3.5" />
                           </Link>
                         )}
                       </div>

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
+import { KycGate } from "@/components/employer/KycGate";
 
 const JOB_TYPES   = ["Full-time", "Part-time", "Contract", "Internship"];
 const REMOTE_TYPES = ["Remote", "On-site", "Hybrid"];
@@ -407,6 +408,7 @@ export default function PostJobPage() {
   return (
     <>
       <EmployerTopbar title="Post a Job" />
+      <KycGate>
       <main className="flex-1 overflow-y-auto p-6">
 
         {/* Back */}
@@ -778,6 +780,7 @@ export default function PostJobPage() {
 
         </div>
       </main>
+      </KycGate>
     </>
   );
 }

@@ -6,6 +6,7 @@ import { Send, Search, Briefcase, ChevronRight, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { useMessaging } from "@/hooks/useMessaging";
 import { apiFetch, authHeaders } from "@/lib/api";
+import { KycGate } from "@/components/employer/KycGate";
 
 type Message = {
   id: string;
@@ -254,6 +255,7 @@ export default function EmployerMessagesPage() {
   return (
     <>
       <EmployerTopbar title="Messages" />
+      <KycGate>
       <main className="flex-1 overflow-hidden flex">
 
         {/* ── Left panel: conversation list ── */}
@@ -423,6 +425,7 @@ export default function EmployerMessagesPage() {
         )}
 
       </main>
+      </KycGate>
     </>
   );
 }

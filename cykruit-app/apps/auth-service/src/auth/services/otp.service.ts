@@ -65,6 +65,7 @@ export class OtpService {
     role: UserRole,
     ip: string,
     ua: string,
+    flow?: "login" | "register",
   ): Promise<{ message: string }> {
     const reqCtx = { ip, userAgent: ua };
 
@@ -88,10 +89,31 @@ export class OtpService {
     let user = await this.authRepository.findUserByEmail(email);
 
     if (user && user.role !== role) {
-      // Don't reveal which role the account is registered under — generic message
       throw new BadRequestException({
         code: "ROLE_MISMATCH",
         message: "No account found for this email on this portal. Try the other sign-in page.",
+      });
+    }
+
+    // Flow gate: login requires an existing ACTIVE account; register requires no account yet
+    if (flow === "login") {
+      if (!user) {
+        throw new BadRequestException({
+          code: "ACCOUNT_NOT_FOUND",
+          message: "No account found with this email. Please register first.",
+        });
+      }
+      if (user.status === AccountStatus.PENDING) {
+        throw new BadRequestException({
+          code: "REGISTRATION_INCOMPLETE",
+          message: "Your registration is incomplete. Please complete sign-up first.",
+        });
+      }
+    }
+    if (flow === "register" && user && user.status !== AccountStatus.PENDING) {
+      throw new BadRequestException({
+        code: "ACCOUNT_EXISTS",
+        message: "An account with this email already exists. Please sign in instead.",
       });
     }
 
