@@ -37,14 +37,15 @@ export default function ApplicantsPage() {
   const [search, setSearch]             = useState("");
   const [aiRank, setAiRank]             = useState(false);
   const [applicants, setApplicants]     = useState<any[]>([]);
-  const [loading, setLoading]           = useState(true);
+  const [loading, setLoading]           = useState(false);
   const [jobOptions, setJobOptions]     = useState<{label: string, value: string}[]>([{ label: "All Jobs", value: "all" }]);
   const { toast } = useToast();
   const kycStatus = useKycStatus();
 
   useEffect(() => {
-    if (kycStatus !== "verified") { setLoading(false); return; }
+    if (kycStatus !== "verified") return;
     async function fetchApplicants() {
+      setLoading(true);
       try {
         const { data } = await apiFetch("/api/employer/applications");
         const items = data?.items || [];

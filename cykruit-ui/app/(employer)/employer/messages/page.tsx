@@ -103,14 +103,14 @@ export default function EmployerMessagesPage() {
   const [activeId, setActiveId] = useState<string>("");
   const [input, setInput] = useState("");
   const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showList, setShowList] = useState(true);
   const kycStatus = useKycStatus();
 
   useEffect(() => {
-    if (kycStatus !== "verified") { setLoading(false); return; }
+    if (kycStatus !== "verified") return;
     async function load() {
       setLoading(true);
       try {

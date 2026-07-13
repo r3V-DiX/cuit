@@ -41,7 +41,7 @@ const ASSIGNABLE_ROLES: MemberRole[] = ["HIRING_MANAGER", "RECRUITER", "VIEWER"]
 
 export default function TeamPage() {
   const [members, setMembers]     = useState<Member[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [loading, setLoading]     = useState(false);
   const [myRole,  setMyRole]      = useState<MemberRole | null>(null);
   const [myUserId, setMyUserId]   = useState<string | null>(null);
   const [openMenu, setOpenMenu]   = useState<string | null>(null);
@@ -58,7 +58,8 @@ export default function TeamPage() {
   const kycStatus     = useKycStatus();
 
   async function load() {
-    if (kycStatus !== "verified") { setLoading(false); return; }
+    if (kycStatus !== "verified") return;
+    setLoading(true);
     try {
       const [teamRes, meRes, usageRes] = await Promise.all([
         apiFetch("/api/employer/team"),

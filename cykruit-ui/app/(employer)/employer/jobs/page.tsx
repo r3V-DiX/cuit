@@ -6,11 +6,12 @@ import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   PlusCircle, Eye, Users, Edit3, Trash2, Search,
   Briefcase, CheckCircle2, Clock, XCircle,
-  ChevronLeft, ChevronRight, ShieldAlert, ArrowRight,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
 import { useKycStatus } from "@/lib/employer-context";
+import { KycGate } from "@/components/employer/KycGate";
 
 const JOBS_PER_PAGE = 10;
 
@@ -43,7 +44,7 @@ interface Job {
 export default function MyJobsPage() {
   const { toast } = useToast();
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("All");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -122,7 +123,6 @@ export default function MyJobsPage() {
 
   useEffect(() => {
     if (isVerified) fetchJobs();
-    else setLoading(false);
   }, [page, statusFilter, search, kycStatus]);
 
   const handleDelete = async (jobId: string) => {
@@ -147,36 +147,10 @@ export default function MyJobsPage() {
   function setStatusAndReset(s: StatusFilterType) { setStatusFilter(s); setPage(1); }
   function setSearchAndReset(s: string) { setSearch(s); setPage(1); }
 
-  if (isVerified === false) {
-    return (
-      <>
-        <EmployerTopbar title="My Jobs" />
-        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
-          <div className="max-w-sm w-full text-center flex flex-col items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-amber-50 border-2 border-amber-200 flex items-center justify-center">
-              <ShieldAlert className="w-8 h-8 text-amber-500" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">KYC verification required</h2>
-              <p className="text-sm text-slate-500 mt-1.5 leading-relaxed">
-                Complete your organisation verification first. Once approved, you can post jobs and they'll appear here.
-              </p>
-            </div>
-            <Link
-              href="/kyc/employer"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 transition-colors shadow-sm shadow-amber-500/20"
-            >
-              Complete KYC <ArrowRight className="w-4 h-4" />
-            </Link>
-          </div>
-        </main>
-      </>
-    );
-  }
-
   return (
     <>
       <EmployerTopbar title="My Jobs" />
+      <KycGate>
       <main className="flex-1 overflow-y-auto p-6">
 
         {/* Header */}
@@ -362,6 +336,7 @@ export default function MyJobsPage() {
           </div>
         )}
       </main>
+      </KycGate>
     </>
   );
 }
