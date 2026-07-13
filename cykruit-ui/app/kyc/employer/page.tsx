@@ -139,6 +139,21 @@ export default function EmployerKYCPage() {
   const step1Valid = legalName.trim() && location.trim() && companyType && industry && companySize;
   const step2Valid = docType && file;
 
+  const ALLOWED_MIME = new Set(["application/pdf", "image/jpeg", "image/png"]);
+  const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+  function validateAndSetFile(f: File) {
+    if (f.size > MAX_FILE_BYTES) {
+      toast({ type: "error", message: "File too large. Maximum size is 10 MB." });
+      return;
+    }
+    if (!ALLOWED_MIME.has(f.type)) {
+      toast({ type: "error", message: "Invalid file type. Only PDF, JPG, and PNG are accepted." });
+      return;
+    }
+    setFile(f);
+  }
+
   async function handleStep1Continue() {
     if (!step1Valid || savingOrg) return;
     setSavingOrg(true);
@@ -177,7 +192,7 @@ export default function EmployerKYCPage() {
       fd.append("documentType", docType);
       await apiFetch("/api/employer/kyc/submit", {
         method: "POST",
-        headers: { "x-csrf-token": getCsrf() },
+        headers: authHeaders(),
         body: fd,
       });
       setStep(3);
@@ -388,7 +403,7 @@ export default function EmployerKYCPage() {
                   ) : (
                     <div
                       onClick={() => fileRef.current?.click()}
-                      onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) setFile(f); }}
+                      onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) validateAndSetFile(f); }}
                       onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                       onDragLeave={() => setDragOver(false)}
                       className={`flex flex-col items-center justify-center gap-3 py-10 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
@@ -405,7 +420,7 @@ export default function EmployerKYCPage() {
                     </div>
                   )}
                   <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden"
-                    onChange={(e) => { const f = e.target.files?.[0]; if (f) setFile(f); }} />
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) validateAndSetFile(f); }} />
                 </div>
 
                 <div className="flex items-start gap-2.5 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
