@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
 import { KycGate } from "@/components/employer/KycGate";
+import { useKycStatus } from "@/lib/employer-context";
 
 const JOB_TYPES   = ["Full-time", "Part-time", "Contract", "Internship"];
 const REMOTE_TYPES = ["Remote", "On-site", "Hybrid"];
@@ -158,8 +159,10 @@ export default function PostJobPage() {
   const { toast } = useToast();
   const [publishing, setPublishing]     = useState(false);
   const [usageLimits, setUsageLimits]   = useState<UsageLimits | null>(null);
+  const kycStatus = useKycStatus();
 
   useEffect(() => {
+    if (kycStatus !== "verified") return;
     apiFetch<{ usage?: { currentActiveJobs: number }; limits?: { maxActiveJobs: number } }>("/api/subscriptions/usage")
       .then((res) => {
         if (res.data?.usage != null && res.data?.limits != null) {
@@ -170,7 +173,7 @@ export default function PostJobPage() {
         }
       })
       .catch(() => null);
-  }, []);
+  }, [kycStatus]);
   const [title, setTitle]               = useState("");
   const [domain, setDomain]             = useState("");
   const [type, setType]                 = useState("");

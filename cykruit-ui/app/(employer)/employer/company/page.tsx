@@ -9,6 +9,7 @@ import {
   ShieldAlert, ShieldCheck, Clock,
 } from "lucide-react";
 import { apiFetch, authHeaders, getCsrf } from "@/lib/api";
+import { useKycStatus } from "@/lib/employer-context";
 
 const INDUSTRIES = [
   { id: "TECHNOLOGY", label: "Technology" },
@@ -64,7 +65,13 @@ type Perk = { id?: string; name: string };
 export default function CompanyProfilePage() {
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
-  const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const kycCtx = useKycStatus();
+  const kycStatus =
+    kycCtx === "verified"      ? "APPROVED"     :
+    kycCtx === "pending"       ? "PENDING"      :
+    kycCtx === "under_review"  ? "UNDER_REVIEW" :
+    kycCtx === "rejected"      ? "REJECTED"     :
+    "NOT_SUBMITTED";
   const [name, setName]         = useState("");
   const [industry, setIndustry] = useState("");
   const [size, setSize]         = useState("");
@@ -81,18 +88,6 @@ export default function CompanyProfilePage() {
   const logoInputRef            = useRef<HTMLInputElement>(null);
 
   const hasLogo = !!logoUrl;
-
-  useEffect(() => {
-    apiFetch("/api/employer/kyc/status")
-      .then((res) => {
-        const d = res.data;
-        if (d?.isVerified) { setKycStatus("APPROVED"); return; }
-        const vs = d?.verification?.status;
-        if (vs === "PENDING" || vs === "UNDER_REVIEW") setKycStatus(vs);
-        else setKycStatus("NOT_SUBMITTED");
-      })
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     apiFetch("/api/employer/company/me")

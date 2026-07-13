@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useMessaging } from "@/hooks/useMessaging";
 import { apiFetch, authHeaders } from "@/lib/api";
 import { KycGate } from "@/components/employer/KycGate";
+import { useKycStatus } from "@/lib/employer-context";
 
 type Message = {
   id: string;
@@ -106,8 +107,10 @@ export default function EmployerMessagesPage() {
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showList, setShowList] = useState(true);
+  const kycStatus = useKycStatus();
 
   useEffect(() => {
+    if (kycStatus !== "verified") { setLoading(false); return; }
     async function load() {
       setLoading(true);
       try {
@@ -128,7 +131,7 @@ export default function EmployerMessagesPage() {
       }
     }
     load();
-  }, []);
+  }, [kycStatus]);
 
   const active = convs.find((c) => c.id === activeId);
 

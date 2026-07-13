@@ -1,32 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ShieldAlert, Clock, ArrowRight } from "lucide-react";
-import { apiFetch } from "@/lib/api";
-
-type KycStatus = "loading" | "verified" | "pending" | "not_submitted";
-
-interface KycGateProps {
-  children: React.ReactNode;
-}
-
-function useKycStatus(): KycStatus {
-  const [status, setStatus] = useState<KycStatus>("loading");
-
-  useEffect(() => {
-    apiFetch("/api/employer/kyc/status")
-      .then((res) => {
-        if (res.data?.isVerified) { setStatus("verified"); return; }
-        const vs = res.data?.verification?.status;
-        if (vs === "PENDING" || vs === "UNDER_REVIEW") setStatus("pending");
-        else setStatus("not_submitted");
-      })
-      .catch(() => setStatus("not_submitted"));
-  }, []);
-
-  return status;
-}
+import { useKycStatus } from "@/lib/employer-context";
 
 function LockedScreen({ pending }: { pending: boolean }) {
   return (
@@ -64,11 +40,9 @@ function LockedScreen({ pending }: { pending: boolean }) {
   );
 }
 
-export function KycGate({ children }: KycGateProps) {
+export function KycGate({ children }: { children: React.ReactNode }) {
   const status = useKycStatus();
-
-  if (status === "loading") return null;
-  if (status === "not_submitted") return <LockedScreen pending={false} />;
-  if (status === "pending") return <LockedScreen pending={true} />;
+  if (status === "not_submitted" || status === "rejected") return <LockedScreen pending={false} />;
+  if (status === "pending" || status === "under_review")   return <LockedScreen pending={true} />;
   return <>{children}</>;
 }

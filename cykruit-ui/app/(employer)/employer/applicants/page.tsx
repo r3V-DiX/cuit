@@ -10,6 +10,7 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api";
 import { KycGate } from "@/components/employer/KycGate";
+import { useKycStatus } from "@/lib/employer-context";
 
 type AppStatus = "APPLIED" | "UNDER_REVIEW" | "SHORTLISTED" | "INTERVIEW" | "OFFERED" | "REJECTED" | "HIRED" | "WITHDRAWN" | "New" | "Shortlisted" | "Interview" | "Rejected";
 
@@ -39,8 +40,10 @@ export default function ApplicantsPage() {
   const [loading, setLoading]           = useState(true);
   const [jobOptions, setJobOptions]     = useState<{label: string, value: string}[]>([{ label: "All Jobs", value: "all" }]);
   const { toast } = useToast();
+  const kycStatus = useKycStatus();
 
   useEffect(() => {
+    if (kycStatus !== "verified") { setLoading(false); return; }
     async function fetchApplicants() {
       try {
         const { data } = await apiFetch("/api/employer/applications");
@@ -61,7 +64,7 @@ export default function ApplicantsPage() {
       }
     }
     fetchApplicants();
-  }, [toast]);
+  }, [toast, kycStatus]);
 
   const filtered = applicants.filter((a) => {
     const matchStatus = statusFilter === "All" || a?.status === statusFilter;

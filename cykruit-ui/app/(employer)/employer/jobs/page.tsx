@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
+import { useKycStatus } from "@/lib/employer-context";
 
 const JOBS_PER_PAGE = 10;
 
@@ -47,16 +48,11 @@ export default function MyJobsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalJobs, setTotalJobs] = useState(0);
-  const [isVerified, setIsVerified] = useState<boolean | null>(null);
+  const kycStatus = useKycStatus();
+  const isVerified = kycStatus === "verified";
 
   // Status counts (fetched once or calculated)
   const [counts, setCounts] = useState({ active: 0, pending: 0, draft: 0, closed: 0 });
-
-  useEffect(() => {
-    apiFetch("/api/employer/kyc/status")
-      .then((res) => setIsVerified(res.data?.isVerified === true))
-      .catch(() => setIsVerified(false));
-  }, []);
 
   const fetchJobs = async () => {
     setLoading(true);
@@ -125,9 +121,9 @@ export default function MyJobsPage() {
   };
 
   useEffect(() => {
-    if (isVerified === true) fetchJobs();
-    else if (isVerified === false) setLoading(false);
-  }, [page, statusFilter, search, isVerified]);
+    if (isVerified) fetchJobs();
+    else setLoading(false);
+  }, [page, statusFilter, search, kycStatus]);
 
   const handleDelete = async (jobId: string) => {
     if (!confirm("Are you sure you want to delete this job draft?")) return;

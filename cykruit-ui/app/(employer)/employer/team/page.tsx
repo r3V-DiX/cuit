@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { apiFetch, authHeaders, ApiError } from "@/lib/api";
 import { KycGate } from "@/components/employer/KycGate";
+import { useKycStatus } from "@/lib/employer-context";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
 
@@ -54,8 +55,10 @@ export default function TeamPage() {
 
   const { toast }     = useToast();
   const { openModal } = useModal();
+  const kycStatus     = useKycStatus();
 
   async function load() {
+    if (kycStatus !== "verified") { setLoading(false); return; }
     try {
       const [teamRes, meRes, usageRes] = await Promise.all([
         apiFetch("/api/employer/team"),
@@ -78,7 +81,7 @@ export default function TeamPage() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [kycStatus]);
 
   async function handleInvite() {
     if (!inviteEmail.trim() || inviting) return;

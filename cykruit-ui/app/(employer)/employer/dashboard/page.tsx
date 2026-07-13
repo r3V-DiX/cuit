@@ -9,6 +9,7 @@ import {
   BarChart2, Activity, Loader2, AlertTriangle, ShieldCheck, ShieldAlert,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { useKycStatus } from "@/lib/employer-context";
 
 type AppStatus = "New" | "Shortlisted" | "Rejected" | "Interview";
 
@@ -69,11 +70,18 @@ interface ApiApplication {
 
 export default function EmployerDashboardPage() {
   const [displayName, setDisplayName] = useState("Employer");
-  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
   const [jobs, setJobs] = useState<ApiJob[]>([]);
   const [applications, setApplications] = useState<ApiApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  const kycCtx = useKycStatus();
+  const verificationStatus =
+    kycCtx === "verified"      ? "APPROVED"     :
+    kycCtx === "pending"       ? "PENDING"      :
+    kycCtx === "under_review"  ? "UNDER_REVIEW" :
+    kycCtx === "rejected"      ? "REJECTED"     :
+    "NOT_SUBMITTED";
 
   useEffect(() => {
     async function fetchUser() {
@@ -82,8 +90,6 @@ export default function EmployerDashboardPage() {
         if (result.data?.firstName) {
           setDisplayName(result.data.firstName);
         }
-        const es = result.data?.employerStatus;
-        if (es) setVerificationStatus(es.verificationStatus ?? (es.needsVerification ? "NOT_SUBMITTED" : null));
       } catch {
         // Silent catch for guest fallback
       }

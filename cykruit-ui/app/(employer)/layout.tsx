@@ -1,47 +1,36 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import EmployerSidebar from "@/components/employer/EmployerSidebar";
+import { KycProvider, type KycStatus } from "@/lib/employer-context";
 
-const AUTH_SERVICE_URL =
-  process.env.AUTH_SERVICE_URL || "http://127.0.0.1:4001";
+const AUTH_URL     = process.env.AUTH_SERVICE_URL     || "http://127.0.0.1:4001";
+const EMPLOYER_URL = process.env.EMPLOYER_SERVICE_URL || "http://127.0.0.1:4004";
 
-async function getSessionUser() {
+async function buildForwardHeaders(): Promise<Record<string, string>> {
   const cookieStore = await cookies();
   const sessionToken = cookieStore.get("session_token")?.value;
-  if (!sessionToken) return null;
+  if (!sessionToken) return {};
 
+  const { headers: getHeaders } = await import("next/headers");
+  const reqHeaders = await getHeaders();
+
+  const fwd: Record<string, string> = {
+    Cookie: `session_token=${sessionToken}`,
+  };
+  const copy = ["user-agent", "accept-language", "accept-encoding",
+    "sec-ch-ua", "sec-ch-ua-platform", "x-forwarded-for", "x-real-ip"];
+  for (const h of copy) {
+    const v = reqHeaders.get(h);
+    if (v) fwd[h] = v;
+  }
+  return fwd;
+}
+
+async function getSessionUser(fwdHeaders: Record<string, string>) {
+  if (!fwdHeaders.Cookie) return null;
   try {
-    const { headers: getHeaders } = await import("next/headers");
-    const reqHeaders = await getHeaders();
-    
-    const forwardHeaders: Record<string, string> = {
-      Cookie: `session_token=${sessionToken}`,
-    };
-
-    // Forward device fingerprint headers so backend doesn't revoke session due to mismatch
-    const ua = reqHeaders.get("user-agent");
-    if (ua) forwardHeaders["user-agent"] = ua;
-    
-    const al = reqHeaders.get("accept-language");
-    if (al) forwardHeaders["accept-language"] = al;
-    
-    const ae = reqHeaders.get("accept-encoding");
-    if (ae) forwardHeaders["accept-encoding"] = ae;
-    
-    const scu = reqHeaders.get("sec-ch-ua");
-    if (scu) forwardHeaders["sec-ch-ua"] = scu;
-    
-    const scup = reqHeaders.get("sec-ch-ua-platform");
-    if (scup) forwardHeaders["sec-ch-ua-platform"] = scup;
-    
-    const xff = reqHeaders.get("x-forwarded-for");
-    if (xff) forwardHeaders["x-forwarded-for"] = xff;
-    
-    const xri = reqHeaders.get("x-real-ip");
-    if (xri) forwardHeaders["x-real-ip"] = xri;
-
-    const res = await fetch(`${AUTH_SERVICE_URL}/auth/me`, {
-      headers: forwardHeaders,
+    const res = await fetch(`${AUTH_URL}/auth/me`, {
+      headers: fwdHeaders,
       cache: "no-store",
     });
     if (!res.ok) return null;
@@ -52,23 +41,51 @@ async function getSessionUser() {
   }
 }
 
+async function getKycStatus(fwdHeaders: Record<string, string>): Promise<KycStatus> {
+  if (!fwdHeaders.Cookie) return "not_submitted";
+  try {
+    const res = await fetch(`${EMPLOYER_URL}/employer/kyc/status`, {
+      headers: fwdHeaders,
+      cache: "no-store",
+    });
+    if (!res.ok) return "not_submitted";
+    const body = await res.json();
+    const data = body?.data ?? body;
+    if (data?.isVerified) return "verified";
+    const vs: string = data?.verification?.status ?? "";
+    if (vs === "UNDER_REVIEW") return "under_review";
+    if (vs === "PENDING")      return "pending";
+    if (vs === "REJECTED")     return "rejected";
+    return "not_submitted";
+  } catch {
+    return "not_submitted";
+  }
+}
+
 export default async function EmployerLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getSessionUser();
+  const fwdHeaders = await buildForwardHeaders();
+
+  const [user, kycStatus] = await Promise.all([
+    getSessionUser(fwdHeaders),
+    getKycStatus(fwdHeaders),
+  ]);
 
   if (!user || user.role !== "EMPLOYER") {
     redirect("/login?next=/employer/dashboard");
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      <EmployerSidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {children}
+    <KycProvider initialStatus={kycStatus}>
+      <div className="flex h-screen bg-slate-50 overflow-hidden">
+        <EmployerSidebar />
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {children}
+        </div>
       </div>
-    </div>
+    </KycProvider>
   );
 }
