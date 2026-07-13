@@ -1804,6 +1804,7 @@ model Admin {
     sessions            AdminSession[]
     roleAssignments     AdminRoleAssignment[]
     permissionOverrides AdminPermissionOverride[]
+    sentInvites         AdminInvite[]              @relation("AdminInviter")
 
     @@index([email])
     @@map("admins")
@@ -2382,6 +2383,7 @@ model AdminRbacRole {
 
     permissions AdminRolePermission[]
     assignments AdminRoleAssignment[]
+    invites     AdminInvite[]
 
     @@map("admin_rbac_roles")
 }
@@ -2426,4 +2428,34 @@ model AdminPermissionOverride {
     @@unique([adminId, permissionId])
     @@index([adminId])
     @@map("admin_permission_overrides")
+}
+
+// ==========================
+// Admin invite flow — super_admin invites a new admin by email;
+// invite carries a one-time hashed token and an optional pre-assigned role.
+// ==========================
+
+enum AdminInviteStatus {
+    PENDING
+    ACCEPTED
+    EXPIRED
+    REVOKED
+}
+
+model AdminInvite {
+    id         String            @id @default(uuid()) @db.Uuid
+    email      String            @unique
+    token      String            @unique // hashed one-time token
+    invitedBy  String            @db.Uuid
+    inviter    Admin             @relation("AdminInviter", fields: [invitedBy], references: [id])
+    roleId     String? // Pre-assign a role on acceptance
+    role       AdminRbacRole?    @relation(fields: [roleId], references: [id])
+    status     AdminInviteStatus @default(PENDING)
+    expiresAt  DateTime
+    acceptedAt DateTime?
+    createdAt  DateTime          @default(now())
+
+    @@index([token])
+    @@index([status])
+    @@map("admin_invites")
 }
