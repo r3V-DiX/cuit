@@ -183,6 +183,11 @@ export default function PostJobPage() {
   const [tags, setTags]                 = useState<string[]>([]);
 
   type QuestionType = "text" | "single" | "boolean";
+  const questionTypeMap: Record<QuestionType, string> = {
+    text: "TEXT",
+    single: "MULTIPLE_CHOICE",
+    boolean: "BOOLEAN",
+  };
   type Question = {
     id: number; type: QuestionType; question: string;
     options: string[]; required: boolean;
@@ -302,7 +307,7 @@ export default function PostJobPage() {
           description: finalDesc || undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
-            type: q.type.toUpperCase(),
+            type: questionTypeMap[q.type],
             question: q.question,
             options: q.options,
             required: q.required
@@ -382,7 +387,7 @@ export default function PostJobPage() {
           description: finalDesc || undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
-            type: q.type.toUpperCase(),
+            type: questionTypeMap[q.type],
             question: q.question,
             options: q.options,
             required: q.required
