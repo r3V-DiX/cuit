@@ -124,13 +124,15 @@ export default function CompanyProfilePage() {
         apiFetch("/api/employer/company/basic", {
           method: "PATCH",
           headers: authHeaders(),
-          body: JSON.stringify({ 
-            companyName: name, 
-            industry: industry || undefined, 
-            companySize: size || undefined, 
-            companyWebsite: website, 
-            location, 
-            foundedYear: parseInt(founded) || undefined 
+          body: JSON.stringify({
+            companyName: name || undefined,
+            industry: industry || undefined,
+            companySize: size || undefined,
+            companyWebsite: website.trim()
+              ? /^https?:\/\//i.test(website.trim()) ? website.trim() : `https://${website.trim()}`
+              : undefined,
+            location: location.trim() || undefined,
+            foundedYear: parseInt(founded) || undefined,
           }),
         }),
         apiFetch("/api/employer/company/about", {
@@ -141,7 +143,12 @@ export default function CompanyProfilePage() {
         apiFetch("/api/employer/company/social", {
           method: "PATCH",
           headers: authHeaders(),
-          body: JSON.stringify({ linkedin, twitter }),
+          body: JSON.stringify({
+            linkedin: linkedin.trim()
+              ? /^https?:\/\//i.test(linkedin.trim()) ? linkedin.trim() : `https://${linkedin.trim()}`
+              : undefined,
+            twitter: twitter.trim() || undefined,
+          }),
         }),
       ]);
     } finally {

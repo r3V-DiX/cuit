@@ -118,11 +118,11 @@ export default function EmployerNotificationsPage() {
   return (
     <>
       <EmployerTopbar title="Notifications" />
-      <main className="flex-1 overflow-y-auto p-6">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
+      <main className="flex-1 overflow-y-auto p-6 flex flex-col">
+        <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-3 gap-5 items-start xl:items-stretch">
 
           {/* ── Left: notification list ─────────────────────────────────────── */}
-          <div className="xl:col-span-2">
+          <div className="xl:col-span-2 flex flex-col h-full">
 
             {/* Toolbar */}
             <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
@@ -150,12 +150,12 @@ export default function EmployerNotificationsPage() {
 
             {/* List */}
             {loading ? (
-              <div className="flex items-center justify-center py-20 bg-white rounded-2xl border border-slate-200">
+              <div className="flex-1 flex items-center justify-center bg-white rounded-2xl border border-slate-200">
                 <Loader2 className="w-5 h-5 animate-spin mr-2 text-slate-400" />
                 <span className="text-sm text-slate-400">Loading notifications…</span>
               </div>
             ) : shown.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-slate-200">
+              <div className="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-200">
                 <Bell className="w-10 h-10 text-slate-200 mb-3" />
                 <p className="text-slate-500 font-medium text-sm">You're all caught up</p>
                 <p className="text-xs text-slate-400 mt-1">No notifications to show</p>

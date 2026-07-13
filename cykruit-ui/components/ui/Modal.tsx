@@ -178,8 +178,8 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
 
   const openModal = useCallback((options: ModalOptions) => {
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-    document.body.style.overflow = "hidden";
-    document.body.style.paddingRight = `${scrollbarWidth}px`;
+    document.documentElement.style.overflow = "hidden";
+    document.documentElement.style.paddingRight = `${scrollbarWidth}px`;
     setState({ ...DEFAULT_STATE, ...options, open: true, loading: false });
   }, []);
 
@@ -187,8 +187,8 @@ export function ModalProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({ ...prev, open: false }));
     setTimeout(() => {
       setState(DEFAULT_STATE);
-      document.body.style.overflow = "";
-      document.body.style.paddingRight = "";
+      document.documentElement.style.overflow = "";
+      document.documentElement.style.paddingRight = "";
     }, 250);
   }, []);
 

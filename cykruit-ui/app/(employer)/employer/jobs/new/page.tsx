@@ -313,10 +313,10 @@ export default function PostJobPage() {
           description: finalDesc || undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
+            id: crypto.randomUUID(),
             type: questionTypeMap[q.type],
             question: q.question,
-            options: q.options,
-            required: q.required
+            required: q.required,
           })) : undefined,
         }),
       });
@@ -393,10 +393,10 @@ export default function PostJobPage() {
           description: finalDesc || undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
+            id: crypto.randomUUID(),
             type: questionTypeMap[q.type],
             question: q.question,
-            options: q.options,
-            required: q.required
+            required: q.required,
           })) : undefined,
         }),
       });

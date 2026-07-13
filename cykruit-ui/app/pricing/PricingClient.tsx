@@ -103,29 +103,37 @@ function PlanCard({ pkg, yearly }: { pkg: PricingPackage; yearly: boolean }) {
         </div>
       )}
 
-      <div className="p-7 pb-5">
-        <div className="flex items-center gap-2 mb-3">
+      {/* ── Header: icon + name + description (fixed height so all cards align) */}
+      <div className="px-7 pt-7 pb-0">
+        <div className="flex items-center gap-2 mb-2">
           <Icon className={`w-4 h-4 ${accent.check}`} />
           <h3 className="text-base font-bold text-slate-900">{pkg.name}</h3>
         </div>
-        {pkg.description && (
-          <p className="text-xs text-slate-500 mb-5 leading-relaxed">{pkg.description}</p>
-        )}
+        <p className="text-xs text-slate-500 leading-relaxed min-h-10">
+          {pkg.description ?? ""}
+        </p>
+      </div>
 
+      {/* ── Price block */}
+      <div className="px-7 pt-4 pb-0">
         <div className="flex items-end gap-1.5 mb-1">
           <span className="text-3xl font-bold text-slate-900">
-            {isFree ? "Free" : `$${displayPrice.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`}
+            {isFree ? "Free" : `₹${displayPrice.toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
           </span>
           {!isFree && <span className="text-sm text-slate-400 mb-1">/mo</span>}
         </div>
-        {!isFree && yearly && annualSaving > 0 ? (
-          <p className="text-[10px] font-mono text-emerald-600 mb-5">
-            ✓ Save ${annualSaving.toLocaleString("en-US")}/yr with annual billing
-          </p>
-        ) : (
-          <div className="mb-5" />
-        )}
+        {/* Fixed-height row so save text / empty space never shifts CTA */}
+        <div className="h-5 mb-4">
+          {!isFree && yearly && annualSaving > 0 && (
+            <p className="text-[10px] font-mono text-emerald-600">
+              ✓ Save ₹{annualSaving.toLocaleString("en-IN")}/yr with annual billing
+            </p>
+          )}
+        </div>
+      </div>
 
+      {/* ── CTA — always flush after price, same position on every card */}
+      <div className="px-7 pb-6">
         <Link
           href={`/employer/subscription/checkout?plan=${pkg.id}&billing=${yearly ? "yearly" : "monthly"}`}
           className={`w-full flex items-center justify-center gap-2 h-11 rounded-xl text-white text-sm font-semibold transition-all shadow-md ${accent.btn}`}
@@ -134,7 +142,8 @@ function PlanCard({ pkg, yearly }: { pkg: PricingPackage; yearly: boolean }) {
         </Link>
       </div>
 
-      <div className="px-7 pb-7 flex-1">
+      {/* ── Features — fills remaining height */}
+      <div className="px-7 pb-7 flex-1 border-t border-slate-100 pt-5">
         <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-3">What&apos;s included</p>
         <ul className="space-y-2.5">
           {features.map((f) => (

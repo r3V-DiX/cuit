@@ -58,19 +58,20 @@ cp .env.local.example .env.local   # if exists
 cd cykruit-app
 npm run start:all:dev
 ```
-Starts all 9 services concurrently with hot-reload:
+Starts all 10 services concurrently with hot-reload:
 
-| Service              | Port | Command                        |
-|----------------------|------|-------------------------------|
-| auth-service         | 4001 | `npm run start:auth:dev`       |
-| user-settings-service| 4002 | `npm run start:settings:dev`   |
-| seeker-profile-service| 4003| `npm run start:seeker-profile:dev` |
-| employer-service     | 4004 | `npm run start:employer:dev`   |
-| seeker-service       | 4005 | `npm run start:seeker:dev`     |
-| public-service       | 4006 | `npm run start:public:dev`     |
-| notification-service | 4007 | `npm run start:notification:dev`|
-| subscription-service | 4008 | `npm run start:subscription:dev`|
-| gateway              | 5000 | `npm run start:gateway:dev`    |
+| Service               | Port | Command                             |
+|-----------------------|------|-------------------------------------|
+| auth-service          | 4001 | `npm run start:auth:dev`            |
+| user-settings-service | 4002 | `npm run start:settings:dev`        |
+| seeker-profile-service| 4003 | `npm run start:seeker-profile:dev`  |
+| employer-service      | 4004 | `npm run start:employer:dev`        |
+| seeker-service        | 4005 | `npm run start:seeker:dev`          |
+| public-service        | 4006 | `npm run start:public:dev`          |
+| notification-service  | 4007 | `npm run start:notification:dev`    |
+| subscription-service  | 4008 | `npm run start:subscription:dev`    |
+| ai-service            | 3005 | `npm run start:ai:dev`              |
+| gateway               | 5000 | `npm run start:gateway:dev`         |
 
 ### One service at a time
 ```bash
@@ -84,6 +85,7 @@ npm run start:seeker:dev
 npm run start:public:dev
 npm run start:notification:dev
 npm run start:subscription:dev
+npm run start:ai:dev
 npm run start:gateway:dev
 ```
 
@@ -115,18 +117,19 @@ Runs on port **3000**.
 
 Everything goes through `http://localhost:5000`:
 
-| Route prefix       | Forwards to                    |
-|--------------------|-------------------------------|
-| `/auth`            | auth-service :4001            |
-| `/settings`        | user-settings-service :4002   |
-| `/seeker-profile`  | seeker-profile-service :4003  |
-| `/employer`        | employer-service :4004        |
-| `/seeker`          | seeker-service :4005          |
-| `/public`          | public-service :4006          |
-| `/notifications`   | notification-service :4007    |
-| `/subscriptions`   | subscription-service :4008    |
-| `/ws`              | notification-service :4007 (WebSocket) |
-| `/gateway/health`  | health check (gateway itself) |
+| Route prefix       | Forwards to                           |
+|--------------------|---------------------------------------|
+| `/auth`            | auth-service :4001                    |
+| `/settings`        | user-settings-service :4002           |
+| `/seeker-profile`  | seeker-profile-service :4003          |
+| `/employer`        | employer-service :4004                |
+| `/seeker`          | seeker-service :4005                  |
+| `/public`          | public-service :4006                  |
+| `/notifications`   | notification-service :4007            |
+| `/subscriptions`   | subscription-service :4008            |
+| `/ws`              | notification-service :4007 (WebSocket)|
+| `/gateway/health`  | health check (gateway itself)         |
+| `/ai`              | ai-service :3005 — ⚠️ NOT YET WIRED into gateway (`SERVICES` map missing `ai` entry in `gateway/src/main.ts`) |
 
 ---
 

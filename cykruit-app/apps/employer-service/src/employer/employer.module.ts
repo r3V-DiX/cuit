@@ -52,6 +52,9 @@ import { TeamRepository } from './repositories/team.repository';
 import { EmployerApplicationsRepository } from './repositories/applications.repository';
 import { ActivityRepository } from './repositories/activity.repository';
 
+// Guards
+import { KycVerifiedGuard } from './guards/kyc-verified.guard';
+
 /**
  * EmployerSessionValidator validates bearer/cookie session tokens from the
  * shared sessions table using the same logic as auth-service's SessionService.
@@ -148,6 +151,7 @@ export class EmployerSessionValidator implements ISessionValidator {
         EmployerSessionValidator,
         AdminKycService,
         AdminJobsService,
+        KycVerifiedGuard,
     ],
     exports: [CompanyService],
 })

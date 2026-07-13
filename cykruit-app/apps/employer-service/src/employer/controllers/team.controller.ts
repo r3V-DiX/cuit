@@ -25,9 +25,13 @@ import {
     TransferOwnershipDto,
     AcceptInviteDto,
 } from '../dto/team.dto';
+import { KycVerifiedGuard, SKIP_KYC_CHECK_KEY } from '../guards/kyc-verified.guard';
+import { SetMetadata } from '@nestjs/common';
+
+const SkipKycCheck = () => SetMetadata(SKIP_KYC_CHECK_KEY, true);
 
 @Controller('employer/team')
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(AuthGuard, KycVerifiedGuard, PermissionGuard)
 export class TeamController {
     constructor(private readonly teamService: TeamService) {}
 
@@ -59,6 +63,7 @@ export class TeamController {
      */
     @Post('accept-invite')
     @HttpCode(HttpStatus.CREATED)
+    @SkipKycCheck()
     acceptInvite(@CurrentUser() user: User, @Body() dto: AcceptInviteDto) {
         return this.teamService.acceptInvite(user.id, dto.token);
     }

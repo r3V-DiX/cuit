@@ -186,6 +186,15 @@ export class PaymentService {
     // ── Free-tier activation (called by event processor) ─────────────────────
 
     async activateFreeTierIfEligible(employerId: string): Promise<void> {
+        const employer = await this.subRepo.findEmployerById(employerId);
+        if (!employer) {
+            this.logger.warn(
+                `Employer ${employerId} not found — skipping free-tier activation`,
+                'PaymentService',
+            );
+            return;
+        }
+
         const existing = await this.subRepo.findSubscriptionByEmployer(employerId);
         // Only skip if there is an active subscription.
         // CANCELLED or EXPIRED employers should receive the free tier.

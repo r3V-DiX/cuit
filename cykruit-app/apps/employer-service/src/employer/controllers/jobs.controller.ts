@@ -21,9 +21,10 @@ import type { User } from '@prisma/client';
 import type { Request } from 'express';
 import { JobsService } from '../services/jobs.service';
 import { CreateJobDto, UpdateJobDto, CloseJobDto, JobListQueryDto } from '../dto/job.dto';
+import { KycVerifiedGuard } from '../guards/kyc-verified.guard';
 
 @Controller('employer/jobs')
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(AuthGuard, KycVerifiedGuard, PermissionGuard)
 export class JobsController {
     constructor(private readonly jobsService: JobsService) {}
 

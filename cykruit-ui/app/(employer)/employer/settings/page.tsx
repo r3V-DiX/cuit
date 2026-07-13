@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { useToast } from "@/components/ui/Toast";
+import { useModal } from "@/components/ui/Modal";
 import {
-  User, Bell, Shield, Eye, Check,
+  User, Bell, Shield, Check,
   Mail, Smartphone, Info, Trash2, Lock,
   Building2, ChevronDown, Loader2,
 } from "lucide-react";
@@ -63,7 +64,14 @@ const TABS = [
   { id: "security",      label: "Security",      icon: Shield    },
 ];
 
-const SIZES = ["1–10", "11–50", "51–200", "201–500", "500–1000", "1000+"];
+const SIZES: { value: string; label: string }[] = [
+  { value: "SIZE_1_10",      label: "1–10 employees"      },
+  { value: "SIZE_11_50",     label: "11–50 employees"     },
+  { value: "SIZE_51_200",    label: "51–200 employees"    },
+  { value: "SIZE_201_500",   label: "201–500 employees"   },
+  { value: "SIZE_501_1000",  label: "501–1000 employees"  },
+  { value: "SIZE_1000_PLUS", label: "1000+ employees"     },
+];
 
 interface SubSummary {
   hasSubscription: boolean;
@@ -82,54 +90,63 @@ interface SubSummary {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function EmployerSettingsPage() {
   const { toast } = useToast();
+  const { openModal } = useModal();
   const [tab, setTab]= useState("account");
   const [loading, setLoading] = useState(true);
   useSessionGuard();
 
   // Account
   const [locked, setLocked] = useState({ name: "", email: "" });
-  const [googleAuth, setGoogleAuth] = useState(false);
-  const [phone, setPhone]     = useState("");
-  const [timezone, setTimezone] = useState("Pacific Time (PT)");
+  const [userProvider, setUserProvider] = useState("");
+
+  // General / privacy
+  const [profileVisibility, setProfileVisibility] = useState<"PUBLIC" | "PRIVATE">("PUBLIC");
+  const [showCompanyDetails, setShowCompanyDetails] = useState(true);
 
   // Company basics
-  const [companySize, setCompanySize] = useState("51–200");
-  const [publicEmail, setPublicEmail] = useState("");
+  const [companySize, setCompanySize] = useState("SIZE_51_200");
+  const [contactEmail, setContactEmail] = useState("");
 
   // Subscription summary
   const [subSummary, setSubSummary] = useState<SubSummary | null>(null);
 
-  // Notifications
+  // Notifications — keys match UpdateEmployerNotificationsDto
   const [notifs, setNotifs] = useState({
-    newApplication:   true,
-    statusChange:     true,
-    jobExpiry:        true,
-    weeklyReport:     false,
-    marketing:        false,
-    emailEnabled:     true,
-    pushEnabled:      false,
+    enableEmail:              true,
+    enableInApp:              true,
+    newApplicant_email:       true,
+    newApplicant_inApp:       true,
+    applicationUpdate_email:  true,
+    applicationUpdate_inApp:  true,
+    jobExpiryAlert_email:     true,
+    jobExpiryAlert_inApp:     true,
+    platformAnnouncement_email: false,
+    platformAnnouncement_inApp: true,
   });
 
   useEffect(() => {
     async function loadSettings() {
       try {
-        const [me, s, subRes] = await Promise.all([
+        const [me, s, companyRes, subRes] = await Promise.all([
           apiFetch("/api/auth/me"),
           apiFetch("/api/settings/employer"),
+          apiFetch("/api/employer/company/me").catch(() => null),
           apiFetch<SubSummary>("/api/subscriptions/usage").catch(() => null),
         ]);
         const u = me?.data ?? me;
         const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ");
         setLocked({ name: fullName || u.name || u.fullName || "", email: u.email ?? "" });
-        setGoogleAuth(u.provider === "GOOGLE" || u.provider === "GITHUB");
+        setUserProvider(u.provider ?? "");
         const d = s?.data ?? s;
-        const general = d?.general ?? d;
-        const notifs = d?.notifications;
-        if (general.phone    !== undefined) setPhone(general.phone);
-        if (general.timezone !== undefined) setTimezone(general.timezone);
-        if (general.companySize   !== undefined) setCompanySize(general.companySize);
-        if (general.publicEmail   !== undefined) setPublicEmail(general.publicEmail);
-        if (notifs !== undefined) setNotifs((prev) => ({ ...prev, ...notifs }));
+        const n = d?.notifications;
+        if (n !== undefined) setNotifs((prev) => ({ ...prev, ...n }));
+        if (d?.profileVisibility)          setProfileVisibility(d.profileVisibility);
+        if (d?.showCompanyDetailsBeforeApply !== undefined) setShowCompanyDetails(d.showCompanyDetailsBeforeApply);
+        if (companyRes) {
+          const c = companyRes.data ?? companyRes;
+          if (c.companySize)   setCompanySize(c.companySize);
+          if (c.contactEmail)  setContactEmail(c.contactEmail);
+        }
         if (subRes?.data) setSubSummary(subRes.data);
       } catch {
         // silent — fields remain at defaults
@@ -140,27 +157,30 @@ export default function EmployerSettingsPage() {
     loadSettings();
   }, []);
 
+  async function saveCompany() {
+    try {
+      await apiFetch("/api/employer/company/basic", {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          companySize: companySize || undefined,
+          contactEmail: contactEmail.trim() || undefined,
+        }),
+      });
+      toast({ type: "success", message: "Company settings saved" });
+    } catch (err: unknown) {
+      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to save settings") });
+    }
+  }
+
   async function saveGeneral() {
     try {
       await apiFetch("/api/settings/employer/general", {
         method: "PATCH",
         headers: authHeaders(),
-        body: JSON.stringify({ phone, timezone }),
+        body: JSON.stringify({ profileVisibility, showCompanyDetailsBeforeApply: showCompanyDetails }),
       });
-      toast({ type: "success", message: "Contact details saved" });
-    } catch (err: unknown) {
-      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to save details") });
-    }
-  }
-
-  async function saveCompany() {
-    try {
-      await apiFetch("/api/settings/employer/general", {
-        method: "PATCH",
-        headers: authHeaders(),
-        body: JSON.stringify({ companySize, publicEmail }),
-      });
-      toast({ type: "success", message: "Company settings saved" });
+      toast({ type: "success", message: "Privacy settings saved" });
     } catch (err: unknown) {
       toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to save settings") });
     }
@@ -171,7 +191,7 @@ export default function EmployerSettingsPage() {
       await apiFetch("/api/settings/employer/notifications", {
         method: "PATCH",
         headers: authHeaders(),
-        body: JSON.stringify({ notifications: notifs }),
+        body: JSON.stringify(notifs),
       });
       toast({ type: "success", message: "Notification preferences saved" });
     } catch (err: unknown) {
@@ -179,20 +199,26 @@ export default function EmployerSettingsPage() {
     }
   }
 
-  // Security
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  async function deleteAccount() {
-    try {
-      await apiFetch("/api/auth/account", {
-        method: "DELETE",
-        headers: authHeaders(),
-      });
-      toast({ type: "error", message: "Account scheduled for deletion", description: "You will be logged out.", duration: 6000 });
-      window.location.href = "/login";
-    } catch (err: unknown) {
-      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to delete account") });
-    }
+  function confirmDeleteAccount() {
+    openModal({
+      variant: "danger",
+      title: "Delete Account",
+      description: "This will permanently delete your employer account and all associated data. This action cannot be undone.",
+      confirmLabel: "Delete Account",
+      cancelLabel: "Cancel",
+      onConfirm: async () => {
+        try {
+          await apiFetch("/api/auth/account", {
+            method: "DELETE",
+            headers: authHeaders(),
+          });
+          toast({ type: "error", message: "Account scheduled for deletion", description: "You will be logged out.", duration: 6000 });
+          window.location.href = "/login";
+        } catch (err: unknown) {
+          toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to delete account") });
+        }
+      },
+    });
   }
 
   if (loading) {
@@ -213,19 +239,21 @@ export default function EmployerSettingsPage() {
         <div className="flex flex-col md:flex-row gap-5 items-start">
 
           {/* ── Left tab sidebar ──────────────────────────────────────────── */}
-          <div className="w-full md:w-52 md:shrink-0 bg-white rounded-2xl border border-slate-200 p-2 flex flex-row md:flex-col gap-0.5 overflow-x-auto md:sticky md:top-6">
-            {TABS.map(({ id, label, icon: Icon }) => (
-              <button key={id} onClick={() => setTab(id)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-all shrink-0 whitespace-nowrap border cursor-pointer ${
-                  tab === id
-                    ? "bg-blue-50 text-blue-700 border-blue-100"
-                    : "text-slate-500 hover:text-slate-900 hover:bg-slate-50 border-transparent"
-                }`}
-              >
-                <Icon className={`w-4 h-4 shrink-0 ${tab === id ? "text-blue-600" : "text-slate-400"}`} />
-                {label}
-              </button>
-            ))}
+          <div className="w-full md:w-52 md:shrink-0">
+            <div className="bg-white rounded-2xl border border-slate-200 p-2 flex flex-row md:flex-col gap-0.5 overflow-x-auto md:sticky md:top-0">
+              {TABS.map(({ id, label, icon: Icon }) => (
+                <button key={id} onClick={() => setTab(id)}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-all shrink-0 whitespace-nowrap border cursor-pointer ${
+                    tab === id
+                      ? "bg-blue-50 text-blue-700 border-blue-100"
+                      : "text-slate-500 hover:text-slate-900 hover:bg-slate-50 border-transparent"
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 shrink-0 ${tab === id ? "text-blue-600" : "text-slate-400"}`} />
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* ── Content panel ─────────────────────────────────────────────── */}
@@ -255,28 +283,6 @@ export default function EmployerSettingsPage() {
                   </div>
                 </Section>
 
-                <Section title="Contact Details" desc="Contact info for internal use and candidate communication.">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className={labelCls}>Phone Number</label>
-                      <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555 000 0000" className={inputCls} />
-                    </div>
-                    <div>
-                      <label className={labelCls}>Timezone</label>
-                      <div className="relative">
-                        <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={selectCls}>
-                          {["Pacific Time (PT)", "Mountain Time (MT)", "Central Time (CT)", "Eastern Time (ET)", "UTC", "IST (India)"].map((t) => (
-                            <option key={t}>{t}</option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                      </div>
-                    </div>
-                  </div>
-                  <button onClick={saveGeneral} className={saveBtnCls}>
-                    <Check className="w-3.5 h-3.5" /> Save Details
-                  </button>
-                </Section>
 
                 <Section title="Plan & Billing" desc="Your current subscription plan and billing details.">
                   {subSummary ? (
@@ -333,30 +339,45 @@ export default function EmployerSettingsPage() {
                   </a>
                 </Section>
 
-                <Section title="Danger Zone" desc="Permanent actions that cannot be undone.">
-                  <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-red-100 bg-red-50/50">
-                      <div>
-                        <p className="text-sm font-semibold text-red-700">Delete Account</p>
-                        <p className="text-xs text-red-400 mt-0.5">Permanently delete your employer account and all associated data.</p>
+                <Section title="Privacy" desc="Control how your employer profile appears to candidates.">
+                  <div className="space-y-4">
+                    <div>
+                      <label className={labelCls}>Profile Visibility</label>
+                      <div className="relative max-w-xs">
+                        <select
+                          value={profileVisibility}
+                          onChange={(e) => setProfileVisibility(e.target.value as "PUBLIC" | "PRIVATE")}
+                          className={selectCls}
+                        >
+                          <option value="PUBLIC">Public — visible to all candidates</option>
+                          <option value="PRIVATE">Private — hidden from search</option>
+                        </select>
+                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                       </div>
-                      {!showDeleteConfirm && (
-                        <button onClick={() => setShowDeleteConfirm(true)}
-                          className="mt-3 sm:mt-0 flex items-center gap-1.5 text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-100 px-3 py-2 rounded-xl transition-colors shrink-0 cursor-pointer">
-                          <Trash2 className="w-3.5 h-3.5" /> Delete
-                        </button>
-                      )}
                     </div>
-                    {showDeleteConfirm && (
-                      <div className="p-4 rounded-xl border border-red-200 bg-white">
-                         <p className="text-sm font-semibold text-slate-800 mb-2">Confirm Account Deletion</p>
-                         <p className="text-xs text-slate-500 mb-4">This will schedule your account for deletion in 30 days. This cannot be undone.</p>
-                         <div className="flex gap-2">
-                           <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer">Cancel</button>
-                           <button onClick={deleteAccount} className="px-4 py-2 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors cursor-pointer">Confirm Delete</button>
-                         </div>
+                    <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200 max-w-lg">
+                      <div>
+                        <p className="text-sm font-medium text-slate-800">Show company details before applying</p>
+                        <p className="text-xs text-slate-400 mt-0.5">Candidates see your full company profile before they submit an application</p>
                       </div>
-                    )}
+                      <Toggle on={showCompanyDetails} onChange={setShowCompanyDetails} />
+                    </div>
+                    <button onClick={saveGeneral} className={saveBtnCls}>
+                      <Check className="w-3.5 h-3.5" /> Save Privacy Settings
+                    </button>
+                  </div>
+                </Section>
+
+                <Section title="Danger Zone" desc="Permanent actions that cannot be undone.">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-red-100 bg-red-50/50">
+                    <div>
+                      <p className="text-sm font-semibold text-red-700">Delete Account</p>
+                      <p className="text-xs text-red-400 mt-0.5">Permanently delete your employer account and all associated data.</p>
+                    </div>
+                    <button onClick={confirmDeleteAccount}
+                      className="mt-3 sm:mt-0 flex items-center gap-1.5 text-xs font-semibold text-red-600 border border-red-200 hover:bg-red-100 px-3 py-2 rounded-xl transition-colors shrink-0 cursor-pointer">
+                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                    </button>
                   </div>
                 </Section>
               </div>
@@ -371,14 +392,15 @@ export default function EmployerSettingsPage() {
                       <label className={labelCls}>Company Size</label>
                       <div className="relative">
                         <select value={companySize} onChange={(e) => setCompanySize(e.target.value)} className={selectCls}>
-                          {SIZES.map((s) => <option key={s}>{s}</option>)}
+                          <option value="">Select size…</option>
+                          {SIZES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                         </select>
                         <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                       </div>
                     </div>
                     <div>
                       <label className={labelCls}>Public Contact Email</label>
-                      <input value={publicEmail} onChange={(e) => setPublicEmail(e.target.value)} placeholder="hiring@company.com" className={inputCls} />
+                      <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="hiring@company.com" className={inputCls} />
                       <p className="text-[10px] text-slate-400 mt-1">Shown to candidates on your job listings</p>
                     </div>
                   </div>
@@ -409,11 +431,10 @@ export default function EmployerSettingsPage() {
                 <Section title="Email Alerts" desc="Choose what events trigger an email notification.">
                   <div className="space-y-0 -mx-6 -mt-4">
                     {([
-                      { key: "newApplication", label: "New application received",   desc: "Someone applies to one of your open roles" },
-                      { key: "statusChange",   label: "Applicant stage changes",    desc: "When you or a teammate moves an applicant" },
-                      { key: "jobExpiry",      label: "Job listing expiry alerts",  desc: "3 days before a listing expires"           },
-                      { key: "weeklyReport",   label: "Weekly hiring report",       desc: "Summary of applicants, views, and activity" },
-                      { key: "marketing",      label: "Marketing & product updates",desc: "News, feature releases, and tips from Cykruit" },
+                      { key: "newApplicant_email",       label: "New application received",    desc: "Someone applies to one of your open roles"       },
+                      { key: "applicationUpdate_email",  label: "Applicant stage changes",     desc: "When you or a teammate moves an applicant"       },
+                      { key: "jobExpiryAlert_email",     label: "Job listing expiry alerts",   desc: "3 days before a listing expires"                 },
+                      { key: "platformAnnouncement_email", label: "Platform announcements",    desc: "News, feature releases, and tips from Cykruit"   },
                     ] as { key: keyof typeof notifs; label: string; desc: string }[]).map(({ key, label, desc }) => (
                       <ToggleRow key={key} label={label} desc={desc}
                         on={notifs[key] as boolean}
@@ -422,7 +443,22 @@ export default function EmployerSettingsPage() {
                   </div>
                 </Section>
 
-                <Section title="Delivery Channels" desc="How you receive notifications.">
+                <Section title="In-App Alerts" desc="Notifications shown inside the dashboard.">
+                  <div className="space-y-0 -mx-6 -mt-4">
+                    {([
+                      { key: "newApplicant_inApp",       label: "New application received",   desc: "In-app alert when someone applies"               },
+                      { key: "applicationUpdate_inApp",  label: "Applicant stage changes",    desc: "In-app alert when a stage changes"               },
+                      { key: "jobExpiryAlert_inApp",     label: "Job listing expiry alerts",  desc: "In-app alert 3 days before expiry"               },
+                      { key: "platformAnnouncement_inApp", label: "Platform announcements",   desc: "In-app news and product updates"                 },
+                    ] as { key: keyof typeof notifs; label: string; desc: string }[]).map(({ key, label, desc }) => (
+                      <ToggleRow key={key} label={label} desc={desc}
+                        on={notifs[key] as boolean}
+                        onChange={(v) => setNotifs({ ...notifs, [key]: v })} />
+                    ))}
+                  </div>
+                </Section>
+
+                <Section title="Delivery Channels" desc="Master switches for each delivery method.">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                       <div className="flex items-center gap-3">
@@ -434,7 +470,7 @@ export default function EmployerSettingsPage() {
                           <p className="text-xs text-slate-400">{locked.email}</p>
                         </div>
                       </div>
-                      <Toggle on={notifs.emailEnabled} onChange={(v) => setNotifs({ ...notifs, emailEnabled: v })} />
+                      <Toggle on={notifs.enableEmail} onChange={(v) => setNotifs({ ...notifs, enableEmail: v })} />
                     </div>
                     <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                       <div className="flex items-center gap-3">
@@ -442,11 +478,11 @@ export default function EmployerSettingsPage() {
                           <Smartphone className="w-3.5 h-3.5 text-slate-500" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-slate-800">Push notifications</p>
-                          <p className="text-xs text-slate-400">Browser & mobile alerts</p>
+                          <p className="text-sm font-medium text-slate-800">In-app notifications</p>
+                          <p className="text-xs text-slate-400">Alerts inside the dashboard</p>
                         </div>
                       </div>
-                      <Toggle on={notifs.pushEnabled} onChange={(v) => setNotifs({ ...notifs, pushEnabled: v })} />
+                      <Toggle on={notifs.enableInApp} onChange={(v) => setNotifs({ ...notifs, enableInApp: v })} />
                     </div>
                   </div>
                 </Section>
@@ -462,37 +498,62 @@ export default function EmployerSettingsPage() {
             {/* ── SECURITY ── */}
             {tab === "security" && (
               <div>
-                <Section title="Two-Factor Authentication" desc="Add an extra layer of security to your account.">
-                  <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200 max-w-md">
-                    <Info className="w-4 h-4 text-slate-400 shrink-0" />
-                    <p className="text-xs text-slate-500">Two-factor authentication is coming soon.</p>
-                  </div>
-                </Section>
-
-                <Section title="Connected Accounts" desc="Services linked to your Cykruit account for sign-in.">
-                  <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50 max-w-md">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
-                        <svg className="w-4 h-4" viewBox="0 0 24 24">
-                          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                        </svg>
+                <Section title="Connected Accounts" desc="External services linked to your Cykruit account for sign-in.">
+                  <div className="space-y-3 max-w-lg">
+                    {/* Google */}
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24">
+                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">Google</p>
+                          <p className="text-xs text-slate-400">{locked.email}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-slate-800">Google</p>
-                        <p className="text-xs text-slate-400">{locked.email}</p>
-                      </div>
+                      {userProvider === "GOOGLE" ? (
+                        <span className="text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                          <Check className="w-3 h-3" /> Connected
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+                          Not connected
+                        </span>
+                      )}
                     </div>
-                    {googleAuth ? (
-                      <span className="text-[10px] font-mono text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
-                        <Check className="w-3 h-3" /> Connected
-                      </span>
-                    ) : (
-                      <button className="text-xs font-medium text-blue-600 hover:text-blue-700 border border-blue-200 hover:bg-blue-50 px-3 py-1.5 rounded-xl transition-colors">Connect</button>
-                    )}
+                    {/* GitHub */}
+                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                          </svg>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-800">GitHub</p>
+                          <p className="text-xs text-slate-400">{locked.email}</p>
+                        </div>
+                      </div>
+                      {userProvider === "GITHUB" ? (
+                        <span className="text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
+                          <Check className="w-3 h-3" /> Connected
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+                          Not connected
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  <p className="text-xs text-slate-400 mt-3 flex items-center gap-1.5">
+                    <Info className="w-3 h-3 shrink-0" />
+                    Sign-in method is set at registration and cannot be changed.
+                  </p>
                 </Section>
 
                 <Section title="Sessions & Login History" desc="Manage devices signed into your account and review past activity.">

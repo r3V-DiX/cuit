@@ -177,6 +177,7 @@ export default function SubscriptionPage() {
   const teamLimit = usage?.limits?.maxTeamMembers ?? 0;
 
   const hasActiveSub = sub?.hasSubscription && planStatus === "ACTIVE";
+  const isFreePlan = !sub?.package?.priceMonthly && !sub?.package?.priceYearly;
 
   function handleCancelPlan() {
     openModal({
@@ -378,7 +379,7 @@ export default function SubscriptionPage() {
                   ))}
                 </div>
 
-                {hasActiveSub && (
+                {hasActiveSub && !isFreePlan && (
                   <div className="bg-white rounded-2xl border border-slate-200 p-5">
                     <div className="flex items-center justify-between">
                       <div>
@@ -417,7 +418,7 @@ export default function SubscriptionPage() {
                   </div>
                 </div>
 
-                <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
                   {packages.map((pkg) => {
                     const isCurrent = pkg.id === planPackageId || pkg.name === planName;
                     const price = billingCycle === "yearly"
@@ -428,58 +429,82 @@ export default function SubscriptionPage() {
                     const accentBtn = pkg.name.toLowerCase() === "growth" ? "bg-violet-600 hover:bg-violet-700" : "bg-blue-600 hover:bg-blue-700";
                     const currentPrice = packages.find(p => p.id === planPackageId || p.name === planName);
                     const currentPriceVal = currentPrice?.priceMonthly ? Number(currentPrice.priceMonthly) : 0;
+                    const annualSaving = pkg.priceMonthly && pkg.priceYearly
+                      ? Math.round((Number(pkg.priceMonthly) - Number(pkg.priceYearly)) * 12)
+                      : 0;
 
                     return (
-                      <div key={pkg.id} className={`relative rounded-2xl border p-5 flex flex-col gap-4 ${isCurrent ? "border-blue-200 ring-2 ring-blue-200/50" : "border-slate-200"}`}>
+                      <div key={pkg.id} className={`relative rounded-2xl border flex flex-col ${isCurrent ? "border-blue-200 ring-2 ring-blue-200/50" : "border-slate-200"}`}>
                         {isCurrent && (
                           <span className="absolute top-3 right-3 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border bg-blue-50 border-blue-200 text-blue-700">Current</span>
                         )}
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
+
+                        {/* Name + description — fixed min-height so all cards align */}
+                        <div className="px-5 pt-5 pb-0">
+                          <div className="flex items-center gap-2 mb-2">
                             <Icon className="w-4 h-4 text-slate-500" />
                             <span className="text-sm font-bold text-slate-900">{pkg.name}</span>
                           </div>
-                          <div className="flex items-end gap-1">
+                          <p className="text-xs text-slate-400 leading-relaxed min-h-8">
+                            {pkg.description ?? ""}
+                          </p>
+                        </div>
+
+                        {/* Price — fixed-height save row keeps CTA pinned */}
+                        <div className="px-5 pt-3 pb-0">
+                          <div className="flex items-end gap-1 mb-1">
                             <span className="text-2xl font-bold text-slate-900">
-                              {isEnterprise ? "Custom" : price != null ? `₹${price.toLocaleString("en-IN")}` : "—"}
+                              {isEnterprise ? "Custom" : price != null ? `₹${price.toLocaleString("en-IN")}` : "Free"}
                             </span>
                             {!isEnterprise && price != null && <span className="text-xs text-slate-400 mb-1">/mo</span>}
                           </div>
-                          {pkg.description && <p className="text-xs text-slate-400 mt-1">{pkg.description}</p>}
+                          <div className="h-4 mb-4">
+                            {billingCycle === "yearly" && annualSaving > 0 && (
+                              <p className="text-[10px] font-mono text-emerald-600">✓ Save ₹{annualSaving.toLocaleString("en-IN")}/yr</p>
+                            )}
+                          </div>
                         </div>
-                        <ul className="space-y-1.5">
-                          {[
-                            `${pkg.maxActiveJobs} active job listings`,
-                            `${pkg.maxTeamMembers} team members`,
-                            pkg.featuredJobSlots > 0 ? `${pkg.featuredJobSlots} featured slots` : null,
-                            pkg.aiScoringEnabled ? "AI candidate scoring" : null,
-                          ].filter(Boolean).map((f) => (
-                            <li key={f} className="flex items-center gap-2 text-xs text-slate-600">
-                              <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" strokeWidth={2.5} />
-                              {f}
-                            </li>
-                          ))}
-                        </ul>
-                        {isCurrent ? (
-                          <button disabled className="w-full h-10 rounded-xl bg-slate-100 text-slate-400 text-xs font-semibold cursor-not-allowed flex items-center justify-center gap-1.5">
-                            <Check className="w-3.5 h-3.5" /> Current Plan
-                          </button>
-                        ) : isKycVerified ? (
-                          <Link
-                            href={isEnterprise ? "/contact" : `/employer/subscription/checkout?packageId=${pkg.id}&billing=${billingCycle.toUpperCase()}`}
-                            className={`w-full h-10 rounded-xl text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${accentBtn}`}
-                          >
-                            {isEnterprise ? "Contact Sales" : price != null && Number(currentPriceVal) > 0 && price > currentPriceVal ? "Upgrade" : "Select Plan"}
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </Link>
-                        ) : (
-                          <Link
-                            href="/kyc/employer"
-                            className="w-full h-10 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
-                          >
-                            Complete KYC to purchase <ChevronRight className="w-3.5 h-3.5" />
-                          </Link>
-                        )}
+
+                        {/* CTA — always same vertical position */}
+                        <div className="px-5 pb-5">
+                          {isCurrent ? (
+                            <button disabled className="w-full h-10 rounded-xl bg-slate-100 text-slate-400 text-xs font-semibold cursor-not-allowed flex items-center justify-center gap-1.5">
+                              <Check className="w-3.5 h-3.5" /> Current Plan
+                            </button>
+                          ) : isKycVerified ? (
+                            <Link
+                              href={isEnterprise ? "/contact" : `/employer/subscription/checkout?packageId=${pkg.id}&billing=${billingCycle.toUpperCase()}`}
+                              className={`w-full h-10 rounded-xl text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${accentBtn}`}
+                            >
+                              {isEnterprise ? "Contact Sales" : price != null && Number(currentPriceVal) > 0 && price > currentPriceVal ? "Upgrade" : "Select Plan"}
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </Link>
+                          ) : (
+                            <Link
+                              href="/kyc/employer"
+                              className="w-full h-10 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5"
+                            >
+                              Complete KYC to purchase <ChevronRight className="w-3.5 h-3.5" />
+                            </Link>
+                          )}
+                        </div>
+
+                        {/* Features — fills rest of card */}
+                        <div className="px-5 pb-5 pt-4 border-t border-slate-100 flex-1">
+                          <ul className="space-y-1.5">
+                            {[
+                              `${pkg.maxActiveJobs} active job listings`,
+                              `${pkg.maxTeamMembers} team members`,
+                              pkg.featuredJobSlots > 0 ? `${pkg.featuredJobSlots} featured slots` : null,
+                              pkg.aiScoringEnabled ? "AI candidate scoring" : null,
+                            ].filter(Boolean).map((f) => (
+                              <li key={f} className="flex items-center gap-2 text-xs text-slate-600">
+                                <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" strokeWidth={2.5} />
+                                {f}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       </div>
                     );
                   })}

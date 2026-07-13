@@ -19,9 +19,10 @@ import type { User } from '@prisma/client';
 import type { Request } from 'express';
 import { EmployerApplicationsService } from '../services/applications.service';
 import { ApplicationListQueryDto, UpdateApplicationStatusDto } from '../dto/application.dto';
+import { KycVerifiedGuard } from '../guards/kyc-verified.guard';
 
 @Controller('employer')
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(AuthGuard, KycVerifiedGuard, PermissionGuard)
 export class ApplicationsController {
     constructor(private readonly applicationsService: EmployerApplicationsService) {}
 
