@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const AUTH_URL      = process.env.AUTH_SERVICE_URL      || "http://127.0.0.1:4001";
 const SETTINGS_URL  = process.env.SETTINGS_SERVICE_URL  || "http://127.0.0.1:4002";
@@ -20,7 +21,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   turbopack: {
-    root: __dirname,
+    root: path.resolve(__dirname, ".."),
   },
   experimental: {
     proxyTimeout: 300000,
