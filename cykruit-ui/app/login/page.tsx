@@ -34,7 +34,7 @@ function PageBackground() {
       <div className="absolute top-6 right-6 w-8 h-8 border-t-2 border-r-2 border-blue-200 pointer-events-none" />
       <div className="absolute bottom-6 left-6 w-8 h-8 border-b-2 border-l-2 border-blue-200 pointer-events-none" />
       <div className="absolute bottom-6 right-6 w-8 h-8 border-b-2 border-r-2 border-blue-200 pointer-events-none" />
-      <div className="absolute top-[26%] right-[12%] pointer-events-none opacity-25 font-mono text-[10px] text-blue-500 space-y-1 leading-tight">
+      <div className="absolute top-[26%] right-[12%] pointer-events-none opacity-25 font-mono text-xs text-blue-500 space-y-1 leading-tight">
         <div>&gt; AUTH_INIT...</div>
         <div>SESSION: 0xb2e9</div>
         <div>STATUS: OK</div>
@@ -73,7 +73,8 @@ function OtpInput({ value, onChange, disabled }: { value: string; onChange: (v: 
         onKeyDown={handleKeyDown}
         disabled={disabled}
         maxLength={6}
-        className="absolute inset-0 opacity-0 w-full cursor-text"
+        className="absolute inset-0 opacity-0 w-full cursor-text z-10"
+        autoFocus
         aria-label="OTP code"
       />
       <div
@@ -221,7 +222,7 @@ function LoginForm() {
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => step === "otp" ? (setStep("email"), setOtp("")) : router.back()}
-            className="flex items-center gap-1.5 text-[11px] font-mono text-slate-400 hover:text-slate-600 transition-colors tracking-widest cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-slate-600 transition-colors tracking-widest cursor-pointer"
           >
             <ChevronLeft className="w-3.5 h-3.5" /> {step === "otp" ? "CHANGE EMAIL" : "BACK"}
           </button>
@@ -246,7 +247,7 @@ function LoginForm() {
             {step === "email" ? (
               <>
                 <div className="mb-6">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-blue-100 bg-blue-50 text-blue-600 text-[10px] font-mono tracking-widest mb-4">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-blue-100 bg-blue-50 text-blue-600 text-xs font-mono tracking-widest mb-4">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                     AUTH.OTP
                   </div>
@@ -254,22 +255,22 @@ function LoginForm() {
                     <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
                     <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-900 border border-slate-700">
                       <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                      <span className="text-[10px] font-mono text-green-400">auth.otp()</span>
+                      <span className="text-xs font-mono text-green-400">auth.otp()</span>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-500">Enter your email and we&apos;ll send you a sign-in code.</p>
+                  <p className="text-base text-slate-500">Enter your email and we&apos;ll send you a sign-in code.</p>
                 </div>
 
                 <form className="space-y-4" onSubmit={handleSendOtp}>
                   <div>
-                    <label className="block text-[10px] font-mono text-slate-400 tracking-widest mb-1.5 uppercase">I am a</label>
+                    <label className="block text-xs font-mono text-slate-400 tracking-widest mb-1.5 uppercase">I am a</label>
                     <div className="grid grid-cols-2 gap-2">
                       {(["SEEKER", "EMPLOYER"] as const).map((r) => (
                         <button
                           key={r}
                           type="button"
                           onClick={() => setRole(r)}
-                          className={`h-10 rounded-xl border text-sm font-medium transition-all ${
+                          className={`h-10 rounded-xl border text-base font-medium transition-all ${
                             role === r
                               ? "border-blue-500 bg-blue-50 text-blue-700"
                               : "border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300"
@@ -281,12 +282,12 @@ function LoginForm() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-mono text-slate-400 tracking-widest mb-1.5 uppercase">Email</label>
+                    <label className="block text-xs font-mono text-slate-400 tracking-widest mb-1.5 uppercase">Email</label>
                     <input
                       type="email"
                       autoComplete="email"
                       placeholder="you@company.com"
-                      className="w-full h-11 px-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-blue-400 focus:bg-white transition-all font-mono"
+                      className="w-full h-11 px-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-blue-400 focus:bg-white transition-all font-mono"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
@@ -295,7 +296,7 @@ function LoginForm() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full h-11 rounded-xl bg-linear-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold hover:from-blue-400 hover:to-blue-500 shadow-md shadow-blue-500/20 hover:shadow-blue-500/35 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full h-11 rounded-xl bg-linear-to-r from-blue-500 to-blue-600 text-white text-base font-semibold hover:from-blue-400 hover:to-blue-500 shadow-md shadow-blue-500/20 hover:shadow-blue-500/35 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -314,14 +315,14 @@ function LoginForm() {
 
                 <div className="flex items-center gap-3 my-6">
                   <div className="flex-1 h-px bg-slate-100" />
-                  <span className="text-[10px] font-mono text-slate-400 tracking-widest">OR</span>
+                  <span className="text-xs font-mono text-slate-400 tracking-widest">OR</span>
                   <div className="flex-1 h-px bg-slate-100" />
                 </div>
 
                 <button
                   type="button"
                   onClick={handleGoogleSignIn}
-                  className="w-full h-11 rounded-xl bg-white border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-3 shadow-sm"
+                  className="w-full h-11 rounded-xl bg-white border border-slate-200 text-slate-700 text-base font-medium hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-3 shadow-sm"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -332,7 +333,7 @@ function LoginForm() {
                   Continue with Google
                 </button>
 
-                <p className="text-center text-xs text-slate-500 mt-6">
+                <p className="text-center text-sm text-slate-500 mt-6">
                   New here?{" "}
                   <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
                     Create an account
@@ -342,12 +343,12 @@ function LoginForm() {
             ) : (
               <>
                 <div className="mb-6">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-blue-100 bg-blue-50 text-blue-600 text-[10px] font-mono tracking-widest mb-4">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-blue-100 bg-blue-50 text-blue-600 text-xs font-mono tracking-widest mb-4">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                     AUTH.VERIFY
                   </div>
                   <h1 className="text-2xl font-bold text-slate-900 mb-1">Check your inbox</h1>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-base text-slate-500">
                     We sent a 6-digit code to{" "}
                     <span className="font-medium text-slate-700 font-mono">{email}</span>
                   </p>
@@ -355,14 +356,14 @@ function LoginForm() {
 
                 <form className="space-y-5" onSubmit={handleVerifyOtp}>
                   <div>
-                    <label className="block text-[10px] font-mono text-slate-400 tracking-widest mb-3 uppercase">Enter OTP</label>
+                    <label className="block text-xs font-mono text-slate-400 tracking-widest mb-3 uppercase">Enter OTP</label>
                     <OtpInput value={otp} onChange={setOtp} disabled={loading} />
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading || otp.length !== 6}
-                    className="w-full h-11 rounded-xl bg-linear-to-r from-blue-500 to-blue-600 text-white text-sm font-semibold hover:from-blue-400 hover:to-blue-500 shadow-md shadow-blue-500/20 hover:shadow-blue-500/35 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full h-11 rounded-xl bg-linear-to-r from-blue-500 to-blue-600 text-white text-base font-semibold hover:from-blue-400 hover:to-blue-500 shadow-md shadow-blue-500/20 hover:shadow-blue-500/35 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -383,14 +384,14 @@ function LoginForm() {
                     type="button"
                     onClick={handleResend}
                     disabled={resendCooldown > 0 || loading}
-                    className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
                     {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}
                   </button>
                 </div>
 
-                <p className="text-center text-[11px] text-slate-400 mt-4">
+                <p className="text-center text-xs text-slate-400 mt-4">
                   OTP expires in 10 minutes · Didn&apos;t get it? Check spam or resend.
                 </p>
               </>
@@ -400,7 +401,7 @@ function LoginForm() {
 
         <div className="flex items-center justify-center gap-2 mt-6">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          <span className="text-[10px] font-mono text-slate-400 tracking-widest">VERIFIED · SECURE · ENCRYPTED</span>
+          <span className="text-xs font-mono text-slate-400 tracking-widest">VERIFIED · SECURE · ENCRYPTED</span>
         </div>
       </div>
     </div>

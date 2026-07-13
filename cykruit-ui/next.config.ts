@@ -19,8 +19,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: __dirname,
+  },
   experimental: {
-    proxyTimeout: 300000, // 5 minutes (300,000 ms)
+    proxyTimeout: 300000,
   },
   async headers() {
     return [

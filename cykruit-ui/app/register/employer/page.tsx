@@ -37,7 +37,8 @@ function OtpInput({ value, onChange, disabled }: { value: string; onChange: (v: 
         onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 6))}
         disabled={disabled}
         maxLength={6}
-        className="absolute inset-0 opacity-0 w-full cursor-text"
+        className="absolute inset-0 opacity-0 w-full cursor-text z-10"
+        autoFocus
         aria-label="OTP code"
       />
       <div className="flex gap-2 cursor-text" onClick={() => inputRef.current?.focus()}>
@@ -184,7 +185,7 @@ export default function EmployerRegisterPage() {
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => step === "otp" ? (setStep("info"), setOtp("")) : router.push("/register")}
-            className="flex items-center gap-1.5 text-[11px] font-mono text-slate-400 hover:text-slate-600 transition-colors tracking-widest cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-slate-600 transition-colors tracking-widest cursor-pointer"
           >
             <ChevronLeft className="w-3.5 h-3.5" /> {step === "otp" ? "CHANGE EMAIL" : "BACK"}
           </button>
@@ -210,15 +211,15 @@ export default function EmployerRegisterPage() {
                 {step === "otp" ? <Mail className="w-5 h-5 text-violet-600" /> : <Building2 className="w-5 h-5 text-violet-600" />}
               </div>
               <div>
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-violet-100 bg-violet-50 text-violet-600 text-[10px] font-mono tracking-widest mb-1.5">
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-violet-100 bg-violet-50 text-violet-600 text-xs font-mono tracking-widest mb-1.5">
                   <span className="w-1 h-1 rounded-full bg-violet-500 animate-pulse" />
                   {step === "otp" ? "VERIFY OTP" : "EMPLOYER"}
                 </div>
-                <h1 className="text-xl font-bold text-slate-900 leading-tight">
+                <h1 className="text-2xl font-bold text-slate-900 leading-tight">
                   {step === "otp" ? "Check your inbox" : "Create your account"}
                 </h1>
                 {step === "otp" && (
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-sm text-slate-500 mt-0.5">
                     Code sent to <span className="font-mono font-medium text-slate-700">{email}</span>
                   </p>
                 )}
@@ -229,34 +230,34 @@ export default function EmployerRegisterPage() {
               <form className="space-y-4" onSubmit={handleSendOtp}>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-mono text-slate-400 tracking-widest mb-1.5 uppercase">First Name</label>
+                    <label className="block text-xs font-mono text-slate-400 tracking-widest mb-1.5 uppercase">First Name</label>
                     <input type="text" placeholder="Priya" value={firstName} onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-violet-400 focus:bg-white transition-all" />
+                      className="w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-violet-400 focus:bg-white transition-all" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-mono text-slate-400 tracking-widest mb-1.5 uppercase">Last Name</label>
+                    <label className="block text-xs font-mono text-slate-400 tracking-widest mb-1.5 uppercase">Last Name</label>
                     <input type="text" placeholder="Nair" value={lastName} onChange={(e) => setLastName(e.target.value)}
-                      className="w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:border-violet-400 focus:bg-white transition-all" />
+                      className="w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-violet-400 focus:bg-white transition-all" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-mono text-slate-400 tracking-widest mb-1.5 uppercase">Work Email</label>
+                  <label className="block text-xs font-mono text-slate-400 tracking-widest mb-1.5 uppercase">Work Email</label>
                   <input type="email" autoComplete="email" placeholder="you@company.com" value={email} onChange={(e) => handleEmailChange(e.target.value)}
-                    className={`w-full h-10 px-3.5 rounded-xl bg-slate-50 border text-slate-900 placeholder-slate-400 text-sm focus:outline-none focus:bg-white transition-all font-mono ${
+                    className={`w-full h-10 px-3.5 rounded-xl bg-slate-50 border text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:bg-white transition-all font-mono ${
                       emailError ? "border-rose-300 focus:border-rose-400" : "border-slate-200 focus:border-violet-400"
                     }`} />
                   {emailError ? (
-                    <p className="text-[11px] text-rose-500 mt-1.5 leading-snug">{emailError}</p>
+                    <p className="text-xs text-rose-500 mt-1.5 leading-snug">{emailError}</p>
                   ) : (
-                    <p className="text-[10px] text-slate-400 font-mono mt-1">Use your company email, not a personal one</p>
+                    <p className="text-xs text-slate-400 font-mono mt-1">Use your company email, not a personal one</p>
                   )}
                 </div>
 
                 <label className="flex items-start gap-3 cursor-pointer">
                   <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
                     className="mt-0.5 w-4 h-4 rounded border-slate-300 accent-violet-500" />
-                  <span className="text-xs text-slate-500 leading-relaxed">
+                  <span className="text-sm text-slate-500 leading-relaxed">
                     I agree to the{" "}
                     <Link href="/terms" className="text-violet-600 hover:text-violet-700 transition-colors">Terms of Service</Link>
                     {" "}and{" "}
@@ -265,7 +266,7 @@ export default function EmployerRegisterPage() {
                 </label>
 
                 <button type="submit" disabled={loading || !!emailError}
-                  className="w-full h-11 rounded-xl bg-linear-to-r from-violet-500 to-violet-600 text-white text-sm font-semibold hover:from-violet-400 hover:to-violet-500 shadow-md shadow-violet-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                  className="w-full h-11 rounded-xl bg-linear-to-r from-violet-500 to-violet-600 text-white text-base font-semibold hover:from-violet-400 hover:to-violet-500 shadow-md shadow-violet-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
                   {loading ? (
                     <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -278,12 +279,12 @@ export default function EmployerRegisterPage() {
 
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px bg-slate-200" />
-                  <span className="text-[10px] font-mono text-slate-400 tracking-widest">OR</span>
+                  <span className="text-xs font-mono text-slate-400 tracking-widest">OR</span>
                   <div className="flex-1 h-px bg-slate-200" />
                 </div>
 
                 <button type="button" onClick={handleGoogleSignIn} disabled={oauthLoading}
-                  className="w-full h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium transition-all flex items-center justify-center gap-2.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm">
+                  className="w-full h-10 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-base font-medium transition-all flex items-center justify-center gap-2.5 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm">
                   {oauthLoading ? (
                     <svg className="w-4 h-4 animate-spin text-slate-400" viewBox="0 0 24 24" fill="none">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -303,12 +304,12 @@ export default function EmployerRegisterPage() {
             ) : (
               <form className="space-y-5" onSubmit={handleVerifyOtp}>
                 <div>
-                  <label className="block text-[10px] font-mono text-slate-400 tracking-widest mb-3 uppercase">Enter OTP</label>
+                  <label className="block text-xs font-mono text-slate-400 tracking-widest mb-3 uppercase">Enter OTP</label>
                   <OtpInput value={otp} onChange={setOtp} disabled={loading} />
                 </div>
 
                 <button type="submit" disabled={loading || otp.length !== 6}
-                  className="w-full h-11 rounded-xl bg-linear-to-r from-violet-500 to-violet-600 text-white text-sm font-semibold hover:from-violet-400 hover:to-violet-500 shadow-md shadow-violet-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                  className="w-full h-11 rounded-xl bg-linear-to-r from-violet-500 to-violet-600 text-white text-base font-semibold hover:from-violet-400 hover:to-violet-500 shadow-md shadow-violet-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
                   {loading ? (
                     <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -321,16 +322,16 @@ export default function EmployerRegisterPage() {
 
                 <div className="flex items-center justify-center gap-2">
                   <button type="button" onClick={handleResend} disabled={resendCooldown > 0 || loading}
-                    className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-violet-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-violet-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     <RefreshCw className="w-3.5 h-3.5" />
                     {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}
                   </button>
                 </div>
-                <p className="text-center text-[11px] text-slate-400">OTP expires in 10 minutes</p>
+                <p className="text-center text-xs text-slate-400">OTP expires in 10 minutes</p>
               </form>
             )}
 
-            <p className="text-center text-xs text-slate-500 mt-4">
+            <p className="text-center text-sm text-slate-500 mt-4">
               Already have an account?{" "}
               <Link href="/login" className="text-violet-600 hover:text-violet-700 font-medium transition-colors">Sign in</Link>
             </p>
@@ -339,7 +340,7 @@ export default function EmployerRegisterPage() {
 
         <div className="flex items-center justify-center gap-2 mt-6">
           <Lock className="w-3 h-3 text-slate-400" />
-          <span className="text-[10px] font-mono text-slate-400 tracking-widest">VERIFIED · SECURE · ENCRYPTED</span>
+          <span className="text-xs font-mono text-slate-400 tracking-widest">VERIFIED · SECURE · ENCRYPTED</span>
         </div>
       </div>
     </div>
