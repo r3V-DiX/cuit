@@ -9,50 +9,6 @@ import { SkillsService } from "./skills.service";
 import { CertificationsService } from "./certifications.service";
 import { SearchSkillsDto } from "../dto/skills/search-skills.dto";
 
-const ResumeSchema = z.object({
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
-  email: z.string().optional(),
-  title: z.string().optional(),
-  location: z.string().optional(),
-  linkedin: z.string().optional(),
-  github: z.string().optional(),
-  portfolio: z.string().optional(),
-  summary: z.string().optional(),
-  experiences: z
-    .array(
-      z.object({
-        title: z.string(),
-        company: z.string(),
-        location: z.string().optional(),
-        startDate: z.string().describe("Format: YYYY-MM"),
-        endDate: z.string().optional().describe("Format: YYYY-MM or empty"),
-        isCurrent: z.boolean(),
-        description: z.string().optional(),
-      }),
-    )
-    .optional(),
-  education: z
-    .array(
-      z.object({
-        degree: z.string(),
-        school: z.string(),
-        startDate: z.string().optional().describe("Format: YYYY"),
-        endDate: z.string().optional().describe("Format: YYYY"),
-      }),
-    )
-    .optional(),
-  skills: z.array(z.string()).optional(),
-  certifications: z
-    .array(
-      z.object({
-        name: z.string(),
-        issuer: z.string().optional(),
-        issueDate: z.string().optional(),
-      }),
-    )
-    .optional(),
-});
 
 import { PrismaService } from "@cykruit/prisma";
 
@@ -74,11 +30,18 @@ export class AIProfileService {
     this.logger.log(`Extracting text from PDF for user ${userId}`);
     const text = await this.aiService.extractTextFromPDF(pdfBuffer);
     
-    this.logger.log(`Parsing extracted text via LangChain`);
-    const parsedData = await this.aiService.generateStructured<z.infer<typeof ResumeSchema>>(
-      AI_PROMPTS.RESUME_PARSE + "\n\n" + text.substring(0, 30000), // chunk to avoid overload
-      ResumeSchema
-    );
+    this.logger.log(`Parsing extracted text via ai-service`);
+    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+    const res = await fetch(`${aiUrl}/ai/resume/parse`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text.substring(0, 30000) })
+    });
+    
+    if (!res.ok) {
+       throw new Error(`Failed to parse resume: ${res.statusText}`);
+    }
+    const parsedData = (await res.json()) as any;
 
     this.logger.log(`Applying parsed data to DB`);
     
@@ -224,29 +187,22 @@ export class AIProfileService {
     const skills = skillsRes.skills.map(s => s.skill.name);
     const experienceTitles = expRes.experiences.map(e => e.title);
 
-    const prompt = AI_PROMPTS.BIO_GENERATE({
-      title: profile.basicInfo.title || "Cybersecurity Professional",
-      skills,
-      experienceTitles,
+    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+    const res = await fetch(`${aiUrl}/ai/profile/generate-bio`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: profile.basicInfo.title || "Cybersecurity Professional",
+        skills,
+        experienceTitles,
+      })
     });
 
-    const res = await this.aiService.generate(prompt, { tier: AITaskTier.SMALL });
-    
-    let cleanedBio = res.text.trim();
-    
-    // Remove conversational filler if the AI ignores strict prompt instructions
-    if (cleanedBio.toLowerCase().startsWith("here") || cleanedBio.toLowerCase().startsWith("sure") || cleanedBio.toLowerCase().startsWith("certainly")) {
-      const parts = cleanedBio.split("\n\n");
-      if (parts.length > 1) {
-        parts.shift(); // Remove the introductory paragraph
-        cleanedBio = parts.join("\n\n").trim();
-      } else {
-        cleanedBio = cleanedBio.replace(/^(here|sure|certainly).*?:/i, '').trim();
-      }
+    if (!res.ok) {
+      throw new Error("Failed to generate bio from AI service");
     }
-    
-    // Remove wrapping quotes if present
-    cleanedBio = cleanedBio.replace(/^["']|["']$/g, '').trim();
+
+    const cleanedBio = await res.text();
 
     // Autosave directly to DB
     await this.profileService.updateSummary(userId, {
@@ -261,25 +217,21 @@ export class AIProfileService {
     const skillsRes = await this.skillsService.getSkills(userId);
     const currentSkills = skillsRes.skills.map(s => s.skill.name);
 
-    const prompt = AI_PROMPTS.SKILL_SUGGEST({
-      title: profile.basicInfo.title || "Cybersecurity Professional",
-      currentSkills,
+    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+    const res = await fetch(`${aiUrl}/ai/profile/suggest-skills`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: profile.basicInfo.title || "Cybersecurity Professional",
+        currentSkills,
+      })
     });
 
-    const schema = z.object({
-      suggestions: z.array(z.string()).describe("Array of core technology names"),
-    });
-
-    const result = await this.aiService.generateStructured<any>(prompt, schema, { tier: AITaskTier.SMALL });
-    
-    // Normalize result (Ollama sometimes wraps or renames the key)
-    let skillsList: string[] = [];
-    if (Array.isArray(result)) {
-      skillsList = result;
-    } else if (result && typeof result === 'object') {
-      skillsList = result.suggestions || result.output || result.skills || Object.values(result)[0] || [];
-      if (!Array.isArray(skillsList)) skillsList = [];
+    if (!res.ok) {
+      throw new Error("Failed to suggest skills from AI service");
     }
+
+    const skillsList = await res.json() as string[];
     
     // Autosave directly to DB
     const addedSkills = [];
@@ -318,17 +270,21 @@ export class AIProfileService {
        return { tips: ["Your profile is looking strong! Consider adding more detailed achievements to your experiences."] };
     }
 
-    const prompt = AI_PROMPTS.PROFILE_TIPS({
-      title: profile.basicInfo.title || "Candidate",
-      missingSections,
+    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+    const res = await fetch(`${aiUrl}/ai/profile/tips`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: profile.basicInfo.title || "Candidate",
+        missingSections,
+      })
     });
 
-    // Simple text split for bullet points since prompt asks for exactly 3 bullets
-    const res = await this.aiService.generate(prompt, { tier: AITaskTier.SMALL });
-    const tips = res.text
-        .split('\n')
-        .map(t => t.replace(/^- /, '').replace(/^\* /, '').trim())
-        .filter(t => t.length > 0);
+    if (!res.ok) {
+      throw new Error("Failed to generate tips from AI service");
+    }
+
+    const tips = await res.json() as string[];
 
     return { tips };
   }

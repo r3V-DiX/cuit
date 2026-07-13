@@ -11,6 +11,7 @@ import { BulkRankProcessor } from './processors/bulk-rank.processor';
 import { ScoringService } from './services/scoring.service';
 import { ResumeParserService } from './services/resume-parser.service';
 import { JobAssistantService } from './services/job-assistant.service';
+import { SeekerAssistantService } from './services/seeker-assistant.service';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { JobAssistantService } from './services/job-assistant.service';
     ScoringService,
     ResumeParserService,
     JobAssistantService,
+    SeekerAssistantService,
   ],
 })
 export class AiServiceModule {}

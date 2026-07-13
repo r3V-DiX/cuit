@@ -3,25 +3,48 @@ import { OllamaProvider } from '@cykruit/ai';
 import { z } from 'zod';
 
 const ParsedResumeSchema = z.object({
-  personalInfo: z.object({
-    name: z.string().optional(),
-    email: z.string().optional(),
-    phone: z.string().optional(),
-  }),
-  skills: z.array(z.string()).describe("List of technical and soft skills extracted from the resume"),
-  experience: z.array(z.object({
-    company: z.string(),
-    title: z.string(),
-    startDate: z.string().optional(),
-    endDate: z.string().optional(),
-    description: z.string().optional(),
-  })),
-  education: z.array(z.object({
-    institution: z.string(),
-    degree: z.string().optional(),
-    fieldOfStudy: z.string().optional(),
-    graduationDate: z.string().optional(),
-  })),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  email: z.string().optional(),
+  title: z.string().optional(),
+  location: z.string().optional(),
+  linkedin: z.string().optional(),
+  github: z.string().optional(),
+  portfolio: z.string().optional(),
+  summary: z.string().optional(),
+  experiences: z
+    .array(
+      z.object({
+        title: z.string(),
+        company: z.string(),
+        location: z.string().optional(),
+        startDate: z.string().describe("Format: YYYY-MM"),
+        endDate: z.string().optional().describe("Format: YYYY-MM or empty"),
+        isCurrent: z.boolean(),
+        description: z.string().optional(),
+      }),
+    )
+    .optional(),
+  education: z
+    .array(
+      z.object({
+        degree: z.string(),
+        school: z.string(),
+        startDate: z.string().optional().describe("Format: YYYY"),
+        endDate: z.string().optional().describe("Format: YYYY"),
+      }),
+    )
+    .optional(),
+  skills: z.array(z.string()).optional(),
+  certifications: z
+    .array(
+      z.object({
+        name: z.string(),
+        issuer: z.string().optional(),
+        issueDate: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 export type ParsedResume = z.infer<typeof ParsedResumeSchema>;
