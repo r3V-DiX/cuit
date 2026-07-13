@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-  Monitor, Smartphone, Tablet, Globe,
+  Monitor, Smartphone, Tablet,
   Loader2, RefreshCw, LogOut, ShieldAlert, Clock, MapPin,
 } from "lucide-react";
 import { apiFetch, authHeaders, ApiError } from "@/lib/api";
@@ -29,21 +29,6 @@ interface Session {
   deviceName?: string | null;
 }
 
-interface HistoryEntry {
-  id: string;
-  deviceType: string;
-  browserName: string;
-  osName: string;
-  deviceLabel: string;
-  locationLabel: string;
-  ipAddress: string;
-  createdAt: string;
-  lastActivity: string;
-  isActive: boolean;
-  revokedAt: string | null;
-  revokedBy: string | null;
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function DeviceIcon({ type, className }: { type: string; className?: string }) {
@@ -64,19 +49,6 @@ function timeAgo(iso: string): string {
   return `${days}d ago`;
 }
 
-function revokeLabel(revokedBy: string | null): string {
-  if (!revokedBy) return "Revoked";
-  const map: Record<string, string> = {
-    user_logout: "Signed out",
-    logout_all: "Signed out (all devices)",
-    user_revoke: "Revoked by you",
-    user_revoke_all: "Revoked (sign out others)",
-    expiry: "Expired",
-    fingerprint_mismatch: "Security block",
-    session_limit: "Session limit reached",
-  };
-  return map[revokedBy] ?? revokedBy;
-}
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -89,11 +61,6 @@ export function SessionsPanel({ onSignedOutAll }: { onSignedOutAll?: () => void 
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [revokingAll, setRevokingAll] = useState(false);
 
-  const [showHistory, setShowHistory] = useState(false);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
-  const [historyPage, setHistoryPage] = useState(1);
-  const [historyTotal, setHistoryTotal] = useState(0);
 
   const loadSessions = useCallback(async () => {
     setLoadingSessions(true);
@@ -111,21 +78,6 @@ export function SessionsPanel({ onSignedOutAll }: { onSignedOutAll?: () => void 
 
   useEffect(() => { loadSessions(); }, [loadSessions]);
 
-  async function loadHistory(page = 1) {
-    setLoadingHistory(true);
-    try {
-      const res = await apiFetch<any>(`/api/auth/sessions/history?page=${page}&limit=10`);
-      const body = res?.data;
-      const arr = Array.isArray(body) ? body : (body?.items ?? body ?? []);
-      setHistory(Array.isArray(arr) ? arr : []);
-      setHistoryTotal(body?.total ?? 0);
-      setHistoryPage(page);
-    } catch {
-      toast({ type: "error", message: "Could not load login history" });
-    } finally {
-      setLoadingHistory(false);
-    }
-  }
 
   async function revokeSession(s: Session) {
     openModal({
@@ -160,7 +112,7 @@ export function SessionsPanel({ onSignedOutAll }: { onSignedOutAll?: () => void 
       onConfirm: async () => {
         setRevokingAll(true);
         try {
-          const res = await apiFetch("/api/auth/sessions/others", {
+          const res = await apiFetch("/api/auth/sessions", {
             method: "DELETE",
             headers: authHeaders(),
           });
@@ -275,94 +227,20 @@ export function SessionsPanel({ onSignedOutAll }: { onSignedOutAll?: () => void 
         )}
       </div>
 
-      {/* ── Login history ─────────────────────────────────────────── */}
-      <div>
-        <button
-          onClick={() => {
-            if (!showHistory) { loadHistory(1); }
-            setShowHistory((v) => !v);
-          }}
-          className="flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-slate-900 transition-colors"
-        >
-          <ShieldAlert className="w-4 h-4 text-slate-400" />
-          Login History
-          <span className="text-[10px] font-mono text-slate-400 ml-1">{showHistory ? "▲" : "▼"}</span>
-        </button>
-        <p className="text-xs text-slate-400 mt-0.5 ml-6">All sign-in activity for your account.</p>
-
-        {showHistory && (
-          <div className="mt-3 space-y-1.5">
-            {loadingHistory ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="w-4 h-4 animate-spin text-slate-300" />
-              </div>
-            ) : history.length === 0 ? (
-              <div className="text-center py-4 text-xs text-slate-400">No history found.</div>
-            ) : (
-              <>
-                {history.map((h) => (
-                  <div key={h.id} className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 bg-white">
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                      h.isActive ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"
-                    }`}>
-                      <DeviceIcon type={h.deviceType} className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-medium text-slate-700 truncate">{h.deviceLabel}</span>
-                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
-                          h.isActive
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-slate-100 text-slate-400 border border-slate-200"
-                        }`}>
-                          {h.isActive ? "Active" : revokeLabel(h.revokedBy)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                        {h.locationLabel && (
-                          <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                            <Globe className="w-2.5 h-2.5 shrink-0" />
-                            {h.locationLabel}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                          <Clock className="w-2.5 h-2.5 shrink-0" />
-                          {new Date(h.createdAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Pagination */}
-                {historyTotal > 10 && (
-                  <div className="flex items-center justify-between pt-2">
-                    <span className="text-[11px] text-slate-400">
-                      Page {historyPage} · {historyTotal} total
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        disabled={historyPage <= 1}
-                        onClick={() => loadHistory(historyPage - 1)}
-                        className="px-2.5 py-1 text-xs rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors"
-                      >
-                        Prev
-                      </button>
-                      <button
-                        disabled={historyPage * 10 >= historyTotal}
-                        onClick={() => loadHistory(historyPage + 1)}
-                        className="px-2.5 py-1 text-xs rounded-lg border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-      </div>
+      {/* ── Login history link ───────────────────────────────────── */}
+      <a
+        href="/employer/activity?tab=auth"
+        className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 hover:border-blue-200 hover:bg-blue-50/30 transition-all group"
+      >
+        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+          <ShieldAlert className="w-3.5 h-3.5 text-slate-500" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-slate-800 group-hover:text-blue-700 transition-colors">View Login History</p>
+          <p className="text-xs text-slate-400">See all sign-in activity and auth events</p>
+        </div>
+        <span className="text-xs font-semibold text-blue-600 group-hover:text-blue-700">Open →</span>
+      </a>
     </div>
   );
 }
