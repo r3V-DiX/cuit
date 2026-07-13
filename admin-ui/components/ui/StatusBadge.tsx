@@ -49,6 +49,8 @@ const STATUS_MAP: Record<string, string> = {
   EXPIRED: 'bg-slate-100 text-slate-600 border-slate-200',
   DELETED: 'bg-slate-100 text-slate-600 border-slate-200',
   PENDING_DELETION: 'bg-slate-100 text-slate-600 border-slate-200',
+  RESOLVED_REMOVED: 'bg-green-50 text-green-700 border-green-200',
+  RESOLVED_DISMISSED: 'bg-slate-100 text-slate-600 border-slate-200',
   // Risk levels
   LOW: 'bg-slate-100 text-slate-600 border-slate-200',
   MEDIUM: 'bg-amber-50 text-amber-700 border-amber-200',

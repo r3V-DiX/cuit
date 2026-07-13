@@ -312,6 +312,7 @@ model User {
     roleAssignments      UserRoleAssignment[]
     permissionOverrides  UserPermissionOverride[]
     auditLogs            AuditLog[]
+    contentReports       ContentReport[]
 
     @@index([email])
     @@index([status])
@@ -2471,4 +2472,49 @@ model PlatformSetting {
 
     @@index([key])
     @@map("platform_settings")
+}
+
+enum FlaggedContentType {
+    JOB
+    EMPLOYER_PROFILE
+    SEEKER_PROFILE
+    MESSAGE
+}
+
+enum FlagReason {
+    SPAM
+    INAPPROPRIATE
+    MISLEADING
+    FAKE_COMPANY
+    HARASSMENT
+    OTHER
+}
+
+enum FlagStatus {
+    PENDING
+    UNDER_REVIEW
+    RESOLVED_REMOVED
+    RESOLVED_DISMISSED
+}
+
+model ContentReport {
+    id          String             @id @default(uuid())
+    reporterId  String
+    reporter    User               @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+    contentType FlaggedContentType
+    contentId   String
+    reason      FlagReason
+    description String?            @db.Text
+    status      FlagStatus         @default(PENDING)
+    reviewedBy  String?            @db.Uuid
+    reviewedAt  DateTime?
+    adminNotes  String?            @db.Text
+    createdAt   DateTime           @default(now())
+    updatedAt   DateTime           @updatedAt
+
+    @@index([contentType, contentId])
+    @@index([status])
+    @@index([reporterId])
+    @@index([createdAt])
+    @@map("content_reports")
 }
