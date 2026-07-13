@@ -200,7 +200,7 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
       return;
     }
     const fd = new FormData();
-    fd.append("logo", file);
+    fd.append("file", file);
     try {
       const res = await apiFetch("/api/employer/company/logo", {
         method: "POST",
@@ -208,7 +208,7 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
         body: fd,
       });
       const data: any = res.data ?? res;
-      if (data.url) setLogoUrl(data.url);
+      if (data.companyLogo || data.url) setLogoUrl(data.companyLogo || data.url);
     } catch {}
     e.target.value = "";
   }
