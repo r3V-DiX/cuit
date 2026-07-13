@@ -151,11 +151,11 @@ export default function ActivityPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <>
       <EmployerTopbar title="Activity" />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+        <div className="px-6 py-8 space-y-6">
 
           {/* Header */}
           <div>
@@ -362,6 +362,6 @@ export default function ActivityPage() {
 
         </div>
       </div>
-    </div>
+    </>
   );
 }
