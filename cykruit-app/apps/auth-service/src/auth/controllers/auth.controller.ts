@@ -98,7 +98,7 @@ export class AuthController {
       CookieConfig.getRoleCookieOptions(dto.rememberMe),
     );
 
-    return { data: result.data.user, message: result.message, isNewUser: result.isNewUser };
+    return { data: { ...result.data.user, isNewUser: result.isNewUser }, message: result.message };
   }
 
   @Get("me")
