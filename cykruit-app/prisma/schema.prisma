@@ -719,6 +719,8 @@ model JobSeekerProfile {
     ctfProfiles    CTFProfile[]
     resumes        Resume[]
     profileViews   ProfileView[] // ✅ ADD THIS
+    resumeEmbedding ResumeEmbedding?
+    jobMatches      SeekerJobMatch[]
 
     @@index([userId])
     @@index([locationId])
@@ -1373,6 +1375,10 @@ model Job {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
+    // AI — vector stored via raw SQL; Prisma treats it as Unsupported
+    embedding  Unsupported("vector(1536)")?
+    embeddedAt DateTime?
+
     // Relations
     skills         JobSkill[]
     certifications JobCertification[]
@@ -1381,6 +1387,7 @@ model Job {
     profileViews   ProfileView[] // ✅ ADD THIS
     conversations  Conversation[]
     jobViews       JobView[]
+    seekerMatches  SeekerJobMatch[]
 
     @@index([employerId])
     @@index([roleId])
@@ -2195,6 +2202,40 @@ model DiscountUsage {
     @@index([employerId])
     @@index([createdAt])
     @@map("discount_usages")
+}
+
+// ==========================
+// AI Models
+// ==========================
+
+// Cached embedding vector for a seeker's resume (for semantic job matching)
+model ResumeEmbedding {
+    id         String           @id @default(uuid())
+    seekerId   String           @unique
+    seeker     JobSeekerProfile @relation(fields: [seekerId], references: [id], onDelete: Cascade)
+    // vector(1536) — text-embedding-3-small output; stored via raw SQL, not Prisma client
+    embedding  Unsupported("vector(1536)")
+    embeddedAt DateTime         @default(now())
+    updatedAt  DateTime         @updatedAt
+
+    @@index([seekerId])
+    @@map("resume_embeddings")
+}
+
+// Cached seeker ↔ job compatibility score (cosine similarity between embeddings)
+model SeekerJobMatch {
+    id         String           @id @default(uuid())
+    seekerId   String
+    seeker     JobSeekerProfile @relation(fields: [seekerId], references: [id], onDelete: Cascade)
+    jobId      String
+    job        Job              @relation(fields: [jobId], references: [id], onDelete: Cascade)
+    score      Int              // 0–100 (cosine similarity scaled)
+    computedAt DateTime         @default(now())
+
+    @@unique([seekerId, jobId])
+    @@index([seekerId])
+    @@index([jobId])
+    @@map("seeker_job_matches")
 }
 
 // ==========================
