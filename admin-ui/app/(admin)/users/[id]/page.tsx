@@ -31,11 +31,8 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   useEffect(() => {
     async function loadUser() {
       try {
-        const data = await api.get<{ user: User; recentActivity: unknown[] }>(`/api/admin/users/${id}`);
-        // The API might return { user, ... } or just the user. Let's handle both.
-        // Based on typical patterns, it's often nested if it includes relations, but let's assume it returns { user, recentActivity }.
-        // Wait, looking at typical REST patterns it might just be the user object. I'll check if `data.user` exists, else `data`.
-        setUser((data as any).user ?? data);
+        const data = await api.get<User>(`/api/admin/users/${id}`);
+        setUser(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load user details');
       } finally {

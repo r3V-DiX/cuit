@@ -77,11 +77,21 @@ export class UsersRepository {
         status: true,
         isEmailVerified: true,
         lastLogin: true,
+        lastLoginIp: true,
         createdAt: true,
         updatedAt: true,
         profileImage: true,
         failedLoginAttempts: true,
         lockedUntil: true,
+        employer: {
+            select: {
+                id: true,
+                companyName: true,
+                industry: true,
+                location: true,
+                companyWebsite: true,
+            },
+        },
     } satisfies Prisma.UserSelect;
 
     async suspend(id: string) {
