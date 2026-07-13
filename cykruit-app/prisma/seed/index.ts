@@ -8,6 +8,7 @@ import { seedAdmins } from './admins.seed';
 import { seedSubscriptionPackages } from './subscriptions.seed';
 import { seedTestimonials } from './testimonials.seed';
 import { seedJobs } from './jobs.seed';
+import { seedPlatformSettings } from './platform-settings.seed';
 
 const prisma = new PrismaClient();
 
@@ -68,6 +69,12 @@ async function main() {
         await seedJobs(prisma);
     } catch (e) {
         console.error('❌ Jobs seeding failed:', e);
+    }
+
+    try {
+        await seedPlatformSettings(prisma);
+    } catch (e) {
+        console.error('❌ Platform settings seeding failed:', e);
     }
 
     console.log('\n================================================');

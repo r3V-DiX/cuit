@@ -2459,3 +2459,16 @@ model AdminInvite {
     @@index([status])
     @@map("admin_invites")
 }
+
+model PlatformSetting {
+    id          String   @id @default(uuid())
+    key         String   @unique // e.g. "maintenance_mode", "registration_enabled"
+    value       String // String representation ("true"/"false"/JSON)
+    description String?
+    updatedBy   String?  @db.Uuid // Admin.id who last changed it
+    updatedAt   DateTime @updatedAt
+    createdAt   DateTime @default(now())
+
+    @@index([key])
+    @@map("platform_settings")
+}
