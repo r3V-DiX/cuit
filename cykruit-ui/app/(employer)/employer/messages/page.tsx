@@ -122,7 +122,7 @@ export default function EmployerMessagesPage() {
         const meData: any = meResult.status === "fulfilled" ? meResult.value : {};
         const userId: string = meData?.data?.id ?? meData?.id ?? "";
         setCurrentUserId(userId);
-        const items: any[] = convsData?.data?.items ?? [];
+        const items: any[] = Array.isArray(convsData?.data) ? convsData.data : (convsData?.data?.items ?? []);
         const mapped = items.map((c, i) => mapApiConv(c, i));
         setConvs(mapped);
         if (mapped.length > 0) setActiveId(mapped[0].id);
@@ -132,6 +132,10 @@ export default function EmployerMessagesPage() {
     }
     load();
   }, [kycStatus]);
+
+  useEffect(() => {
+    localStorage.setItem("cykruit_messages", JSON.stringify(convs));
+  }, [convs]);
 
   const active = convs.find((c) => c.id === activeId);
 

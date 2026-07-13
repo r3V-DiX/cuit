@@ -62,9 +62,31 @@ export default function SeekerSidebar() {
       }
     }
 
+    async function fetchLatestConversations() {
+      try {
+        const res = await apiFetch("/api/conversations");
+        const items = Array.isArray(res?.data) ? res.data : (res?.data?.items ?? []);
+        // Save to localStorage so updateCounts picks it up
+        if (items.length > 0) {
+          localStorage.setItem("cykruit_messages", JSON.stringify(items));
+          updateCounts();
+        }
+      } catch (e) {
+        // silently ignore fetch errors
+      }
+    }
+
+    // Initial fetch and start intervals
     updateCounts();
-    const interval = setInterval(updateCounts, 2000);
-    return () => clearInterval(interval);
+    fetchLatestConversations();
+    
+    const countInterval = setInterval(updateCounts, 2000);
+    const fetchInterval = setInterval(fetchLatestConversations, 15000); // Poll every 15s
+
+    return () => {
+      clearInterval(countInterval);
+      clearInterval(fetchInterval);
+    };
   }, []);
 
   useEffect(() => {

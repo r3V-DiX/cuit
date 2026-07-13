@@ -38,8 +38,8 @@ export class MessagingService {
 
     // ── Start a conversation ──────────────────────────────────────────────────
 
-    async startConversation(userId: string, targetUserId: string, jobId?: string) {
-        // Validate target exists and has EMPLOYER role — prevents messaging admins or other seekers.
+    async startConversation(userId: string, targetUserId: string, jobId?: string, userRole?: string) {
+        // Validate target exists
         const targetUser = await this.prisma.user.findUnique({
             where: { id: targetUserId },
             select: { id: true, role: true },
@@ -47,15 +47,25 @@ export class MessagingService {
         if (!targetUser) {
             throw new NotFoundException('Target user not found');
         }
-        if (targetUser.role !== 'EMPLOYER') {
-            throw new ForbiddenException('You can only start a conversation with an employer.');
+
+        // Validate roles
+        if (userRole === 'EMPLOYER' && targetUser.role !== 'SEEKER') {
+            throw new ForbiddenException('Employers can only start conversations with seekers.');
+        }
+        if (userRole === 'SEEKER' && targetUser.role !== 'EMPLOYER') {
+            throw new ForbiddenException('Seekers can only start conversations with employers.');
+        }
+        if (targetUser.role === 'ADMIN' || userRole === 'ADMIN') {
+            throw new ForbiddenException('Admins cannot participate in these conversations.');
         }
 
-        // We pass userId as seekerId and targetUserId as employerId — the repository
-        // reads actual roles from the DB to set participant.role correctly.
+        // We pass seekerId and employerId — the repository needs to know which is which.
+        const seekerId = userRole === 'SEEKER' ? userId : targetUserId;
+        const employerId = userRole === 'EMPLOYER' ? userId : targetUserId;
+
         const conversation = await this.messagingRepository.findOrCreateConversation(
-            userId,
-            targetUserId,
+            seekerId,
+            employerId,
             jobId,
         );
 

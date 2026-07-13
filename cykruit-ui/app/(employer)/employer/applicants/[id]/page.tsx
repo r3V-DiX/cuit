@@ -2,6 +2,7 @@
 
 import { use, useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   ArrowLeft, MapPin, Briefcase, CheckCircle2, Clock, XCircle, Send,
@@ -25,6 +26,7 @@ const STATUS_FLOW: AppStatus[] = ["Under Review", "Shortlisted", "Rejected"];
 
 export default function ApplicantDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const [app, setApp] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -127,10 +129,21 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
-              <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer">
-                <Calendar className="w-4 h-4" /> Schedule Interview
-              </button>
-              <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors cursor-pointer">
+              <button 
+                onClick={async () => {
+                  try {
+                    await apiFetch("/api/conversations", {
+                      method: "POST",
+                      headers: authHeaders(),
+                      body: JSON.stringify({ targetUserId: seeker.id, jobId: app.jobId })
+                    });
+                    router.push("/employer/messages");
+                  } catch (err: any) {
+                    alert(err?.message || "Failed to start conversation");
+                  }
+                }}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
+              >
                 <MessageSquare className="w-4 h-4" /> Message
               </button>
               {app.resume && (

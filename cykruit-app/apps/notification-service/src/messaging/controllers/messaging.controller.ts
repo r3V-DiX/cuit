@@ -43,7 +43,7 @@ export class MessagingController {
         @CurrentUser() user: User,
         @Body() dto: StartConversationDto,
     ) {
-        return this.messagingService.startConversation(user.id, dto.targetUserId, dto.jobId);
+        return this.messagingService.startConversation(user.id, dto.targetUserId, dto.jobId, user.role);
     }
 
     // ── POST /conversations/:id/messages ──────────────────────────────────────

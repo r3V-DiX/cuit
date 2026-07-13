@@ -79,7 +79,7 @@ export default function SeekerMessagesPage() {
         }
 
         if (convsResult) {
-          const items: any[] = convsResult.data?.items || [];
+          const items: any[] = Array.isArray(convsResult.data) ? convsResult.data : (convsResult.data?.items ?? []);
           const mapped: Conversation[] = items.map((conv: any, idx: number) => {
             const employer = conv.participants?.find((p: any) => p.role === "EMPLOYER");
             const companyName = employer
@@ -135,6 +135,10 @@ export default function SeekerMessagesPage() {
     }
     init();
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem("cykruit_messages", JSON.stringify(convs));
+  }, [convs]);
 
   const active = convs.find((c) => c.id === activeId);
 

@@ -499,7 +499,7 @@ export default function PostJobPage() {
                         if (data.description) setDescription(data.description);
                         if (data.skills && data.skills.length > 0) {
                           const skillIds = data.skills.map((s: string) => s.toLowerCase());
-                          setSkills(Array.from(new Set([...skills, ...skillIds])));
+                          setTags(Array.from(new Set([...tags, ...skillIds])));
                         }
                       }
                     } catch (e) {
