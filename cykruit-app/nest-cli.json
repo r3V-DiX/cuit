@@ -10,6 +10,15 @@
     "tsConfigPath": "apps/auth-service/tsconfig.build.json"
   },
   "projects": {
+    "ai-service": {
+      "type": "application",
+      "root": "apps/ai-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/ai-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/ai-service/tsconfig.app.json"
+      }
+    },
     "auth-service": {
       "type": "application",
       "root": "apps/auth-service",
@@ -17,60 +26,6 @@
       "sourceRoot": "apps/auth-service/src",
       "compilerOptions": {
         "tsConfigPath": "apps/auth-service/tsconfig.build.json"
-      }
-    },
-    "user-settings-service": {
-      "type": "application",
-      "root": "apps/user-settings-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/user-settings-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/user-settings-service/tsconfig.build.json"
-      }
-    },
-    "seeker-profile-service": {
-      "type": "application",
-      "root": "apps/seeker-profile-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/seeker-profile-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/seeker-profile-service/tsconfig.build.json"
-      }
-    },
-    "permissions": {
-      "type": "library",
-      "root": "libs/permissions",
-      "entryFile": "index",
-      "sourceRoot": "libs/permissions/src",
-      "compilerOptions": {
-        "tsConfigPath": "tsconfig.json"
-      }
-    },
-    "events": {
-      "type": "library",
-      "root": "libs/events",
-      "entryFile": "index",
-      "sourceRoot": "libs/events/src",
-      "compilerOptions": {
-        "tsConfigPath": "tsconfig.json"
-      }
-    },
-    "seeker-service": {
-      "type": "application",
-      "root": "apps/seeker-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/seeker-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/seeker-service/tsconfig.build.json"
-      }
-    },
-    "notification-service": {
-      "type": "application",
-      "root": "apps/notification-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/notification-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/notification-service/tsconfig.build.json"
       }
     },
     "employer-service": {
@@ -82,6 +37,42 @@
         "tsConfigPath": "apps/employer-service/tsconfig.build.json"
       }
     },
+    "events": {
+      "type": "library",
+      "root": "libs/events",
+      "entryFile": "index",
+      "sourceRoot": "libs/events/src",
+      "compilerOptions": {
+        "tsConfigPath": "tsconfig.json"
+      }
+    },
+    "gateway": {
+      "type": "application",
+      "root": "apps/gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/gateway/tsconfig.build.json"
+      }
+    },
+    "notification-service": {
+      "type": "application",
+      "root": "apps/notification-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/notification-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/notification-service/tsconfig.build.json"
+      }
+    },
+    "permissions": {
+      "type": "library",
+      "root": "libs/permissions",
+      "entryFile": "index",
+      "sourceRoot": "libs/permissions/src",
+      "compilerOptions": {
+        "tsConfigPath": "tsconfig.json"
+      }
+    },
     "public-service": {
       "type": "application",
       "root": "apps/public-service",
@@ -89,6 +80,24 @@
       "sourceRoot": "apps/public-service/src",
       "compilerOptions": {
         "tsConfigPath": "apps/public-service/tsconfig.build.json"
+      }
+    },
+    "seeker-profile-service": {
+      "type": "application",
+      "root": "apps/seeker-profile-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/seeker-profile-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/seeker-profile-service/tsconfig.build.json"
+      }
+    },
+    "seeker-service": {
+      "type": "application",
+      "root": "apps/seeker-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/seeker-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/seeker-service/tsconfig.build.json"
       }
     },
     "subscription-service": {
@@ -100,13 +109,13 @@
         "tsConfigPath": "apps/subscription-service/tsconfig.build.json"
       }
     },
-    "gateway": {
+    "user-settings-service": {
       "type": "application",
-      "root": "apps/gateway",
+      "root": "apps/user-settings-service",
       "entryFile": "main",
-      "sourceRoot": "apps/gateway/src",
+      "sourceRoot": "apps/user-settings-service/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/gateway/tsconfig.build.json"
+        "tsConfigPath": "apps/user-settings-service/tsconfig.build.json"
       }
     }
   }

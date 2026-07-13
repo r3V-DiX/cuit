@@ -5,7 +5,9 @@
     "emitDecoratorMetadata": true,
     "target": "ES2021",
     "module": "commonjs",
-    "lib": ["ES2021"],
+    "lib": [
+      "ES2021"
+    ],
     "moduleResolution": "node",
     "declaration": true,
     "strict": false,
@@ -18,20 +20,48 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "paths": {
-      "@cykruit/prisma": ["libs/prisma/src/index.ts"],
-      "@cykruit/config": ["libs/config/src/index.ts"],
-      "@cykruit/context": ["libs/context/src/index.ts"],
-      "@cykruit/logger": ["libs/logger/src/index.ts"],
-      "@cykruit/common": ["libs/common/src/index.ts"],
-      "@cykruit/auth-core": ["libs/auth-core/src/index.ts"],
-      "@cykruit/queue": ["libs/queue/src/index.ts"],
-      "@cykruit/mail": ["libs/mail/src/index.ts"],
-      "@cykruit/upload": ["libs/upload/src/index.ts"],
-      "@cykruit/ai": ["libs/ai/src/index.ts"],
-      "@cykruit/rate-limit": ["libs/rate-limit/src/index.ts"],
-      "@cykruit/audit": ["libs/audit/src/index.ts"],
-      "@cykruit/permissions": ["libs/permissions/src/index.ts"],
-      "@cykruit/events": ["libs/events/src/index.ts"]
+      "@cykruit/ai": [
+        "libs/ai/src/index.ts"
+      ],
+      "@cykruit/audit": [
+        "libs/audit/src/index.ts"
+      ],
+      "@cykruit/auth-core": [
+        "libs/auth-core/src/index.ts"
+      ],
+      "@cykruit/common": [
+        "libs/common/src/index.ts"
+      ],
+      "@cykruit/config": [
+        "libs/config/src/index.ts"
+      ],
+      "@cykruit/context": [
+        "libs/context/src/index.ts"
+      ],
+      "@cykruit/events": [
+        "libs/events/src/index.ts"
+      ],
+      "@cykruit/logger": [
+        "libs/logger/src/index.ts"
+      ],
+      "@cykruit/mail": [
+        "libs/mail/src/index.ts"
+      ],
+      "@cykruit/permissions": [
+        "libs/permissions/src/index.ts"
+      ],
+      "@cykruit/prisma": [
+        "libs/prisma/src/index.ts"
+      ],
+      "@cykruit/queue": [
+        "libs/queue/src/index.ts"
+      ],
+      "@cykruit/rate-limit": [
+        "libs/rate-limit/src/index.ts"
+      ],
+      "@cykruit/upload": [
+        "libs/upload/src/index.ts"
+      ]
     }
   }
 }

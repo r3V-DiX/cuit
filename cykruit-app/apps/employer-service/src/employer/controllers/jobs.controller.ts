@@ -103,4 +103,13 @@ export class JobsController {
     reopen(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
         return this.jobsService.reopen(user.id, id, req.ip, req.headers['user-agent']);
     }
+
+    // ── POST /employer/jobs/:id/ai-rank ─────────────────────────────────────
+
+    @Post(':id/ai-rank')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.JOBS.UPDATE)
+    rankApplications(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
+        return this.jobsService.rankApplications(user.id, id, req.ip, req.headers['user-agent']);
+    }
 }

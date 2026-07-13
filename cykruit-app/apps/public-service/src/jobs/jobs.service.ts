@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@cykruit/prisma";
 import { JobsQueryDto } from "./dto/jobs-query.dto";
 
+import { Prisma } from "@prisma/client";
+
 @Injectable()
 export class JobsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -11,6 +13,131 @@ export class JobsService {
     const limit = dto.limit || 20;
     const skip = (page - 1) * limit;
     const now = new Date();
+
+    const selectOptions = {
+      id: true,
+      jobTitle: true,
+      slug: true,
+      jobType: true,
+      workMode: true,
+      experienceLevel: true,
+      description: true,
+      publishedAt: true,
+      expiresAt: true,
+      employer: {
+        select: {
+          id: true,
+          slug: true,
+          companyName: true,
+          companyLogo: true,
+          isVerified: true,
+        },
+      },
+      role: {
+        select: {
+          id: true,
+          name: true,
+          category: true,
+        },
+      },
+      location: {
+        select: {
+          id: true,
+          displayName: true,
+          city: true,
+          state: true,
+          country: true,
+        },
+      },
+      skills: {
+        select: {
+          skill: {
+            select: { id: true, name: true },
+          },
+        },
+      },
+      certifications: {
+        select: {
+          certification: {
+            select: { id: true, name: true, organization: true },
+          },
+        },
+      },
+    };
+
+    // Attempt Semantic Search if text is provided
+    if (dto.search) {
+      let searchVector: number[] | null = null;
+      try {
+        const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+        const res = await fetch(`${aiUrl}/ai/embed/query`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: dto.search })
+        });
+        if (res.ok) {
+          const body = await res.json() as { vector: number[] };
+          searchVector = body.vector;
+        }
+      } catch (err) {
+        // Fallback to text search silently
+      }
+
+      if (searchVector) {
+        const vectorStr = `[${searchVector.join(',')}]`;
+        const conditions = [
+          Prisma.sql`status = 'APPROVED'`,
+          Prisma.sql`("expiresAt" IS NULL OR "expiresAt" > ${now})`
+        ];
+
+        if (dto.roleId) conditions.push(Prisma.sql`"roleId" = ${dto.roleId}`);
+        if (dto.jobType) conditions.push(Prisma.sql`"jobType" = CAST(${dto.jobType} AS "JobType")`);
+        if (dto.workMode) conditions.push(Prisma.sql`"workMode" = CAST(${dto.workMode} AS "WorkMode")`);
+        if (dto.locationId) conditions.push(Prisma.sql`"locationId" = ${dto.locationId}`);
+        if (dto.experienceLevel) conditions.push(Prisma.sql`"experienceLevel" = CAST(${dto.experienceLevel} AS "ExperienceLevel")`);
+
+        const whereSql = Prisma.join(conditions, ' AND ');
+
+        const rawIds = await this.prisma.$queryRaw<{id: string, total: bigint}[]>`
+          WITH filtered AS (
+            SELECT id, embedding FROM jobs WHERE ${whereSql}
+          )
+          SELECT id, count(*) OVER() as total
+          FROM filtered
+          ORDER BY embedding <-> ${vectorStr}::vector
+          LIMIT ${limit} OFFSET ${skip}
+        `;
+
+        if (rawIds.length > 0) {
+          const ids = rawIds.map(r => r.id);
+          const total = Number(rawIds[0].total);
+          
+          const fetchedJobs = await this.prisma.job.findMany({
+            where: { id: { in: ids } },
+            select: selectOptions
+          });
+
+          // Sort strictly by the vector distance order
+          fetchedJobs.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+
+          const formattedJobs = fetchedJobs.map((job) => ({
+            ...job,
+            skills: job.skills.map((s) => s.skill).filter(Boolean),
+            certifications: job.certifications.map((c) => c.certification).filter(Boolean),
+          }));
+
+          return {
+            data: formattedJobs,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+          };
+        } else {
+          return { data: [], total: 0, page, limit, totalPages: 0 };
+        }
+      }
+    }
 
     const where: any = {
       status: "APPROVED",
@@ -26,86 +153,16 @@ export class JobsService {
       });
     }
 
-    if (dto.roleId) {
-      where.roleId = dto.roleId;
-    }
-
-    if (dto.jobType) {
-      where.jobType = dto.jobType;
-    }
-
-    if (dto.workMode) {
-      where.workMode = dto.workMode;
-    }
-
-    if (dto.locationId) {
-      where.locationId = dto.locationId;
-    }
-
-    if (dto.experienceLevel) {
-      where.experienceLevel = dto.experienceLevel;
-    }
+    if (dto.roleId) where.roleId = dto.roleId;
+    if (dto.jobType) where.jobType = dto.jobType;
+    if (dto.workMode) where.workMode = dto.workMode;
+    if (dto.locationId) where.locationId = dto.locationId;
+    if (dto.experienceLevel) where.experienceLevel = dto.experienceLevel;
 
     const [jobs, total] = await this.prisma.$transaction([
       this.prisma.job.findMany({
         where,
-        select: {
-          id: true,
-          jobTitle: true,
-          slug: true,
-          jobType: true,
-          workMode: true,
-          experienceLevel: true,
-          description: true,
-          publishedAt: true,
-          expiresAt: true,
-          employer: {
-            select: {
-              id: true,
-              slug: true,
-              companyName: true,
-              companyLogo: true,
-              isVerified: true,
-            },
-          },
-          role: {
-            select: {
-              id: true,
-              name: true,
-              category: true,
-            },
-          },
-          location: {
-            select: {
-              id: true,
-              displayName: true,
-              city: true,
-              state: true,
-              country: true,
-            },
-          },
-          skills: {
-            select: {
-              skill: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-          certifications: {
-            select: {
-              certification: {
-                select: {
-                  id: true,
-                  name: true,
-                  organization: true,
-                },
-              },
-            },
-          },
-        },
+        select: selectOptions,
         orderBy: {
           publishedAt: "desc",
         },

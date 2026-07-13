@@ -11,3 +11,11 @@ export { GeminiProvider } from "./providers/gemini.provider";
 export { OpenRouterProvider } from "./providers/openrouter.provider";
 export { OllamaProvider } from "./providers/ollama.provider";
 export { AWSBedrockProvider } from "./providers/bedrock.provider";
+export { EmbeddingProvider, IEmbeddingProvider } from "./providers/embedding.provider";
+export {
+  AI_QUEUES,
+  AI_JOB_NAMES,
+  EmbedJobPayload,
+  ScoreApplicationPayload,
+  BulkRankJobPayload,
+} from "./constants/queue.constants";

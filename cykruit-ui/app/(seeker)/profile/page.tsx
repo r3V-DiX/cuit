@@ -1336,9 +1336,9 @@ export default function ProfilePage() {
                       <div className="flex items-center gap-3">
                         <button
                           onClick={handleAiGenerateBio}
-                          disabled={isGeneratingBio || resumes.length === 0}
+                          disabled={isGeneratingBio}
                           className="text-xs font-semibold text-violet-600 hover:text-violet-700 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title={resumes.length === 0 ? "Upload a resume first" : "Generate bio from your resume and experience"}
+                          title="Generate bio from your profile data"
                         >
                           <Wand2 className="w-3.5 h-3.5" />
                           {isGeneratingBio ? "Generating..." : "Generate with AI"}

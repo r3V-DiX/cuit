@@ -15,8 +15,9 @@ export class OllamaProvider implements AIProvider {
   private modelName: string;
 
   constructor(private configService: ConfigService) {
-    // Ollama's OpenAI-compatible endpoint
-    const baseURL = this.configService.get<string>("OLLAMA_BASE_URL") || "http://127.0.0.1:11434/v1";
+    // Ollama's OpenAI-compatible endpoint requires /v1
+    const envBase = this.configService.get<string>("OLLAMA_BASE_URL") || "http://127.0.0.1:11434";
+    const baseURL = envBase.endsWith("/v1") ? envBase : `${envBase}/v1`;
     this.modelName = this.configService.get<string>("OLLAMA_MODEL_NAME") || "llama3.1:8b";
     const apiKey = "ollama"; // Dummy key
 
@@ -36,11 +37,13 @@ export class OllamaProvider implements AIProvider {
     options?: AIGenerateOptions,
   ): Promise<AIGenerateResponse> {
     try {
+      const envBase = this.configService.get<string>("OLLAMA_BASE_URL") || "http://127.0.0.1:11434";
+      const baseURL = envBase.endsWith("/v1") ? envBase : `${envBase}/v1`;
       const chatModel = options
         ? new ChatOpenAI({
             apiKey: "ollama",
             configuration: {
-              baseURL: this.configService.get<string>("OLLAMA_BASE_URL") || "http://127.0.0.1:11434/v1",
+              baseURL: baseURL,
             },
             modelName: this.modelName,
             temperature: options.temperature ?? 0.7,
@@ -73,11 +76,13 @@ export class OllamaProvider implements AIProvider {
     options?: AIGenerateOptions,
   ): Promise<T> {
     try {
+      const envBase = this.configService.get<string>("OLLAMA_BASE_URL") || "http://127.0.0.1:11434";
+      const baseURL = envBase.endsWith("/v1") ? envBase : `${envBase}/v1`;
       const chatModel = options
         ? new ChatOpenAI({
             apiKey: "ollama",
             configuration: {
-              baseURL: this.configService.get<string>("OLLAMA_BASE_URL") || "http://127.0.0.1:11434/v1",
+              baseURL: baseURL,
             },
             modelName: this.modelName,
             temperature: options.temperature ?? 0.1,
@@ -87,7 +92,7 @@ export class OllamaProvider implements AIProvider {
         : new ChatOpenAI({
             apiKey: "ollama",
             configuration: {
-              baseURL: this.configService.get<string>("OLLAMA_BASE_URL") || "http://127.0.0.1:11434/v1",
+              baseURL: baseURL,
             },
             modelName: this.modelName,
             temperature: 0.1,

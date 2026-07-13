@@ -13,6 +13,8 @@ import { UploadModule } from '@cykruit/upload';
 import { AuditModule } from '@cykruit/audit';
 import { RateLimitModule } from '@cykruit/rate-limit';
 import { EventsModule } from '@cykruit/events';
+import { QueueModule } from '@cykruit/queue';
+import { AI_QUEUES } from '@cykruit/ai';
 import {
     AuthCoreModule,
     ISessionValidator,
@@ -112,6 +114,7 @@ export class EmployerSessionValidator implements ISessionValidator {
         PermissionsModule,
         ScheduleModule.forRoot(),
         EventsModule.forPublisher(),
+        QueueModule.forRoot({ queues: [AI_QUEUES.AI_JOBS] }),
         AuthCoreModule.forRoot({
             sessionValidatorClass: EmployerSessionValidator,
             imports: [PrismaModule, ConfigModule],

@@ -10,6 +10,8 @@ import { PrismaService } from '@cykruit/prisma';
 import { JobStatus, ApplicationType } from '@prisma/client';
 import { JobErrorCodes } from '@cykruit/common';
 import { AuditService } from '@cykruit/audit';
+import { QueueService } from '@cykruit/queue';
+import { AI_QUEUES, AI_JOB_NAMES } from '@cykruit/ai';
 import { JobsRepository } from '../repositories/jobs.repository';
 import { CompanyRepository } from '../repositories/company.repository';
 import { CreateJobDto, UpdateJobDto, CloseJobDto, JobListQueryDto } from '../dto/job.dto';
@@ -27,6 +29,7 @@ export class JobsService {
         private readonly companyRepository: CompanyRepository,
         private readonly prisma: PrismaService,
         private readonly auditService: AuditService,
+        private readonly queueService: QueueService,
     ) {}
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -369,5 +372,30 @@ export class JobsService {
         });
 
         return reopened;
+    }
+
+    async rankApplications(userId: string, jobId: string, ipAddress?: string, userAgent?: string) {
+        const { employer, job } = await this.resolveJobForEmployer(userId, jobId);
+
+        // Queue bulk rank job
+        await this.queueService.addJob(
+            AI_QUEUES.AI_JOBS,
+            AI_JOB_NAMES.BULK_RANK_JOB,
+            { jobId }
+        );
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'jobs:rank-applications',
+            module: 'JOBS',
+            targetType: 'Job',
+            targetId: jobId,
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
+        return { message: 'Bulk rank process started successfully' };
     }
 }

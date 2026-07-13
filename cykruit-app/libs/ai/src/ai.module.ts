@@ -6,6 +6,7 @@ import { GeminiProvider } from "./providers/gemini.provider";
 import { OpenRouterProvider } from "./providers/openrouter.provider";
 import { OllamaProvider } from "./providers/ollama.provider";
 import { AWSBedrockProvider } from "./providers/bedrock.provider";
+import { EmbeddingProvider } from "./providers/embedding.provider";
 import aiConfig from "./ai.config";
 
 @Global()
@@ -17,7 +18,8 @@ import aiConfig from "./ai.config";
     OpenRouterProvider,
     OllamaProvider,
     AWSBedrockProvider,
+    EmbeddingProvider,
   ],
-  exports: [AIService],
+  exports: [AIService, EmbeddingProvider, OllamaProvider],
 })
 export class AIModule {}
