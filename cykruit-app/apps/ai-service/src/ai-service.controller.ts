@@ -48,6 +48,14 @@ export class AiServiceController {
     return this.jobAssistantService.improveJobDescription(body.title, body.description, body.jobType, body.experienceLevel);
   }
 
+  @Post('jobs/infer-domain')
+  async inferDomain(@Body() body: { title: string }) {
+    if (!body.title) {
+      throw new BadRequestException('Title is required');
+    }
+    return this.jobAssistantService.inferDomain(body.title);
+  }
+
   @Post('jobs/suggest-skills')
   async suggestJobSkills(@Body() body: { title: string, description: string }) {
     if (!body.title || !body.description) {

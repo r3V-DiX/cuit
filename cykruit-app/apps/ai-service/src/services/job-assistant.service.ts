@@ -22,6 +22,14 @@ const SuggestedSkillsSchema = z.object({
   skills: z.array(z.string()).describe("Top 10 recommended skills for this job"),
 });
 
+const InferDomainSchema = z.object({
+  domain: z.enum([
+    "Offensive Security", "Cloud Security", "Blue Team / SOC",
+    "Application Security", "Threat Intelligence", "Identity & Access",
+    "DevSecOps", "Incident Response", "Governance & Compliance"
+  ]).describe("The most likely cybersecurity domain for this job title. If unsure, guess the closest match.")
+});
+
 export type SuggestedSkills = z.infer<typeof SuggestedSkillsSchema>;
 @Injectable()
 export class JobAssistantService {
@@ -82,6 +90,17 @@ ${description}
       return await this.llmProvider.generateStructured<SuggestedSkills>(prompt, SuggestedSkillsSchema);
     } catch (error) {
       this.logger.error("Failed to suggest job skills", error);
+      throw error;
+    }
+  }
+
+  async inferDomain(title: string): Promise<{ domain: string }> {
+    const prompt = `Based on the job title "${title}", infer the cybersecurity domain it belongs to. Choose the most appropriate domain.`;
+    try {
+      this.logger.debug("Inferring domain with LLM...");
+      return await this.llmProvider.generateStructured(prompt, InferDomainSchema);
+    } catch (error) {
+      this.logger.error("Failed to infer domain", error);
       throw error;
     }
   }

@@ -5,10 +5,11 @@ const AUTH_URL      = process.env.AUTH_SERVICE_URL      || "http://127.0.0.1:400
 const SETTINGS_URL  = process.env.SETTINGS_SERVICE_URL  || "http://127.0.0.1:4002";
 const PROFILE_URL   = process.env.PROFILE_SERVICE_URL   || "http://127.0.0.1:4003";
 const EMPLOYER_URL  = process.env.EMPLOYER_SERVICE_URL  || "http://127.0.0.1:4004";
-const PUBLIC_URL    = process.env.PUBLIC_SERVICE_URL    || "http://127.0.0.1:4006";
 const SEEKER_URL    = process.env.SEEKER_SERVICE_URL    || "http://127.0.0.1:4005";
+const PUBLIC_URL    = process.env.PUBLIC_SERVICE_URL    || "http://127.0.0.1:4006";
 const NOTIF_URL     = process.env.NOTIF_SERVICE_URL     || "http://127.0.0.1:4007";
 const SUBS_URL      = process.env.SUBS_SERVICE_URL      || "http://127.0.0.1:4008";
+const AI_URL        = process.env.AI_SERVICE_URL        || "http://127.0.0.1:3005";
 
 // CSP is set per-request with a nonce in proxy.ts — not here as a static header.
 const securityHeaders = [
@@ -99,6 +100,10 @@ const nextConfig: NextConfig = {
       {
         source: "/api/public/:path*",
         destination: `${PUBLIC_URL}/public/:path*`,
+      },
+      {
+        source: "/api/ai/:path*",
+        destination: `${AI_URL}/ai/:path*`,
       },
       {
         source: "/api/admin/users/:path*",

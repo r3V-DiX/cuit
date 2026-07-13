@@ -178,6 +178,8 @@ export default function PostJobPage() {
   const [domain, setDomain]             = useState("");
   const [type, setType]                 = useState("");
   const [level, setLevel]               = useState("");
+  const [isInferring, setIsInferring]   = useState(false);
+  const [isDrafting, setIsDrafting]     = useState(false);
   const [remote, setRemote]             = useState("");
   const [location, setLocation]         = useState("");
   const [description, setDescription]   = useState("");
@@ -441,12 +443,33 @@ export default function PostJobPage() {
                     />
                     <button
                       type="button"
-                      onClick={() => { const inferred = inferDomain(title); if (inferred) setDomain(inferred); }}
-                      disabled={!title.trim()}
+                      onClick={async () => {
+                        setIsInferring(true);
+                        try {
+                          const res = await fetch("/api/ai/jobs/infer-domain", {
+                            method: "POST", headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ title }),
+                          });
+                          if (res.ok) {
+                            const data = await res.json();
+                            if (data.domain) setDomain(data.domain);
+                          } else {
+                            // Fallback to local logic
+                            const inferred = inferDomain(title);
+                            if (inferred) setDomain(inferred);
+                          }
+                        } catch (e) {
+                          const inferred = inferDomain(title);
+                          if (inferred) setDomain(inferred);
+                        } finally {
+                          setIsInferring(false);
+                        }
+                      }}
+                      disabled={!title.trim() || isInferring}
                       title="Auto-infer domain from job title"
                       className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
                     >
-                      <Wand2 className="w-3.5 h-3.5" /> AI Fill
+                      {isInferring ? <span className="w-3.5 h-3.5 border-2 border-violet-300 border-t-violet-700 rounded-full animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />} AI Fill
                     </button>
                   </div>
                   <p className="text-[10px] font-mono text-slate-400">Type a title first, then click AI Fill to auto-detect</p>
@@ -463,10 +486,32 @@ export default function PostJobPage() {
                 <h2 className="text-sm font-bold text-slate-900">Job Description</h2>
                 <button
                   type="button"
-                  disabled={!title.trim()}
+                  onClick={async () => {
+                    setIsDrafting(true);
+                    try {
+                      const prompt = `Job Title: ${title}\nExperience Level: ${level}\nJob Type: ${type}\nWork Mode: ${remote}\nLocation: ${location}`;
+                      const res = await fetch("/api/ai/job-description/generate", {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ prompt }),
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        if (data.description) setDescription(data.description);
+                        if (data.skills && data.skills.length > 0) {
+                          const skillIds = data.skills.map((s: string) => s.toLowerCase());
+                          setSkills(Array.from(new Set([...skills, ...skillIds])));
+                        }
+                      }
+                    } catch (e) {
+                      console.error("AI Draft failed", e);
+                    } finally {
+                      setIsDrafting(false);
+                    }
+                  }}
+                  disabled={!title.trim() || isDrafting}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
-                  <Sparkles className="w-3.5 h-3.5" /> AI Draft
+                  {isDrafting ? <span className="w-3.5 h-3.5 border-2 border-violet-300 border-t-violet-700 rounded-full animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} AI Draft
                 </button>
               </div>
               <TextField
