@@ -361,6 +361,53 @@ export default function ProfilePage() {
     }
   }, [editingBasics, basics]);
 
+  const [countryName, setCountryName] = useState("");
+  const [stateName, setStateName] = useState("");
+  const [cityName, setCityName] = useState("");
+
+  const availableCountries = useMemo(() => Country.getAllCountries(), []);
+  const selectedCountry = useMemo(() => availableCountries.find(c => c.name === countryName), [countryName, availableCountries]);
+  const availableStates = useMemo(() => selectedCountry ? State.getStatesOfCountry(selectedCountry.isoCode) : [], [selectedCountry]);
+  const selectedState = useMemo(() => selectedCountry ? availableStates.find(s => s.name === stateName) : null, [selectedCountry, stateName, availableStates]);
+  const availableCities = useMemo(() => selectedState && selectedCountry ? City.getCitiesOfState(selectedCountry.isoCode, selectedState.isoCode) : [], [selectedCountry, selectedState]);
+
+  useEffect(() => {
+    if (editingBasics) {
+      setBasicsBuffer(basics);
+      const loc = basics.location || "";
+      if (loc) {
+        const parts = loc.split(",").map(p => p.trim());
+        const cName = parts[parts.length - 1];
+        const country = Country.getAllCountries().find(c => c.name.toLowerCase() === cName?.toLowerCase());
+        if (country) {
+          setCountryName(country.name);
+          if (parts.length > 1) {
+             const sName = parts[parts.length - 2];
+             const state = State.getStatesOfCountry(country.isoCode).find(s => s.name.toLowerCase() === sName?.toLowerCase());
+             if (state) {
+               setStateName(state.name);
+               setCityName(parts.slice(0, parts.length - 2).join(", "));
+             } else {
+               setStateName("");
+               setCityName(parts.slice(0, parts.length - 1).join(", "));
+             }
+          } else {
+             setStateName("");
+             setCityName("");
+          }
+        } else {
+          setCountryName("");
+          setStateName("");
+          setCityName("");
+        }
+      }
+    } else {
+      setCountryName("");
+      setStateName("");
+      setCityName("");
+    }
+  }, [editingBasics, basics]);
+
   const getCsrfToken = () => {
     if (typeof document === "undefined") return "";
     const match = document.cookie.match(/csrf_token=([^;]+)/);
