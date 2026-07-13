@@ -13,6 +13,7 @@ import {
     UseGuards,
     HttpCode,
     HttpStatus,
+    BadRequestException,
 } from '@nestjs/common';
 import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
@@ -40,6 +41,36 @@ export class JobsController {
     @RequirePermission(ACTIONS.JOBS.READ)
     getOne(@CurrentUser() user: User, @Param('id') id: string) {
         return this.jobsService.getOne(user.id, id);
+    }
+
+    // ── POST /employer/jobs/improve-description ─────────────────────────────
+
+    @Post('improve-description')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.JOBS.CREATE)
+    improveDescription(
+        @CurrentUser() user: User, 
+        @Body() body: { title: string, description: string, jobType?: string, experienceLevel?: string }
+    ) {
+        if (!body.title || !body.description) {
+            throw new BadRequestException('Title and description are required');
+        }
+        return this.jobsService.improveDescription(user.id, body.title, body.description, body.jobType, body.experienceLevel);
+    }
+
+    // ── POST /employer/jobs/suggest-skills ──────────────────────────────────
+
+    @Post('suggest-skills')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.JOBS.CREATE)
+    suggestSkills(
+        @CurrentUser() user: User, 
+        @Body() body: { title: string, description: string }
+    ) {
+        if (!body.title || !body.description) {
+            throw new BadRequestException('Title and description are required');
+        }
+        return this.jobsService.suggestSkills(user.id, body.title, body.description);
     }
 
     // ── POST /employer/jobs ─────────────────────────────────────────────────

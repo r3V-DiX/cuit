@@ -18,4 +18,5 @@ export {
   EmbedJobPayload,
   ScoreApplicationPayload,
   BulkRankJobPayload,
+  EmbedResumePayload,
 } from "./constants/queue.constants";

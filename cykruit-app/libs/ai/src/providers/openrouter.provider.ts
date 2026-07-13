@@ -18,7 +18,7 @@ export class OpenRouterProvider implements AIProvider {
     const apiKey = this.configService.get<string>("OPENROUTER_API_KEY");
     this.modelName =
       this.configService.get<string>("OPENROUTER_MODEL_NAME") ||
-      "meta-llama/llama-3.1-8b-instruct:free";
+      "google/gemini-2.5-flash:free";
 
     if (!apiKey) {
       this.logger.warn("OPENROUTER_API_KEY is not defined in the environment. OpenRouter operations will fail.");

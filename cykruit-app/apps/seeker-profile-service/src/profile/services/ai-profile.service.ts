@@ -7,8 +7,11 @@ import { ExperienceService } from "./experience.service";
 import { EducationService } from "./education.service";
 import { SkillsService } from "./skills.service";
 import { CertificationsService } from "./certifications.service";
+import { InjectQueue } from "@nestjs/bull";
+import { Queue } from "bull";
 import { SearchSkillsDto } from "../dto/skills/search-skills.dto";
-
+import { QueueService } from "@cykruit/queue";
+import { AI_QUEUES, AI_JOB_NAMES } from "@cykruit/ai";
 
 import { PrismaService } from "@cykruit/prisma";
 
@@ -24,6 +27,7 @@ export class AIProfileService {
     private readonly skillsService: SkillsService,
     private readonly certsService: CertificationsService,
     private readonly prisma: PrismaService,
+    @InjectQueue(AI_QUEUES.AI_JOBS) private readonly aiQueue: Queue,
   ) {}
 
   async parseResumeAndApply(userId: string, pdfBuffer: Buffer) {
@@ -174,6 +178,13 @@ export class AIProfileService {
           issueDate: cert.issueDate?.match(/^\d{4}-(0[1-9]|1[0-2])$/) ? cert.issueDate : "2020-01",
         }).catch(e => this.logger.warn("Failed saving certification", e.message));
       }
+    }
+
+    // Trigger asynchronous embedding for the parsed resume
+    try {
+      await this.aiQueue.add(AI_JOB_NAMES.EMBED_RESUME, { seekerId: userId });
+    } catch (e) {
+      this.logger.error("Failed adding embed-resume job to queue:", e);
     }
 
     return { message: "Resume parsed and profile updated successfully.", parsedData };

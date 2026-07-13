@@ -7,6 +7,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ForbiddenException,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from "@nestjs/swagger";
 import {
@@ -14,6 +15,7 @@ import {
   OptionalAuth,
   OptionalAuthGuard,
   CurrentUser,
+  AuthGuard,
 } from "@cykruit/auth-core";
 import { RateLimit } from "@cykruit/rate-limit";
 import { User } from "@prisma/client";
@@ -28,11 +30,13 @@ export class JobsController {
 
   @Get()
   @RateLimit({ public_search: { ttl: 60_000, limit: 60 } })
+  @OptionalAuth()
+  @UseGuards(OptionalAuthGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Browse all approved job listings" })
   @ApiResponse({ status: 200, description: "Paginated list of jobs." })
-  async getJobs(@Query() query: JobsQueryDto) {
-    return this.jobsService.getJobs(query);
+  async getJobs(@Query() query: JobsQueryDto, @CurrentUser() user?: User) {
+    return this.jobsService.getJobs(query, user?.id);
   }
 
   @Get(":slug")
@@ -62,5 +66,17 @@ export class JobsController {
     // Fire and forget view tracking
     this.jobsService.trackJobView(jobId, user?.id).catch(() => null);
     return { success: true };
+  }
+
+  @Post(":id/match-score")
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Get match score for a job" })
+  @ApiParam({ name: "id", type: String, description: "The UUID of the job" })
+  async getMatchScore(@Param("id") jobId: string, @CurrentUser() user: User) {
+    if (user.role !== 'SEEKER') {
+      throw new ForbiddenException("Only seekers can get match scores");
+    }
+    return this.jobsService.getMatchScore(jobId, user.id);
   }
 }

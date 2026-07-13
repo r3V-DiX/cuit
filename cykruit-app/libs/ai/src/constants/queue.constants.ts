@@ -6,6 +6,7 @@ export const AI_JOB_NAMES = {
   EMBED_JOB: "embed-job",
   SCORE_APPLICATION: "score-application",
   BULK_RANK_JOB: "bulk-rank-job",
+  EMBED_RESUME: "embed-resume",
 };
 
 export interface EmbedJobPayload {
@@ -20,4 +21,8 @@ export interface ScoreApplicationPayload {
 
 export interface BulkRankJobPayload {
   jobId: string;
+}
+
+export interface EmbedResumePayload {
+  seekerId: string;
 }

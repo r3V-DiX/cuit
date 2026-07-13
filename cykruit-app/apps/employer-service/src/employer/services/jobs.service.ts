@@ -11,6 +11,8 @@ import { JobStatus, ApplicationType } from '@prisma/client';
 import { JobErrorCodes } from '@cykruit/common';
 import { AuditService } from '@cykruit/audit';
 import { QueueService } from '@cykruit/queue';
+import { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bull';
 import { AI_QUEUES, AI_JOB_NAMES } from '@cykruit/ai';
 import { JobsRepository } from '../repositories/jobs.repository';
 import { CompanyRepository } from '../repositories/company.repository';
@@ -30,6 +32,7 @@ export class JobsService {
         private readonly prisma: PrismaService,
         private readonly auditService: AuditService,
         private readonly queueService: QueueService,
+        @InjectQueue(AI_QUEUES.AI_JOBS) private aiQueue: Queue,
     ) {}
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -385,8 +388,7 @@ export class JobsService {
         const { employer, job } = await this.resolveJobForEmployer(userId, jobId);
 
         // Queue bulk rank job
-        await this.queueService.addJob(
-            AI_QUEUES.AI_JOBS,
+        await this.aiQueue.add(
             AI_JOB_NAMES.BULK_RANK_JOB,
             { jobId }
         );
@@ -404,5 +406,39 @@ export class JobsService {
         });
 
         return { message: 'Bulk rank process started successfully' };
+    }
+
+    async improveDescription(userId: string, title: string, description: string, jobType?: string, experienceLevel?: string) {
+        await this.resolveVerifiedEmployer(userId);
+
+        const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+        const res = await fetch(`${aiUrl}/ai/jobs/improve-description`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, description, jobType, experienceLevel })
+        });
+
+        if (!res.ok) {
+            throw new BadRequestException("Failed to improve description from AI service");
+        }
+
+        return res.json();
+    }
+
+    async suggestSkills(userId: string, title: string, description: string) {
+        await this.resolveVerifiedEmployer(userId);
+
+        const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+        const res = await fetch(`${aiUrl}/ai/jobs/suggest-skills`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, description })
+        });
+
+        if (!res.ok) {
+            throw new BadRequestException("Failed to suggest skills from AI service");
+        }
+
+        return res.json();
     }
 }

@@ -26,7 +26,7 @@ const APP_STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }
   Rejected:    { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle      className="w-3 h-3" /> },
 };
 
-const AI_SCORES: Record<string, number> = {};
+
 
 const STATUS_FILTERS: (AppStatus | "All")[] = ["All", "New", "Shortlisted", "Interview", "Rejected"];
 
@@ -89,6 +89,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             status: appStatusMap[a.status] ?? "New",
             applied: new Date(a.appliedAt ?? a.createdAt).toLocaleDateString(),
             skills: (a.skills ?? []).map((s: any) => s.skill?.name ?? s),
+            aiScore: a.aiScore ?? null,
+            aiScoreData: a.aiScoreData ?? null,
           })));
         }
       } catch (e) {
@@ -99,6 +101,39 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     };
     fetchJob();
   }, [id]);
+
+  // Poll for AI Score updates when aiRank is active
+  useEffect(() => {
+    if (!aiRank) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/employer/jobs/${id}/applications`, { credentials: "include" });
+        if (res.ok) {
+          const appsData = await res.json();
+          const items = appsData.data?.items ?? appsData.items ?? [];
+          const appStatusMap: Record<string, AppStatus> = {
+            APPLIED: "New", UNDER_REVIEW: "New", SHORTLISTED: "Shortlisted",
+            INTERVIEW: "Interview", REJECTED: "Rejected",
+          };
+          setApplicants(items.map((a: any) => ({
+            id: a.id,
+            name: `${a.jobSeeker?.firstName ?? ""} ${a.jobSeeker?.lastName ?? ""}`.trim() || "Applicant",
+            jobId: a.jobId,
+            location: a.jobSeeker?.location ?? "—",
+            experience: a.experienceYears ? `${a.experienceYears} yrs` : "—",
+            status: appStatusMap[a.status] ?? "New",
+            applied: new Date(a.appliedAt ?? a.createdAt).toLocaleDateString(),
+            skills: (a.skills ?? []).map((s: any) => s.skill?.name ?? s),
+            aiScore: a.aiScore ?? null,
+            aiScoreData: a.aiScoreData ?? null,
+          })));
+        }
+      } catch (e) {
+        console.error("Error polling applications", e);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [id, aiRank]);
 
   if (loading) {
     return (
@@ -139,7 +174,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   });
 
   const sorted = aiRank
-    ? [...filtered].sort((a, b) => (AI_SCORES[b.id] ?? 50) - (AI_SCORES[a.id] ?? 50))
+    ? [...filtered].sort((a, b) => (b.aiScore ?? 0) - (a.aiScore ?? 0))
     : filtered;
 
   const countByStatus = (s: AppStatus) => jobApplicants.filter((a) => a.status === s).length;
@@ -262,7 +297,20 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           </div>
           <button
             type="button"
-            onClick={() => setAiRank(!aiRank)}
+            onClick={async () => {
+              const newState = !aiRank;
+              setAiRank(newState);
+              if (newState) {
+                // Trigger background ranking
+                try {
+                  console.log(`Triggering AI rank for job ${id}`);
+                  const res = await fetch(`/api/employer/jobs/${id}/ai-rank`, { method: "POST", credentials: "include" });
+                  if (!res.ok) console.error("AI rank fetch failed", await res.text());
+                } catch (e) {
+                  console.error("Failed triggering AI rank", e);
+                }
+              }
+            }}
             className={`w-10 h-6 rounded-full transition-colors relative shrink-0 cursor-pointer ${aiRank ? "bg-violet-600" : "bg-slate-200"}`}
           >
             <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${aiRank ? "left-[calc(100%-1.375rem)]" : "left-0.5"}`} />
@@ -325,7 +373,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 <tbody className="divide-y divide-slate-100">
                   {sorted.map((a) => {
                     const cfg = APP_STATUS_CFG[a.status as AppStatus] ?? APP_STATUS_CFG.New;
-                    const score = AI_SCORES[a.id] ?? 50;
+                    const score = a.aiScore ?? 0;
                     return (
                       <tr key={a.id} className="hover:bg-slate-50/60 transition-colors group">
                         <td className="px-5 py-3.5">
@@ -359,12 +407,18 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                         {aiRank && (
                           <td className="px-4 py-3.5 text-center">
                             <span className={`text-xs font-bold font-mono px-2.5 py-1 rounded-lg border ${
-                              score >= 80 ? "text-green-700 bg-green-50 border-green-200"
+                              a.aiScore === null ? "text-slate-500 bg-slate-50 border-slate-200"
+                              : score >= 80 ? "text-green-700 bg-green-50 border-green-200"
                               : score >= 60 ? "text-amber-700 bg-amber-50 border-amber-200"
                               : "text-rose-600 bg-rose-50 border-rose-200"
                             }`}>
-                              {score}%
+                              {a.aiScore === null ? "Pending" : `${score}%`}
                             </span>
+                            {(a.aiScoreData?.reasoning || a.aiScoreData?.summary) && (
+                              <div className="mt-2 text-[10px] text-slate-500 leading-tight text-left max-w-[200px] mx-auto line-clamp-3" title={a.aiScoreData.reasoning || a.aiScoreData.summary}>
+                                {a.aiScoreData.reasoning || a.aiScoreData.summary}
+                              </div>
+                            )}
                           </td>
                         )}
                         <td className="px-4 py-3.5">

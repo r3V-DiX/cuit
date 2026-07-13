@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OllamaProvider } from '@cykruit/ai';
+import { AWSBedrockProvider } from '@cykruit/ai';
 import { z } from 'zod';
 
 const ParsedResumeSchema = z.object({
@@ -52,8 +52,7 @@ export type ParsedResume = z.infer<typeof ParsedResumeSchema>;
 @Injectable()
 export class ResumeParserService {
   private readonly logger = new Logger(ResumeParserService.name);
-
-  constructor(private readonly llmProvider: OllamaProvider) {}
+  constructor(private readonly llmProvider: AWSBedrockProvider) {}
 
   async parseResume(resumeText: string): Promise<ParsedResume> {
     const prompt = `

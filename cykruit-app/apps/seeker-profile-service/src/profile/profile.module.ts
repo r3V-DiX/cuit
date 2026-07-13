@@ -9,6 +9,7 @@ import { CommonModule } from "@cykruit/common";
 import { AuthCoreModule } from "@cykruit/auth-core";
 import { RateLimitModule } from "@cykruit/rate-limit";
 import { AuditModule } from "@cykruit/audit";
+import { QueueModule } from "@cykruit/queue";
 
 import { SessionValidatorService } from "./session/session-validator.service";
 
@@ -36,7 +37,7 @@ import { ResumeService } from "./services/resume.service";
 import { ProfileHelpers } from "./utils/profile.helpers";
 import { AIProfileService } from "./services/ai-profile.service";
 import { AIProfileController } from "./controllers/ai-profile.controller";
-import { AIModule } from "@cykruit/ai";
+import { AIModule, AI_QUEUES } from "@cykruit/ai";
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { AIModule } from "@cykruit/ai";
     CommonModule,
     RateLimitModule,
     AuditModule,
+    QueueModule.forRoot({ queues: [AI_QUEUES.AI_JOBS] }),
     AIModule,
     AuthCoreModule.forRoot({
       sessionValidatorClass: SessionValidatorService,

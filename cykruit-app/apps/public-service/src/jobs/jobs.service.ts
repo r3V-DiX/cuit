@@ -8,7 +8,7 @@ import { Prisma } from "@prisma/client";
 export class JobsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getJobs(dto: JobsQueryDto) {
+  async getJobs(dto: JobsQueryDto, userId?: string) {
     const page = dto.page || 1;
     const limit = dto.limit || 20;
     const skip = (page - 1) * limit;
@@ -120,8 +120,18 @@ export class JobsService {
           // Sort strictly by the vector distance order
           fetchedJobs.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
 
+          let matchMap = new Map<string, number>();
+          if (userId) {
+            const matches = await this.prisma.seekerJobMatch.findMany({
+              where: { seekerId: userId, jobId: { in: ids } },
+              select: { jobId: true, score: true }
+            });
+            matches.forEach(m => matchMap.set(m.jobId, m.score));
+          }
+
           const formattedJobs = fetchedJobs.map((job) => ({
             ...job,
+            matchScore: matchMap.get(job.id) ?? null,
             skills: job.skills.map((s) => s.skill).filter(Boolean),
             certifications: job.certifications.map((c) => c.certification).filter(Boolean),
           }));
@@ -172,9 +182,20 @@ export class JobsService {
       this.prisma.job.count({ where }),
     ]);
 
+    let matchMap = new Map<string, number>();
+    if (userId) {
+      const ids = jobs.map(j => j.id);
+      const matches = await this.prisma.seekerJobMatch.findMany({
+        where: { seekerId: userId, jobId: { in: ids } },
+        select: { jobId: true, score: true }
+      });
+      matches.forEach(m => matchMap.set(m.jobId, m.score));
+    }
+
     // Format skills and certifications arrays
     const formattedJobs = jobs.map((job) => ({
       ...job,
+      matchScore: matchMap.get(job.id) ?? null,
       skills: job.skills.map((s) => s.skill).filter(Boolean),
       certifications: job.certifications
         .map((c) => c.certification)
@@ -325,5 +346,21 @@ export class JobsService {
     } catch {
       // Never throw - fire and forget requirement
     }
+  }
+
+  async getMatchScore(jobId: string, seekerId: string) {
+    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+    const res = await fetch(`${aiUrl}/ai/match-score`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seekerId, jobId })
+    });
+
+    if (!res.ok) {
+      // If AI service fails (e.g., missing embeddings), return null gracefully
+      return { score: null };
+    }
+
+    return res.json();
   }
 }

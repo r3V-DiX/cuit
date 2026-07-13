@@ -4,6 +4,10 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '@cykruit/prisma';
 import { JobStatus } from '@prisma/client';
 import { AuditService } from '@cykruit/audit';
+import { QueueService } from '@cykruit/queue';
+import { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bull';
+import { AI_QUEUES, AI_JOB_NAMES } from '@cykruit/ai';
 import { AdminJobQueryDto, ApproveJobDto, RejectJobDto } from '../dto/admin-jobs.dto';
 
 @Injectable()
@@ -11,6 +15,8 @@ export class AdminJobsService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly auditService: AuditService,
+        private readonly queueService: QueueService,
+        @InjectQueue(AI_QUEUES.AI_JOBS) private aiQueue: Queue,
     ) {}
 
     async listJobs(query: AdminJobQueryDto) {
@@ -115,6 +121,11 @@ export class AdminJobsService {
             data: { status: JobStatus.APPROVED, publishedAt: new Date() },
             select: { id: true, jobTitle: true, status: true, publishedAt: true },
         });
+
+        await this.aiQueue.add(
+            AI_JOB_NAMES.EMBED_JOB,
+            { jobId: updated.id }
+        );
 
         this.auditService.logAction({
             actorId,

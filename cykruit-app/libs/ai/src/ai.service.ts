@@ -91,11 +91,51 @@ export class AIService {
   }
 
   async extractTextFromPDF(pdfBuffer: Buffer): Promise<string> {
+    const LLAMA_CLOUD_API_KEY = this.configService.get<string>("LLAMA_CLOUD_API_KEY") || process.env.LLAMA_CLOUD_API_KEY;
+    
+    if (LLAMA_CLOUD_API_KEY) {
+      try {
+        const formData = new FormData();
+        const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+      formData.append('file', blob, 'resume.pdf');
+      
+      const uploadRes = await fetch('https://api.cloud.llamaindex.ai/api/parsing/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LLAMA_CLOUD_API_KEY}`,
+        },
+        body: formData as any,
+      });
+      if (!uploadRes.ok) throw new Error(`LlamaParse upload failed: ${uploadRes.statusText}`);
+      const uploadData = await uploadRes.json() as any;
+      const jobId = uploadData.id;
+
+      while (true) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const statusRes = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}`, {
+          headers: { 'Authorization': `Bearer ${LLAMA_CLOUD_API_KEY}` }
+        });
+        const statusData = await statusRes.json() as any;
+        if (statusData.status === 'SUCCESS') {
+          const textRes = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}/result/markdown`, {
+            headers: { 'Authorization': `Bearer ${LLAMA_CLOUD_API_KEY}` }
+          });
+          const textData = await textRes.json() as any;
+          return textData.markdown;
+        } else if (statusData.status === 'ERROR') {
+          throw new Error('LlamaParse job failed');
+        }
+      }
+    } catch (error: any) {
+      console.warn(`[AIService] LlamaParse failed, falling back to Bedrock/Gemini:`, error.message);
+    }
+    }
+
     // Heavy task, use Bedrock natively if available
     if (this.configService.get<string>("ai.bedrock.accessKeyId") || process.env.BEDROCK_AWS_ACCESS_KEY_ID) {
       try {
         return await this.awsBedrockProvider.extractTextFromPDF(pdfBuffer);
-      } catch (error) {
+      } catch (error: any) {
         console.warn(`[AIService] Bedrock PDF extract failed, falling back to Gemini:`, error.message);
       }
     }

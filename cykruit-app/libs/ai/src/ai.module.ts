@@ -20,6 +20,6 @@ import aiConfig from "./ai.config";
     AWSBedrockProvider,
     EmbeddingProvider,
   ],
-  exports: [AIService, EmbeddingProvider, OllamaProvider],
+  exports: [AIService, EmbeddingProvider, OllamaProvider, OpenRouterProvider, GeminiProvider, AWSBedrockProvider],
 })
 export class AIModule {}
