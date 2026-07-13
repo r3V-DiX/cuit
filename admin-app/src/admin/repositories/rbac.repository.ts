@@ -72,6 +72,23 @@ export class RbacRepository {
         return this.findRoleById(roleId);
     }
 
+    async countRoleAssignments(roleId: string) {
+        return this.prisma.adminRoleAssignment.count({ where: { roleId } });
+    }
+
+    /** Same as countRoleAssignments but excludes deactivated admins — used for the
+     *  "don't strip the last super_admin" guards, where an inactive admin's
+     *  assignment row shouldn't count as a real safety margin. */
+    async countActiveRoleAssignments(roleId: string) {
+        return this.prisma.adminRoleAssignment.count({
+            where: { roleId, admin: { isActive: true } },
+        });
+    }
+
+    async deleteRole(id: string) {
+        return this.prisma.adminRbacRole.delete({ where: { id } });
+    }
+
     // ── Permissions ───────────────────────────────────────────────────────────
 
     async findAllPermissions() {
@@ -101,16 +118,45 @@ export class RbacRepository {
 
     // ── Admin role assignments ────────────────────────────────────────────────
 
+    /** Admins hold exactly one role — assigning a new one replaces any other the admin currently has. */
     async assignAdminRole(adminId: string, roleId: string, assignedBy: string, expiresAt?: Date) {
-        return this.prisma.adminRoleAssignment.upsert({
-            where: { adminId_roleId: { adminId, roleId } },
-            create: { adminId, roleId, assignedBy, expiresAt },
-            update: { assignedBy, expiresAt },
+        return this.prisma.$transaction(async (tx) => {
+            await tx.adminRoleAssignment.deleteMany({
+                where: { adminId, roleId: { not: roleId } },
+            });
+
+            return tx.adminRoleAssignment.upsert({
+                where: { adminId_roleId: { adminId, roleId } },
+                create: { adminId, roleId, assignedBy, expiresAt },
+                update: { assignedBy, expiresAt },
+            });
         });
     }
 
     async revokeAdminRole(assignmentId: string) {
         return this.prisma.adminRoleAssignment.delete({ where: { id: assignmentId } });
+    }
+
+    async findAdminRoleAssignmentById(id: string) {
+        return this.prisma.adminRoleAssignment.findUnique({
+            where: { id },
+            include: { role: true, admin: { select: { email: true } } },
+        });
+    }
+
+    async findAdminEmail(adminId: string) {
+        const admin = await this.prisma.admin.findUnique({
+            where: { id: adminId },
+            select: { email: true },
+        });
+        return admin?.email ?? null;
+    }
+
+    async findAdminSummary(adminId: string) {
+        return this.prisma.admin.findUnique({
+            where: { id: adminId },
+            select: { id: true, email: true, firstName: true, lastName: true, isActive: true },
+        });
     }
 
     async findAdminRoles(adminId: string) {
@@ -140,6 +186,17 @@ export class RbacRepository {
         return this.prisma.adminPermissionOverride.findMany({
             where: { adminId },
             include: { permission: true },
+        });
+    }
+
+    async deleteAdminPermissionOverride(id: string) {
+        return this.prisma.adminPermissionOverride.delete({ where: { id } });
+    }
+
+    async findAdminPermissionOverrideById(id: string) {
+        return this.prisma.adminPermissionOverride.findUnique({
+            where: { id },
+            include: { admin: { select: { email: true } } },
         });
     }
 }

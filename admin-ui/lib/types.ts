@@ -278,6 +278,14 @@ export interface AdminPermissionOverride {
   permission?: Permission;
 }
 
+export interface AdminSummary {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
+}
+
 export interface AdminAccount {
   id: string;
   email: string;

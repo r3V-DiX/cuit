@@ -76,6 +76,13 @@ export class RbacController {
         return this.rbacService.setRolePermissions(roleId, admin.id, dto);
     }
 
+    @Delete('roles/:id')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.RBAC.MANAGE)
+    deleteRole(@CurrentAdmin() admin: Admin, @Param('id') id: string) {
+        return this.rbacService.deleteRole(id, admin.id);
+    }
+
     // ── Permissions ───────────────────────────────────────────────────────────
 
     @Get('permissions')
@@ -108,6 +115,12 @@ export class RbacController {
         return this.rbacService.revokeAdminRole(assignmentId, admin.id);
     }
 
+    @Get('admins/:adminId')
+    @RequirePermission(ACTIONS.RBAC.VIEW)
+    getAdminSummary(@Param('adminId') adminId: string) {
+        return this.rbacService.getAdminSummary(adminId);
+    }
+
     @Get('admins/:adminId/roles')
     @RequirePermission(ACTIONS.RBAC.VIEW)
     getAdminRoles(@Param('adminId') adminId: string) {
@@ -127,5 +140,12 @@ export class RbacController {
     @RequirePermission(ACTIONS.RBAC.VIEW)
     getAdminPermissionOverrides(@Param('adminId') adminId: string) {
         return this.rbacService.getAdminPermissionOverrides(adminId);
+    }
+
+    @Delete('permission-overrides/:id')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.RBAC.MANAGE)
+    deletePermissionOverride(@CurrentAdmin() admin: Admin, @Param('id') id: string) {
+        return this.rbacService.deleteAdminPermissionOverride(id, admin.id);
     }
 }

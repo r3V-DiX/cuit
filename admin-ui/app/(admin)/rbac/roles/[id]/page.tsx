@@ -5,6 +5,7 @@
 // renamed or deactivated, and super_admin's permission set is locked.
 import { useState, useEffect, useCallback } from 'react';
 import { use } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { ACTIONS, SYSTEM_ROLE_NAMES, SUPER_ADMIN_ROLE } from '@/lib/permissions';
 import { usePermissions } from '@/lib/permissions-context';
@@ -13,8 +14,9 @@ import RequirePermission from '@/components/ui/RequirePermission';
 import NoAccess from '@/components/ui/NoAccess';
 import Skeleton from '@/components/ui/Skeleton';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { useModal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
-import { ArrowLeft, Shield, Pencil, Lock } from 'lucide-react';
+import { ArrowLeft, Shield, Pencil, Lock, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 const inputCls =
@@ -25,6 +27,8 @@ export default function RoleDetailPage({ params }: { params: Promise<{ id: strin
   const { id } = use(params);
   const { has } = usePermissions();
   const { toast } = useToast();
+  const { openModal } = useModal();
+  const router = useRouter();
 
   const [role, setRole] = useState<RbacRole | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -117,6 +121,28 @@ export default function RoleDetailPage({ params }: { params: Promise<{ id: strin
     }
   }
 
+  function handleDeleteRole() {
+    if (!role) return;
+    openModal({
+      title: 'Delete role?',
+      description: `"${role.name}" will be permanently deleted. This only succeeds if no admin currently holds this role.`,
+      variant: 'danger',
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        try {
+          await api.del(`/api/admin/rbac/roles/${id}`);
+          toast({ type: 'success', message: 'Role deleted.' });
+          router.push('/rbac');
+        } catch (err) {
+          toast({
+            type: 'error',
+            message: err instanceof Error ? err.message : 'Failed to delete role',
+          });
+        }
+      },
+    });
+  }
+
   if (!loading && error) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -130,6 +156,10 @@ export default function RoleDetailPage({ params }: { params: Promise<{ id: strin
     selectedIds.length !== assignedIds.size || selectedIds.some((pid) => !assignedIds.has(pid));
   const modules = [...new Set(permissions.map((p) => p.module))];
   const canEditPerms = canManage && !isSuperAdmin;
+  const roleAssignedPermissions = role?.permissions ?? [];
+  const roleAssignedModules = [
+    ...new Set(roleAssignedPermissions.map((p) => p.permission.module)),
+  ].sort();
 
   return (
     <RequirePermission action={ACTIONS.RBAC.VIEW} fallback={<NoAccess />}>
@@ -231,15 +261,26 @@ export default function RoleDetailPage({ params }: { params: Promise<{ id: strin
                       </div>
                     </div>
                   </div>
-                  {canManage && (
-                    <button
-                      onClick={() => setEditing(true)}
-                      className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      Edit
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {canManage && (
+                      <button
+                        onClick={() => setEditing(true)}
+                        className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
+                      >
+                        <Pencil className="h-4 w-4" />
+                        Edit
+                      </button>
+                    )}
+                    {canManage && !isSystemRole && (
+                      <button
+                        onClick={handleDeleteRole}
+                        className="flex items-center gap-1.5 rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -295,15 +336,27 @@ export default function RoleDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
                   ))}
                 </div>
-              ) : role.permissions && role.permissions.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {role.permissions.map((p) => (
-                    <span
-                      key={p.permission.id}
-                      className="inline-flex items-center rounded-lg bg-blue-50 px-3 py-1 font-mono text-xs text-blue-700 border border-blue-100"
-                    >
-                      {p.permission.action}
-                    </span>
+              ) : roleAssignedPermissions.length > 0 ? (
+                <div className="space-y-4">
+                  {roleAssignedModules.map((mod) => (
+                    <div key={mod}>
+                      <p className="mb-1.5 font-mono text-sm font-bold uppercase tracking-wider text-slate-400">
+                        {mod}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {roleAssignedPermissions
+                          .filter((p) => p.permission.module === mod)
+                          .map((p) => (
+                            <span
+                              key={p.permission.id}
+                              className="inline-flex items-center rounded-lg bg-blue-50 px-3 py-1 font-mono text-xs text-blue-700 border border-blue-100"
+                              title={p.permission.description}
+                            >
+                              {p.permission.action}
+                            </span>
+                          ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               ) : (

@@ -2,7 +2,8 @@
 // Console RBAC management. System roles (super_admin / platform_admin / reviewer)
 // are seed-owned: no rename, no deactivation, and super_admin's permission set is locked.
 
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { RbacRepository } from '../repositories/rbac.repository';
 import {
     CreateRoleDto,
@@ -14,6 +15,7 @@ import {
 import { AdminAuditLogger } from './admin-audit.logger';
 import { PermissionsService } from './permissions.service';
 import { SYSTEM_ROLE_NAMES, SUPER_ADMIN_ROLE } from '../rbac/permissions.registry';
+import { isProtectedRootAdmin } from '../rbac/protected-admin.util';
 
 @Injectable()
 export class RbacService {
@@ -21,6 +23,7 @@ export class RbacService {
         private readonly rbacRepository: RbacRepository,
         private readonly auditLogger: AdminAuditLogger,
         private readonly permissionsService: PermissionsService,
+        private readonly configService: ConfigService,
     ) {}
 
     async listRoles() {
@@ -89,6 +92,13 @@ export class RbacService {
             throw new ForbiddenException("super_admin's permissions cannot be edited");
         }
 
+        const actingAdminRoles = await this.rbacRepository.findAdminRoles(actingAdminId);
+        if (actingAdminRoles.some((r) => r.roleId === roleId)) {
+            throw new ForbiddenException(
+                'You cannot edit the permission set of a role you currently hold.',
+            );
+        }
+
         const updated = await this.rbacRepository.setRolePermissions(roleId, dto.permissionIds);
         this.permissionsService.clearCache();
 
@@ -105,6 +115,36 @@ export class RbacService {
         return updated;
     }
 
+    async deleteRole(id: string, actingAdminId: string) {
+        const role = await this.getRole(id);
+
+        if (SYSTEM_ROLE_NAMES.includes(role.name)) {
+            throw new ForbiddenException('System roles cannot be deleted');
+        }
+
+        const assignmentCount = await this.rbacRepository.countRoleAssignments(id);
+        if (assignmentCount > 0) {
+            throw new BadRequestException(
+                `Cannot delete a role assigned to ${assignmentCount} admin(s). Revoke the assignment(s) first.`,
+            );
+        }
+
+        await this.rbacRepository.deleteRole(id);
+
+        this.auditLogger.log({
+            adminId: actingAdminId,
+            action: 'rbac:manage',
+            module: 'rbac',
+            resource: 'AdminRbacRole',
+            resourceId: id,
+            riskLevel: 'CRITICAL',
+            result: 'SUCCESS',
+            oldData: { name: role.name },
+        });
+
+        return { success: true };
+    }
+
     async listPermissions() {
         return this.rbacRepository.findAllPermissions();
     }
@@ -114,6 +154,35 @@ export class RbacService {
     }
 
     async assignAdminRole(actingAdminId: string, dto: AssignAdminRoleDto) {
+        if (actingAdminId === dto.adminId) {
+            throw new ForbiddenException('You cannot change your own role.');
+        }
+
+        const targetEmail = await this.rbacRepository.findAdminEmail(dto.adminId);
+        const bootstrapEmail = this.configService.get<string>('RBAC_BOOTSTRAP_ADMIN_EMAIL');
+        if (targetEmail && isProtectedRootAdmin(targetEmail, bootstrapEmail)) {
+            throw new ForbiddenException(
+                'This account is protected and cannot be modified by another admin.',
+            );
+        }
+
+        const role = await this.getRole(dto.roleId);
+        const previousRoles = await this.rbacRepository.findAdminRoles(dto.adminId);
+
+        const losingSuperAdmin = previousRoles.find(
+            (r) => r.role.name === SUPER_ADMIN_ROLE && r.roleId !== dto.roleId,
+        );
+        if (losingSuperAdmin) {
+            const superAdminCount = await this.rbacRepository.countActiveRoleAssignments(
+                losingSuperAdmin.roleId,
+            );
+            if (superAdminCount <= 1) {
+                throw new ForbiddenException(
+                    "Cannot replace the last super_admin's role — at least one super_admin must remain.",
+                );
+            }
+        }
+
         const assignment = await this.rbacRepository.assignAdminRole(
             dto.adminId,
             dto.roleId,
@@ -128,8 +197,9 @@ export class RbacService {
             module: 'rbac',
             resource: 'Admin',
             resourceId: dto.adminId,
-            riskLevel: 'HIGH',
+            riskLevel: role.name === SUPER_ADMIN_ROLE ? 'CRITICAL' : 'HIGH',
             result: 'SUCCESS',
+            oldData: { previousRoleIds: previousRoles.map((r) => r.roleId) },
             newData: { roleId: dto.roleId },
         });
 
@@ -137,6 +207,31 @@ export class RbacService {
     }
 
     async revokeAdminRole(assignmentId: string, actingAdminId: string) {
+        const assignment = await this.rbacRepository.findAdminRoleAssignmentById(assignmentId);
+        if (!assignment) throw new NotFoundException('Role assignment not found');
+
+        if (assignment.adminId === actingAdminId) {
+            throw new ForbiddenException('You cannot revoke your own role.');
+        }
+
+        const bootstrapEmail = this.configService.get<string>('RBAC_BOOTSTRAP_ADMIN_EMAIL');
+        if (isProtectedRootAdmin(assignment.admin.email, bootstrapEmail)) {
+            throw new ForbiddenException(
+                'This account is protected and cannot be modified by another admin.',
+            );
+        }
+
+        if (assignment.role.name === SUPER_ADMIN_ROLE) {
+            const superAdminCount = await this.rbacRepository.countActiveRoleAssignments(
+                assignment.roleId,
+            );
+            if (superAdminCount <= 1) {
+                throw new ForbiddenException(
+                    'Cannot revoke the last super_admin — at least one must remain.',
+                );
+            }
+        }
+
         const revoked = await this.rbacRepository.revokeAdminRole(assignmentId);
         this.permissionsService.clearCache(revoked.adminId);
 
@@ -153,11 +248,29 @@ export class RbacService {
         return revoked;
     }
 
+    async getAdminSummary(adminId: string) {
+        const admin = await this.rbacRepository.findAdminSummary(adminId);
+        if (!admin) throw new NotFoundException('Admin not found');
+        return admin;
+    }
+
     async getAdminRoles(adminId: string) {
         return this.rbacRepository.findAdminRoles(adminId);
     }
 
     async overrideAdminPermission(actingAdminId: string, dto: OverrideAdminPermissionDto) {
+        if (actingAdminId === dto.adminId) {
+            throw new ForbiddenException('You cannot override your own permissions.');
+        }
+
+        const targetEmail = await this.rbacRepository.findAdminEmail(dto.adminId);
+        const bootstrapEmail = this.configService.get<string>('RBAC_BOOTSTRAP_ADMIN_EMAIL');
+        if (targetEmail && isProtectedRootAdmin(targetEmail, bootstrapEmail)) {
+            throw new ForbiddenException(
+                'This account is protected and cannot be modified by another admin.',
+            );
+        }
+
         const override = await this.rbacRepository.overrideAdminPermission(
             dto.adminId,
             dto.permissionId,
@@ -183,5 +296,37 @@ export class RbacService {
 
     async getAdminPermissionOverrides(adminId: string) {
         return this.rbacRepository.findAdminPermissionOverrides(adminId);
+    }
+
+    async deleteAdminPermissionOverride(id: string, actingAdminId: string) {
+        const override = await this.rbacRepository.findAdminPermissionOverrideById(id);
+        if (!override) throw new NotFoundException('Permission override not found');
+
+        if (override.adminId === actingAdminId) {
+            throw new ForbiddenException('You cannot override your own permissions.');
+        }
+
+        const bootstrapEmail = this.configService.get<string>('RBAC_BOOTSTRAP_ADMIN_EMAIL');
+        if (isProtectedRootAdmin(override.admin.email, bootstrapEmail)) {
+            throw new ForbiddenException(
+                'This account is protected and cannot be modified by another admin.',
+            );
+        }
+
+        const deleted = await this.rbacRepository.deleteAdminPermissionOverride(id);
+        this.permissionsService.clearCache(deleted.adminId);
+
+        this.auditLogger.log({
+            adminId: actingAdminId,
+            action: 'rbac:manage',
+            module: 'rbac',
+            resource: 'Admin',
+            resourceId: deleted.adminId,
+            riskLevel: 'CRITICAL',
+            result: 'SUCCESS',
+            oldData: { permissionId: deleted.permissionId, grant: deleted.grant },
+        });
+
+        return deleted;
     }
 }

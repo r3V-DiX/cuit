@@ -5,6 +5,7 @@
 // bootstrap admin (matched in the admins table).
 // Run: npm run rbac:seed  (needs DATABASE_URL; optional RBAC_BOOTSTRAP_ADMIN_EMAIL)
 
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import {
     ALL_ACTIONS,
