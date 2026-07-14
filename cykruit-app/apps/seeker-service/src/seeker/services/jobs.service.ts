@@ -59,6 +59,14 @@ export class JobsService {
 
         if (!profile) throw new NotFoundException('PROFILE_NOT_FOUND');
 
+        // Check cache first using profile.id
+        const existingMatch = await this.prisma.seekerJobMatch.findUnique({
+            where: { seekerId_jobId: { seekerId: profile.id, jobId: job.id } }
+        });
+        if (existingMatch) {
+            return { data: { score: existingMatch.score, reasons: [] } };
+        }
+
         const seekerSkills = profile.skills.map(s => s.skill.name);
         const jobSkills = job.skills.map(s => s.skill.name);
 
@@ -75,8 +83,17 @@ export class JobsService {
             reasons: z.array(z.string())
         });
 
-        const result = await this.aiService.generateStructured(prompt, schema, { tier: AITaskTier.SMALL });
-        return { data: result };
+        const result = (await this.aiService.generateStructured(prompt, schema, { tier: AITaskTier.SMALL })) as { score: number; reasons: string[] };
+        
+        // Cache the result using profile.id
+        const finalScore = Math.round(result.score);
+        await this.prisma.seekerJobMatch.upsert({
+            where: { seekerId_jobId: { seekerId: profile.id, jobId: job.id } },
+            create: { seekerId: profile.id, jobId: job.id, score: finalScore },
+            update: { score: finalScore, computedAt: new Date() }
+        }).catch((e) => { console.error("Cache error:", e); }); 
+
+        return { data: { ...result, score: finalScore } };
     }
 }
 
