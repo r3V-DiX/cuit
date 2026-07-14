@@ -57,10 +57,12 @@ export class AIProfileService {
 
     if (profile) {
       this.logger.log(`Clearing existing profile arrays for override`);
-      await this.prisma.experience.deleteMany({ where: { profileId: profile.id } });
-      await this.prisma.education.deleteMany({ where: { profileId: profile.id } });
-      await this.prisma.jobSeekerSkill.deleteMany({ where: { profileId: profile.id } });
-      await this.prisma.jobSeekerCertification.deleteMany({ where: { profileId: profile.id } });
+      await this.prisma.$transaction([
+        this.prisma.experience.deleteMany({ where: { profileId: profile.id } }),
+        this.prisma.education.deleteMany({ where: { profileId: profile.id } }),
+        this.prisma.jobSeekerSkill.deleteMany({ where: { profileId: profile.id } }),
+        this.prisma.jobSeekerCertification.deleteMany({ where: { profileId: profile.id } }),
+      ]);
     }
 
     // 1. Basic Info & Summary
@@ -179,6 +181,10 @@ export class AIProfileService {
         }).catch(e => this.logger.warn("Failed saving certification", e.message));
       }
     }
+
+    await this.profileService.getProfileCompletion(userId).catch(e =>
+      this.logger.warn("Failed updating profile completion after AI import", e.message),
+    );
 
     // Trigger asynchronous embedding for the parsed resume
     try {

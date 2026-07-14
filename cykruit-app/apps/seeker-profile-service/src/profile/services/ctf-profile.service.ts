@@ -85,6 +85,8 @@ export class CTFProfileService {
       data: dto,
     });
 
+    await this.helpers.updateProfileCompletion(userId);
+
     return { message: "CTF profile updated successfully" };
   }
 

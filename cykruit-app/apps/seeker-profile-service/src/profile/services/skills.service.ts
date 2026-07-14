@@ -86,6 +86,8 @@ export class SkillsService {
       data: dto,
     });
 
+    await this.helpers.updateProfileCompletion(userId);
+
     return { message: `${existing.skill.name} updated successfully` };
   }
 

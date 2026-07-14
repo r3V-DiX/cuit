@@ -85,11 +85,11 @@ export class ExperienceService {
     this.helpers.validateOwnership(existing.profileId, profileId, "experience");
 
     if (
-      dto.startDate ||
+      dto.startDate !== undefined ||
       dto.endDate !== undefined ||
       dto.current !== undefined
     ) {
-      const startDate = dto.startDate || existing.startDate;
+      const startDate = dto.startDate ?? existing.startDate;
       const endDate =
         dto.endDate !== undefined ? dto.endDate : existing.endDate;
       const current =
@@ -101,6 +101,8 @@ export class ExperienceService {
       where: { id: experienceId },
       data: { ...dto, endDate: dto.current ? null : dto.endDate },
     });
+
+    await this.helpers.updateProfileCompletion(userId);
 
     return { message: "Experience updated successfully" };
   }

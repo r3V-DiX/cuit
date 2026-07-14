@@ -118,9 +118,9 @@ export class CertificationsService {
       "certification",
     );
 
-    if (dto.issueDate || dto.expiryDate) {
-      const issueDate = dto.issueDate || existing.issueDate;
-      const expiryDate = dto.expiryDate || existing.expiryDate;
+    if (dto.issueDate !== undefined || dto.expiryDate !== undefined) {
+      const issueDate = dto.issueDate ?? existing.issueDate;
+      const expiryDate = dto.expiryDate !== undefined ? dto.expiryDate : existing.expiryDate;
       if (expiryDate)
         ValidationHelpers.validateYearMonthRange(
           issueDate,

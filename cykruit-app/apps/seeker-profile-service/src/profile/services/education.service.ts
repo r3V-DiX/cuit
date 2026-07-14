@@ -177,29 +177,31 @@ export class EducationService {
       }
     }
 
-    if (dto.startDate || dto.endDate) {
+    if (dto.startDate !== undefined || dto.endDate !== undefined) {
       ValidationHelpers.validateOptionalYearRange(
-        dto.startDate || existing.startDate,
-        dto.endDate || existing.endDate,
+        dto.startDate ?? existing.startDate,
+        dto.endDate !== undefined ? dto.endDate : existing.endDate,
       );
     }
 
     await this.prisma.education.update({
       where: { id: educationId },
       data: {
-        ...(dto.degree && { degree: dto.degree }),
+        ...(dto.degree !== undefined && { degree: dto.degree }),
         ...(dto.fieldOfStudy !== undefined && {
           fieldOfStudy: dto.fieldOfStudy,
         }),
         ...(resolvedInstituteId !== undefined && {
           instituteId: resolvedInstituteId,
         }),
-        ...(dto.startDate && { startDate: dto.startDate }),
+        ...(dto.startDate !== undefined && { startDate: dto.startDate }),
         ...(dto.endDate !== undefined && { endDate: dto.endDate }),
         ...(dto.grade !== undefined && { grade: dto.grade }),
         ...(dto.description !== undefined && { description: dto.description }),
       },
     });
+
+    await this.helpers.updateProfileCompletion(userId);
 
     return { message: "Education record updated successfully" };
   }

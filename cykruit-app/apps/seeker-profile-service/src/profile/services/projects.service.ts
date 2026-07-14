@@ -85,11 +85,11 @@ export class ProjectsService {
     this.helpers.validateOwnership(existing.profileId, profileId, "project");
 
     if (
-      dto.startDate ||
+      dto.startDate !== undefined ||
       dto.endDate !== undefined ||
       dto.current !== undefined
     ) {
-      const startDate = dto.startDate || existing.startDate;
+      const startDate = dto.startDate ?? existing.startDate;
       const endDate =
         dto.endDate !== undefined ? dto.endDate : existing.endDate;
       const current =
@@ -101,6 +101,8 @@ export class ProjectsService {
       where: { id: projectId },
       data: { ...dto, endDate: dto.current ? null : dto.endDate },
     });
+
+    await this.helpers.updateProfileCompletion(userId);
 
     return { message: "Project updated successfully" };
   }
