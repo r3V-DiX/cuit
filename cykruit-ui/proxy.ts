@@ -80,8 +80,11 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Authenticated on guest page → home
-  if (isAuthed && isGuestOnly) {
+  // Authenticated on guest page → home.
+  // Skip redirect if a `?next=` param is present — that means the user was
+  // explicitly sent to /login (e.g. session expired, layout 401) and we must
+  // not bounce them back to the protected route with a stale cookie.
+  if (isAuthed && isGuestOnly && !request.nextUrl.searchParams.has("next")) {
     const dest = role === "EMPLOYER" ? "/employer/dashboard" : "/dashboard";
     return NextResponse.redirect(new URL(dest, request.url));
   }
