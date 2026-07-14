@@ -148,11 +148,11 @@ export class UploadService {
     if (Array.isArray(data)) {
       return Promise.all(
         data.map((item) => this.transformFileUrls(item, expiresIn)),
-      ) as any;
+      ) as Promise<T>;
     }
 
     if (typeof data === "object") {
-      const transformed: any = {};
+      const transformed: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(data)) {
         if (value instanceof Date) {
           transformed[key] = value;
@@ -164,7 +164,7 @@ export class UploadService {
           transformed[key] = value;
         }
       }
-      return transformed;
+      return transformed as T;
     }
 
     return data;

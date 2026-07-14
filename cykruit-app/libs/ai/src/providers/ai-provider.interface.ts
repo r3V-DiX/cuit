@@ -21,7 +21,7 @@ export abstract class AIProvider {
 
   abstract generateStructured<T>(
     prompt: string,
-    schema: any,
+    schema: unknown,
     options?: AIGenerateOptions,
   ): Promise<T>;
 

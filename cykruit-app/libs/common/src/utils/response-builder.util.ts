@@ -112,7 +112,7 @@ export class ResponseBuilder {
     message: string,
     statusCode: number,
     path?: string,
-    details?: any,
+    details?: unknown,
   ): Omit<IErrorResponse, "success"> {
     const response: any = {
       success: false,

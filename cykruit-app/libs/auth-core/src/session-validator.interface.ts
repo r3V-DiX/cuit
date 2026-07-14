@@ -7,8 +7,19 @@ import type { Request } from "express";
  */
 export const SESSION_VALIDATOR = Symbol("SESSION_VALIDATOR");
 
+export interface SessionUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  status: string;
+  profileImage?: string | null;
+  isEmailVerified?: boolean;
+}
+
 export interface ISessionValidationResult {
-  user: any;
+  user: SessionUser;
   newToken?: string; // Present when session was rotated
 }
 

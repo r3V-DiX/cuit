@@ -2,7 +2,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
-import { EmailFrequency, NotificationStatus, NotificationType, DeliveryChannel, Prisma } from '@prisma/client';
+import { EmailFrequency, NotificationStatus, NotificationType, DeliveryChannel, Prisma, type Notification } from '@prisma/client';
 import { NotificationListQueryDto } from '../dto/notification-query.dto';
 
 export interface CreateNotificationInput {
@@ -14,7 +14,7 @@ export interface CreateNotificationInput {
     actionText?: string;
     relatedEntityType?: string;
     relatedEntityId?: string;
-    metadata?: any;
+    metadata?: Prisma.InputJsonValue;
     deliveredVia?: DeliveryChannel[];
     expiresAt?: Date;
 }
@@ -26,7 +26,7 @@ export class NotificationRepository {
     async findByUser(
         userId: string,
         query: NotificationListQueryDto,
-    ): Promise<{ items: any[]; total: number }> {
+    ): Promise<{ items: Notification[]; total: number }> {
         const { page = 1, limit = 20, type, unreadOnly } = query;
         const skip = (page - 1) * limit;
 
@@ -147,7 +147,7 @@ export class NotificationRepository {
             .map((p) => ({
                 userId: p.userId,
                 email: p.user.email,
-                firstName: (p.user as any).jobSeekerProfile?.firstName ?? '',
+                firstName: p.user?.jobSeekerProfile?.firstName ?? '',
             }));
     }
 }

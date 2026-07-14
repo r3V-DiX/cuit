@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "@cykruit/prisma";
 import { JobsQueryDto } from "./dto/jobs-query.dto";
 
@@ -6,7 +7,14 @@ import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class JobsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly aiUrl: string;
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {
+    this.aiUrl = this.configService.get<string>('AI_SERVICE_URL') ?? 'http://localhost:3005';
+  }
 
   async getJobs(dto: JobsQueryDto, userId?: string) {
     const page = dto.page || 1;
@@ -69,8 +77,7 @@ export class JobsService {
     if (dto.search) {
       let searchVector: number[] | null = null;
       try {
-        const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
-        const res = await fetch(`${aiUrl}/ai/embed/query`, {
+        const res = await fetch(`${this.aiUrl}/ai/embed/query`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text: dto.search })
@@ -349,8 +356,7 @@ export class JobsService {
   }
 
   async getMatchScore(jobId: string, seekerId: string) {
-    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
-    const res = await fetch(`${aiUrl}/ai/match-score`, {
+    const res = await fetch(`${this.aiUrl}/ai/match-score`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ seekerId, jobId })

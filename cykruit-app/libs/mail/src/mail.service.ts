@@ -1,5 +1,5 @@
 // libs/mail/mail.service.ts
-import { Injectable, InternalServerErrorException } from "@nestjs/common";
+import { Injectable, InternalServerErrorException, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Resend } from "resend";
 import { AppLogger } from "@cykruit/logger";
@@ -18,6 +18,7 @@ export class MailService {
   private resend: Resend;
   private fromEmail: string;
   private frontendUrl: string;
+  private readonly isDev: boolean;
 
   constructor(
     private readonly logger: AppLogger,
@@ -27,18 +28,19 @@ export class MailService {
     const emailFrom = this.configService.get<string>("EMAIL_FROM");
 
     if (!resendApiKey || !emailFrom) {
-      throw new Error("RESEND_API_KEY and EMAIL_FROM must be set in .env");
+      throw new InternalServerErrorException("RESEND_API_KEY and EMAIL_FROM must be set in .env");
     }
 
     this.resend = new Resend(resendApiKey);
     this.fromEmail = emailFrom;
     this.frontendUrl =
-      this.configService.get<string>("APP_URL") || "http://localhost:3000";
+      this.configService.get<string>("APP_URL") ?? "http://localhost:3000";
+    this.isDev = this.configService.get<string>("NODE_ENV") !== "production";
   }
 
   async sendVerificationEmail(email: string, verifyUrl: string): Promise<void> {
     try {
-      if (process.env.NODE_ENV !== "production") {
+      if (this.isDev) {
         this.logger.debug(`[DEV] Verification email queued for ${email}`, "MailService");
       }
       const { error } = await this.resend.emails.send({
@@ -66,7 +68,7 @@ export class MailService {
 
   async sendPasswordResetEmail(email: string, resetUrl: string): Promise<void> {
     try {
-      if (process.env.NODE_ENV !== "production") {
+      if (this.isDev) {
         this.logger.debug(`[DEV] Password reset email queued for ${email}`, "MailService");
       }
       const { error } = await this.resend.emails.send({
@@ -207,7 +209,7 @@ export class MailService {
     },
   ): Promise<void> {
     try {
-      if (process.env.NODE_ENV !== "production") {
+      if (this.isDev) {
         this.logger.debug(`[DEV] OTP email queued for ${to} | OTP: ${data.otp}`, "MailService");
       }
       const { error } = await this.resend.emails.send({
@@ -245,7 +247,7 @@ export class MailService {
     },
   ): Promise<void> {
     try {
-      if (process.env.NODE_ENV !== "production") {
+      if (this.isDev) {
         this.logger.log(
           `[DEV] Employer invite email queued for ${to}`,
           "MailService",
@@ -292,7 +294,7 @@ export class MailService {
     },
   ): Promise<void> {
     try {
-      if (process.env.NODE_ENV !== "production") {
+      if (this.isDev) {
         this.logger.log(
           `[DEV] Admin invite email queued for ${to}`,
           "MailService",
@@ -337,7 +339,7 @@ export class MailService {
     },
   ): Promise<void> {
     try {
-      if (process.env.NODE_ENV !== "production") {
+      if (this.isDev) {
         this.logger.log(
           `[DEV] Join request email queued for ${to}`,
           "MailService",

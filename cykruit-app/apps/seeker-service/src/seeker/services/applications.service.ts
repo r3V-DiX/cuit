@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { AIService } from '@cykruit/ai';
-import { ApplicationStatus, ApplicationType, JobStatus } from '@prisma/client';
+import { ApplicationStatus, ApplicationType, JobStatus, type Prisma } from '@prisma/client';
 import { ApplicationErrorCodes, UserErrorCodes } from '@cykruit/common';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { AuditService } from '@cykruit/audit';
@@ -79,7 +79,7 @@ export class ApplicationsService {
     }
 
     private validateScreeningAnswers(
-        jobScreeningQuestions: any,
+        jobScreeningQuestions: Prisma.JsonValue | null | undefined,
         answers: Array<{ questionId: string; answer: string }> | undefined,
     ) {
         if (!jobScreeningQuestions) return;
@@ -106,8 +106,21 @@ export class ApplicationsService {
 
     private async triggerAiScoring(
         applicationId: string,
-        job: any,
-        profile: any,
+        job: {
+            jobTitle: string;
+            experienceLevel: string;
+            screeningQuestions?: Prisma.JsonValue | null;
+            skills?: Array<{ skill: { name: string } }>;
+            certifications?: Array<{ certification: { name: string } }>;
+        },
+        profile: {
+            firstName?: string | null;
+            lastName?: string | null;
+            experiences?: unknown[];
+            education?: unknown[];
+            skills?: Array<{ skill: { name: string } }>;
+            certifications?: Array<{ certification: { name: string } }>;
+        },
     ): Promise<void> {
         try {
             const jobSkills = job.skills?.map((s: any) => s.skill.name) ?? [];

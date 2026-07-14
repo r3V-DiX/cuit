@@ -41,6 +41,9 @@ export enum AuditAction {
   MOBILE_LOGIN = "MOBILE_LOGIN",
   MOBILE_TOKEN_REFRESHED = "MOBILE_TOKEN_REFRESHED",
   MOBILE_LOGOUT = "MOBILE_LOGOUT",
+
+  // ── Session security ─────────────────────────────────────────
+  SESSION_FINGERPRINT_MISMATCH = "SESSION_FINGERPRINT_MISMATCH",
 }
 
 export type AuditStatus = "SUCCESS" | "FAILURE";

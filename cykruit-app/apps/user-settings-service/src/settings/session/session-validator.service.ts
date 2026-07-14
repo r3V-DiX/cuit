@@ -41,7 +41,20 @@ export class SessionValidatorService implements ISessionValidator {
 
     const session = await this.prisma.session.findUnique({
       where: { token: hashedToken },
-      include: { user: true },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            status: true,
+            profileImage: true,
+            isEmailVerified: true,
+          },
+        },
+      },
     });
 
     if (!session || !session.isActive) {
@@ -64,7 +77,7 @@ export class SessionValidatorService implements ISessionValidator {
     // ── Device fingerprint check ──────────────────────────────
     // Block if completely different browser/device (low confidence)
     // Allow through if minor browser update (medium confidence)
-    const storedFingerprint = (session as any).deviceFingerprint;
+    const storedFingerprint = session.deviceFingerprint;
     if (storedFingerprint && req) {
       const currentFp = generateDeviceFingerprint(req);
       const comparison = compareFingerprints(storedFingerprint, currentFp.hash);

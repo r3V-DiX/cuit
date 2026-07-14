@@ -1,9 +1,9 @@
 export class ApiError extends Error {
   code: string;
   statusCode: number;
-  details?: any;
+  details?: unknown;
 
-  constructor(code: string, message: string, statusCode: number, details?: any) {
+  constructor(code: string, message: string, statusCode: number, details?: unknown) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
@@ -20,7 +20,7 @@ export interface ApiResult<T> {
   info?: { code: string; message: string };
 }
 
-export async function apiFetch<T = any>(
+export async function apiFetch<T = unknown>(
   url: string,
   options?: RequestInit,
 ): Promise<ApiResult<T>> {
@@ -29,7 +29,7 @@ export async function apiFetch<T = any>(
     credentials: 'include',
   });
 
-  let body: any;
+  let body: unknown;
   try {
     body = await response.json();
   } catch {
@@ -50,8 +50,16 @@ export async function apiFetch<T = any>(
 
   // Check if body is the standard envelope (has a top-level `success` boolean)
   if (body !== null && typeof body === 'object' && 'success' in body) {
-    if (body.success === false) {
-      const err = body.error ?? {};
+    const envelope = body as {
+      success: boolean;
+      data?: unknown;
+      message?: string;
+      warning?: { code: string; message: string };
+      info?: { code: string; message: string };
+      error?: { code?: string; message?: string; statusCode?: number; details?: unknown };
+    };
+    if (envelope.success === false) {
+      const err = envelope.error ?? {};
       throw new ApiError(
         err.code ?? 'UNKNOWN_ERROR',
         err.message ?? 'An unknown error occurred',
@@ -70,10 +78,10 @@ export async function apiFetch<T = any>(
       );
     }
 
-    const result: ApiResult<T> = { data: body.data as T };
-    if (body.message !== undefined) result.message = body.message;
-    if (body.warning !== undefined) result.warning = body.warning;
-    if (body.info !== undefined) result.info = body.info;
+    const result: ApiResult<T> = { data: envelope.data as T };
+    if (envelope.message !== undefined) result.message = envelope.message;
+    if (envelope.warning !== undefined) result.warning = envelope.warning;
+    if (envelope.info !== undefined) result.info = envelope.info;
     return result;
   }
 

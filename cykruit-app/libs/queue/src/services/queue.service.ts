@@ -14,7 +14,7 @@ export abstract class QueueService implements IQueueService {
     queueName: string,
     jobs: Array<{ name: string; data: T; options?: QueueJobOptions }>,
   ): Promise<void>;
-  abstract getJobStatus(queueName: string, jobId: string): Promise<any>;
+  abstract getJobStatus(queueName: string, jobId: string): Promise<{ id: string | number; status: string; data: unknown; progress: number | unknown; failedReason?: string } | null>;
   abstract removeJob(queueName: string, jobId: string): Promise<void>;
   abstract cleanQueue(queueName: string, grace: number): Promise<void>;
   abstract getQueueStats(queueName: string): Promise<{

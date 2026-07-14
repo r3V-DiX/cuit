@@ -2,7 +2,7 @@
 // CHANGES FROM ORIGINAL:
 //   + handleCallback accepts userAgent and passes it to findOrCreateUser
 
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException, InternalServerErrorException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import axios from "axios";
 import { AppLogger } from "@cykruit/logger";
@@ -153,7 +153,7 @@ export class GitHubOAuthService {
 
   private validateConfig(): void {
     if (!this.clientId || !this.clientSecret || !this.redirectUri) {
-      throw new Error("GitHub OAuth configuration is incomplete");
+      throw new InternalServerErrorException("GitHub OAuth configuration is incomplete");
     }
     this.logger.log(
       "GitHub OAuth configured successfully",

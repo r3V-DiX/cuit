@@ -17,6 +17,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import type { Request, Response } from "express";
 import { GoogleOAuthService } from "../services/oauth/google-oauth.service";
 import { GitHubOAuthService } from "../services/oauth/github-oauth.service";
@@ -30,13 +31,18 @@ import { OAuthRateLimit } from "@cykruit/rate-limit";
 
 @Controller("auth")
 export class OAuthController {
+  private readonly appUrl: string;
+
   constructor(
     private readonly googleOAuthService: GoogleOAuthService,
     private readonly githubOAuthService: GitHubOAuthService,
     // FIX [6] + [5]: Inject CsrfGuard to generate CSRF token on OAuth login
     private readonly csrfGuard: CsrfGuard,
     private readonly logger: AppLogger,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.appUrl = this.configService.get<string>('APP_URL') ?? 'http://localhost:3000';
+  }
 
   // ── Google ──────────────────────────────────────────────────
 
@@ -73,7 +79,7 @@ export class OAuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    const appUrl = this.appUrl;
     if (!code || !state) {
       return res.redirect(`${appUrl}/login?error=oauth_params_missing`);
     }
@@ -159,7 +165,7 @@ export class OAuthController {
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    const appUrl = this.appUrl;
     if (!code || !state) {
       return res.redirect(`${appUrl}/login?error=oauth_params_missing`);
     }

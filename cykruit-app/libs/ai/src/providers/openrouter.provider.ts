@@ -1,4 +1,4 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, InternalServerErrorException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
@@ -55,7 +55,7 @@ export class OpenRouterProvider implements AIProvider {
 
       const response = await chatModel.invoke([new HumanMessage(prompt)]);
 
-      const metadata = response.response_metadata as any;
+      const metadata = response.response_metadata as { tokenUsage?: { promptTokens: number; completionTokens: number } } | undefined;
       return {
         text: response.content as string,
         usage: metadata?.tokenUsage
@@ -73,7 +73,7 @@ export class OpenRouterProvider implements AIProvider {
 
   async generateStructured<T>(
     prompt: string,
-    schema: any, // ZodSchema
+    schema: unknown,
     options?: AIGenerateOptions,
   ): Promise<T> {
     try {
@@ -121,7 +121,7 @@ export class OpenRouterProvider implements AIProvider {
     }
   }
 
-  async generateJobDescription(params: {
+  async generateJobDescription(_params: {
     jobTitle: string;
     roleDescription: string;
     experienceLevel: string;
@@ -129,13 +129,13 @@ export class OpenRouterProvider implements AIProvider {
     requiredSkills?: string[];
     preferredCertifications?: string[];
   }): Promise<string> {
-    throw new Error(
+    throw new InternalServerErrorException(
       "generateJobDescription should be handled by the heavy model (Gemini)",
     );
   }
 
-  async extractTextFromPDF(pdfBuffer: Buffer): Promise<string> {
-    throw new Error(
+  async extractTextFromPDF(_pdfBuffer: Buffer): Promise<string> {
+    throw new InternalServerErrorException(
       "extractTextFromPDF should be handled by the heavy model (Gemini)",
     );
   }

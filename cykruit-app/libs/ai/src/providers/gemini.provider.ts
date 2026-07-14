@@ -48,12 +48,12 @@ export class GeminiProvider extends AIProvider {
 
       const response = await model.invoke([new HumanMessage(prompt)]);
       
-      const usage = response.usage_metadata as any;
+      const usage = response.usage_metadata as { input_tokens?: number; output_tokens?: number } | undefined;
       return {
         text: response.content as string,
         usage: {
-          inputTokens: usage?.input_tokens || 0,
-          outputTokens: usage?.output_tokens || 0,
+          inputTokens: usage?.input_tokens ?? 0,
+          outputTokens: usage?.output_tokens ?? 0,
         },
       };
     } catch (error: any) {
@@ -66,7 +66,7 @@ export class GeminiProvider extends AIProvider {
 
   async generateStructured<T>(
     prompt: string,
-    schema: any,
+    schema: unknown,
     options?: AIGenerateOptions,
   ): Promise<T> {
     try {

@@ -24,13 +24,13 @@ export class AIService {
 
   private getProviderForTier(tier?: AITaskTier): AIProvider {
     if (tier === AITaskTier.SMALL) {
-      if (this.configService.get<string>("USE_OLLAMA") === "true" || process.env.USE_OLLAMA === "true") {
+      if (this.configService.get<string>("USE_OLLAMA") === "true") {
         return this.ollamaProvider;
       }
       return this.openRouterProvider;
     }
     // Heavy tasks go to Bedrock, or fallback to Gemini if Bedrock is not configured
-    if (this.configService.get<string>("ai.bedrock.accessKeyId") || process.env.BEDROCK_AWS_ACCESS_KEY_ID) {
+    if (this.configService.get<string>("ai.bedrock.accessKeyId")) {
       return this.awsBedrockProvider;
     }
     return this.geminiProvider;
@@ -55,7 +55,7 @@ export class AIService {
 
   async generateStructured<T>(
     prompt: string,
-    schema: any,
+    schema: unknown,
     options?: AIGenerateOptions,
   ): Promise<T> {
     const provider = this.getProviderForTier(options?.tier);
@@ -80,7 +80,7 @@ export class AIService {
     preferredCertifications?: string[];
   }): Promise<string> {
     // Heavy task, use Bedrock
-    if (this.configService.get<string>("ai.bedrock.accessKeyId") || process.env.BEDROCK_AWS_ACCESS_KEY_ID) {
+    if (this.configService.get<string>("ai.bedrock.accessKeyId")) {
       try {
         return await this.awsBedrockProvider.generateJobDescription(params);
       } catch (error) {
@@ -91,48 +91,48 @@ export class AIService {
   }
 
   async extractTextFromPDF(pdfBuffer: Buffer): Promise<string> {
-    const LLAMA_CLOUD_API_KEY = this.configService.get<string>("LLAMA_CLOUD_API_KEY") || process.env.LLAMA_CLOUD_API_KEY;
-    
+    const LLAMA_CLOUD_API_KEY = this.configService.get<string>("LLAMA_CLOUD_API_KEY");
+
     if (LLAMA_CLOUD_API_KEY) {
       try {
         const formData = new FormData();
         const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
-      formData.append('file', blob, 'resume.pdf');
-      
-      const uploadRes = await fetch('https://api.cloud.llamaindex.ai/api/parsing/upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LLAMA_CLOUD_API_KEY}`,
-        },
-        body: formData as any,
-      });
-      if (!uploadRes.ok) throw new Error(`LlamaParse upload failed: ${uploadRes.statusText}`);
-      const uploadData = await uploadRes.json() as any;
-      const jobId = uploadData.id;
+        formData.append('file', blob, 'resume.pdf');
 
-      while (true) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const statusRes = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}`, {
-          headers: { 'Authorization': `Bearer ${LLAMA_CLOUD_API_KEY}` }
+        const uploadRes = await fetch('https://api.cloud.llamaindex.ai/api/parsing/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LLAMA_CLOUD_API_KEY}`,
+          },
+          body: formData,
         });
-        const statusData = await statusRes.json() as any;
-        if (statusData.status === 'SUCCESS') {
-          const textRes = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}/result/markdown`, {
+        if (!uploadRes.ok) throw new Error(`LlamaParse upload failed: ${uploadRes.statusText}`);
+        const uploadData = await uploadRes.json() as { id: string };
+        const jobId = uploadData.id;
+
+        while (true) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const statusRes = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}`, {
             headers: { 'Authorization': `Bearer ${LLAMA_CLOUD_API_KEY}` }
           });
-          const textData = await textRes.json() as any;
-          return textData.markdown;
-        } else if (statusData.status === 'ERROR') {
-          throw new Error('LlamaParse job failed');
+          const statusData = await statusRes.json() as { status: string; markdown?: string };
+          if (statusData.status === 'SUCCESS') {
+            const textRes = await fetch(`https://api.cloud.llamaindex.ai/api/parsing/job/${jobId}/result/markdown`, {
+              headers: { 'Authorization': `Bearer ${LLAMA_CLOUD_API_KEY}` }
+            });
+            const textData = await textRes.json() as { markdown: string };
+            return textData.markdown;
+          } else if (statusData.status === 'ERROR') {
+            throw new Error('LlamaParse job failed');
+          }
         }
+      } catch (error: unknown) {
+        console.warn(`[AIService] LlamaParse failed, falling back to Bedrock/Gemini:`, (error as Error).message);
       }
-    } catch (error: any) {
-      console.warn(`[AIService] LlamaParse failed, falling back to Bedrock/Gemini:`, error.message);
-    }
     }
 
     // Heavy task, use Bedrock natively if available
-    if (this.configService.get<string>("ai.bedrock.accessKeyId") || process.env.BEDROCK_AWS_ACCESS_KEY_ID) {
+    if (this.configService.get<string>("ai.bedrock.accessKeyId")) {
       try {
         return await this.awsBedrockProvider.extractTextFromPDF(pdfBuffer);
       } catch (error: any) {

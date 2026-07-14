@@ -251,7 +251,7 @@ export class OtpService {
     ip: string,
     ua: string,
     req?: Request,
-  ): Promise<{ data: { user: any; sessionToken: string }; message: string; isNewUser?: boolean }> {
+  ): Promise<{ data: { user: ReturnType<typeof formatUserResponse>; sessionToken: string }; message: string; isNewUser?: boolean }> {
     const reqCtx = { ip, userAgent: ua };
 
     const user = await this.authRepository.findUserByEmail(email);
@@ -382,7 +382,7 @@ export class OtpService {
     this.logger.log(`OTP login success: uid=${user.id} new=${isNewUser}`, "OtpService");
 
     return {
-      data: { user: formatUserResponse(updatedUser as any), sessionToken },
+      data: { user: formatUserResponse(updatedUser), sessionToken },
       message: isNewUser ? "Account created and signed in." : "Signed in successfully.",
       isNewUser,
     };

@@ -17,7 +17,7 @@ import { MailService } from "@cykruit/mail";
 import { AuditService, AuditAction } from "@cykruit/audit";
 import { AuthRepository } from "../repositories/auth.repository";
 import { SessionService } from "./session.service";
-import { AccountStatus, UserRole } from "@prisma/client";
+import { AccountStatus, UserRole, type User } from "@prisma/client";
 import { formatUserResponse } from "../utils/auth.utils";
 
 @Injectable()
@@ -282,7 +282,7 @@ export class AuthService {
 
   // ── Private helpers ──────────────────────────────────────────
 
-  private async getEmployerStatus(user: any) {
+  private async getEmployerStatus(user: User & { employer?: { id: string; isVerified: boolean; profileCompletion: number; verifications?: Array<{ status: string }> } | null; jobSeekerProfile?: unknown }) {
     const employer = user.employer;
     if (!employer) {
       return {

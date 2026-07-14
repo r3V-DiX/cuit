@@ -16,7 +16,7 @@ import { PrismaService } from "@cykruit/prisma";
 import { AppLogger } from "@cykruit/logger";
 import { HashService, ErrorCodes } from "@cykruit/common";
 import { AuditService, AuditAction } from "@cykruit/audit";
-import { SessionType, DeviceType } from "@prisma/client";
+import { SessionType, DeviceType, type User } from "@prisma/client";
 import { generateRawToken, hashToken } from "@cykruit/auth-core"; // ✅ shared utils
 import { DeviceInfo } from "../types/session.types";
 import * as jwt from "jsonwebtoken";
@@ -44,14 +44,14 @@ export class SessionMobileService {
 
   async createMobileSession(
     userId: string,
-    user: any,
+    user: User,
     ipAddress: string,
     deviceInfo?: DeviceInfo,
   ): Promise<{
     accessToken: string;
     refreshToken: string;
     expiresIn: number;
-    user: any;
+    user: Pick<User, 'id' | 'email' | 'firstName' | 'lastName' | 'role' | 'isEmailVerified' | 'profileImage'>;
   }> {
     await this.enforceMobileSessionLimit(userId);
 
@@ -78,7 +78,7 @@ export class SessionMobileService {
         token: hashedRefreshToken,
         userAgent: deviceInfo?.deviceName || "mobile",
         ipAddress,
-        deviceType: (deviceInfo?.deviceType as any) || DeviceType.MOBILE,
+        deviceType: (deviceInfo?.deviceType as DeviceType | undefined) ?? DeviceType.MOBILE,
         sessionType: SessionType.JWT,
         deviceName: deviceInfo?.deviceName,
         platform: deviceInfo?.platform,

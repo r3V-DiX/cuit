@@ -26,6 +26,7 @@ import {
   resolveSessionExpiry,
   generateDeviceFingerprint,
   compareFingerprints,
+  type ISessionValidationResult,
 } from "@cykruit/auth-core";
 import type { Request } from "express";
 import { UAParser } from "ua-parser-js";
@@ -129,7 +130,7 @@ export class SessionService {
     }
 
     // ── Device fingerprint check ──────────────────────────────
-    const storedFingerprint = (session as any).deviceFingerprint;
+    const storedFingerprint = session.deviceFingerprint;
     if (storedFingerprint && req) {
       const currentFp = generateDeviceFingerprint(req);
       const comparison = compareFingerprints(storedFingerprint, currentFp.hash);
@@ -141,7 +142,7 @@ export class SessionService {
         );
 
         this.auditService.log(
-          "SESSION_FINGERPRINT_MISMATCH" as any,
+          AuditAction.SESSION_FINGERPRINT_MISMATCH,
           "FAILURE",
           session.userId,
           { ip: ipAddress, userAgent, sessionId: session.id },
@@ -223,7 +224,7 @@ export class SessionService {
     ipAddress?: string,
     userAgent?: string,
     req?: Request, // ✅ now accepted and passed through
-  ): Promise<{ user: any; newToken?: string }> {
+  ): Promise<ISessionValidationResult> {
     const { userId, newToken } = await this.validateAndRotateSession(
       rawToken,
       userAgent || "unknown",

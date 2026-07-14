@@ -6,6 +6,7 @@ import {
   Injectable,
   UnauthorizedException,
   InternalServerErrorException,
+  OnModuleInit,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { OAuth2Client } from "google-auth-library";
@@ -165,7 +166,7 @@ export class GoogleOAuthService {
 
   private validateConfig(): void {
     if (!this.clientId || !this.clientSecret || !this.redirectUri) {
-      throw new Error("Google OAuth configuration is incomplete");
+      throw new InternalServerErrorException("Google OAuth configuration is incomplete");
     }
     this.logger.log(
       "Google OAuth configured successfully",

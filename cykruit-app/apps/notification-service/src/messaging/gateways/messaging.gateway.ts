@@ -13,7 +13,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { MessagingRepository } from '../repositories/messaging.repository';
 
 interface WsPayload {
@@ -61,7 +61,7 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
             }
 
             const secret = this.configService.get<string>('JWT_SECRET');
-            if (!secret) throw new Error('JWT_SECRET not configured');
+            if (!secret) throw new InternalServerErrorException('JWT_SECRET not configured');
             const payload = jwt.verify(token, secret) as WsPayload;
 
             if (payload.type !== 'ws') {

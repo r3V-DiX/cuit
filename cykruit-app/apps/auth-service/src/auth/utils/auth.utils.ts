@@ -27,7 +27,23 @@ export function parseTimeToMs(time: string): number {
  *           profileImage, lastLogin, isOAuthUser (no password set),
  *           authProviders (google / github).
  */
-export function formatUserResponse(user: any) {
+interface UserWithOAuthProviders {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  status: string;
+  phone?: string | null;
+  profileImage?: string | null;
+  password?: string | null;
+  isEmailVerified?: boolean;
+  lastLogin?: Date | null;
+  createdAt?: Date | null;
+  userOAuthProviders?: Array<{ provider: string }>;
+}
+
+export function formatUserResponse(user: UserWithOAuthProviders) {
   const hasPassword = user.password && user.password !== "";
   const oauthProviders = user.userOAuthProviders || [];
   const primaryProvider = oauthProviders.length > 0 ? oauthProviders[0].provider : null;
