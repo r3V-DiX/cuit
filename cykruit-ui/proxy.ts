@@ -80,14 +80,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Authenticated on guest page → home.
-  // Skip redirect if a `?next=` param is present — that means the user was
-  // explicitly sent to /login (e.g. session expired, layout 401) and we must
-  // not bounce them back to the protected route with a stale cookie.
-  if (isAuthed && isGuestOnly && !request.nextUrl.searchParams.has("next")) {
-    const dest = role === "EMPLOYER" ? "/employer/dashboard" : "/dashboard";
-    return NextResponse.redirect(new URL(dest, request.url));
-  }
+  // NOTE: We intentionally do NOT redirect authenticated users away from guest-only
+  // pages. The proxy reads cookies but cannot verify whether the session is actually
+  // valid — a stale/expired session_token cookie would cause an infinite redirect loop
+  // (proxy bounces to dashboard → layout 401 → back to /login → proxy bounces again).
+  // Post-login redirect is handled by the login/register pages themselves after
+  // the backend confirms the session is valid.
 
   // Role mismatch: employer on seeker routes → employer dashboard
   if (isAuthed && role === "EMPLOYER" && isSeekerRoute) {
