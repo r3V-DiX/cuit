@@ -15,7 +15,7 @@ import { MailService } from "@cykruit/mail";
 import { AuditService, AuditAction } from "@cykruit/audit";
 import { AuthRepository } from "../repositories/auth.repository";
 import { SessionService } from "./session.service";
-import { AccountStatus, UserRole } from "@prisma/client";
+import { AccountStatus, UserRole, EmployerMemberRole } from "@prisma/client";
 import { formatUserResponse } from "../utils/auth.utils";
 import { isBlockedEmailDomain, getEmailDomain } from "@cykruit/common";
 import type { Request } from "express";
@@ -161,7 +161,7 @@ export class OtpService {
             });
           } else if (role === UserRole.EMPLOYER) {
             const slug = `${email.split("@")[0].toLowerCase()}-${Date.now()}`;
-            await tx.employer.create({
+            const employer = await tx.employer.create({
               data: {
                 user: { connect: { id: newUser.id } },
                 companyName: "",
@@ -172,6 +172,13 @@ export class OtpService {
                 location: "",
                 isVerified: false,
                 profileCompletion: 0,
+              },
+            });
+            await tx.employerMember.create({
+              data: {
+                employerId: employer.id,
+                userId: newUser.id,
+                role: EmployerMemberRole.OWNER,
               },
             });
           }
