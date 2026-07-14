@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { inferDomain } from "@/lib/jobs-data";
-import { Save, Send, ChevronDown, Plus, X, ArrowLeft, CheckCircle2, Circle, Sparkles, GripVertical, ToggleLeft, AlignLeft, ListChecks, Trash2, Wand2 } from "lucide-react";
+import { Save, Send, ChevronDown, Plus, X, ArrowLeft, CheckCircle2, Circle, Sparkles, GripVertical, ToggleLeft, AlignLeft, ListChecks, Trash2, Wand2, Info, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
@@ -11,9 +11,19 @@ import { apiFetch, authHeaders } from "@/lib/api";
 import { KycGate } from "@/components/employer/KycGate";
 import { useKycStatus } from "@/lib/employer-context";
 
+interface OfficeLocation {
+  id: string;
+  type: string;
+  city: string;
+  state?: string;
+  country: string;
+  isHeadquarters: boolean;
+}
+
 const JOB_TYPES   = ["Full-time", "Part-time", "Contract", "Internship"];
 const REMOTE_TYPES = ["Remote", "On-site", "Hybrid"];
-const LEVELS      = ["Junior (0–2 yrs)", "Mid-level (2–5 yrs)", "Senior (5–8 yrs)", "Lead (8+ yrs)", "Manager (8+ yrs)"];
+const LEVELS      = ["Junior (0–2 yrs)", "Mid-level (2–5 yrs)", "Senior (5+ yrs)"];
+const DESC_MIN    = 50;
 
 function SelectField({
   label, value, onChange, options, required,
@@ -158,7 +168,12 @@ export default function PostJobPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [publishing, setPublishing]     = useState(false);
+  const [savingDraft, setSavingDraft]   = useState(false);
   const [usageLimits, setUsageLimits]   = useState<UsageLimits | null>(null);
+  const [officeLocations, setOfficeLocations] = useState<OfficeLocation[]>([]);
+  const [selectedOfficeLocationId, setSelectedOfficeLocationId] = useState<string>("REMOTE");
+  const descTooltipTimerRef             = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showDescTip, setShowDescTip]   = useState(false);
   const kycStatus = useKycStatus();
 
   useEffect(() => {
@@ -173,6 +188,13 @@ export default function PostJobPage() {
         }
       })
       .catch(() => null);
+    apiFetch("/api/employer/company/me")
+      .then((res) => {
+        const raw = (res.data || res) as Record<string, unknown>;
+        const locs = (raw.officeLocations as OfficeLocation[] | undefined) || [];
+        setOfficeLocations(locs);
+      })
+      .catch(() => null);
   }, [kycStatus]);
   const [title, setTitle]               = useState("");
   const [domain, setDomain]             = useState("");
@@ -181,7 +203,6 @@ export default function PostJobPage() {
   const [isInferring, setIsInferring]   = useState(false);
   const [isDrafting, setIsDrafting]     = useState(false);
   const [remote, setRemote]             = useState("");
-  const [location, setLocation]         = useState("");
   const [description, setDescription]   = useState("");
   const [responsibilities, setResp]     = useState<string[]>([""]);
   const [requirements, setReqs]         = useState<string[]>([""]);
@@ -265,8 +286,11 @@ export default function PostJobPage() {
       toast({ type: "error", message: "Work mode is required" });
       return;
     }
-    if (!location.trim()) {
-      toast({ type: "error", message: "Location is required" });
+    if (description.trim().length < DESC_MIN) {
+      setShowDescTip(true);
+      if (descTooltipTimerRef.current) clearTimeout(descTooltipTimerRef.current);
+      descTooltipTimerRef.current = setTimeout(() => setShowDescTip(false), 3000);
+      document.getElementById("section-description")?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
 
@@ -276,21 +300,19 @@ export default function PostJobPage() {
         "Full-time": "FULL_TIME",
         "Part-time": "PART_TIME",
         "Contract": "CONTRACT",
-        "Internship": "INTERNSHIP"
+        "Internship": "INTERNSHIP",
       };
 
       const modeMap: Record<string, string> = {
         "Remote": "REMOTE",
         "On-site": "ONSITE",
-        "Hybrid": "HYBRID"
+        "Hybrid": "HYBRID",
       };
 
       const levelMap: Record<string, string> = {
-        "Junior (0–2 yrs)": "ENTRY",
+        "Junior (0–2 yrs)":    "ENTRY",
         "Mid-level (2–5 yrs)": "MID",
-        "Senior (5–8 yrs)": "SENIOR",
-        "Lead (8+ yrs)": "SENIOR",
-        "Manager (8+ yrs)": "SENIOR"
+        "Senior (5+ yrs)":     "SENIOR",
       };
 
       let finalDesc = description.trim();
@@ -300,7 +322,6 @@ export default function PostJobPage() {
       if (reqs.length > 0) finalDesc += "\n\n### Requirements\n" + reqs.map(r => "- " + r).join("\n");
       const nice = niceToHave.filter(r => r.trim());
       if (nice.length > 0) finalDesc += "\n\n### Nice to have\n" + nice.map(r => "- " + r).join("\n");
-      if (tags.length > 0) finalDesc += "\n\n### Skills\n" + tags.map(t => "- " + t).join("\n");
 
       const result = await apiFetch("/api/employer/jobs", {
         method: "POST",
@@ -312,6 +333,8 @@ export default function PostJobPage() {
           experienceLevel: levelMap[level],
           description: finalDesc || undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
+          skillNames: tags.length > 0 ? tags : undefined,
+          ...(selectedOfficeLocationId !== "REMOTE" ? { officeLocationId: selectedOfficeLocationId } : {}),
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
             id: crypto.randomUUID(),
             type: questionTypeMap[q.type],
@@ -345,32 +368,30 @@ export default function PostJobPage() {
       toast({ type: "error", message: "Job title is required" });
       return;
     }
-    if (!type || !level || !remote || !location.trim()) {
-      toast({ type: "error", message: "Please fill in all required fields marked with * to save a draft" });
+    if (!type || !level || !remote) {
+      toast({ type: "error", message: "Please fill in Job Type, Experience Level and Work Mode to save a draft" });
       return;
     }
 
-    setPublishing(true);
+    setSavingDraft(true);
     try {
       const typeMap: Record<string, string> = {
         "Full-time": "FULL_TIME",
         "Part-time": "PART_TIME",
         "Contract": "CONTRACT",
-        "Internship": "INTERNSHIP"
+        "Internship": "INTERNSHIP",
       };
 
       const modeMap: Record<string, string> = {
         "Remote": "REMOTE",
         "On-site": "ONSITE",
-        "Hybrid": "HYBRID"
+        "Hybrid": "HYBRID",
       };
 
       const levelMap: Record<string, string> = {
-        "Junior (0–2 yrs)": "ENTRY",
+        "Junior (0–2 yrs)":    "ENTRY",
         "Mid-level (2–5 yrs)": "MID",
-        "Senior (5–8 yrs)": "SENIOR",
-        "Lead (8+ yrs)": "SENIOR",
-        "Manager (8+ yrs)": "SENIOR"
+        "Senior (5+ yrs)":     "SENIOR",
       };
 
       let finalDesc = description.trim();
@@ -380,7 +401,6 @@ export default function PostJobPage() {
       if (reqs.length > 0) finalDesc += "\n\n### Requirements\n" + reqs.map(r => "- " + r).join("\n");
       const nice = niceToHave.filter(r => r.trim());
       if (nice.length > 0) finalDesc += "\n\n### Nice to have\n" + nice.map(r => "- " + r).join("\n");
-      if (tags.length > 0) finalDesc += "\n\n### Skills\n" + tags.map(t => "- " + t).join("\n");
 
       await apiFetch("/api/employer/jobs", {
         method: "POST",
@@ -392,6 +412,8 @@ export default function PostJobPage() {
           experienceLevel: levelMap[level],
           description: finalDesc || undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
+          skillNames: tags.length > 0 ? tags : undefined,
+          ...(selectedOfficeLocationId !== "REMOTE" ? { officeLocationId: selectedOfficeLocationId } : {}),
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
             id: crypto.randomUUID(),
             type: questionTypeMap[q.type],
@@ -406,7 +428,7 @@ export default function PostJobPage() {
     } catch (err: unknown) {
       toast({ type: "error", message: (err instanceof Error ? err.message : "Something went wrong") });
     } finally {
-      setPublishing(false);
+      setSavingDraft(false);
     }
   }
 
@@ -477,19 +499,45 @@ export default function PostJobPage() {
                 <SelectField label="Experience Level" value={level} onChange={setLevel} options={LEVELS} required />
                 <SelectField label="Job Type" value={type} onChange={setType} options={JOB_TYPES} required />
                 <SelectField label="Work Mode" value={remote} onChange={setRemote} options={REMOTE_TYPES} required />
-                <TextField label="Location" value={location} onChange={setLocation} placeholder="e.g. Remote / New York, NY" required />
+                {/* Office location dropdown */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Location</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <select
+                      value={selectedOfficeLocationId}
+                      onChange={(e) => setSelectedOfficeLocationId(e.target.value)}
+                      className="w-full appearance-none bg-white border border-slate-200 rounded-xl pl-9 pr-8 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 cursor-pointer"
+                    >
+                      <option value="REMOTE">Remote</option>
+                      {officeLocations.map((loc) => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.city}{loc.state ? `, ${loc.state}` : ""}, {loc.country}{loc.isHeadquarters ? " (HQ)" : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  </div>
+                  {officeLocations.length === 0 && (
+                    <p className="text-[10px] font-mono text-slate-400">Add office locations in company settings to enable city-level selection</p>
+                  )}
+                </div>
               </div>
             </section>
 
             <section id="section-description" className="bg-white rounded-2xl border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-1">
                 <h2 className="text-sm font-bold text-slate-900">Job Description</h2>
+                <div className="flex items-center gap-3">
+                  <span className={`text-[10px] font-mono ${description.trim().length < DESC_MIN ? "text-rose-500" : "text-slate-400"}`}>
+                    {description.trim().length}/{DESC_MIN} min
+                  </span>
                 <button
                   type="button"
                   onClick={async () => {
                     setIsDrafting(true);
                     try {
-                      const prompt = `Job Title: ${title}\nExperience Level: ${level}\nJob Type: ${type}\nWork Mode: ${remote}\nLocation: ${location}`;
+                      const prompt = `Job Title: ${title}\nExperience Level: ${level}\nJob Type: ${type}\nWork Mode: ${remote}`;
                       const res = await fetch("/api/ai/job-description/generate", {
                         method: "POST", headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ prompt }),
@@ -513,7 +561,14 @@ export default function PostJobPage() {
                 >
                   {isDrafting ? <span className="w-3.5 h-3.5 border-2 border-violet-300 border-t-violet-700 rounded-full animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} AI Draft
                 </button>
+                </div>
               </div>
+              {showDescTip && (
+                <div className="flex items-center gap-2 px-3 py-2 mb-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                  <Info className="w-3.5 h-3.5 shrink-0" />
+                  Description must be at least {DESC_MIN} characters before you can publish.
+                </div>
+              )}
               <TextField
                 label="Overview"
                 value={description}
@@ -732,7 +787,7 @@ export default function PostJobPage() {
             <div className="flex items-center gap-3 pb-6">
               <button
                 onClick={handlePublish}
-                disabled={publishing || !!(usageLimits && usageLimits.jobsLimit > 0 && usageLimits.jobsUsed >= usageLimits.jobsLimit)}
+                disabled={publishing || savingDraft || !!(usageLimits && usageLimits.jobsLimit > 0 && usageLimits.jobsUsed >= usageLimits.jobsLimit)}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shadow-blue-500/20 cursor-pointer"
               >
                 {publishing ? (
@@ -744,10 +799,15 @@ export default function PostJobPage() {
               </button>
               <button
                 onClick={handleSaveDraft}
-                disabled={publishing}
+                disabled={publishing || savingDraft}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
-                <Save className="w-4 h-4" /> Save as Draft
+                {savingDraft ? (
+                  <span className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {savingDraft ? "Saving…" : "Save as Draft"}
               </button>
             </div>
           </div>
@@ -766,7 +826,7 @@ export default function PostJobPage() {
                   { label: "Experience level",    done: !!level,                               section: "section-basics"          },
                   { label: "Job type",            done: !!type,                                section: "section-basics"          },
                   { label: "Work mode",           done: !!remote,                              section: "section-basics"          },
-                  { label: "Location",            done: !!location.trim(),                     section: "section-basics"          },
+                  { label: "Location",            done: true,                                  section: "section-basics"          },
                   { label: "Job description",     done: description.trim().length > 20,        section: "section-description"     },
                   { label: "Responsibilities",    done: responsibilities.some(r => r.trim()),  section: "section-responsibilities" },
                   { label: "Requirements",        done: requirements.some(r => r.trim()),      section: "section-requirements"    },
@@ -796,9 +856,8 @@ export default function PostJobPage() {
                 <p className="text-sm font-semibold text-slate-900 truncate">{title || <span className="text-slate-300">Job title…</span>}</p>
                 <p className="text-xs text-slate-400 mt-0.5">CyberShield Inc.</p>
                 <div className="flex flex-wrap gap-2 mt-2.5 text-[11px] text-slate-500">
-                  {location && <span className="flex items-center gap-1">📍 {location}</span>}
-                  {type     && <span>{type}</span>}
-                  {remote   && <span>{remote}</span>}
+                  {type   && <span>{type}</span>}
+                  {remote && <span>{remote}</span>}
                 </div>
                 {tags.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2.5">
@@ -814,7 +873,7 @@ export default function PostJobPage() {
             {/* Quick publish */}
             <button
               onClick={handlePublish}
-              disabled={publishing || !!(usageLimits && usageLimits.jobsLimit > 0 && usageLimits.jobsUsed >= usageLimits.jobsLimit)}
+              disabled={publishing || savingDraft || !!(usageLimits && usageLimits.jobsLimit > 0 && usageLimits.jobsUsed >= usageLimits.jobsLimit)}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shadow-blue-500/20 cursor-pointer"
             >
               {publishing ? (

@@ -171,25 +171,40 @@ export class JobsService {
 
         const slug = await this.generateUniqueSlug(dto.jobTitle, employer.slug);
 
-        const job = await this.jobsRepository.create({
-            employer: { connect: { id: employer.id } },
-            slug,
-            jobTitle: dto.jobTitle,
-            jobType: dto.jobType,
-            workMode: dto.workMode,
-            experienceLevel: dto.experienceLevel,
-            applicationType: dto.applicationType,
-            status: JobStatus.DRAFT,
-            ...(dto.roleId ? { role: { connect: { id: dto.roleId } } } : {}),
-            ...(dto.locationId ? { location: { connect: { id: dto.locationId } } } : {}),
-            ...(dto.description !== undefined ? { description: dto.description } : {}),
-            ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
-            ...(dto.screeningQuestions !== undefined
-                ? { screeningQuestions: dto.screeningQuestions as unknown as Prisma.InputJsonValue }
-                : {}),
-            ...(dto.contractDuration !== undefined
-                ? { contractDuration: dto.contractDuration }
-                : {}),
+        const job = await this.prisma.$transaction(async (tx) => {
+            const created = await this.jobsRepository.create({
+                employer: { connect: { id: employer.id } },
+                slug,
+                jobTitle: dto.jobTitle,
+                jobType: dto.jobType,
+                workMode: dto.workMode,
+                experienceLevel: dto.experienceLevel,
+                applicationType: dto.applicationType,
+                status: JobStatus.DRAFT,
+                ...(dto.roleId ? { role: { connect: { id: dto.roleId } } } : {}),
+                ...(dto.locationId ? { location: { connect: { id: dto.locationId } } } : {}),
+                ...(dto.description !== undefined ? { description: dto.description } : {}),
+                ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
+                ...(dto.screeningQuestions !== undefined
+                    ? { screeningQuestions: dto.screeningQuestions as unknown as Prisma.InputJsonValue }
+                    : {}),
+                ...(dto.contractDuration !== undefined
+                    ? { contractDuration: dto.contractDuration }
+                    : {}),
+            });
+
+            if (dto.skillNames && dto.skillNames.length > 0) {
+                const skills = await tx.skill.findMany({
+                    where: { name: { in: dto.skillNames } },
+                    select: { id: true, name: true },
+                });
+                const skillData = skills.map((s) => ({ jobId: created.id, skillId: s.id }));
+                if (skillData.length > 0) {
+                    await tx.jobSkill.createMany({ data: skillData, skipDuplicates: true });
+                }
+            }
+
+            return created;
         });
 
         this.auditService.logAction({
@@ -215,35 +230,62 @@ export class JobsService {
             throw new BadRequestException(JobErrorCodes.JOB_NOT_EDITABLE);
         }
 
-        const updated = await this.jobsRepository.update(jobId, {
-            ...(dto.jobTitle !== undefined ? { jobTitle: dto.jobTitle } : {}),
-            ...(dto.jobType !== undefined ? { jobType: dto.jobType } : {}),
-            ...(dto.workMode !== undefined ? { workMode: dto.workMode } : {}),
-            ...(dto.experienceLevel !== undefined
-                ? { experienceLevel: dto.experienceLevel }
-                : {}),
-            ...(dto.applicationType !== undefined
-                ? { applicationType: dto.applicationType }
-                : {}),
-            ...(dto.description !== undefined ? { description: dto.description } : {}),
-            ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
-            ...(dto.screeningQuestions !== undefined
-                ? { screeningQuestions: dto.screeningQuestions as unknown as Prisma.InputJsonValue }
-                : {}),
-            ...(dto.contractDuration !== undefined
-                ? { contractDuration: dto.contractDuration }
-                : {}),
-            // Relational updates
-            ...(dto.roleId !== undefined
-                ? { role: dto.roleId ? { connect: { id: dto.roleId } } : { disconnect: true } }
-                : {}),
-            ...(dto.locationId !== undefined
-                ? {
-                      location: dto.locationId
-                          ? { connect: { id: dto.locationId } }
-                          : { disconnect: true },
-                  }
-                : {}),
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const result = await tx.job.update({
+                where: { id: jobId },
+                data: {
+                    ...(dto.jobTitle !== undefined ? { jobTitle: dto.jobTitle } : {}),
+                    ...(dto.jobType !== undefined ? { jobType: dto.jobType } : {}),
+                    ...(dto.workMode !== undefined ? { workMode: dto.workMode } : {}),
+                    ...(dto.experienceLevel !== undefined
+                        ? { experienceLevel: dto.experienceLevel }
+                        : {}),
+                    ...(dto.applicationType !== undefined
+                        ? { applicationType: dto.applicationType }
+                        : {}),
+                    ...(dto.description !== undefined ? { description: dto.description } : {}),
+                    ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
+                    ...(dto.screeningQuestions !== undefined
+                        ? { screeningQuestions: dto.screeningQuestions as unknown as Prisma.InputJsonValue }
+                        : {}),
+                    ...(dto.contractDuration !== undefined
+                        ? { contractDuration: dto.contractDuration }
+                        : {}),
+                    ...(dto.roleId !== undefined
+                        ? { role: dto.roleId ? { connect: { id: dto.roleId } } : { disconnect: true } }
+                        : {}),
+                    ...(dto.locationId !== undefined
+                        ? {
+                              location: dto.locationId
+                                  ? { connect: { id: dto.locationId } }
+                                  : { disconnect: true },
+                          }
+                        : {}),
+                },
+                include: {
+                    skills: { include: { skill: true } },
+                    certifications: { include: { certification: true } },
+                    role: true,
+                    location: true,
+                },
+            });
+
+            // Sync skills when skillNames is provided (replace-all semantics)
+            if (dto.skillNames !== undefined) {
+                await tx.jobSkill.deleteMany({ where: { jobId } });
+                if (dto.skillNames.length > 0) {
+                    const skills = await tx.skill.findMany({
+                        where: { name: { in: dto.skillNames } },
+                        select: { id: true },
+                    });
+                    const skillData = skills.map((s) => ({ jobId, skillId: s.id }));
+                    if (skillData.length > 0) {
+                        await tx.jobSkill.createMany({ data: skillData, skipDuplicates: true });
+                    }
+                }
+            }
+
+            return result;
         });
 
         this.auditService.logAction({
@@ -389,6 +431,21 @@ export class JobsService {
 
     async rankApplications(userId: string, jobId: string, ipAddress?: string, userAgent?: string) {
         const { employer, job } = await this.resolveJobForEmployer(userId, jobId);
+
+        // Check subscription allows AI scoring
+        const subscription = await this.prisma.employerSubscription.findUnique({
+            where: { employerId: employer.id },
+            include: { package: true },
+        });
+        const now = new Date();
+        const isActive =
+            subscription &&
+            subscription.status === 'ACTIVE' &&
+            (!subscription.expiresAt || subscription.expiresAt > now);
+        const aiEnabled = isActive ? (subscription.package?.aiScoringEnabled ?? false) : false;
+        if (!aiEnabled) {
+            throw new ForbiddenException('AI Candidate Ranking is not available on your current plan.');
+        }
 
         // Queue bulk rank job
         await this.aiQueue.add(

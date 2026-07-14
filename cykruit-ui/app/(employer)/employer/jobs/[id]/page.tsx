@@ -39,6 +39,17 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [statusFilter, setStatusFilter] = useState<AppStatus | "All">("All");
   const [search, setSearch] = useState("");
   const [aiRank, setAiRank] = useState(false);
+  const [aiScoringEnabled, setAiScoringEnabled] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/subscriptions/usage", { credentials: "include" })
+      .then((r) => r.json())
+      .then((d) => {
+        const enabled = d?.data?.limits?.aiScoringEnabled ?? d?.limits?.aiScoringEnabled ?? false;
+        setAiScoringEnabled(enabled);
+      })
+      .catch(() => null);
+  }, []);
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -287,35 +298,46 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           })}
         </div>
 
-        <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all ${aiRank ? "bg-violet-50 border-violet-200" : "bg-white border-slate-200"}`}>
-          <div className="w-8 h-8 rounded-xl bg-violet-100 border border-violet-200 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4 text-violet-600" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-900">AI Candidate Ranking</p>
-            <p className="text-xs text-slate-400">Sort applicants by how well they match this job's requirements</p>
-          </div>
-          <button
-            type="button"
-            onClick={async () => {
-              const newState = !aiRank;
-              setAiRank(newState);
-              if (newState) {
-                // Trigger background ranking
-                try {
-                  console.log(`Triggering AI rank for job ${id}`);
-                  const res = await fetch(`/api/employer/jobs/${id}/ai-rank`, { method: "POST", credentials: "include" });
-                  if (!res.ok) console.error("AI rank fetch failed", await res.text());
-                } catch (e) {
-                  console.error("Failed triggering AI rank", e);
+        {aiScoringEnabled ? (
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all ${aiRank ? "bg-violet-50 border-violet-200" : "bg-white border-slate-200"}`}>
+            <div className="w-8 h-8 rounded-xl bg-violet-100 border border-violet-200 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-violet-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-900">AI Candidate Ranking</p>
+              <p className="text-xs text-slate-400">Sort applicants by how well they match this job's requirements</p>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                const newState = !aiRank;
+                setAiRank(newState);
+                if (newState) {
+                  try {
+                    const res = await fetch(`/api/employer/jobs/${id}/ai-rank`, { method: "POST", credentials: "include" });
+                    if (!res.ok) console.error("AI rank fetch failed", await res.text());
+                  } catch (e) {
+                    console.error("Failed triggering AI rank", e);
+                  }
                 }
-              }
-            }}
-            className={`w-10 h-6 rounded-full transition-colors relative shrink-0 cursor-pointer ${aiRank ? "bg-violet-600" : "bg-slate-200"}`}
-          >
-            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${aiRank ? "left-[calc(100%-1.375rem)]" : "left-0.5"}`} />
-          </button>
-        </div>
+              }}
+              className={`w-10 h-6 rounded-full transition-colors relative shrink-0 cursor-pointer ${aiRank ? "bg-violet-600" : "bg-slate-200"}`}
+            >
+              <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${aiRank ? "left-[calc(100%-1.375rem)]" : "left-0.5"}`} />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-slate-200 bg-white opacity-60">
+            <div className="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-slate-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-500">AI Candidate Ranking</p>
+              <p className="text-xs text-slate-400">Available on Professional and Enterprise plans</p>
+            </div>
+            <Link href="/employer/subscription?tab=plans" className="text-xs font-semibold text-blue-600 hover:underline shrink-0">Upgrade →</Link>
+          </div>
+        )}
 
         <div className="space-y-4">
           <div className="flex items-center gap-3 flex-wrap">

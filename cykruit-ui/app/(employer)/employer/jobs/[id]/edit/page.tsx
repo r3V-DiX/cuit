@@ -1,20 +1,30 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Save, ChevronDown, Plus, X, ArrowLeft,
-  Users, Eye, CheckCircle2, Sparkles, Wand2,
+  Users, Eye, CheckCircle2, Info, Sparkles, Loader2, MapPin,
 } from "lucide-react";
-import { inferDomain } from "@/lib/jobs-data";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
 
 const JOB_TYPES    = ["Full-time", "Part-time", "Contract", "Internship"];
 const REMOTE_TYPES = ["Remote", "On-site", "Hybrid"];
-const LEVELS       = ["Junior (0–2 yrs)", "Mid-level (2–5 yrs)", "Senior (5–8 yrs)", "Lead (8+ yrs)", "Manager (8+ yrs)"];
+const LEVELS       = ["Junior (0–2 yrs)", "Mid-level (2–5 yrs)", "Senior (5+ yrs)"];
+
+const DESC_MIN = 50;
+
+interface OfficeLocation {
+  id: string;
+  type: string;
+  city: string;
+  state?: string;
+  country: string;
+  isHeadquarters: boolean;
+}
 
 function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
@@ -60,7 +70,7 @@ function TagInput({ label, tags, onChange }: { label: string; tags: string[]; on
         {tags.map((t) => (
           <span key={t} className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-mono font-medium rounded-lg border border-blue-200">
             {t}
-            <button type="button" onClick={() => onChange(tags.filter((x) => x !== t))} className="hover:text-blue-900"><X className="w-3 h-3" /></button>
+            <button type="button" onClick={() => onChange(tags.filter((x) => x !== t))} className="hover:text-blue-900 cursor-pointer"><X className="w-3 h-3" /></button>
           </span>
         ))}
         <input value={input} onChange={(e) => setInput(e.target.value)}
@@ -72,6 +82,40 @@ function TagInput({ label, tags, onChange }: { label: string; tags: string[]; on
   );
 }
 
+function SaveButton({ onClick, saving, descTooShort }: { onClick: () => void; saving: boolean; descTooShort: boolean }) {
+  const [showTip, setShowTip] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleClick() {
+    if (descTooShort) {
+      setShowTip(true);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setShowTip(false), 3000);
+      return;
+    }
+    onClick();
+  }
+
+  return (
+    <div className="relative inline-flex">
+      <button
+        onClick={handleClick}
+        disabled={saving}
+        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 cursor-pointer disabled:opacity-70"
+      >
+        <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Changes"}
+      </button>
+      {showTip && (
+        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-56 px-3 py-2 bg-slate-800 text-white text-xs rounded-xl shadow-lg z-50 text-center">
+          <Info className="w-3 h-3 inline mr-1 text-amber-400" />
+          Description needs at least {DESC_MIN} characters.
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function JobEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -79,61 +123,115 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [initialJob, setInitialJob] = useState<any>(null);
+  const [initialJob, setInitialJob] = useState<Record<string, unknown> | null>(null);
 
   const [title, setTitle]             = useState("");
-  const [domain, setDomain]           = useState("");
   const [type, setType]               = useState("");
   const [level, setLevel]             = useState("");
   const [remote, setRemote]           = useState("");
-  const [location, setLocation]       = useState("");
   const [description, setDescription] = useState("");
   const [tags, setTags]               = useState<string[]>([]);
-  const [tagsGenerating, setTagsGenerating] = useState(false);
+
+  // Read-only display fields
+  const [domainDisplay, setDomainDisplay] = useState("");
+
+  // Office location
+  const [officeLocations, setOfficeLocations] = useState<OfficeLocation[]>([]);
+  const [selectedOfficeLocationId, setSelectedOfficeLocationId] = useState<string>("REMOTE");
+
+  // AI state
+  const [aiRedrafting, setAiRedrafting] = useState(false);
+  const [aiSuggesting, setAiSuggesting] = useState(false);
 
   useEffect(() => {
-    const fetchJob = async () => {
+    const fetchAll = async () => {
       try {
-        const result = await apiFetch(`/api/employer/jobs/${id}`);
-        const rawJob = (result.data || result) as any;
+        const [jobResult, companyResult] = await Promise.all([
+          apiFetch(`/api/employer/jobs/${id}`),
+          apiFetch(`/api/employer/company/me`).catch(() => null),
+        ]);
+
+        const rawJob = (jobResult.data || jobResult) as Record<string, unknown>;
         if (rawJob && rawJob.id) {
-            setInitialJob(rawJob);
-            setTitle(rawJob.jobTitle || "");
-            setDomain(rawJob.role?.name || "Cybersecurity");
+          setInitialJob(rawJob);
+          setTitle((rawJob.jobTitle as string) || "");
+          setDomainDisplay((rawJob as { role?: { name?: string } }).role?.name || "");
 
-            const typeStr = rawJob.jobType?.replace("_", "-").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()) || "Full-time";
-            setType(typeStr);
+          const typeBackToDisplay: Record<string, string> = {
+            "FULL_TIME": "Full-time",
+            "PART_TIME": "Part-time",
+            "CONTRACT": "Contract",
+            "INTERNSHIP": "Internship",
+          };
+          setType(typeBackToDisplay[(rawJob.jobType as string) || ""] || "Full-time");
 
-            const modeMapInv: Record<string, string> = { "REMOTE": "Remote", "ONSITE": "On-site", "HYBRID": "Hybrid" };
-            setRemote(modeMapInv[rawJob.workMode] || "Remote");
+          const modeBackToDisplay: Record<string, string> = {
+            "REMOTE": "Remote",
+            "ONSITE": "On-site",
+            "HYBRID": "Hybrid",
+          };
+          setRemote(modeBackToDisplay[(rawJob.workMode as string) || ""] || "Remote");
 
-            const levelMapInv: Record<string, string> = { "ENTRY": "Junior (0–2 yrs)", "MID": "Mid-level (2–5 yrs)", "SENIOR": "Senior (5–8 yrs)" };
-            setLevel(levelMapInv[rawJob.experienceLevel] || "Mid-level (2–5 yrs)");
+          const levelBackToDisplay: Record<string, string> = {
+            "ENTRY":  "Junior (0–2 yrs)",
+            "MID":    "Mid-level (2–5 yrs)",
+            "SENIOR": "Senior (5+ yrs)",
+          };
+          setLevel(levelBackToDisplay[(rawJob.experienceLevel as string) || ""] || "Mid-level (2–5 yrs)");
 
-            setLocation(rawJob.location?.displayName || "Remote");
-            setDescription(rawJob.description || "");
-            setTags(rawJob.skills?.map((s: any) => s.skill.name) || []);
+          setDescription((rawJob.description as string) || "");
+          setTags(
+            ((rawJob as { skills?: { skill: { name: string } }[] }).skills || []).map((s) => s.skill.name)
+          );
         }
-      } catch (e: any) {
+
+        if (companyResult) {
+          const raw = (companyResult.data || companyResult) as Record<string, unknown>;
+          const locs = (raw.officeLocations as OfficeLocation[] | undefined) || [];
+          setOfficeLocations(locs);
+        }
+      } catch {
         toast({ type: "error", message: "Failed to load job" });
       } finally {
         setLoading(false);
       }
     };
-    fetchJob();
+    fetchAll();
   }, [id]);
 
-  function generateAITags() {
-    setTagsGenerating(true);
-    setTimeout(() => {
-      const suggested = ["Burp Suite", "Metasploit", "OSCP", "Python", "Web App Testing", "Network Pentesting", "Kali Linux", "Nmap", "AWS Red Team", "Active Directory"];
-      setTags((prev) => {
-        const merged = [...prev];
-        suggested.forEach((t) => { if (!merged.includes(t)) merged.push(t); });
-        return merged;
+  const descTooShort = description.trim().length < DESC_MIN;
+
+  async function handleAiRedraft() {
+    if (!title.trim()) { toast({ type: "error", message: "Add a job title first" }); return; }
+    setAiRedrafting(true);
+    try {
+      const res = await apiFetch(`/api/employer/jobs/improve-description`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ title: title.trim(), description: description.trim(), jobType: type, experienceLevel: level }),
       });
-      setTagsGenerating(false);
-    }, 1200);
+      const improved = (res as { description?: string }).description || (res as { data?: { description?: string } }).data?.description;
+      if (improved) { setDescription(improved); toast({ type: "success", message: "Description improved!" }); }
+    } catch { toast({ type: "error", message: "AI redraft failed" }); }
+    finally { setAiRedrafting(false); }
+  }
+
+  async function handleAiSuggest() {
+    if (!title.trim()) { toast({ type: "error", message: "Add a job title first" }); return; }
+    setAiSuggesting(true);
+    try {
+      const res = await apiFetch(`/api/employer/jobs/suggest-skills`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ title: title.trim(), description: description.trim() }),
+      });
+      const suggested: string[] = (res as { skills?: string[] }).skills || (res as { data?: { skills?: string[] } }).data?.skills || [];
+      if (suggested.length > 0) {
+        setTags((prev) => [...new Set([...prev, ...suggested])]);
+        toast({ type: "success", message: `Added ${suggested.length} skill suggestions` });
+      }
+    } catch { toast({ type: "error", message: "AI suggest failed" }); }
+    finally { setAiSuggesting(false); }
   }
 
   async function handleSave() {
@@ -141,50 +239,46 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
       toast({ type: "error", message: "Job title is required" });
       return;
     }
+    if (descTooShort) {
+      toast({ type: "error", message: `Description needs at least ${DESC_MIN} characters` });
+      return;
+    }
     setSaving(true);
     try {
       const typeMap: Record<string, string> = {
         "Full-time": "FULL_TIME",
         "Part-time": "PART_TIME",
-        "Contract": "CONTRACT",
-        "Internship": "INTERNSHIP"
+        "Contract":  "CONTRACT",
+        "Internship": "INTERNSHIP",
       };
-
       const modeMap: Record<string, string> = {
-        "Remote": "REMOTE",
+        "Remote":  "REMOTE",
         "On-site": "ONSITE",
-        "Hybrid": "HYBRID"
+        "Hybrid":  "HYBRID",
       };
-
       const levelMap: Record<string, string> = {
-        "Junior (0–2 yrs)": "ENTRY",
+        "Junior (0–2 yrs)":    "ENTRY",
         "Mid-level (2–5 yrs)": "MID",
-        "Senior (5–8 yrs)": "SENIOR",
-        "Lead (8+ yrs)": "SENIOR",
-        "Manager (8+ yrs)": "SENIOR"
+        "Senior (5+ yrs)":     "SENIOR",
       };
-
-      let finalDesc = description.trim();
-      if (tags.length > 0) {
-        finalDesc += "\n\n### Skills\n" + tags.map(t => "- " + t).join("\n");
-      }
 
       await apiFetch(`/api/employer/jobs/${id}`, {
         method: "PATCH",
         headers: authHeaders(),
         body: JSON.stringify({
-          jobTitle: title.trim(),
-          jobType: typeMap[type],
-          workMode: modeMap[remote],
+          jobTitle:        title.trim(),
+          jobType:         typeMap[type],
+          workMode:        modeMap[remote],
           experienceLevel: levelMap[level],
-          description: finalDesc || undefined,
+          description:     description.trim(),
+          skillNames:      tags,
         }),
       });
 
       toast({ type: "success", message: "Job updated successfully!" });
       router.push(`/employer/jobs/${id}`);
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Something went wrong" });
+    } catch (err: unknown) {
+      toast({ type: "error", message: err instanceof Error ? err.message : "Something went wrong" });
     } finally {
       setSaving(false);
     }
@@ -204,8 +298,16 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
     );
   }
 
-  const status = initialJob?.status || "DRAFT";
+  const status = (initialJob?.status as string) || "DRAFT";
   const statusDisplay = status === "APPROVED" ? "Active" : status === "PENDING" ? "Pending" : status === "DRAFT" ? "Draft" : "Closed";
+
+  const locationOptions: { value: string; label: string }[] = [
+    { value: "REMOTE", label: "Remote" },
+    ...officeLocations.map((loc) => ({
+      value: loc.id,
+      label: `${loc.city}${loc.state ? `, ${loc.state}` : ""}, ${loc.country}${loc.isHeadquarters ? " (HQ)" : ""}`,
+    })),
+  ];
 
   return (
     <>
@@ -226,41 +328,65 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
                 <div className="sm:col-span-2">
                   <TextField label="Job Title" value={title} onChange={setTitle} placeholder="e.g. Senior Penetration Tester" />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Domain</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={domain}
-                      onChange={(e) => setDomain(e.target.value)}
-                      placeholder="e.g. Offensive Security"
-                      className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => { const inferred = inferDomain(title); if (inferred) setDomain(inferred); }}
-                      title="Auto-infer domain from job title"
-                      className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors cursor-pointer shrink-0"
-                    >
-                      <Wand2 className="w-3.5 h-3.5" /> AI Fill
-                    </button>
+
+                {domainDisplay && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-slate-700">Domain</label>
+                    <div className="h-10 px-3.5 rounded-xl bg-slate-100 border border-slate-200 flex items-center text-sm text-slate-500 select-none">
+                      {domainDisplay}
+                    </div>
+                    <p className="text-[10px] font-mono text-slate-400">Managed via job category — contact support to change</p>
                   </div>
-                  <p className="text-[10px] font-mono text-slate-400">Edit manually or click AI Fill to detect from title</p>
-                </div>
+                )}
+
                 <SelectField label="Experience Level" value={level} onChange={setLevel} options={LEVELS} />
                 <SelectField label="Job Type" value={type} onChange={setType} options={JOB_TYPES} />
                 <SelectField label="Work Mode" value={remote} onChange={setRemote} options={REMOTE_TYPES} />
-                <TextField label="Location" value={location} onChange={setLocation} placeholder="e.g. Remote / New York, NY" />
+
+                {/* Office location dropdown */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Location</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <select
+                      value={selectedOfficeLocationId}
+                      onChange={(e) => setSelectedOfficeLocationId(e.target.value)}
+                      className="w-full appearance-none bg-white border border-slate-200 rounded-xl pl-9 pr-8 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 cursor-pointer"
+                    >
+                      {locationOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  </div>
+                  {officeLocations.length === 0 && (
+                    <p className="text-[10px] font-mono text-slate-400">Add office locations in company settings to enable location selection</p>
+                  )}
+                </div>
               </div>
             </section>
 
             <section className="bg-white rounded-2xl border border-slate-200 p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-1">
                 <h2 className="text-sm font-bold text-slate-900">Job Description</h2>
-                <button type="button" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors cursor-pointer">
-                  <Sparkles className="w-3.5 h-3.5" /> AI Redraft
-                </button>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-mono ${descTooShort ? "text-rose-500" : "text-slate-400"}`}>
+                    {description.trim().length}/{DESC_MIN} min
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleAiRedraft}
+                    disabled={aiRedrafting}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-60"
+                  >
+                    {aiRedrafting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                    AI Redraft
+                  </button>
+                </div>
               </div>
-              <TextField label="Overview" value={description} onChange={setDescription} multiline rows={6} />
+              <p className="text-xs text-slate-400 mb-3">Minimum {DESC_MIN} characters required.</p>
+              <TextField label="" value={description} onChange={setDescription} multiline rows={10}
+                placeholder="Describe the role, responsibilities, requirements, and what makes this opportunity exciting…" />
             </section>
 
             <section className="bg-white rounded-2xl border border-slate-200 p-6">
@@ -268,44 +394,34 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
                 <h2 className="text-sm font-bold text-slate-900">Skills & Tags</h2>
                 <button
                   type="button"
-                  onClick={generateAITags}
-                  disabled={tagsGenerating}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                  onClick={handleAiSuggest}
+                  disabled={aiSuggesting}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-60"
                 >
-                  {tagsGenerating ? (
-                    <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                    </svg>
-                  ) : (
-                    <Sparkles className="w-3.5 h-3.5" />
-                  )}
-                  {tagsGenerating ? "Generating…" : "AI Suggest"}
+                  {aiSuggesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                  AI Suggest
                 </button>
               </div>
               <TagInput label="Skills / tools" tags={tags} onChange={setTags} />
             </section>
 
             <div className="flex items-center gap-3 pb-6">
-              <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 cursor-pointer disabled:opacity-70">
-                <Save className="w-4 h-4" /> {saving ? "Saving..." : "Save Changes"}
-              </button>
+              <SaveButton onClick={handleSave} saving={saving} descTooShort={descTooShort} />
             </div>
           </div>
 
           {/* ── Right: sticky sidebar ────────────────────────────────────────── */}
           <div className="xl:col-span-1 flex flex-col gap-4 sticky top-6">
 
-            {/* Stats */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5">
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Performance</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="flex flex-col items-center justify-center py-3 px-2 bg-slate-50 rounded-xl border border-slate-100">
-                  <p className="text-2xl font-bold text-slate-900">{initialJob?._count?.applications || 0}</p>
+                  <p className="text-2xl font-bold text-slate-900">{(initialJob as { _count?: { applications?: number } })?._count?.applications || 0}</p>
                   <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1"><Users className="w-3 h-3" /> Applicants</p>
                 </div>
                 <div className="flex flex-col items-center justify-center py-3 px-2 bg-slate-50 rounded-xl border border-slate-100">
-                  <p className="text-2xl font-bold text-slate-900">{initialJob?.viewCount || 0}</p>
+                  <p className="text-2xl font-bold text-slate-900">{(initialJob?.viewCount as number) || 0}</p>
                   <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1"><Eye className="w-3 h-3" /> Views</p>
                 </div>
               </div>
@@ -322,10 +438,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
               </div>
             </div>
 
-            {/* Quick save */}
-            <button onClick={handleSave} disabled={saving} className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm shadow-blue-500/20 cursor-pointer disabled:opacity-70">
-              <Save className="w-4 h-4" /> Save Changes
-            </button>
+            <SaveButton onClick={handleSave} saving={saving} descTooShort={descTooShort} />
           </div>
 
         </div>

@@ -94,6 +94,12 @@ export class CreateJobDto {
     @IsInt()
     @Min(1)
     contractDuration?: number;
+
+    @IsOptional()
+    @IsArray()
+    @ArrayMaxSize(20)
+    @IsString({ each: true })
+    skillNames?: string[];
 }
 
 // ── Update ────────────────────────────────────────────────────────────────────
@@ -149,6 +155,12 @@ export class UpdateJobDto {
     @IsInt()
     @Min(1)
     contractDuration?: number;
+
+    @IsOptional()
+    @IsArray()
+    @ArrayMaxSize(20)
+    @IsString({ each: true })
+    skillNames?: string[];
 }
 
 // ── Close ─────────────────────────────────────────────────────────────────────

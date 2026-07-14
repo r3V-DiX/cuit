@@ -24,7 +24,7 @@ import {
 } from '../dto/team.dto';
 
 // Default team size limit when no subscription package is found.
-const DEFAULT_MAX_TEAM_MEMBERS = 3;
+const DEFAULT_MAX_TEAM_MEMBERS = 2;
 
 // Token expiry: 7 days in milliseconds.
 const INVITE_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
