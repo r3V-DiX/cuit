@@ -11,7 +11,7 @@ import {
   Max,
 } from "class-validator";
 
-enum SkillProficiency {
+export enum SkillProficiency {
   BEGINNER = "Beginner",
   INTERMEDIATE = "Intermediate",
   EXPERT = "Expert",

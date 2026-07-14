@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { apiFetch, authHeaders, getCsrf } from "@/lib/api";
 import { useKycStatus } from "@/lib/employer-context";
+import { useToast } from "@/components/ui/Toast";
 
 const INDUSTRIES = [
   { id: "TECHNOLOGY", label: "Technology" },
@@ -65,6 +66,7 @@ type Perk = { id?: string; name: string };
 export default function CompanyProfilePage() {
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
+  const { toast } = useToast();
   const kycCtx = useKycStatus();
   const kycStatus =
     kycCtx === "verified"      ? "APPROVED"     :
@@ -151,6 +153,10 @@ export default function CompanyProfilePage() {
           }),
         }),
       ]);
+      toast({ type: "success", message: "Company profile saved" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to save profile";
+      toast({ type: "error", message: "Save failed", description: msg });
     } finally {
       setSaving(false);
     }
@@ -168,8 +174,11 @@ export default function CompanyProfilePage() {
       });
       const perkId = benefitRes?.data?.id ?? (benefitRes as any)?.id ?? undefined;
       setPerks((prev) => [...prev, { id: perkId, name: v }]);
-    } catch {
+      toast({ type: "success", message: `Perk "${v}" added` });
+    } catch (err: unknown) {
       setPerks((prev) => [...prev, { name: v }]);
+      const msg = err instanceof Error ? err.message : "Could not save perk to server";
+      toast({ type: "error", message: "Perk save failed", description: msg });
     }
   }
 
@@ -179,7 +188,10 @@ export default function CompanyProfilePage() {
       await apiFetch(`/api/employer/company/benefits/${perk.id}`, {
         method: "DELETE",
         headers: authHeaders(),
-      }).catch(() => {});
+      }).catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : "Could not remove perk";
+        toast({ type: "error", message: "Remove perk failed", description: msg });
+      });
     }
   }
 
@@ -190,12 +202,12 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
     const file = e.target.files?.[0];
     if (!file) return;
     if (!LOGO_ALLOWED_TYPES.includes(file.type)) {
-      alert("Only JPEG, PNG, WebP, or GIF images are allowed.");
+      toast({ type: "error", message: "Invalid file type", description: "Only JPEG, PNG, WebP, or GIF images are allowed." });
       e.target.value = "";
       return;
     }
     if (file.size > LOGO_MAX_BYTES) {
-      alert("Logo must be smaller than 5 MB.");
+      toast({ type: "error", message: "File too large", description: "Logo must be smaller than 5 MB." });
       e.target.value = "";
       return;
     }
@@ -209,7 +221,11 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
       });
       const data: any = res.data ?? res;
       if (data.companyLogo || data.url) setLogoUrl(data.companyLogo || data.url);
-    } catch {}
+      toast({ type: "success", message: "Logo uploaded" });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      toast({ type: "error", message: "Logo upload failed", description: msg });
+    }
     e.target.value = "";
   }
 

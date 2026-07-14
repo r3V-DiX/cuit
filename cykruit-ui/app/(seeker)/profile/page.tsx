@@ -17,29 +17,64 @@ import Select from "react-select";
 // ─── Seed data ────────────────────────────────────────────────────────────────
 
 const selectStyles = {
-  control: (base: any) => ({
+  control: (base: any, state: any) => ({
     ...base,
-    backgroundColor: '#f8fafc',
-    border: '1px solid #e2e8f0',
+    backgroundColor: state.isDisabled ? '#f1f5f9' : '#f8fafc',
+    border: `1px solid ${state.isFocused ? '#60a5fa' : '#e2e8f0'}`,
     borderRadius: '0.75rem',
     boxShadow: 'none',
     minHeight: '2.5rem',
     fontSize: '0.875rem',
-    '&:hover': { borderColor: '#cbd5e1' }
+    opacity: state.isDisabled ? 0.6 : 1,
+    cursor: state.isDisabled ? 'not-allowed' : 'default',
+    transition: 'border-color 0.15s',
+    '&:hover': { borderColor: state.isFocused ? '#60a5fa' : '#cbd5e1' },
+  }),
+  placeholder: (base: any) => ({
+    ...base,
+    color: '#94a3b8',
+    fontSize: '0.875rem',
+  }),
+  singleValue: (base: any, state: any) => ({
+    ...base,
+    color: state.isDisabled ? '#94a3b8' : '#334155',
+    fontSize: '0.875rem',
+  }),
+  input: (base: any) => ({
+    ...base,
+    color: '#334155',
+    fontSize: '0.875rem',
   }),
   option: (base: any, state: any) => ({
     ...base,
-    backgroundColor: state.isFocused ? '#f1f5f9' : 'white',
-    color: '#334155',
+    backgroundColor: state.isSelected ? '#eff6ff' : state.isFocused ? '#f1f5f9' : 'white',
+    color: state.isSelected ? '#1d4ed8' : '#334155',
     fontSize: '0.875rem',
-    cursor: 'pointer'
+    cursor: 'pointer',
   }),
   menu: (base: any) => ({
     ...base,
     borderRadius: '0.75rem',
+    border: '1px solid #e2e8f0',
+    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05)',
     overflow: 'hidden',
-    zIndex: 50
-  })
+    zIndex: 50,
+  }),
+  menuList: (base: any) => ({
+    ...base,
+    padding: '0.25rem',
+  }),
+  dropdownIndicator: (base: any, state: any) => ({
+    ...base,
+    color: state.isDisabled ? '#cbd5e1' : '#94a3b8',
+    '&:hover': { color: '#64748b' },
+  }),
+  clearIndicator: (base: any) => ({
+    ...base,
+    color: '#94a3b8',
+    '&:hover': { color: '#64748b' },
+  }),
+  indicatorSeparator: () => ({ display: 'none' }),
 };
 
 
@@ -904,17 +939,6 @@ export default function ProfilePage() {
 
   async function loadProfile() {
     try {
-      let userEmail = "";
-      try {
-        const meRes = await fetch("/api/auth/me");
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          if (meData.data?.email) {
-            userEmail = meData.data.email;
-          }
-        }
-      } catch (e) {}
-
       const response = await fetch("/api/profile");
       if (response.ok) {
         const result = await response.json();
@@ -923,7 +947,7 @@ export default function ProfilePage() {
           const b = data.basicInfo || {};
           const initialBasics = {
             name: [b.firstName, b.lastName].filter(Boolean).join(" ") || "User",
-            email: userEmail,
+            email: b.email || "",
             professionalEmail: b.professionalEmail || "",
             title: b.title || "",
             location: b.location?.displayName || b.location?.city || "",

@@ -85,7 +85,7 @@ export class ApplicationsService {
         if (!jobScreeningQuestions) return;
 
         const questions: Array<{ id: string; question: string; required: boolean }> =
-            Array.isArray(jobScreeningQuestions) ? (jobScreeningQuestions as any) : [];
+            Array.isArray(jobScreeningQuestions) ? (jobScreeningQuestions as unknown as Array<{ id: string; question: string; required: boolean }>) : [];
 
         const requiredQuestions = questions.filter((q) => q.required);
         if (!requiredQuestions.length) return;

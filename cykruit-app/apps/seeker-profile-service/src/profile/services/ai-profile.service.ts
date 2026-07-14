@@ -11,7 +11,7 @@ import { InjectQueue } from "@nestjs/bull";
 import { Queue } from "bull";
 import { AI_QUEUES, AI_JOB_NAMES } from "@cykruit/ai";
 import { UpdateBasicInfoDto } from "../dto/update-basic-info.dto";
-
+import { SkillProficiency } from "../dto/skills/add-skill.dto";
 import { PrismaService } from "@cykruit/prisma";
 
 @Injectable()
@@ -45,7 +45,19 @@ export class AIProfileService {
     if (!res.ok) {
       throw new InternalServerErrorException(`Failed to parse resume: ${res.statusText}`);
     }
-    const parsedData = (await res.json()) as Record<string, unknown>;
+    interface ParsedExp { title?: string; company?: string; location?: string; startDate?: string; endDate?: string; isCurrent?: boolean; description?: string; }
+    interface ParsedEdu { degree?: string; school?: string; startDate?: string; endDate?: string; }
+    interface ParsedCert { name?: string; issuer?: string; issueDate?: string; }
+    interface ParsedResume {
+      firstName?: string; lastName?: string; email?: string; title?: string;
+      location?: string; linkedin?: string; github?: string; portfolio?: string;
+      summary?: string;
+      experiences?: ParsedExp[];
+      education?: ParsedEdu[];
+      skills?: string[];
+      certifications?: ParsedCert[];
+    }
+    const parsedData = (await res.json()) as ParsedResume;
 
     this.logger.log(`Applying parsed data to DB`);
     
@@ -155,7 +167,7 @@ export class AIProfileService {
 
         await this.skillsService.addSkill(userId, {
           skillId,
-          proficiency: "Intermediate" as any,
+          proficiency: SkillProficiency.INTERMEDIATE,
           yearsOfExperience: 1,
         }).catch(e => this.logger.warn("Failed saving skill", e.message));
       }
@@ -266,7 +278,7 @@ export class AIProfileService {
           const matchedSkill = searchRes.skills[0];
           await this.skillsService.addSkill(userId, {
             skillId: matchedSkill.id,
-            proficiency: "Intermediate" as any,
+            proficiency: SkillProficiency.INTERMEDIATE,
             yearsOfExperience: 1,
           }).then(() => addedSkills.push(matchedSkill.name)).catch(e => this.logger.warn("Failed saving skill", e.message));
         }

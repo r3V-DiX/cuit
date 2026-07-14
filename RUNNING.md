@@ -56,7 +56,7 @@ cp .env.local.example .env.local   # if exists
 ### All services at once (recommended for dev)
 ```bash
 cd cykruit-app
-npm run start:all:dev
+npm run start:dev:all
 ```
 Starts all 10 services concurrently with hot-reload:
 
@@ -142,7 +142,7 @@ Start just Postgres + Redis via Docker, run services locally:
 docker-compose up postgres redis -d
 
 # Then run services locally as above
-cd cykruit-app && npm run start:all:dev
+cd cykruit-app && npm run start:dev:all
 cd admin-app && npm run start:dev
 ```
 

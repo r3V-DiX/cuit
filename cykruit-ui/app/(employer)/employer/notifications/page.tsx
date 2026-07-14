@@ -8,6 +8,7 @@ import {
   ChevronRight, Trash2, Loader2,
 } from "lucide-react";
 import { apiFetch, authHeaders } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 
 type NotifType = "applicant" | "job" | "system" | "alert";
 
@@ -52,6 +53,7 @@ function formatTime(iso: string) {
 }
 
 export default function EmployerNotificationsPage() {
+  const { toast } = useToast();
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
@@ -71,12 +73,13 @@ export default function EmployerNotificationsPage() {
           createdAt: n.createdAt,
         }))
       );
-    } catch {
-      // silently fail
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Could not load notifications";
+      toast({ type: "error", message: "Failed to load notifications", description: msg });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => { fetchNotifs(); }, [fetchNotifs]);
 
@@ -86,8 +89,9 @@ export default function EmployerNotificationsPage() {
     try {
       await apiFetch("/api/notifications/read-all", { method: "PATCH", headers: authHeaders() });
       setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    } catch {
-      // silently fail
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to mark notifications as read";
+      toast({ type: "error", message: "Action failed", description: msg });
     }
   }
 
@@ -96,16 +100,17 @@ export default function EmployerNotificationsPage() {
       await apiFetch(`/api/notifications/${id}/read`, { method: "PATCH", headers: authHeaders() });
       setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
     } catch {
-      // silently fail
+      // mark-read is a background action — no toast needed, UI already updated optimistically
     }
   }
 
   async function dismiss(id: string) {
+    setNotifs((prev) => prev.filter((n) => n.id !== id));
     try {
       await apiFetch(`/api/notifications/${id}`, { method: "DELETE", headers: authHeaders() });
-      setNotifs((prev) => prev.filter((n) => n.id !== id));
-    } catch {
-      // silently fail
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to dismiss notification";
+      toast({ type: "error", message: "Dismiss failed", description: msg });
     }
   }
 

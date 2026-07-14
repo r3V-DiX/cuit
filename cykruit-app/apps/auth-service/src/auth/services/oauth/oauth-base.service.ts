@@ -10,7 +10,7 @@ import { PrismaService } from "@cykruit/prisma";
 import { AppLogger } from "@cykruit/logger";
 import { AuditService, AuditAction } from "@cykruit/audit";
 // FIX [4]: Single import source — @prisma/client only, never from oauth.types.ts
-import { AccountStatus, UserRole, type User } from "@prisma/client";
+import { AccountStatus, UserRole, EmployerMemberRole, type User } from "@prisma/client";
 import { SessionService } from "../session.service";
 import { OAuthUserData } from "../../types/oauth.types";
 import { generateRawToken } from "@cykruit/auth-core";
@@ -298,7 +298,7 @@ export class OAuthBaseService {
         });
       } else if (role === UserRole.EMPLOYER) {
         const slug = `${profile.email.split("@")[0].toLowerCase()}-${Date.now()}`;
-        await tx.employer.create({
+        const employer = await tx.employer.create({
           data: {
             user: { connect: { id: user.id } },
             companyName: "",
@@ -309,6 +309,13 @@ export class OAuthBaseService {
             location: "",
             isVerified: false,
             profileCompletion: 0,
+          },
+        });
+        await tx.employerMember.create({
+          data: {
+            employerId: employer.id,
+            userId: user.id,
+            role: EmployerMemberRole.OWNER,
           },
         });
       }

@@ -5,6 +5,7 @@ import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { MessageSquare, Send, Search, Briefcase, ChevronRight, Loader2 } from "lucide-react";
 import { useMessaging } from "@/hooks/useMessaging";
 import { apiFetch, authHeaders } from "@/lib/api";
+import { useToast } from "@/components/ui/Toast";
 
 type Message = {
   id: string | number;
@@ -51,6 +52,7 @@ function formatTime(iso: string): string {
 }
 
 export default function SeekerMessagesPage() {
+  const { toast } = useToast();
   const [convs, setConvs] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string>("");
   const [input, setInput] = useState("");
@@ -165,7 +167,10 @@ export default function SeekerMessagesPage() {
       setConvs((prev) =>
         prev.map((c) => c.id === id ? { ...c, messages, seekerUnread: 0 } : c)
       );
-    } catch {}
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to load messages";
+      toast({ type: "error", message: "Could not load conversation", description: msg });
+    }
   }
 
   async function sendMessage() {
@@ -191,7 +196,10 @@ export default function SeekerMessagesPage() {
           c.id === activeId ? { ...c, messages: [...c.messages, newMsg] } : c
         )
       );
-    } catch {}
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Message could not be sent";
+      toast({ type: "error", message: "Send failed", description: msg });
+    }
   }
 
   function handleKey(e: React.KeyboardEvent<HTMLInputElement>) {
