@@ -19,7 +19,7 @@ import {
   CurrentUser,
 } from "@cykruit/auth-core";
 import { RateLimit } from "@cykruit/rate-limit";
-import { AIProfileService } from "../services/ai-profile.service";
+import { AIProfileService, ParsedResume } from "../services/ai-profile.service";
 
 @Controller("profile/ai")
 @UseGuards(AuthGuard, RolesGuard, CsrfGuard)
@@ -33,7 +33,7 @@ export class AIProfileController {
   async parseResume(
     @CurrentUser() user: User,
     @UploadedFile() file: Express.Multer.File,
-  ) {
+  ): Promise<{ message: string; parsedData: ParsedResume }> {
     if (!file) throw new BadRequestException("No file uploaded");
     if (file.mimetype !== "application/pdf") {
       throw new BadRequestException("Only PDF files are supported");

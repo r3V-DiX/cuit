@@ -34,8 +34,12 @@ export class ProfileService {
     const transformed = await this.helpers.transformToPresignedUrls(profile);
     const profileCompletion =
       await this.helpers.updateProfileCompletion(userId);
+    const profileViews = await this.prisma.profileView.count({
+      where: { profileId: profile.id }
+    });
 
     return {
+      profileViews,
       basicInfo: {
         userId: transformed.userId,
         firstName: transformed.firstName,

@@ -14,6 +14,19 @@ import { UpdateBasicInfoDto } from "../dto/update-basic-info.dto";
 import { SkillProficiency } from "../dto/skills/add-skill.dto";
 import { PrismaService } from "@cykruit/prisma";
 
+export interface ParsedExp { title?: string; company?: string; location?: string; startDate?: string; endDate?: string; isCurrent?: boolean; description?: string; }
+export interface ParsedEdu { degree?: string; school?: string; startDate?: string; endDate?: string; }
+export interface ParsedCert { name?: string; issuer?: string; issueDate?: string; }
+export interface ParsedResume {
+  firstName?: string; lastName?: string; email?: string; title?: string;
+  location?: string; linkedin?: string; github?: string; portfolio?: string;
+  summary?: string;
+  experiences?: ParsedExp[];
+  education?: ParsedEdu[];
+  skills?: string[];
+  certifications?: ParsedCert[];
+}
+
 @Injectable()
 export class AIProfileService {
   private readonly logger = new Logger(AIProfileService.name);
@@ -44,18 +57,6 @@ export class AIProfileService {
 
     if (!res.ok) {
       throw new InternalServerErrorException(`Failed to parse resume: ${res.statusText}`);
-    }
-    interface ParsedExp { title?: string; company?: string; location?: string; startDate?: string; endDate?: string; isCurrent?: boolean; description?: string; }
-    interface ParsedEdu { degree?: string; school?: string; startDate?: string; endDate?: string; }
-    interface ParsedCert { name?: string; issuer?: string; issueDate?: string; }
-    interface ParsedResume {
-      firstName?: string; lastName?: string; email?: string; title?: string;
-      location?: string; linkedin?: string; github?: string; portfolio?: string;
-      summary?: string;
-      experiences?: ParsedExp[];
-      education?: ParsedEdu[];
-      skills?: string[];
-      certifications?: ParsedCert[];
     }
     const parsedData = (await res.json()) as ParsedResume;
 

@@ -95,9 +95,12 @@ export default function DashboardPage() {
           }
         }
 
+        let profileViews = 0;
+
         const profileRes = await fetch("/api/profile", { credentials: "include" });
         if (profileRes.ok) {
           const profileResult = await profileRes.json();
+          profileViews = profileResult.data?.profileViews ?? 0;
           // Profile completion is now fetched from the dedicated endpoint below
         }
 
@@ -157,7 +160,7 @@ export default function DashboardPage() {
         setStats({
           applied: apiApps.length,
           shortlisted: apiApps.filter((a: any) => a.status === "Shortlisted").length,
-          views: 0, // Hidden for now
+          views: profileViews,
           saved: savedCount,
         });
 
@@ -261,8 +264,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ── Stats row (3 cols) ───────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* ── Stats row (4 cols) ───────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {[
               {
                 label:    "Total Applied",
@@ -287,6 +290,14 @@ export default function DashboardPage() {
                 iconBg:   "bg-amber-50 text-amber-600",
                 numColor: "text-amber-600",
                 icon:     <Bookmark className="w-5 h-5" />,
+              },
+              {
+                label:    "Profile Views",
+                value:    stats.views,
+                href:     "/profile",
+                iconBg:   "bg-purple-50 text-purple-600",
+                numColor: "text-purple-600",
+                icon:     <Eye className="w-5 h-5" />,
               },
             ].map(({ label, sublabel, value, href, iconBg, numColor, icon }: { label: string; sublabel?: string; value: number; href: string; iconBg: string; numColor: string; icon: React.ReactElement }) => (
               <Link

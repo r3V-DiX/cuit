@@ -6,7 +6,10 @@ import { ProfileVisibility } from "@prisma/client";
 export class ProfilesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getSeekerProfile(userId: string) {
+  async getSeekerProfile(
+    userId: string,
+    tracking?: { viewerId?: string; ip?: string; userAgent?: string }
+  ) {
     const user = await this.prisma.user.findFirst({
       where: {
         id: userId,
@@ -58,6 +61,21 @@ export class ProfilesService {
     }
 
     const profile = user.jobSeekerProfile;
+
+    // Track view asynchronously if it's not the user viewing their own profile
+    if (tracking && tracking.viewerId !== user.id) {
+      this.prisma.profileView.create({
+        data: {
+          profileId: profile.id,
+          viewerType: tracking.viewerId ? "USER" : "GUEST",
+          viewerId: tracking.viewerId || null,
+          ipAddress: tracking.ip || null,
+          userAgent: tracking.userAgent || null,
+        }
+      }).catch(err => {
+        console.error("Failed to track profile view", err);
+      });
+    }
 
     // 🕵️ ANONYMOUS → return skills only
     if (visibility === ProfileVisibility.ANONYMOUS) {
