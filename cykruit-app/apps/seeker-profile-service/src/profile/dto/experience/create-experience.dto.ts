@@ -42,7 +42,7 @@ export class CreateExperienceDto {
     message: "End date must be in YYYY-MM format",
   })
   endDate?: string;
-  @IsBoolean() current: boolean;
+  @IsBoolean() @IsOptional() current?: boolean;
   @IsString() @IsNotEmpty() @MinLength(5) @MaxLength(2000) description: string;
   @IsArray()
   @ArrayMinSize(1)

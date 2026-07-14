@@ -1,7 +1,7 @@
 // apps/seeker-profile-service/src/profile/services/ai-profile.service.ts
-import { Injectable, Logger } from "@nestjs/common";
-import { AIService, AI_PROMPTS, AITaskTier } from "@cykruit/ai";
-import { z } from "zod";
+import { Injectable, Logger, InternalServerErrorException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { AIService } from "@cykruit/ai";
 import { ProfileService } from "./profile.service";
 import { ExperienceService } from "./experience.service";
 import { EducationService } from "./education.service";
@@ -9,9 +9,8 @@ import { SkillsService } from "./skills.service";
 import { CertificationsService } from "./certifications.service";
 import { InjectQueue } from "@nestjs/bull";
 import { Queue } from "bull";
-import { SearchSkillsDto } from "../dto/skills/search-skills.dto";
-import { QueueService } from "@cykruit/queue";
 import { AI_QUEUES, AI_JOB_NAMES } from "@cykruit/ai";
+import { UpdateBasicInfoDto } from "../dto/update-basic-info.dto";
 
 import { PrismaService } from "@cykruit/prisma";
 
@@ -21,6 +20,7 @@ export class AIProfileService {
 
   constructor(
     private readonly aiService: AIService,
+    private readonly configService: ConfigService,
     private readonly profileService: ProfileService,
     private readonly experienceService: ExperienceService,
     private readonly educationService: EducationService,
@@ -35,17 +35,17 @@ export class AIProfileService {
     const text = await this.aiService.extractTextFromPDF(pdfBuffer);
     
     this.logger.log(`Parsing extracted text via ai-service`);
-    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+    const aiUrl = this.configService.get<string>('AI_SERVICE_URL');
     const res = await fetch(`${aiUrl}/ai/resume/parse`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text: text.substring(0, 30000) })
     });
-    
+
     if (!res.ok) {
-       throw new Error(`Failed to parse resume: ${res.statusText}`);
+      throw new InternalServerErrorException(`Failed to parse resume: ${res.statusText}`);
     }
-    const parsedData = (await res.json()) as any;
+    const parsedData = (await res.json()) as Record<string, unknown>;
 
     this.logger.log(`Applying parsed data to DB`);
     
@@ -66,26 +66,28 @@ export class AIProfileService {
     }
 
     // 1. Basic Info & Summary
-    const basicInfo: any = {};
-    if (parsedData.firstName) basicInfo.firstName = parsedData.firstName;
-    if (parsedData.lastName) basicInfo.lastName = parsedData.lastName;
-    if (parsedData.email) basicInfo.professionalEmail = parsedData.email;
-    if (parsedData.title) basicInfo.title = parsedData.title;
+    const basicInfo: Partial<UpdateBasicInfoDto> = {};
+    if (parsedData.firstName) basicInfo.firstName = parsedData.firstName as string;
+    if (parsedData.lastName) basicInfo.lastName = parsedData.lastName as string;
+    if (parsedData.email) basicInfo.professionalEmail = parsedData.email as string;
+    if (parsedData.title) basicInfo.title = parsedData.title as string;
     if (parsedData.location) {
-      const parts = parsedData.location.split(',').map((p: string) => p.trim());
+      const parts = (parsedData.location as string).split(',').map((p: string) => p.trim());
       if (parts.length >= 2) {
         basicInfo.location = { city: parts[0], state: parts.length > 2 ? parts[1] : undefined, country: parts[parts.length - 1] };
       } else {
         basicInfo.location = { city: parts[0], country: "Unknown" };
       }
     }
-    if (parsedData.linkedin) basicInfo.linkedinUrl = parsedData.linkedin;
-    if (parsedData.github) basicInfo.githubUrl = parsedData.github;
-    if (parsedData.portfolio) basicInfo.portfolioUrl = parsedData.portfolio;
-    if (parsedData.summary) basicInfo.bio = parsedData.summary;
+    if (parsedData.linkedin) basicInfo.linkedin = parsedData.linkedin as string;
+    if (parsedData.github) basicInfo.github = parsedData.github as string;
+    if (parsedData.portfolio) basicInfo.portfolio = parsedData.portfolio as string;
 
     if (Object.keys(basicInfo).length > 0) {
       await this.profileService.updateBasicInfo(userId, basicInfo).catch(e => this.logger.warn("Failed basic info update", e.message));
+    }
+    if (parsedData.summary) {
+      await this.profileService.updateSummary(userId, { summary: parsedData.summary as string }).catch(e => this.logger.warn("Failed summary update", e.message));
     }
 
     // 2. Experiences
@@ -150,7 +152,7 @@ export class AIProfileService {
 
         await this.skillsService.addSkill(userId, {
           skillId,
-          proficiency: "Intermediate" as any, // default
+          proficiency: "Intermediate" as "Beginner" | "Intermediate" | "Advanced" | "Expert",
           yearsOfExperience: 1,
         }).catch(e => this.logger.warn("Failed saving skill", e.message));
       }
@@ -204,7 +206,7 @@ export class AIProfileService {
     const skills = skillsRes.skills.map(s => s.skill.name);
     const experienceTitles = expRes.experiences.map(e => e.title);
 
-    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+    const aiUrl = this.configService.get<string>('AI_SERVICE_URL');
     const res = await fetch(`${aiUrl}/ai/profile/generate-bio`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -216,7 +218,7 @@ export class AIProfileService {
     });
 
     if (!res.ok) {
-      throw new Error("Failed to generate bio from AI service");
+      throw new InternalServerErrorException("Failed to generate bio from AI service");
     }
 
     const cleanedBio = await res.text();
@@ -234,7 +236,7 @@ export class AIProfileService {
     const skillsRes = await this.skillsService.getSkills(userId);
     const currentSkills = skillsRes.skills.map(s => s.skill.name);
 
-    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+    const aiUrl = this.configService.get<string>('AI_SERVICE_URL');
     const res = await fetch(`${aiUrl}/ai/profile/suggest-skills`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -245,10 +247,10 @@ export class AIProfileService {
     });
 
     if (!res.ok) {
-      throw new Error("Failed to suggest skills from AI service");
+      throw new InternalServerErrorException("Failed to suggest skills from AI service");
     }
 
-    const skillsList = await res.json() as string[];
+    const skillsList = (await res.json()) as string[];
     
     // Autosave directly to DB
     const addedSkills = [];
@@ -260,7 +262,7 @@ export class AIProfileService {
           const matchedSkill = searchRes.skills[0];
           await this.skillsService.addSkill(userId, {
             skillId: matchedSkill.id,
-            proficiency: "Intermediate" as any, // default
+            proficiency: "Intermediate" as "Beginner" | "Intermediate" | "Advanced" | "Expert",
             yearsOfExperience: 1,
           }).then(() => addedSkills.push(matchedSkill.name)).catch(e => this.logger.warn("Failed saving skill", e.message));
         }
@@ -287,7 +289,7 @@ export class AIProfileService {
        return { tips: ["Your profile is looking strong! Consider adding more detailed achievements to your experiences."] };
     }
 
-    const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+    const aiUrl = this.configService.get<string>('AI_SERVICE_URL');
     const res = await fetch(`${aiUrl}/ai/profile/tips`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -298,10 +300,10 @@ export class AIProfileService {
     });
 
     if (!res.ok) {
-      throw new Error("Failed to generate tips from AI service");
+      throw new InternalServerErrorException("Failed to generate tips from AI service");
     }
 
-    const tips = await res.json() as string[];
+    const tips = (await res.json()) as string[];
 
     return { tips };
   }
