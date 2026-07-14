@@ -55,9 +55,6 @@ export class MessagingService {
         if (userRole === 'SEEKER' && targetUser.role !== 'EMPLOYER') {
             throw new ForbiddenException('Seekers can only start conversations with employers.');
         }
-        if (targetUser.role === 'ADMIN' || userRole === 'ADMIN') {
-            throw new ForbiddenException('Admins cannot participate in these conversations.');
-        }
 
         // We pass seekerId and employerId — the repository needs to know which is which.
         const seekerId = userRole === 'SEEKER' ? userId : targetUserId;

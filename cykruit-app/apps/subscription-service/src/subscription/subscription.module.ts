@@ -27,15 +27,8 @@ import { SubscriptionExpiryService } from './services/subscription-expiry.servic
 import { PaymentService } from './services/payment.service';
 import { DiscountService } from './services/discount.service';
 import { EmployerEventsProcessor } from './processors/employer-events.processor';
-import { AdminGuard } from './guards/admin.guard';
-import {
-    PublicPackagesController,
-    AdminPackagesController,
-} from './controllers/packages.controller';
-import {
-    EmployerSubscriptionController,
-    AdminSubscriptionController,
-} from './controllers/subscription.controller';
+import { PublicPackagesController } from './controllers/packages.controller';
+import { EmployerSubscriptionController } from './controllers/subscription.controller';
 import { PaymentController } from './controllers/payment.controller';
 
 @Injectable()
@@ -91,9 +84,7 @@ export class SubscriptionSessionValidator implements ISessionValidator {
     ],
     controllers: [
         PublicPackagesController,
-        AdminPackagesController,
         EmployerSubscriptionController,
-        AdminSubscriptionController,
         PaymentController,
     ],
     providers: [
@@ -105,7 +96,6 @@ export class SubscriptionSessionValidator implements ISessionValidator {
         PaymentService,
         DiscountService,
         EmployerEventsProcessor,
-        AdminGuard,
         SubscriptionSessionValidator,
         // AppLogger is provided by LoggerModule (imported above) — listed here for clarity.
     ],

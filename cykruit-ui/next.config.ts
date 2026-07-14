@@ -105,30 +105,6 @@ const nextConfig: NextConfig = {
         source: "/api/ai/:path*",
         destination: `${AI_URL}/ai/:path*`,
       },
-      {
-        source: "/api/admin/users/:path*",
-        destination: `${AUTH_URL}/auth/admin/users/:path*`,
-      },
-      {
-        source: "/api/admin/dashboard",
-        destination: `${AUTH_URL}/auth/admin/dashboard`,
-      },
-      {
-        source: "/api/admin/audit-logs/:path*",
-        destination: `${AUTH_URL}/auth/admin/audit-logs/:path*`,
-      },
-      {
-        source: "/api/admin/kyc/:path*",
-        destination: `${EMPLOYER_URL}/employer/admin/kyc/:path*`,
-      },
-      {
-        source: "/api/admin/jobs/:path*",
-        destination: `${EMPLOYER_URL}/employer/admin/jobs/:path*`,
-      },
-      {
-        source: "/api/admin/subscriptions/:path*",
-        destination: `${SUBS_URL}/subscriptions/admin/:path*`,
-      },
     ];
   },
 };

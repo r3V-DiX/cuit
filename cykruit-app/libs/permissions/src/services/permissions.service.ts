@@ -8,7 +8,7 @@ import { PermissionCacheService } from './permission-cache.service';
 
 export interface PermissionContext {
     userId: string;
-    userRole: UserRole;    // SEEKER | EMPLOYER | ADMIN
+    userRole: UserRole;    // SEEKER | EMPLOYER
     employerId?: string;   // Company scope for employer-side checks
 }
 
@@ -116,14 +116,6 @@ export class PermissionsService {
     private async buildPermissionSet(ctx: PermissionContext): Promise<Set<string>> {
         const granted = new Set<string>();
 
-        // ADMIN has all permissions
-        if (ctx.userRole === UserRole.ADMIN) {
-            SEEKER_ONLY_ACTIONS.forEach(p => granted.add(p));
-            EMPLOYER_ONLY_ACTIONS.forEach(p => granted.add(p));
-            granted.add('*');
-            return granted;
-        }
-
         // SEEKER has seeker permissions only
         if (ctx.userRole === UserRole.SEEKER) {
             SEEKER_ONLY_ACTIONS.forEach(p => granted.add(p));
@@ -179,8 +171,6 @@ export class PermissionsService {
     }
 
     private accountTypeGate(role: UserRole, action: string): PermissionResult | null {
-        if (role === UserRole.ADMIN) return null;
-
         if (role === UserRole.SEEKER && EMPLOYER_ONLY_ACTIONS.has(action)) return 'DENIED';
         if (role === UserRole.EMPLOYER && SEEKER_ONLY_ACTIONS.has(action)) return 'DENIED';
 

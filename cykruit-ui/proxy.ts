@@ -49,8 +49,6 @@ const EMPLOYER_PREFIXES = [
 // so that invitees can accept an employer team invitation regardless of their
 // current account role.
 
-const ADMIN_PREFIXES = ["/admin"];
-
 const GUEST_ONLY = [
   "/login",
   "/register",
@@ -70,11 +68,10 @@ export function proxy(request: NextRequest) {
 
   const isSeekerRoute   = matchesAny(pathname, SEEKER_PREFIXES);
   const isEmployerRoute = matchesAny(pathname, EMPLOYER_PREFIXES);
-  const isAdminRoute    = matchesAny(pathname, ADMIN_PREFIXES);
   const isGuestOnly     = matchesAny(pathname, GUEST_ONLY);
 
   // Unauthenticated → login (preserve full path + query so invite tokens survive redirect)
-  if (!isAuthed && (isSeekerRoute || isEmployerRoute || isAdminRoute)) {
+  if (!isAuthed && (isSeekerRoute || isEmployerRoute)) {
     const loginUrl = new URL("/login", request.url);
     const fullPath = request.nextUrl.search
       ? `${pathname}${request.nextUrl.search}`

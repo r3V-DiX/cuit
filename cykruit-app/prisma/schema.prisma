@@ -16,7 +16,6 @@ datasource db {
 enum UserRole {
     SEEKER
     EMPLOYER
-    ADMIN // Reserved: employer-company admin (main app, future). NOT the admin console — console staff live in the Admin model.
 }
 
 enum AccountStatus {

@@ -15,9 +15,6 @@ import { AuthController } from "./controllers/auth.controller";
 import { OAuthController } from "./controllers/oauth.controller";
 import { SessionsController } from "./controllers/sessions.controller";
 import { AuditController } from "./controllers/audit.controller";
-import { AdminUsersController } from "./controllers/admin-users.controller";
-import { AdminDashboardController } from "./controllers/admin-dashboard.controller";
-import { AdminAuditController } from "./controllers/admin-audit.controller";
 
 import { AuthService } from "./services/auth.service";
 import { OtpService } from "./services/otp.service";
@@ -28,10 +25,6 @@ import { OAuthBaseService } from "./services/oauth/oauth-base.service";
 import { GoogleOAuthService } from "./services/oauth/google-oauth.service";
 import { GitHubOAuthService } from "./services/oauth/github-oauth.service";
 import { AuthRepository } from "./repositories/auth.repository";
-import { AdminUsersService } from "./services/admin-users.service";
-import { AdminDashboardService } from "./services/admin-dashboard.service";
-import { AdminAuditService } from "./services/admin-audit.service";
-import { AdminGuard } from "./guards/admin.guard";
 
 // ✅ CsrfGuard import from local guards REMOVED — now lives in @cykruit/auth-core
 
@@ -73,9 +66,6 @@ import { AdminGuard } from "./guards/admin.guard";
     OAuthController,
     SessionsController,
     AuditController,
-    AdminUsersController,
-    AdminDashboardController,
-    AdminAuditController,
   ],
   providers: [
     AuthService,
@@ -87,10 +77,6 @@ import { AdminGuard } from "./guards/admin.guard";
     GoogleOAuthService,
     GitHubOAuthService,
     AuthRepository,
-    AdminUsersService,
-    AdminDashboardService,
-    AdminAuditService,
-    AdminGuard,
   ],
   exports: [AuthService, OtpService, SessionService],
 })
