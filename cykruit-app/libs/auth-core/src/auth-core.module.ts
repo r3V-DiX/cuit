@@ -12,7 +12,9 @@ import {
 } from "./session-validator.interface";
 
 export interface AuthCoreModuleOptions {
-  sessionValidatorClass: new (...args: any[]) => ISessionValidator;
+  // Omit when a service has no use for session-based auth (e.g. only needs
+  // CsrfGuard) — AuthGuard/OptionalAuthGuard/SESSION_VALIDATOR are skipped.
+  sessionValidatorClass?: new (...args: any[]) => ISessionValidator;
   imports?: any[];
   enableCsrf?: boolean; // when true, registers CsrfGuard as APP_GUARD for the whole service
 }
@@ -35,23 +37,25 @@ export class AuthCoreModule {
           CsrfGuard,
         ];
 
+    const sessionProviders = options.sessionValidatorClass
+      ? [
+          {
+            provide: SESSION_VALIDATOR,
+            useClass: options.sessionValidatorClass,
+          },
+          AuthGuard,
+          OptionalAuthGuard,
+        ]
+      : [];
+
     return {
       module: AuthCoreModule,
       imports: [ConfigModule, ...(options.imports || [])],
-      providers: [
-        {
-          provide: SESSION_VALIDATOR,
-          useClass: options.sessionValidatorClass,
-        },
-        AuthGuard,
-        OptionalAuthGuard,
-        RolesGuard,
-        ...csrfProviders,
-      ],
+      providers: [...sessionProviders, RolesGuard, ...csrfProviders],
       exports: [
-        SESSION_VALIDATOR,
-        AuthGuard,
-        OptionalAuthGuard,
+        ...(options.sessionValidatorClass
+          ? [SESSION_VALIDATOR, AuthGuard, OptionalAuthGuard]
+          : []),
         RolesGuard,
         CsrfGuard, // always exported so controllers can inject it
       ],

@@ -9,25 +9,16 @@ import {
     Logger,
     Module,
     OnModuleInit,
-    UnauthorizedException,
-    ForbiddenException,
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { HttpModule } from '@nestjs/axios';
-import type { Request } from 'express';
 
 import { PrismaModule, PrismaService } from '@cykruit/prisma';
 import { CommonModule } from '@cykruit/common';
 import { MailModule } from '@cykruit/mail';
 import { RateLimitModule } from '@cykruit/rate-limit';
 import { EventsModule } from '@cykruit/events';
-import {
-    AuthCoreModule,
-    ISessionValidator,
-    ISessionValidationResult,
-    hashToken,
-} from '@cykruit/auth-core';
-import { UserRole } from '@prisma/client';
+import { AuthCoreModule } from '@cykruit/auth-core';
 
 // Auth
 import { AdminAuthController } from './auth/admin-auth.controller';
@@ -87,51 +78,6 @@ import { SettingsRepository } from './repositories/settings.repository';
 import { ReportsRepository } from './repositories/reports.repository';
 import { SubscriptionRepository } from './repositories/subscription.repository';
 
-@Injectable()
-export class AdminSessionValidator implements ISessionValidator {
-    constructor(private readonly prisma: PrismaService) {}
-
-    async validateSession(
-        token: string,
-        _ipAddress?: string,
-        _userAgent?: string,
-        _req?: Request,
-    ): Promise<ISessionValidationResult> {
-        const hashedToken = hashToken(token);
-
-        const session = await this.prisma.session.findFirst({
-            where: { token: hashedToken, isActive: true },
-        });
-
-        if (!session) {
-            throw new UnauthorizedException('Session not found or expired');
-        }
-
-        if (session.expiresAt && new Date() > session.expiresAt) {
-            await this.prisma.session.update({
-                where: { id: session.id },
-                data: { isActive: false, revokedAt: new Date(), revokedBy: 'expiry' },
-            });
-            throw new UnauthorizedException('Session expired');
-        }
-
-        const user = await this.prisma.user.findUnique({
-            where: { id: session.userId },
-        });
-
-        if (!user) {
-            throw new UnauthorizedException('User not found');
-        }
-
-        // Hard block at session validation layer — admin domain only
-        if (user.role !== UserRole.ADMIN) {
-            throw new ForbiddenException('Admin access only');
-        }
-
-        return { user };
-    }
-}
-
 // Every root-admin protection in RbacService/AdminsService (see
 // rbac/protected-admin.util.ts) is gated on RBAC_BOOTSTRAP_ADMIN_EMAIL resolving to
 // a real, active admin. If it's unset or stale, those guards silently no-op — warn
@@ -185,7 +131,6 @@ export class RootAdminBootstrapCheck implements OnModuleInit {
         HttpModule,
         EventsModule.forPublisher(),
         AuthCoreModule.forRoot({
-            sessionValidatorClass: AdminSessionValidator,
             imports: [PrismaModule, ConfigModule],
             enableCsrf: true,
         }),
@@ -209,7 +154,6 @@ export class RootAdminBootstrapCheck implements OnModuleInit {
         MeController,
     ],
     providers: [
-        AdminSessionValidator,
         RootAdminBootstrapCheck,
         AdminAuthService,
         AdminAuthGuard,
