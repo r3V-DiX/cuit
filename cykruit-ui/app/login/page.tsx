@@ -214,7 +214,7 @@ function LoginForm() {
     if (otp.length !== 6) { toast({ type: "error", message: "Enter the 6-digit OTP" }); return; }
     setLoading(true);
     try {
-      const result = await apiFetch("/api/auth/verify-otp", {
+      const result = await apiFetch<{ role?: string }>("/api/auth/verify-otp", {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ email: email.trim().toLowerCase(), otp, rememberMe: true }),
@@ -269,7 +269,7 @@ function LoginForm() {
 
   async function handleGoogleSignIn() {
     try {
-      const result = await apiFetch(`/api/auth/google?role=${role}`);
+      const result = await apiFetch<{ url?: string }>(`/api/auth/google?role=${role}`);
       if (result.data?.url) {
         window.location.href = result.data.url;
       } else {

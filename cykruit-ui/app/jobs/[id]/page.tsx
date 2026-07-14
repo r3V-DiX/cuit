@@ -73,7 +73,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   useEffect(() => {
     async function loadJob() {
       try {
-        const result = await apiFetch(`/api/public/jobs/${id}`);
+        const result = await apiFetch<any>(`/api/public/jobs/${id}`);
         if (result && result.data) {
           const jobData = result.data;
           const parsed = parseDescription(jobData.description || "");
@@ -113,13 +113,13 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
   useEffect(() => {
     if (!job || !user) return;
-    apiFetch(`/api/seeker/saved-jobs`)
+    apiFetch<{ items?: any[] }>(`/api/seeker/saved-jobs`)
       .then((body) => {
         const items = body?.data?.items ?? [];
         setIsSaved(items.some((s: any) => s.job?.id === job.id));
       })
       .catch(() => {});
-    apiFetch(`/api/seeker/applications`)
+    apiFetch<{ items?: any[] }>(`/api/seeker/applications`)
       .then((body) => {
         const items = body?.data?.items ?? [];
         setIsApplied(items.some((a: any) => a.jobId === job.id));

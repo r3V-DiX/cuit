@@ -69,7 +69,7 @@ export default function SavedPage() {
   const fetchSaved = useCallback(async () => {
     setLoading(true);
     try {
-      const body = await apiFetch("/api/seeker/saved-jobs?limit=50");
+      const body = await apiFetch<{ items: unknown[] }>("/api/seeker/saved-jobs?limit=50");
       setJobs((body?.data?.items ?? []).map(mapItem));
     } catch {
       toast({ type: "error", message: "Failed to load saved jobs" });

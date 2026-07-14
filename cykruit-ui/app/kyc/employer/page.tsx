@@ -72,7 +72,7 @@ export default function EmployerKYCPage() {
   useEffect(() => {
     async function checkStatus() {
       try {
-        const { data } = await apiFetch("/api/employer/kyc/status");
+        const { data } = await apiFetch<{ isVerified?: boolean; verification?: { status?: string }; companyId?: string }>("/api/employer/kyc/status");
         if (data?.isVerified) { router.replace("/employer/dashboard"); return; }
         const vs = data?.verification?.status;
         if (vs === "PENDING" || vs === "UNDER_REVIEW") {
@@ -81,7 +81,7 @@ export default function EmployerKYCPage() {
           // Company already set up — fetch real data to populate step-1 fields
           // so the user sees their saved details if they navigate back.
           try {
-            const { data: co } = await apiFetch("/api/employer/company/me");
+            const { data: co } = await apiFetch<{ companyName?: string; location?: string; companyType?: string; industry?: string; companySize?: string; companyWebsite?: string; contactEmail?: string }>("/api/employer/company/me");
             if (co) {
               setLegalName(co.companyName ?? "");
               setLocation(co.location ?? "");

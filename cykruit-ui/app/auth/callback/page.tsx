@@ -14,12 +14,12 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     async function completeAuth() {
       try {
-        const { data } = await apiFetch("/api/auth/me");
+        const { data } = await apiFetch<{ role?: string; employerStatus?: { hasProfile?: boolean; needsVerification?: boolean } }>("/api/auth/me");
         const role = data?.role;
         broadcastLogin(role === "EMPLOYER" ? "EMPLOYER" : "SEEKER");
         toast({ type: "success", message: "Signed in successfully" });
         if (role === "EMPLOYER") {
-          const es = data?.employerStatus;
+          const es = data?.employerStatus as { hasProfile?: boolean; needsVerification?: boolean } | undefined;
           if (!es?.hasProfile || es?.needsVerification) {
             router.push("/kyc/employer");
             return;

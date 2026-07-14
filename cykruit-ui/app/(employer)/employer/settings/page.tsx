@@ -127,23 +127,26 @@ export default function EmployerSettingsPage() {
     async function loadSettings() {
       try {
         const [me, s, companyRes, subRes] = await Promise.all([
-          apiFetch("/api/auth/me"),
-          apiFetch("/api/settings/employer"),
-          apiFetch("/api/employer/company/me").catch(() => null),
+          apiFetch<{ firstName?: string; lastName?: string; name?: string; fullName?: string; email?: string }>("/api/auth/me"),
+          apiFetch<{ notifications?: Record<string, unknown>; profileVisibility?: "PUBLIC" | "PRIVATE"; showCompanyDetailsBeforeApply?: boolean }>("/api/settings/employer"),
+          apiFetch<{ companySize?: string; contactEmail?: string }>("/api/employer/company/me").catch(() => null),
           apiFetch<SubSummary>("/api/subscriptions/usage").catch(() => null),
         ]);
-        const u = me?.data ?? me;
-        const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ");
-        setLocked({ name: fullName || u.name || u.fullName || "", email: u.email ?? "" });
-        const d = s?.data ?? s;
-        const n = d?.notifications;
-        if (n !== undefined) setNotifs((prev) => ({ ...prev, ...n }));
-        if (d?.profileVisibility)          setProfileVisibility(d.profileVisibility);
-        if (d?.showCompanyDetailsBeforeApply !== undefined) setShowCompanyDetails(d.showCompanyDetailsBeforeApply);
+        const u = me?.data;
+        if (u) {
+          const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ");
+          setLocked({ name: fullName || u.name || u.fullName || "", email: u.email ?? "" });
+        }
+        const d = s?.data;
+        if (d) {
+          if (d.notifications !== undefined) setNotifs((prev) => ({ ...prev, ...(d.notifications as typeof prev) }));
+          if (d.profileVisibility)                          setProfileVisibility(d.profileVisibility);
+          if (d.showCompanyDetailsBeforeApply !== undefined) setShowCompanyDetails(d.showCompanyDetailsBeforeApply);
+        }
         if (companyRes) {
-          const c = companyRes.data ?? companyRes;
-          if (c.companySize)   setCompanySize(c.companySize);
-          if (c.contactEmail)  setContactEmail(c.contactEmail);
+          const c = companyRes.data;
+          if (c?.companySize)   setCompanySize(c.companySize);
+          if (c?.contactEmail)  setContactEmail(c.contactEmail);
         }
         if (subRes?.data) setSubSummary(subRes.data);
       } catch {

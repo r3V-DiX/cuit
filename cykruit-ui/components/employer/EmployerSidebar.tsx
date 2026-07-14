@@ -68,8 +68,8 @@ export default function EmployerSidebar() {
 
     async function fetchLatestConversations() {
       try {
-        const res = await apiFetch("/api/conversations");
-        const items = Array.isArray(res?.data) ? res.data : (res?.data?.items ?? []);
+        const res = await apiFetch<unknown[] | { items?: unknown[] }>("/api/conversations");
+        const items = Array.isArray(res?.data) ? res.data : ((res?.data as { items?: unknown[] })?.items ?? []);
         // Save to localStorage so updateCounts picks it up
         if (items.length > 0) {
           localStorage.setItem("cykruit_messages", JSON.stringify(items));

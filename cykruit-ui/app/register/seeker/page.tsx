@@ -177,7 +177,7 @@ export default function SeekerRegisterPage() {
 
   async function handleGoogleSignUp() {
     try {
-      const result = await apiFetch("/api/auth/google?role=SEEKER");
+      const result = await apiFetch<{ url?: string }>("/api/auth/google?role=SEEKER");
       if (result.data?.url) window.location.href = result.data.url;
       else toast({ type: "error", message: "Failed to get Google sign-in URL" });
     } catch {

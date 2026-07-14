@@ -46,7 +46,7 @@ export default function ApplicationDetailPage() {
   useEffect(() => {
     async function fetchApp() {
       try {
-        const { data } = await apiFetch(`/api/seeker/applications/${id}`);
+        const { data } = await apiFetch<any>(`/api/seeker/applications/${id}`);
         setApp({
           id: data.id,
           role: data.job.jobTitle,

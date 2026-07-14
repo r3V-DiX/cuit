@@ -62,13 +62,13 @@ export default function TeamPage() {
     setLoading(true);
     try {
       const [teamRes, meRes, usageRes] = await Promise.all([
-        apiFetch("/api/employer/team"),
-        apiFetch("/api/auth/me"),
+        apiFetch<{ items?: Member[] }>("/api/employer/team"),
+        apiFetch<{ id?: string }>("/api/auth/me"),
         apiFetch<{ limits?: { maxTeamMembers: number } }>("/api/subscriptions/usage").catch(() => null),
       ]);
-      const items: Member[] = teamRes.data?.items ?? teamRes.data ?? [];
+      const items: Member[] = (teamRes.data?.items ?? []) as Member[];
       setMembers(items);
-      const myId = meRes.data?.id;
+      const myId = meRes.data?.id ?? null;
       setMyUserId(myId);
       const me = items.find((m) => m.userId === myId);
       setMyRole(me?.role ?? null);

@@ -115,7 +115,7 @@ export default function SettingsPage() {
   useEffect(() => {
     async function loadAllSettings() {
       try {
-        const userResult = await apiFetch("/api/auth/me");
+        const userResult = await apiFetch<{ firstName?: string; lastName?: string; email?: string; provider?: string }>("/api/auth/me");
         if (userResult.data) {
           const user = userResult.data;
           setLockedUser({
@@ -125,7 +125,7 @@ export default function SettingsPage() {
           setGoogleAuth(user.provider === "GOOGLE" || user.provider === "GITHUB");
         }
 
-        const settingsResult = await apiFetch("/api/settings");
+        const settingsResult = await apiFetch<{ general?: Record<string, any>; notifications?: Record<string, any> }>("/api/settings");
         if (settingsResult.data) {
           const data = settingsResult.data;
           const gen = data.general || {};
@@ -158,7 +158,7 @@ export default function SettingsPage() {
           });
         }
 
-        const profileResult = await apiFetch("/api/profile");
+        const profileResult = await apiFetch<{ basicInfo?: { phone?: string; location?: { city?: string; country?: string }; title?: string } }>("/api/profile");
         if (profileResult.data) {
           const basics = profileResult.data.basicInfo || {};
           const phoneVal = basics.phone || "";

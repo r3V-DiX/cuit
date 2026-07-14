@@ -13,7 +13,7 @@ export default function SeekerTopbar({ title }: { title: string }) {
   useEffect(() => {
     async function loadUser() {
       try {
-        const result = await apiFetch("/api/auth/me");
+        const result = await apiFetch<{ firstName?: string; lastName?: string; profileImage?: string }>("/api/auth/me");
         if (result.data) {
           const user = result.data;
           const first = user.firstName || "";
@@ -29,7 +29,7 @@ export default function SeekerTopbar({ title }: { title: string }) {
       }
 
       try {
-        const notifResult = await apiFetch("/api/notifications/unread-count");
+        const notifResult = await apiFetch<{ count?: number }>("/api/notifications/unread-count");
         setHasUnread(!!notifResult.data?.count);
       } catch (err) {
         // Graceful fallback

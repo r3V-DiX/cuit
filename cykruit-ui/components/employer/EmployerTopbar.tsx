@@ -13,7 +13,7 @@ export default function EmployerTopbar({ title }: { title: string }) {
   useEffect(() => {
     async function loadUser() {
       try {
-        const { data } = await apiFetch("/api/auth/me");
+        const { data } = await apiFetch<{ firstName?: string; lastName?: string; profileImage?: string }>("/api/auth/me");
         if (data) {
           const user = data;
           const first = user.firstName || "";

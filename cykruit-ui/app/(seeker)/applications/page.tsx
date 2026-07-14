@@ -7,8 +7,7 @@ import {
   MapPin, Clock, Search, X, ChevronRight,
   ArrowUpDown, CheckCircle2, Eye, XCircle, Send, Inbox,
 } from "lucide-react";
-import type { AppStatus, Application } from "./data";
-import { SEED } from "./data";
+import type { AppStatus } from "./data";
 import { apiFetch } from "@/lib/api";
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -25,8 +24,10 @@ const TABS: (AppStatus | "All")[] = ["All", "Applied", "Under Review", "Shortlis
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+type AppListItem = { id: string; role: string; company: string; location: string; type: string; applied: string; status: AppStatus };
+
 export default function ApplicationsPage() {
-  const [apps, setApps] = useState<Application[]>([]);
+  const [apps, setApps] = useState<AppListItem[]>([]);
 
   const [activeTab, setActiveTab] = useState<AppStatus | "All">("All");
   const [search, setSearch] = useState("");
@@ -44,31 +45,27 @@ export default function ApplicationsPage() {
         params.append("sort", sort);
         if (search.trim()) params.append("search", search.trim());
         if (activeTab !== "All") {
-          const statusMap: Record<string, string> = {
-            "Applied": "APPLIED",
-            "Under Review": "UNDER_REVIEW",
-            "Shortlisted": "SHORTLISTED",
-            "Rejected": "REJECTED",
-            "Withdrawn": "WITHDRAWN"
+          const labelToApi: Record<string, string> = {
+            "Applied": "APPLIED", "Under Review": "UNDER_REVIEW", "Shortlisted": "SHORTLISTED",
+            "Rejected": "REJECTED", "Withdrawn": "WITHDRAWN",
           };
-          params.append("status", statusMap[activeTab]);
+          params.append("status", labelToApi[activeTab]);
         }
 
-        const { data } = await apiFetch(`/api/seeker/applications?${params.toString()}`);
+        const { data } = await apiFetch<{ items?: any[]; meta?: { totalPages?: number; total?: number } }>(`/api/seeker/applications?${params.toString()}`);
         const items = data?.items || [];
-        const mapped = items.map((a: any) => ({
+        const statusMap: Record<string, AppStatus> = {
+          APPLIED: "Applied", UNDER_REVIEW: "Under Review", SHORTLISTED: "Shortlisted",
+          REJECTED: "Rejected", WITHDRAWN: "Withdrawn",
+        };
+        const mapped: AppListItem[] = items.map((a: any) => ({
           id: a.id,
           role: a.job.jobTitle,
           company: a.job.employer.companyName,
           location: a.job.locationType || a.job.location || "Remote",
           type: a.job.jobType || "Full-time",
           applied: new Date(a.appliedAt).toLocaleDateString(),
-          status: a.status === "APPLIED" ? "Applied"
-            : a.status === "UNDER_REVIEW" ? "Under Review"
-            : a.status === "SHORTLISTED" ? "Shortlisted"
-            : a.status === "REJECTED" ? "Rejected"
-            : a.status === "WITHDRAWN" ? "Withdrawn"
-            : "Applied",
+          status: statusMap[a.status] ?? "Applied",
         }));
         setApps(mapped);
         setTotalPages(data?.meta?.totalPages || 1);

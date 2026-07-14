@@ -30,7 +30,7 @@ const WS_URL =
 
 async function fetchWsToken(): Promise<string | null> {
   try {
-    const { data } = await apiFetch("/api/notifications/ws/token");
+    const { data } = await apiFetch<{ token?: string }>("/api/notifications/ws/token");
     return data?.token ?? null;
   } catch {
     return null;

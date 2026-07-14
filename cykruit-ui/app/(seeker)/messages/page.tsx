@@ -65,8 +65,8 @@ export default function SeekerMessagesPage() {
     async function init() {
       try {
         const [meResult, convsResult] = await Promise.all([
-          apiFetch("/api/auth/me").catch(() => null),
-          apiFetch("/api/conversations").catch(() => null),
+          apiFetch<{ id?: string; firstName?: string; lastName?: string }>("/api/auth/me").catch(() => null),
+          apiFetch<{ items?: unknown[] } | unknown[]>("/api/conversations").catch(() => null),
         ]);
 
         let userId = "";
@@ -117,7 +117,7 @@ export default function SeekerMessagesPage() {
             const firstId = mapped[0].id;
             setActiveId(firstId);
             try {
-              const fullResult = await apiFetch(`/api/conversations/${firstId}`);
+              const fullResult = await apiFetch<{ messages?: any[] }>(`/api/conversations/${firstId}`);
               const fullMessages: Message[] = (fullResult.data?.messages || []).map((msg: any) => ({
                 id: msg.id,
                 from: msg.senderId === userId ? "seeker" : "employer",
@@ -155,7 +155,7 @@ export default function SeekerMessagesPage() {
     setActiveId(id);
     setConvs((prev) => prev.map((c) => c.id === id ? { ...c, seekerUnread: 0 } : c));
     try {
-      const convResult = await apiFetch(`/api/conversations/${id}`);
+      const convResult = await apiFetch<{ messages?: any[] }>(`/api/conversations/${id}`);
       apiFetch(`/api/conversations/${id}/read`, { method: "PATCH", headers: authHeaders() }).catch(() => {});
       const messages: Message[] = (convResult.data?.messages || []).map((msg: any) => ({
         id: msg.id,
@@ -178,7 +178,7 @@ export default function SeekerMessagesPage() {
     const content = input.trim();
     setInput("");
     try {
-      const result = await apiFetch(`/api/conversations/${activeId}/messages`, {
+      const result = await apiFetch<{ id: string; content: string; createdAt: string }>(`/api/conversations/${activeId}/messages`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ content }),

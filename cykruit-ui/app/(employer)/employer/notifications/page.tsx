@@ -61,7 +61,7 @@ export default function EmployerNotificationsPage() {
   const fetchNotifs = useCallback(async () => {
     setLoading(true);
     try {
-      const body = await apiFetch("/api/notifications?limit=50");
+      const body = await apiFetch<{ items: unknown[] }>("/api/notifications?limit=50");
       setNotifs(
         (body?.data?.items ?? []).map((n: any): Notification => ({
           id: n.id,
