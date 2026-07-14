@@ -35,14 +35,7 @@ export const baseTemplate = (content: string, preheader = ""): string => `
                 <tr>
                   <td align="left" style="padding:32px 32px 0 32px;">
                           <!-- logo box -->
-                          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                            <tr>
-                              <td align="center" valign="middle" style="width:40px;height:40px;background-color:#1d4ed8;border-radius:10px;text-align:center;font-size:24px;font-weight:800;color:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
-                                C
-                              </td>
-                            </tr>
-                          </table>
-                          <p style="margin:16px 0 0;font-size:18px;font-weight:700;color:#0f172a;letter-spacing:1px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">CYKRUIT</p>
+                          <img src="https://www.cykruit.com/white-bg-logo.svg" alt="Cykruit" style="height:40px; display:block; border:none;" />
                   </td>
                 </tr>
               </table>
