@@ -87,8 +87,10 @@ export default function EmployerDashboardPage() {
     async function fetchUser() {
       try {
         const result = await apiFetch("/api/auth/me");
-        if (result.data?.firstName) {
-          setDisplayName(result.data.firstName);
+        const resData = result as any;
+        const dataObj = resData?.data || resData;
+        if (dataObj?.firstName) {
+          setDisplayName(dataObj.firstName);
         }
       } catch {
         // Silent catch for guest fallback
@@ -106,9 +108,9 @@ export default function EmployerDashboardPage() {
           apiFetch("/api/employer/jobs").catch(() => ({ data: { items: [] } })),
           apiFetch("/api/employer/applications").catch(() => ({ data: { items: [] } })),
         ]);
-        const jobsRaw = jobsData.data;
+        const jobsRaw = jobsData.data as any;
         const jobsArr: ApiJob[] = Array.isArray(jobsRaw) ? jobsRaw : (jobsRaw?.items ?? []);
-        const appsRaw = appsData.data;
+        const appsRaw = appsData.data as any;
         const appsArr: ApiApplication[] = Array.isArray(appsRaw) ? appsRaw : (appsRaw?.items ?? []);
         setJobs(jobsArr);
         setApplications(appsArr);

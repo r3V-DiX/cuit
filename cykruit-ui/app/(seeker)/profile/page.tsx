@@ -12,73 +12,7 @@ import {
 } from "lucide-react";
 import { FaLinkedinIn, FaGithub, FaXTwitter } from "react-icons/fa6";
 import { Country, State, City } from "country-state-city";
-import Select from "react-select";
-
 // ─── Seed data ────────────────────────────────────────────────────────────────
-
-const selectStyles = {
-  control: (base: any, state: any) => ({
-    ...base,
-    backgroundColor: state.isDisabled ? '#f1f5f9' : '#f8fafc',
-    border: `1px solid ${state.isFocused ? '#60a5fa' : '#e2e8f0'}`,
-    borderRadius: '0.75rem',
-    boxShadow: 'none',
-    minHeight: '2.5rem',
-    fontSize: '0.875rem',
-    opacity: state.isDisabled ? 0.6 : 1,
-    cursor: state.isDisabled ? 'not-allowed' : 'default',
-    transition: 'border-color 0.15s',
-    '&:hover': { borderColor: state.isFocused ? '#60a5fa' : '#cbd5e1' },
-  }),
-  placeholder: (base: any) => ({
-    ...base,
-    color: '#94a3b8',
-    fontSize: '0.875rem',
-  }),
-  singleValue: (base: any, state: any) => ({
-    ...base,
-    color: state.isDisabled ? '#94a3b8' : '#334155',
-    fontSize: '0.875rem',
-  }),
-  input: (base: any) => ({
-    ...base,
-    color: '#334155',
-    fontSize: '0.875rem',
-  }),
-  option: (base: any, state: any) => ({
-    ...base,
-    backgroundColor: state.isSelected ? '#eff6ff' : state.isFocused ? '#f1f5f9' : 'white',
-    color: state.isSelected ? '#1d4ed8' : '#334155',
-    fontSize: '0.875rem',
-    cursor: 'pointer',
-  }),
-  menu: (base: any) => ({
-    ...base,
-    borderRadius: '0.75rem',
-    border: '1px solid #e2e8f0',
-    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05)',
-    overflow: 'hidden',
-    zIndex: 50,
-  }),
-  menuList: (base: any) => ({
-    ...base,
-    padding: '0.25rem',
-  }),
-  dropdownIndicator: (base: any, state: any) => ({
-    ...base,
-    color: state.isDisabled ? '#cbd5e1' : '#94a3b8',
-    '&:hover': { color: '#64748b' },
-  }),
-  clearIndicator: (base: any) => ({
-    ...base,
-    color: '#94a3b8',
-    '&:hover': { color: '#64748b' },
-  }),
-  indicatorSeparator: () => ({ display: 'none' }),
-};
-
-
-
 const sections = [
   { id: "basics", label: "Basic Details", icon: User },
   { id: "bio", label: "Bio & Skills", icon: User },
@@ -1235,41 +1169,47 @@ export default function ProfilePage() {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Country</label>
-                          <Select 
-                            options={availableCountries.map(c => ({ value: c.name, label: c.name }))}
-                            value={countryName ? { value: countryName, label: countryName } : null}
-                            onChange={(val: any) => { setCountryName(val?.value || ""); setStateName(""); setCityName(""); }}
-                            placeholder="Select Country"
-                            styles={selectStyles}
-                            isClearable
-                          />
+                          <select 
+                            value={countryName}
+                            onChange={(e) => { setCountryName(e.target.value); setStateName(""); setCityName(""); }}
+                            className={`${field} cursor-pointer bg-white`}
+                          >
+                            <option value="">Select Country</option>
+                            {availableCountries.map(c => (
+                              <option key={c.isoCode} value={c.name}>{c.name}</option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">State/Region</label>
-                          <Select 
-                            options={availableStates.map(s => ({ value: s.name, label: s.name }))}
-                            value={stateName ? { value: stateName, label: stateName } : null}
-                            onChange={(val: any) => { setStateName(val?.value || ""); setCityName(""); }}
-                            isDisabled={!selectedCountry || availableStates.length === 0}
-                            placeholder="Select State"
-                            styles={selectStyles}
-                            isClearable
-                          />
+                          <select 
+                            value={stateName}
+                            onChange={(e) => { setStateName(e.target.value); setCityName(""); }}
+                            disabled={!selectedCountry || availableStates.length === 0}
+                            className={`${field} cursor-pointer bg-white disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50`}
+                          >
+                            <option value="">Select State</option>
+                            {availableStates.map(s => (
+                              <option key={s.isoCode} value={s.name}>{s.name}</option>
+                            ))}
+                          </select>
                         </div>
                         <div>
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">City</label>
                           {availableCities.length > 0 ? (
-                            <Select 
-                              options={availableCities.map(c => ({ value: c.name, label: c.name }))}
-                              value={cityName ? { value: cityName, label: cityName } : null}
-                              onChange={(val: any) => setCityName(val?.value || "")}
-                              isDisabled={!selectedState}
-                              placeholder="Select City"
-                              styles={selectStyles}
-                              isClearable
-                            />
+                            <select 
+                              value={cityName}
+                              onChange={(e) => setCityName(e.target.value)}
+                              disabled={!selectedState}
+                              className={`${field} cursor-pointer bg-white disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-50`}
+                            >
+                              <option value="">Select City</option>
+                              {availableCities.map(c => (
+                                <option key={c.name} value={c.name}>{c.name}</option>
+                              ))}
+                            </select>
                           ) : (
-                            <input value={cityName} onChange={(e) => setCityName(e.target.value)} placeholder="City name" disabled={!selectedCountry} maxLength={100} className={field} />
+                            <input value={cityName} onChange={(e) => setCityName(e.target.value)} placeholder="City name" disabled={!selectedCountry} maxLength={100} className={`${field} disabled:opacity-50 disabled:cursor-not-allowed`} />
                           )}
                         </div>
                       </div>

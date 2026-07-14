@@ -186,10 +186,11 @@ export default function ActivityPage() {
       const params = new URLSearchParams({ page: String(authPage), limit: "50" });
       if (authSearch) params.set("search", authSearch);
       const { data } = await apiFetch(`/api/employer/activity/auth?${params}`);
-      setAuthLogs(data?.items ?? []);
-      setAuthMeta(data?.meta ?? null);
+      const authData = data as any;
+      setAuthLogs(authData?.items ?? []);
+      setAuthMeta(authData?.meta ?? null);
     } catch (err: unknown) {
-      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to load auth logs") });
+      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to load authentication activity") });
     } finally { setAuthLoading(false); }
   }, [authPage, authSearch, toast]);
 

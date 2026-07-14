@@ -320,8 +320,8 @@ export default function PostJobPage() {
           })) : undefined,
         }),
       });
-
-      const jobId = result.data?.id;
+      const resData = result as any;
+      const jobId = resData.data?.id;
       if (!jobId) {
         throw new Error("Job ID not returned from server");
       }

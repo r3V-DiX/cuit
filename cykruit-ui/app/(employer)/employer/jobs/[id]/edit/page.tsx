@@ -95,7 +95,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
     const fetchJob = async () => {
       try {
         const result = await apiFetch(`/api/employer/jobs/${id}`);
-        const rawJob = result.data || result;
+        const rawJob = (result.data || result) as any;
         if (rawJob && rawJob.id) {
             setInitialJob(rawJob);
             setTitle(rawJob.jobTitle || "");

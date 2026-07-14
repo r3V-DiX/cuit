@@ -172,7 +172,8 @@ export default function CompanyProfilePage() {
         headers: authHeaders(),
         body: JSON.stringify({ title: v, description: "" }),
       });
-      const perkId = benefitRes?.data?.id ?? (benefitRes as any)?.id ?? undefined;
+      const benefitResData = benefitRes as any;
+      const perkId = benefitResData?.data?.id ?? benefitResData?.id ?? undefined;
       setPerks((prev) => [...prev, { id: perkId, name: v }]);
       toast({ type: "success", message: `Perk "${v}" added` });
     } catch (err: unknown) {

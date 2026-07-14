@@ -20,7 +20,7 @@ export interface ApiResult<T> {
   info?: { code: string; message: string };
 }
 
-export async function apiFetch<T = unknown>(
+export async function apiFetch<T = any>(
   url: string,
   options?: RequestInit,
 ): Promise<ApiResult<T>> {

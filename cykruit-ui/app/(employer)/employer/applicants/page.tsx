@@ -48,7 +48,8 @@ export default function ApplicantsPage() {
       setLoading(true);
       try {
         const { data } = await apiFetch("/api/employer/applications");
-        const items = data?.items || [];
+        const listData = data as any;
+        const items = listData?.items || [];
         setApplicants(items);
 
         // Dynamically populate job options from the fetched applications

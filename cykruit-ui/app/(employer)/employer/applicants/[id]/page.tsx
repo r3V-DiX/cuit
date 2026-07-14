@@ -37,12 +37,12 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
       try {
         const { data } = await apiFetch(`/api/employer/applications/${id}`);
         setApp(data);
-
+        const appData = data as any;
         let mappedStatus: AppStatus = "New";
-        if (data.status === "UNDER_REVIEW") mappedStatus = "Under Review";
-        if (data.status === "SHORTLISTED") mappedStatus = "Shortlisted";
-        if (data.status === "REJECTED") mappedStatus = "Rejected";
-        if (data.status === "WITHDRAWN") mappedStatus = "Withdrawn";
+        if (appData.status === "UNDER_REVIEW") mappedStatus = "Under Review";
+        if (appData.status === "SHORTLISTED") mappedStatus = "Shortlisted";
+        if (appData.status === "REJECTED") mappedStatus = "Rejected";
+        if (appData.status === "WITHDRAWN") mappedStatus = "Withdrawn";
         setStatus(mappedStatus);
       } catch (err) {
         if (process.env.NODE_ENV === 'development') console.error(err);

@@ -288,7 +288,7 @@ export default function DashboardPage() {
                 numColor: "text-amber-600",
                 icon:     <Bookmark className="w-5 h-5" />,
               },
-            ].map(({ label, sublabel, value, href, iconBg, numColor, icon }) => (
+            ].map(({ label, sublabel, value, href, iconBg, numColor, icon }: { label: string; sublabel?: string; value: number; href: string; iconBg: string; numColor: string; icon: React.ReactElement }) => (
               <Link
                 key={label}
                 href={href}

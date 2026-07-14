@@ -122,7 +122,8 @@ export default function EmployerMessagesPage() {
         const meData: any = meResult.status === "fulfilled" ? meResult.value : {};
         const userId: string = meData?.data?.id ?? meData?.id ?? "";
         setCurrentUserId(userId);
-        const items: any[] = Array.isArray(convsData?.data) ? convsData.data : (convsData?.data?.items ?? []);
+        const convsDataObj = convsData as any;
+        const items: any[] = Array.isArray(convsDataObj?.data) ? convsDataObj.data : (convsDataObj?.data?.items ?? []);
         const mapped = items.map((c, i) => mapApiConv(c, i));
         setConvs(mapped);
         if (mapped.length > 0) setActiveId(mapped[0].id);
@@ -156,7 +157,7 @@ export default function EmployerMessagesPage() {
         ]);
         const fullResult = results[0];
         if (fullResult.status === "fulfilled") {
-          const full = fullResult.value?.data ?? fullResult.value;
+          const full = (fullResult.value?.data ?? fullResult.value) as any;
           const msgs: Message[] = (full.messages ?? []).map((m: any) => ({
             id: m.id,
             from: m.senderId === currentUserId ? ("employer" as const) : ("seeker" as const),
@@ -193,7 +194,7 @@ export default function EmployerMessagesPage() {
         headers: authHeaders(),
         body: JSON.stringify({ content }),
       });
-      const savedMsg = data?.data ?? data;
+      const savedMsg = (data?.data ?? data) as any;
       const newMsg: Message = {
         id: savedMsg?.id ?? String(Date.now()),
         from: "employer",
