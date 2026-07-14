@@ -20,6 +20,8 @@ export interface ApiResult<T> {
   info?: { code: string; message: string };
 }
 
+let _loggingOut = false;
+
 export async function apiFetch<T = unknown>(
   url: string,
   options?: RequestInit,
@@ -44,11 +46,24 @@ export async function apiFetch<T = unknown>(
   }
 
   if (response.status === 401 && typeof window !== 'undefined') {
-    // Call logout first so the server clears the httpOnly session_token cookie.
-    // Without this, the proxy sees session_token still present and redirects /login
-    // back to the protected route, creating an infinite loop.
+    // Deduplicate: if another 401 already triggered logout+redirect, bail out.
+    if (_loggingOut) return { data: undefined as unknown as T };
+    _loggingOut = true;
+
+    // Call logout with CSRF header so the server can clear the httpOnly
+    // session_token cookie. Without the CSRF header the logout endpoint
+    // returns 403 CSRF_TOKEN_MISSING and the cookie is never cleared,
+    // which re-creates the proxy redirect loop on the next page load.
     try {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      const csrf = document.cookie
+        .split('; ')
+        .find((r) => r.startsWith('csrf_token='))
+        ?.split('=')[1] ?? '';
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'x-csrf-token': decodeURIComponent(csrf) },
+      });
     } catch {
       // best-effort — proceed to redirect regardless
     }
