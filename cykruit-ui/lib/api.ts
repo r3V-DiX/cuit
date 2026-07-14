@@ -44,6 +44,16 @@ export async function apiFetch<T = unknown>(
   }
 
   if (response.status === 401 && typeof window !== 'undefined') {
+    // Call logout first so the server clears the httpOnly session_token cookie.
+    // Without this, the proxy sees session_token still present and redirects /login
+    // back to the protected route, creating an infinite loop.
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch {
+      // best-effort — proceed to redirect regardless
+    }
+    document.cookie = 'user_role=; Max-Age=0; path=/';
+    document.cookie = 'csrf_token=; Max-Age=0; path=/';
     window.location.replace('/login');
     return { data: undefined as unknown as T };
   }
