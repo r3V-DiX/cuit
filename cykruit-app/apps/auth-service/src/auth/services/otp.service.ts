@@ -331,31 +331,39 @@ export class OtpService {
 
     const isNewUser = !user.isEmailVerified;
 
-    // Activate / update profile on first login
-    const updatedUser = await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        isEmailVerified: true,
-        emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
-        status:
-          user.status === AccountStatus.PENDING ? AccountStatus.ACTIVE : user.status,
-        deactivatedAt: null,
-        ...(isNewUser && firstName ? { firstName } : {}),
-        ...(isNewUser && lastName ? { lastName } : {}),
-        failedLoginAttempts: 0,
-        lockedUntil: null,
-        lastLogin: new Date(),
-        lastLoginIp: ip,
-      },
-    });
+    // Backfill name: on new users use provided name; on returning users with empty name also backfill
+    const shouldWriteFirstName = !!firstName && (isNewUser || !user.firstName);
+    const shouldWriteLastName = !!lastName && (isNewUser || !user.lastName);
 
-    // Patch seeker profile name on new user
-    if (isNewUser && firstName && user.role === UserRole.SEEKER) {
-      await this.prisma.jobSeekerProfile.updateMany({
-        where: { userId: user.id },
-        data: { firstName: firstName ?? "", lastName: lastName ?? "" },
+    const updatedUser = await this.prisma.$transaction(async (tx) => {
+      const u = await tx.user.update({
+        where: { id: user.id },
+        data: {
+          isEmailVerified: true,
+          emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
+          status: user.status === AccountStatus.PENDING ? AccountStatus.ACTIVE : user.status,
+          deactivatedAt: null,
+          ...(shouldWriteFirstName ? { firstName } : {}),
+          ...(shouldWriteLastName ? { lastName } : {}),
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+          lastLogin: new Date(),
+          lastLoginIp: ip,
+        },
       });
-    }
+
+      if ((shouldWriteFirstName || shouldWriteLastName) && user.role === UserRole.SEEKER) {
+        await tx.jobSeekerProfile.updateMany({
+          where: { userId: user.id },
+          data: {
+            ...(shouldWriteFirstName ? { firstName } : {}),
+            ...(shouldWriteLastName ? { lastName } : {}),
+          },
+        });
+      }
+
+      return u;
+    });
 
     const sessionToken = await this.sessionService.createSession(
       user.id,

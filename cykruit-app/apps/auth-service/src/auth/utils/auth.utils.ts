@@ -43,6 +43,9 @@ export function formatUserResponse(user: any) {
     profileImage: user.profileImage ?? null,
     hasPassword: !!hasPassword,
     provider: primaryProvider,
+    isEmailVerified: user.isEmailVerified ?? false,
+    lastLogin: user.lastLogin ?? null,
+    createdAt: user.createdAt ?? null,
   };
 }
 

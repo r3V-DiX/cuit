@@ -143,9 +143,17 @@ export class OAuthBaseService {
           message: "Account no longer exists.",
         });
 
-      await this.prisma.userOAuthProvider.update({
-        where: { id: existingProvider.id },
-        data: { lastUsedAt: new Date() },
+      await this.prisma.$transaction(async (tx) => {
+        await tx.userOAuthProvider.update({
+          where: { id: existingProvider.id },
+          data: { lastUsedAt: new Date() },
+        });
+        if (!user.profileImage && profile.profileImage) {
+          await tx.user.update({
+            where: { id: user.id },
+            data: { profileImage: profile.profileImage },
+          });
+        }
       });
 
       const sessionToken = await this.sessionService.createSession(
@@ -190,13 +198,43 @@ export class OAuthBaseService {
           message: "Account is inactive. Contact support to reactivate.",
         });
 
-      await this.prisma.userOAuthProvider.create({
-        data: {
-          userId: existingUserByEmail.id,
-          provider: profile.provider,
-          providerId: profile.providerId,
-          lastUsedAt: new Date(),
-        },
+      const linkedUser = await this.prisma.$transaction(async (tx) => {
+        const userUpdateData: Record<string, unknown> = { isEmailVerified: true };
+        if (!existingUserByEmail.profileImage && profile.profileImage) {
+          userUpdateData.profileImage = profile.profileImage;
+        }
+        if (!existingUserByEmail.firstName && profile.firstName) {
+          userUpdateData.firstName = profile.firstName;
+        }
+        if (!existingUserByEmail.lastName && profile.lastName) {
+          userUpdateData.lastName = profile.lastName;
+        }
+
+        const updatedUser = await tx.user.update({
+          where: { id: existingUserByEmail.id },
+          data: userUpdateData,
+        });
+
+        await tx.userOAuthProvider.create({
+          data: {
+            userId: existingUserByEmail.id,
+            provider: profile.provider,
+            providerId: profile.providerId,
+            lastUsedAt: new Date(),
+          },
+        });
+
+        if (userUpdateData.firstName || userUpdateData.lastName) {
+          await tx.jobSeekerProfile.updateMany({
+            where: { userId: existingUserByEmail.id, firstName: "" },
+            data: {
+              ...(userUpdateData.firstName ? { firstName: profile.firstName } : {}),
+              ...(userUpdateData.lastName ? { lastName: profile.lastName } : {}),
+            },
+          });
+        }
+
+        return updatedUser;
       });
 
       const sessionToken = await this.sessionService.createSession(
@@ -219,7 +257,7 @@ export class OAuthBaseService {
       return {
         userId: existingUserByEmail.id,
         sessionToken,
-        user: existingUserByEmail,
+        user: linkedUser,
         isNewUser: false,
       };
     }

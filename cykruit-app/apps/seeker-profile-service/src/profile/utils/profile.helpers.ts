@@ -40,7 +40,21 @@ export class ProfileHelpers {
     const profile = await this.prisma.jobSeekerProfile.findUnique({
       where: { userId },
       include: {
-        user: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            phone: true,
+            profileImage: true,
+            role: true,
+            status: true,
+            isEmailVerified: true,
+            firstName: true,
+            lastName: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         location: true,
         experiences: true,
         education: { include: { institute: true } },

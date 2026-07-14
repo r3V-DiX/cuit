@@ -108,10 +108,16 @@ export class CompanyService {
         if (dto.foundedYear !== undefined) updateData.foundedYear = dto.foundedYear;
         if (dto.tagline !== undefined) updateData.tagline = dto.tagline;
 
-        const updated = await this.companyRepository.update(employer.id, updateData);
+        if (dto.companyName && dto.companyName !== employer.companyName) {
+            updateData.slug = await this.generateUniqueSlug(dto.companyName);
+        }
 
-        const completion = await this.completionService.calculateCompletion(employer.id);
-        await this.companyRepository.updateCompletion(employer.id, completion.percentage);
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const result = await tx.employer.update({ where: { id: employer.id }, data: updateData });
+            const completion = await this.completionService.calculateCompletion(employer.id);
+            await tx.employer.update({ where: { id: employer.id }, data: { profileCompletion: completion.percentage } });
+            return { ...result, profileCompletion: completion.percentage };
+        });
 
         this.auditService.logAction({
             actorId: userId,
@@ -126,7 +132,7 @@ export class CompanyService {
             metadata: { userAgent },
         });
 
-        return { ...updated, profileCompletion: completion.percentage };
+        return updated;
     }
 
     async updateAbout(userId: string, dto: UpdateCompanyAboutDto, ipAddress?: string, userAgent?: string) {
@@ -138,10 +144,12 @@ export class CompanyService {
         if (dto.vision !== undefined) updateData.vision = dto.vision;
         if (dto.cultureDescription !== undefined) updateData.cultureDescription = dto.cultureDescription;
 
-        const updated = await this.companyRepository.update(employer.id, updateData);
-
-        const completion = await this.completionService.calculateCompletion(employer.id);
-        await this.companyRepository.updateCompletion(employer.id, completion.percentage);
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const result = await tx.employer.update({ where: { id: employer.id }, data: updateData });
+            const completion = await this.completionService.calculateCompletion(employer.id);
+            await tx.employer.update({ where: { id: employer.id }, data: { profileCompletion: completion.percentage } });
+            return { ...result, profileCompletion: completion.percentage };
+        });
 
         this.auditService.logAction({
             actorId: userId,
@@ -155,7 +163,7 @@ export class CompanyService {
             metadata: { userAgent },
         });
 
-        return { ...updated, profileCompletion: completion.percentage };
+        return updated;
     }
 
     async updateSocial(userId: string, dto: UpdateCompanySocialDto, ipAddress?: string, userAgent?: string) {
@@ -167,10 +175,12 @@ export class CompanyService {
         if (dto.facebook !== undefined) updateData.facebook = dto.facebook;
         if (dto.instagram !== undefined) updateData.instagram = dto.instagram;
 
-        const updated = await this.companyRepository.update(employer.id, updateData);
-
-        const completion = await this.completionService.calculateCompletion(employer.id);
-        await this.companyRepository.updateCompletion(employer.id, completion.percentage);
+        const updated = await this.prisma.$transaction(async (tx) => {
+            const result = await tx.employer.update({ where: { id: employer.id }, data: updateData });
+            const completion = await this.completionService.calculateCompletion(employer.id);
+            await tx.employer.update({ where: { id: employer.id }, data: { profileCompletion: completion.percentage } });
+            return { ...result, profileCompletion: completion.percentage };
+        });
 
         this.auditService.logAction({
             actorId: userId,
@@ -184,7 +194,7 @@ export class CompanyService {
             metadata: { userAgent },
         });
 
-        return { ...updated, profileCompletion: completion.percentage };
+        return updated;
     }
 
     async uploadLogo(userId: string, file: Express.Multer.File) {
@@ -200,10 +210,11 @@ export class CompanyService {
 
         const result = await this.uploadService.uploadFile(file, UPLOAD_CONFIGS.COMPANY_LOGO);
 
-        await this.companyRepository.update(employer.id, { companyLogo: result.fileUrl });
-
         const completion = await this.completionService.calculateCompletion(employer.id);
-        await this.companyRepository.updateCompletion(employer.id, completion.percentage);
+        await this.prisma.$transaction(async (tx) => {
+            await tx.employer.update({ where: { id: employer.id }, data: { companyLogo: result.fileUrl } });
+            await tx.employer.update({ where: { id: employer.id }, data: { profileCompletion: completion.percentage } });
+        });
 
         this.auditService.logAction({
             actorId: userId,
@@ -231,10 +242,11 @@ export class CompanyService {
 
         const result = await this.uploadService.uploadFile(file, UPLOAD_CONFIGS.COMPANY_BANNER);
 
-        await this.companyRepository.update(employer.id, { companyBanner: result.fileUrl });
-
         const completion = await this.completionService.calculateCompletion(employer.id);
-        await this.companyRepository.updateCompletion(employer.id, completion.percentage);
+        await this.prisma.$transaction(async (tx) => {
+            await tx.employer.update({ where: { id: employer.id }, data: { companyBanner: result.fileUrl } });
+            await tx.employer.update({ where: { id: employer.id }, data: { profileCompletion: completion.percentage } });
+        });
 
         this.auditService.logAction({
             actorId: userId,

@@ -124,12 +124,12 @@ export class ProfileService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      if (dto.firstName || dto.lastName || dto.phone !== undefined) {
+      if (dto.firstName !== undefined || dto.lastName !== undefined || dto.phone !== undefined) {
         await tx.user.update({
           where: { id: userId },
           data: {
-            ...(dto.firstName && { firstName: dto.firstName }),
-            ...(dto.lastName && { lastName: dto.lastName }),
+            ...(dto.firstName !== undefined && { firstName: dto.firstName }),
+            ...(dto.lastName !== undefined && { lastName: dto.lastName }),
             ...(dto.phone !== undefined && { phone: dto.phone === "" ? null : dto.phone }),
           },
         });
@@ -138,8 +138,8 @@ export class ProfileService {
       await tx.jobSeekerProfile.update({
         where: { userId },
         data: {
-          ...(dto.firstName && { firstName: dto.firstName }),
-          ...(dto.lastName && { lastName: dto.lastName }),
+          ...(dto.firstName !== undefined && { firstName: dto.firstName }),
+          ...(dto.lastName !== undefined && { lastName: dto.lastName }),
           ...(dto.title !== undefined && { title: dto.title }),
           ...(finalLocationId !== undefined && { locationId: finalLocationId }),
           ...(dto.linkedin !== undefined && { linkedin: dto.linkedin }),
