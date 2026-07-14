@@ -414,7 +414,7 @@ export class JobsService {
     async improveDescription(userId: string, title: string, description: string, jobType?: string, experienceLevel?: string) {
         await this.resolveVerifiedEmployer(userId);
 
-        const aiUrl = this.configService.get<string>('AI_SERVICE_URL');
+        const aiUrl = this.configService.get<string>('AI_SERVICE_URL') || 'http://localhost:3005';
         const res = await fetch(`${aiUrl}/ai/jobs/improve-description`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -431,7 +431,7 @@ export class JobsService {
     async suggestSkills(userId: string, title: string, description: string) {
         await this.resolveVerifiedEmployer(userId);
 
-        const aiUrl = this.configService.get<string>('AI_SERVICE_URL');
+        const aiUrl = this.configService.get<string>('AI_SERVICE_URL') || 'http://localhost:3005';
         const res = await fetch(`${aiUrl}/ai/jobs/suggest-skills`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

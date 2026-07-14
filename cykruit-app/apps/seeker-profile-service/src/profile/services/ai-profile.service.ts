@@ -48,7 +48,7 @@ export class AIProfileService {
     const text = await this.aiService.extractTextFromPDF(pdfBuffer);
     
     this.logger.log(`Parsing extracted text via ai-service`);
-    const aiUrl = this.configService.get<string>('AI_SERVICE_URL');
+    const aiUrl = this.configService.get<string>('AI_SERVICE_URL') || 'http://localhost:3005';
     const res = await fetch(`${aiUrl}/ai/resume/parse`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -223,7 +223,7 @@ export class AIProfileService {
     const skills = skillsRes.skills.map(s => s.skill.name);
     const experienceTitles = expRes.experiences.map(e => e.title);
 
-    const aiUrl = this.configService.get<string>('AI_SERVICE_URL');
+    const aiUrl = this.configService.get<string>('AI_SERVICE_URL') || 'http://localhost:3005';
     const res = await fetch(`${aiUrl}/ai/profile/generate-bio`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -253,7 +253,7 @@ export class AIProfileService {
     const skillsRes = await this.skillsService.getSkills(userId);
     const currentSkills = skillsRes.skills.map(s => s.skill.name);
 
-    const aiUrl = this.configService.get<string>('AI_SERVICE_URL');
+    const aiUrl = this.configService.get<string>('AI_SERVICE_URL') || 'http://localhost:3005';
     const res = await fetch(`${aiUrl}/ai/profile/suggest-skills`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -306,7 +306,7 @@ export class AIProfileService {
        return { tips: ["Your profile is looking strong! Consider adding more detailed achievements to your experiences."] };
     }
 
-    const aiUrl = this.configService.get<string>('AI_SERVICE_URL');
+    const aiUrl = this.configService.get<string>('AI_SERVICE_URL') || 'http://localhost:3005';
     const res = await fetch(`${aiUrl}/ai/profile/tips`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
