@@ -105,6 +105,7 @@ export default function ProfilePage() {
   const { openModal } = useModal();
 
   const [activeSection, setActiveSection] = useState("basics");
+  const [userId, setUserId] = useState<string>("");
 
   // Photo
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -939,6 +940,17 @@ export default function ProfilePage() {
 
   async function loadProfile() {
     try {
+      let userEmail = "";
+      try {
+        const meRes = await fetch("/api/auth/me");
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          const email = meData.data?.email || meData.email;
+          const id = meData.data?.id || meData.id;
+          if (email) userEmail = email;
+          if (id) setUserId(id);
+        }
+      } catch (e) {}
       const response = await fetch("/api/profile");
       if (response.ok) {
         const result = await response.json();
@@ -1141,7 +1153,7 @@ export default function ProfilePage() {
 
             <div className="flex items-center gap-2">
               <Link
-                href="/u/aryan-mehta"
+                href={userId ? `/u/${userId}` : "#"}
                 className="flex items-center gap-1.5 text-xs font-medium text-slate-500 border border-slate-200 hover:bg-slate-50 px-3 py-2 rounded-xl transition-colors"
               >
                 <ExternalLink className="w-3.5 h-3.5" /> View Public Profile

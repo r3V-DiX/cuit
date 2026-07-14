@@ -172,10 +172,11 @@ export default function ActivityPage() {
       if (sysRisk)   params.set("riskLevel", sysRisk);
       if (sysResult) params.set("result", sysResult);
       const { data } = await apiFetch(`/api/employer/activity/system?${params}`);
-      setSysLogs(data?.items ?? []);
-      setSysMeta(data?.meta ?? null);
+      const sysData = data as any;
+      setSysLogs(sysData?.items ?? []);
+      setSysMeta(sysData?.meta ?? null);
     } catch (err: unknown) {
-      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to load system logs") });
+      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to load system activity") });
     } finally { setSysLoading(false); }
   }, [sysPage, sysSearch, sysModule, sysRisk, sysResult, toast]);
 

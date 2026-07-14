@@ -63,9 +63,10 @@ const CERT_BADGE_POOL = [
 export default async function PublicProfilePage({
   params,
 }: {
-  params: { username: string };
+  params: Promise<{ username: string }>;
 }) {
-  const profile = await getProfile(params.username);
+  const resolvedParams = await params;
+  const profile = await getProfile(resolvedParams.username);
   if (!profile) notFound();
 
   const fullName = profile.anonymity?.isAnonymous
