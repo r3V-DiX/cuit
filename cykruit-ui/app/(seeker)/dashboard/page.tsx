@@ -169,7 +169,7 @@ export default function DashboardPage() {
           if (jobsRes.ok) {
             const jobsData = await jobsRes.json();
             // Handle both { data: [...] } and { data: { items: [...] } } formats
-            const jobsArray = Array.isArray(jobsData.data) ? jobsData.data : (jobsData.data?.items || []);
+            const jobsArray = Array.isArray(jobsData.data) ? jobsData.data : (jobsData.data?.data || jobsData.data?.items || []);
             if (jobsArray.length > 0) {
               const jobs = jobsArray.map((j: any) => ({
                 id: j.id,
