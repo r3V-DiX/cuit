@@ -98,7 +98,7 @@ export class SessionService {
     if (!session)
       throw new UnauthorizedException("Session not found or expired");
 
-    if (session.expiresAt && new Date() > session.expiresAt) {
+    if (session.expiresAt && new Date() >= session.expiresAt) {
       await this.prisma.session.update({
         where: { id: session.id },
         data: { isActive: false, revokedAt: new Date(), revokedBy: "expiry" },

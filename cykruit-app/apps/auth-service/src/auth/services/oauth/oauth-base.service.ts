@@ -64,10 +64,8 @@ export class OAuthBaseService {
     state: string,
   ): Promise<{ role: UserRole; redirectUrl?: string }> {
     const key = `oauth_state:${state}`;
-    const raw = await this.redis.get(key);
-    if (raw) {
-      await this.redis.del(key);
-    }
+    // GETDEL is atomic — prevents state replay via concurrent requests
+    const raw = await this.redis.getdel(key);
 
     if (!raw) {
       throw new UnauthorizedException({

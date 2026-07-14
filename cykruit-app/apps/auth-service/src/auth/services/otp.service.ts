@@ -1,4 +1,4 @@
-import { randomInt, createHash } from "node:crypto";
+import { randomInt, createHash, timingSafeEqual } from "node:crypto";
 import {
   Injectable,
   BadRequestException,
@@ -318,7 +318,12 @@ export class OtpService {
       });
     }
 
-    if (tokenRecord.token !== hashOtp(otpCode)) {
+    const expectedHash = hashOtp(otpCode);
+    const tokensMatch = timingSafeEqual(
+      Buffer.from(tokenRecord.token, "hex"),
+      Buffer.from(expectedHash, "hex"),
+    );
+    if (!tokensMatch) {
       await this.prisma.token.update({
         where: { id: tokenRecord.id },
         data: { metadata: JSON.stringify({ attempts: meta.attempts + 1 }) },

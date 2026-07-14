@@ -9,7 +9,7 @@ export class CookieConfig {
   // ── Session cookie (httpOnly — JS cannot read, CSRF-safe via double-submit) ──
 
   static getSessionCookieOptions(rememberMe: boolean = false): CookieOptions {
-    const isSecure = process.env.COOKIE_SECURE === "true";
+    const isSecure = process.env.COOKIE_SECURE !== "false";
 
     return {
       httpOnly: true,
@@ -24,7 +24,7 @@ export class CookieConfig {
   }
 
   static getClearCookieOptions(): CookieOptions {
-    const isSecure = process.env.COOKIE_SECURE === "true";
+    const isSecure = process.env.COOKIE_SECURE !== "false";
 
     return {
       httpOnly: true,
@@ -41,7 +41,7 @@ export class CookieConfig {
   // so they can't forge the x-csrf-token header even if they can see this cookie exists.
 
   static getCsrfCookieOptions(): CookieOptions {
-    const isSecure = process.env.COOKIE_SECURE === "true";
+    const isSecure = process.env.COOKIE_SECURE !== "false";
 
     return {
       httpOnly: false, // ← intentionally readable by JS for double-submit CSRF pattern
@@ -54,7 +54,7 @@ export class CookieConfig {
   }
 
   static getClearCsrfCookieOptions(): CookieOptions {
-    const isSecure = process.env.COOKIE_SECURE === "true";
+    const isSecure = process.env.COOKIE_SECURE !== "false";
 
     return {
       httpOnly: false,
@@ -66,7 +66,7 @@ export class CookieConfig {
   }
 
   static getRoleCookieOptions(rememberMe: boolean = false): CookieOptions {
-    const isSecure = process.env.COOKIE_SECURE === "true";
+    const isSecure = process.env.COOKIE_SECURE !== "false";
     return {
       httpOnly: false, // readable by proxy — not sensitive, just EMPLOYER|SEEKER string
       secure: isSecure,
@@ -80,7 +80,7 @@ export class CookieConfig {
   }
 
   static getClearRoleCookieOptions(): CookieOptions {
-    const isSecure = process.env.COOKIE_SECURE === "true";
+    const isSecure = process.env.COOKIE_SECURE !== "false";
     return {
       httpOnly: false,
       secure: isSecure,
