@@ -8,14 +8,19 @@ import { useToast } from "@/components/ui/Toast";
 import { apiFetch, ApiError, authHeaders } from "@/lib/api";
 import { broadcastLogin } from "@/lib/auth-sync";
 
+// Kept in sync with backend libs/common/src/utils/email-domain.util.ts
 const BLOCKED_DOMAINS = new Set([
-  "gmail.com","yahoo.com","hotmail.com","outlook.com","live.com","aol.com",
-  "icloud.com","me.com","mac.com","msn.com","ymail.com","rocketmail.com",
-  "inbox.com","mail.com","protonmail.com","proton.me","tutanota.com",
-  "tutamail.com","zoho.com","fastmail.com","hushmail.com","guerrillamail.com",
-  "tempmail.com","throwam.com","sharklasers.com","mailnull.com",
-  "yandex.com","yandex.ru","qq.com","163.com","126.com","rediffmail.com",
-  "gmx.com","gmx.net","web.de","libero.it",
+  "gmail.com","googlemail.com",
+  "yahoo.com","yahoo.in","yahoo.co.in","yahoo.co.uk","ymail.com","rocketmail.com",
+  "hotmail.com","hotmail.in","hotmail.co.uk","outlook.com","outlook.in","live.com","live.in","msn.com",
+  "icloud.com","me.com","mac.com",
+  "aol.com",
+  "protonmail.com","proton.me","tutanota.com","tutamail.com","tuta.io","hushmail.com",
+  "zoho.com","fastmail.com","gmx.com","gmx.net","web.de",
+  "inbox.com","mail.com","libero.it",
+  "yandex.com","yandex.ru","qq.com","163.com","126.com",
+  "rediffmail.com",
+  "guerrillamail.com","tempmail.com","throwam.com","sharklasers.com","mailnull.com",
 ]);
 
 function isPersonalEmail(email: string): boolean {

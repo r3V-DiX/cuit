@@ -135,15 +135,19 @@ function LoginForm() {
   const hintRole = nextPath.startsWith("/employer") || nextPath.startsWith("/kyc") ? "EMPLOYER" : "SEEKER";
   const [role, setRole] = useState<"SEEKER" | "EMPLOYER">(hintRole);
 
-  // Personal email domains not accepted for employer accounts
+  // Personal email domains not accepted for employer accounts — kept in sync with backend email-domain.util.ts
   const PERSONAL_DOMAINS = new Set([
-    "gmail.com","googlemail.com","yahoo.com","yahoo.in","yahoo.co.in","yahoo.co.uk",
-    "hotmail.com","hotmail.in","hotmail.co.uk","outlook.com","outlook.in",
-    "live.com","live.in","icloud.com","me.com","mac.com","msn.com",
-    "aol.com","protonmail.com","proton.me","tutanota.com","tutamail.com","tuta.io",
-    "yandex.com","yandex.ru","rediffmail.com","zoho.com","gmx.com","gmx.net",
-    "fastmail.com","qq.com","163.com","126.com","ymail.com","rocketmail.com",
-    "inbox.com","mail.com",
+    "gmail.com","googlemail.com",
+    "yahoo.com","yahoo.in","yahoo.co.in","yahoo.co.uk","ymail.com","rocketmail.com",
+    "hotmail.com","hotmail.in","hotmail.co.uk","outlook.com","outlook.in","live.com","live.in","msn.com",
+    "icloud.com","me.com","mac.com",
+    "aol.com",
+    "protonmail.com","proton.me","tutanota.com","tutamail.com","tuta.io","hushmail.com",
+    "zoho.com","fastmail.com","gmx.com","gmx.net","web.de",
+    "inbox.com","mail.com","libero.it",
+    "yandex.com","yandex.ru","qq.com","163.com","126.com",
+    "rediffmail.com",
+    "guerrillamail.com","tempmail.com","throwam.com","sharklasers.com","mailnull.com",
   ]);
 
   function isPersonalEmail(e: string): boolean {

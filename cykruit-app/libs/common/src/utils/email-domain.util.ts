@@ -1,42 +1,28 @@
 // libs/common/src/utils/email-domain.util.ts
 
 const BLOCKED_EMAIL_DOMAINS = [
-  "gmail.com",
-  "yahoo.com",
-  "hotmail.com",
-  "outlook.com",
-  "live.com",
+  // Google
+  "gmail.com", "googlemail.com",
+  // Yahoo
+  "yahoo.com", "yahoo.in", "yahoo.co.in", "yahoo.co.uk", "ymail.com", "rocketmail.com",
+  // Microsoft
+  "hotmail.com", "hotmail.in", "hotmail.co.uk", "outlook.com", "outlook.in", "live.com", "live.in", "msn.com",
+  // Apple
+  "icloud.com", "me.com", "mac.com",
+  // AOL
   "aol.com",
-  "icloud.com",
-  "me.com",
-  "mac.com",
-  "msn.com",
-  "ymail.com",
-  "rocketmail.com",
-  "inbox.com",
-  "mail.com",
-  "protonmail.com",
-  "proton.me",
-  "tutanota.com",
-  "tutamail.com",
-  "zoho.com",
-  "fastmail.com",
-  "hushmail.com",
-  "guerrillamail.com",
-  "tempmail.com",
-  "throwam.com",
-  "sharklasers.com",
-  "mailnull.com",
-  "yandex.com",
-  "yandex.ru",
-  "qq.com",
-  "163.com",
-  "126.com",
+  // Privacy / encrypted
+  "protonmail.com", "proton.me", "tutanota.com", "tutamail.com", "tuta.io", "hushmail.com",
+  // Zoho / FastMail / GMX
+  "zoho.com", "fastmail.com", "gmx.com", "gmx.net", "web.de",
+  // Generic free
+  "inbox.com", "mail.com", "libero.it",
+  // Russian / Chinese
+  "yandex.com", "yandex.ru", "qq.com", "163.com", "126.com",
+  // Indian
   "rediffmail.com",
-  "gmx.com",
-  "gmx.net",
-  "web.de",
-  "libero.it",
+  // Disposable / temp
+  "guerrillamail.com", "tempmail.com", "throwam.com", "sharklasers.com", "mailnull.com",
 ];
 
 /**
