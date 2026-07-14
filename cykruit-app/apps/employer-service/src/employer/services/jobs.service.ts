@@ -185,7 +185,7 @@ export class JobsService {
             ...(dto.description !== undefined ? { description: dto.description } : {}),
             ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
             ...(dto.screeningQuestions !== undefined
-                ? { screeningQuestions: dto.screeningQuestions as Prisma.InputJsonValue }
+                ? { screeningQuestions: dto.screeningQuestions as unknown as Prisma.InputJsonValue }
                 : {}),
             ...(dto.contractDuration !== undefined
                 ? { contractDuration: dto.contractDuration }
@@ -228,7 +228,7 @@ export class JobsService {
             ...(dto.description !== undefined ? { description: dto.description } : {}),
             ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
             ...(dto.screeningQuestions !== undefined
-                ? { screeningQuestions: dto.screeningQuestions as Prisma.InputJsonValue }
+                ? { screeningQuestions: dto.screeningQuestions as unknown as Prisma.InputJsonValue }
                 : {}),
             ...(dto.contractDuration !== undefined
                 ? { contractDuration: dto.contractDuration }

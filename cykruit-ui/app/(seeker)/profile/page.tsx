@@ -42,27 +42,7 @@ const selectStyles = {
   })
 };
 
-const DUMMY_PREFERENCES = ["Penetration Testing", "Burp Suite", "Metasploit", "OSCP", "Python", "Nmap", "AWS Security", "Red Team"];
 
-const SEED_EXPERIENCE = [
-  { id: 1, role: "Senior Penetration Tester", company: "SecureLayer7", period: "Jan 2022 – Present", desc: "Led web application and network pentests for Fortune 500 clients. Authored 40+ detailed pentest reports." },
-  { id: 2, role: "Security Analyst", company: "Wipro CyberSecurity", period: "Jun 2019 – Dec 2021", desc: "SOC analyst handling L2 escalations. Built detection rules in Splunk and QRadar for 200+ use cases." },
-];
-
-const SEED_CERTS = [
-  { id: 1, name: "OSCP", issuer: "Offensive Security", year: "2022", badge: "bg-red-50 text-red-700 border-red-200" },
-  { id: 2, name: "CEH", issuer: "EC-Council", year: "2021", badge: "bg-blue-50 text-blue-700 border-blue-200" },
-  { id: 3, name: "CompTIA Security+", issuer: "CompTIA", year: "2019", badge: "bg-green-50 text-green-700 border-green-200" },
-];
-
-const SEED_CTF = [
-  { id: 1, platform: "HackTheBox", handle: "@aryan_htb", rank: "Pro Hacker", rankColor: "text-green-700 bg-green-50 border-green-200", url: "https://www.hackthebox.com" },
-  { id: 2, platform: "TryHackMe", handle: "@aryanm", rank: "Top 5%", rankColor: "text-blue-700 bg-blue-50 border-blue-200", url: "https://tryhackme.com" },
-];
-
-const SEED_EDUCATION = [
-  { id: 1, degree: "B.Tech in Computer Science", school: "VIT University", startYear: "2015", endYear: "2019", desc: "Specialization in Information Security. Final year project on network intrusion detection using ML." },
-];
 
 const sections = [
   { id: "basics", label: "Basic Details", icon: User },

@@ -37,7 +37,11 @@ export class JobsService {
         if (!job) throw new NotFoundException('JOB_NOT_FOUND');
 
         // Increment view count (fire-and-forget)
-        this.jobsRepository.incrementViewCount(job.id);
+        try {
+            this.jobsRepository.incrementViewCount(job.id);
+        } catch (e) {
+            // Ignore error
+        }
 
         return job;
     }

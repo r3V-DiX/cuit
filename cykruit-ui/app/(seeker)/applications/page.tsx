@@ -28,10 +28,33 @@ const TABS: (AppStatus | "All")[] = ["All", "Applied", "Under Review", "Shortlis
 export default function ApplicationsPage() {
   const [apps, setApps] = useState<Application[]>([]);
 
+  const [activeTab, setActiveTab] = useState<AppStatus | "All">("All");
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<"newest" | "oldest">("newest");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
   useEffect(() => {
     async function fetchApps() {
       try {
-        const { data } = await apiFetch("/api/seeker/applications?limit=50");
+        const params = new URLSearchParams();
+        params.append("page", page.toString());
+        params.append("limit", "10");
+        params.append("sort", sort);
+        if (search.trim()) params.append("search", search.trim());
+        if (activeTab !== "All") {
+          const statusMap: Record<string, string> = {
+            "Applied": "APPLIED",
+            "Under Review": "UNDER_REVIEW",
+            "Shortlisted": "SHORTLISTED",
+            "Rejected": "REJECTED",
+            "Withdrawn": "WITHDRAWN"
+          };
+          params.append("status", statusMap[activeTab]);
+        }
+
+        const { data } = await apiFetch(`/api/seeker/applications?${params.toString()}`);
         const items = data?.items || [];
         const mapped = items.map((a: any) => ({
           id: a.id,
@@ -45,41 +68,22 @@ export default function ApplicationsPage() {
             : a.status === "SHORTLISTED" ? "Shortlisted"
             : a.status === "REJECTED" ? "Rejected"
             : a.status === "WITHDRAWN" ? "Withdrawn"
-            : "Applied", // fallback
+            : "Applied",
         }));
         setApps(mapped);
+        setTotalPages(data?.meta?.totalPages || 1);
+        setTotalCount(data?.meta?.total || 0);
       } catch (err) {
         if (process.env.NODE_ENV === 'development') console.error("Failed to fetch apps", err);
       }
     }
     fetchApps();
-    const interval = setInterval(fetchApps, 15000);
-    return () => clearInterval(interval);
-  }, []);
-  const [activeTab, setActiveTab] = useState<AppStatus | "All">("All");
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<"newest" | "oldest">("newest");
+  }, [page, sort, search, activeTab]);
 
-  const filtered = useMemo(() => {
-    let list = apps;
-    if (activeTab !== "All") list = list.filter((a) => a.status === activeTab);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter((a) => a.role.toLowerCase().includes(q) || a.company.toLowerCase().includes(q));
-    }
-    return [...list].sort((a, b) => {
-      const da = new Date(a.applied).getTime();
-      const db = new Date(b.applied).getTime();
-      return sort === "newest" ? db - da : da - db;
-    });
-  }, [apps, activeTab, search, sort]);
-
-  const counts = useMemo(() => ({
-    total: apps.length,
-    shortlisted: apps.filter((a) => a.status === "Shortlisted").length,
-    underReview: apps.filter((a) => a.status === "Under Review").length,
-    rejected: apps.filter((a) => a.status === "Rejected").length,
-  }), [apps]);
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, sort, activeTab]);
 
   return (
     <>
@@ -87,30 +91,12 @@ export default function ApplicationsPage() {
       <main className="flex-1 overflow-y-auto p-6">
         <div className="space-y-4">
 
-          {/* Summary stats */}
-          <div className="flex flex-wrap gap-3">
-            {[
-              { label: "Total applied",  value: counts.total,       color: "text-slate-700 bg-white border-slate-200",         tab: "All" as const },
-              { label: "Shortlisted",    value: counts.shortlisted,  color: "text-green-700 bg-green-50 border-green-200",       tab: "Shortlisted" as const },
-              { label: "Under Review",   value: counts.underReview,  color: "text-amber-700 bg-amber-50 border-amber-200",       tab: "Under Review" as const },
-              { label: "Rejected",       value: counts.rejected,     color: "text-red-700 bg-red-50 border-red-200",             tab: "Rejected" as const },
-            ].map(({ label, value, color, tab }) => (
-              <button
-                key={label}
-                onClick={() => setActiveTab(tab)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm font-medium transition-all hover:opacity-80 ${color} ${activeTab === tab ? "ring-2 ring-offset-1 ring-current" : ""}`}
-              >
-                <span className="font-bold text-base leading-none">{value}</span>
-                <span className="text-xs font-normal opacity-70">{label}</span>
-              </button>
-            ))}
-          </div>
+          {/* Summary stats removed as server-side paginated */}
 
           {/* Toolbar */}
           <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
             <div className="flex gap-1 flex-wrap">
               {TABS.map((tab) => {
-                const count = tab === "All" ? apps.length : apps.filter((a) => a.status === tab).length;
                 return (
                   <button
                     key={tab}
@@ -120,9 +106,11 @@ export default function ApplicationsPage() {
                     }`}
                   >
                     {tab}
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${activeTab === tab ? "bg-white/20 text-white" : "bg-slate-100 text-slate-400"}`}>
-                      {count}
-                    </span>
+                    {activeTab === tab && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-white">
+                        {totalCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -155,7 +143,7 @@ export default function ApplicationsPage() {
 
           {/* Application rows */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            {filtered.length === 0 ? (
+            {apps.length === 0 ? (
               <div className="text-center py-14 text-slate-400">
                 <Inbox className="w-8 h-8 mx-auto mb-2 opacity-40" />
                 <p className="text-sm font-medium">No applications found</p>
@@ -167,7 +155,7 @@ export default function ApplicationsPage() {
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
-                {filtered.map((app) => {
+                {apps.map((app) => {
                   const cfg = STATUS_CFG[app.status];
                   return (
                     <Link
@@ -205,6 +193,31 @@ export default function ApplicationsPage() {
                     </Link>
                   );
                 })}
+              </div>
+            )}
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-5 py-4 border-t border-slate-100 bg-slate-50">
+                <span className="text-xs text-slate-500">
+                  Page {page} of {totalPages}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    disabled={page <= 1}
+                    onClick={() => setPage(p => p - 1)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    disabled={page >= totalPages}
+                    onClick={() => setPage(p => p + 1)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             )}
           </div>

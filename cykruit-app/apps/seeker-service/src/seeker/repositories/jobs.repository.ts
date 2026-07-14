@@ -128,9 +128,9 @@ export class JobsRepository {
         return { items, total };
     }
 
-    async findBySlug(slug: string, seekerId?: string) {
-        const job = await this.prisma.job.findUnique({
-            where: { slug },
+    async findBySlug(slugOrId: string, seekerId?: string) {
+        const job = await this.prisma.job.findFirst({
+            where: { OR: [{ slug: slugOrId }, { id: slugOrId }] },
             include: JOB_DETAIL_INCLUDE,
         });
 

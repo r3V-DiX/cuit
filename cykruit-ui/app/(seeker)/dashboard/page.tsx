@@ -74,13 +74,7 @@ const QUICK_LINKS: { label: string; href: string; icon: React.ReactNode }[] = [
 export default function DashboardPage() {
   const [userName, setUserName] = useState("User");
   const [profilePct, setProfilePct] = useState(0);
-  const [profileChecks, setProfileChecks] = useState([
-    { label: "Experience",     done: false },
-    { label: "Skills",         done: false },
-    { label: "Certifications", done: false },
-    { label: "CTF Profile",    done: false },
-    { label: "Portfolio link", done: false },
-  ]);
+  const [profileChecks, setProfileChecks] = useState<{label: string, done: boolean}[]>([]);
   const [recentApps, setRecentApps] = useState<any[]>([]);
   const [recommendedJobs, setRecommendedJobs] = useState<any[]>([]);
   const [stats, setStats] = useState({
@@ -104,29 +98,30 @@ export default function DashboardPage() {
         const profileRes = await fetch("/api/profile", { credentials: "include" });
         if (profileRes.ok) {
           const profileResult = await profileRes.json();
-          if (profileResult.data) {
-            const data = profileResult.data;
-            const hasBio = !!data.summary;
-            const hasExp = Array.isArray(data.experiences) && data.experiences.length > 0;
-            const hasEdu = Array.isArray(data.education) && data.education.length > 0;
-            const hasSkills = Array.isArray(data.skills) && data.skills.length > 0;
-            const hasCerts = Array.isArray(data.certifications) && data.certifications.length > 0;
-            const hasCtf = Array.isArray(data.ctfProfiles) && data.ctfProfiles.length > 0;
-            const hasResume = Array.isArray(data.resumes) && data.resumes.length > 0;
+          // Profile completion is now fetched from the dedicated endpoint below
+        }
 
-            const checks = [
-              { label: "Bio / Summary",  done: hasBio },
-              { label: "Experience",     done: hasExp },
-              { label: "Education",      done: hasEdu },
-              { label: "Skills",         done: hasSkills },
-              { label: "Certifications", done: hasCerts },
-              { label: "CTF Profile",    done: hasCtf },
-              { label: "Resume",         done: hasResume },
-            ];
-            setProfileChecks(checks);
-
-            const doneCount = checks.filter((c) => c.done).length;
-            setProfilePct(Math.round((doneCount / checks.length) * 100));
+        const compRes = await fetch("/api/profile/completion", { credentials: "include" });
+        if (compRes.ok) {
+          const compResult = await compRes.json();
+          if (compResult.data) {
+            setProfilePct(compResult.data.percentage);
+            
+            // Map the boolean dictionary to the array of checks
+            const s = compResult.data.completedSections;
+            setProfileChecks([
+              { label: "Basic Info",   done: s.basicInfo },
+              { label: "Profile Image", done: s.profileImage },
+              { label: "Summary",       done: s.professionalSummary },
+              { label: "Experience",    done: s.experience },
+              { label: "Education",     done: s.education },
+              { label: "Skills",        done: s.skills },
+              { label: "Certifications",done: s.certifications },
+              { label: "Projects",      done: s.projects },
+              { label: "CTF Profiles",  done: s.ctfProfiles },
+              { label: "Resume",        done: s.resume },
+              { label: "Social Links",  done: s.socialLinks },
+            ]);
           }
         }
 
@@ -162,7 +157,7 @@ export default function DashboardPage() {
         setStats({
           applied: apiApps.length,
           shortlisted: apiApps.filter((a: any) => a.status === "Shortlisted").length,
-          views: 14,
+          views: 0, // Hidden for now
           saved: savedCount,
         });
 
@@ -266,8 +261,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ── Stats row (4 cols) ───────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {/* ── Stats row (3 cols) ───────────────────────────────────────────── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
               {
                 label:    "Total Applied",
@@ -284,15 +279,6 @@ export default function DashboardPage() {
                 iconBg:   "bg-green-50 text-green-600",
                 numColor: "text-green-600",
                 icon:     <CheckCircle2 className="w-5 h-5" />,
-              },
-              {
-                label:    "Profile Views",
-                sublabel: "this week",
-                value:    stats.views,
-                href:     "/profile",
-                iconBg:   "bg-violet-50 text-violet-600",
-                numColor: "text-violet-600",
-                icon:     <Eye className="w-5 h-5" />,
               },
               {
                 label:    "Saved Jobs",

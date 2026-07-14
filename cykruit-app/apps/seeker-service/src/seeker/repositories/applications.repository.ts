@@ -46,13 +46,23 @@ export class ApplicationsRepository {
         seekerId: string,
         query: ApplicationListQueryDto,
     ): Promise<{ items: any[]; total: number }> {
-        const { page = 1, limit = 10, status } = query;
+        const { page = 1, limit = 10, status, search, sort = 'newest' } = query;
         // status is now typed as ApplicationStatus (validated by DTO enum check)
         const skip = (page - 1) * limit;
 
         const where: Prisma.ApplicationWhereInput = {
             seekerId,
             ...(status ? { status } : {}),
+            ...(search
+                ? {
+                      job: {
+                          OR: [
+                              { jobTitle: { contains: search, mode: 'insensitive' } },
+                              { employer: { companyName: { contains: search, mode: 'insensitive' } } },
+                          ],
+                      },
+                  }
+                : {}),
         };
 
         const [items, total] = await this.prisma.$transaction([
@@ -60,7 +70,7 @@ export class ApplicationsRepository {
                 where,
                 skip,
                 take: limit,
-                orderBy: { appliedAt: 'desc' },
+                orderBy: { appliedAt: sort === 'oldest' ? 'asc' : 'desc' },
                 include: APPLICATION_INCLUDE,
             }),
             this.prisma.application.count({ where }),

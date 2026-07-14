@@ -91,8 +91,9 @@ export class AIProfileService {
     }
 
     // 2. Experiences
-    if (parsedData.experiences && parsedData.experiences.length > 0) {
-      for (const exp of parsedData.experiences) {
+    const parsedExperiences = parsedData.experiences as any[];
+    if (parsedExperiences && parsedExperiences.length > 0) {
+      for (const exp of parsedExperiences) {
         if (!exp.title || !exp.company) continue;
         const validStartDate = exp.startDate?.match(/^\d{4}-(0[1-9]|1[0-2])$/) ? exp.startDate : "2020-01";
         const validEndDate = exp.endDate?.match(/^\d{4}-(0[1-9]|1[0-2])$/) ? exp.endDate : undefined;
@@ -110,8 +111,9 @@ export class AIProfileService {
     }
 
     // 3. Education
-    if (parsedData.education && parsedData.education.length > 0) {
-      for (const edu of parsedData.education) {
+    const parsedEducation = parsedData.education as any[];
+    if (parsedEducation && parsedEducation.length > 0) {
+      for (const edu of parsedEducation) {
         if (!edu.degree || !edu.school) continue;
         const validStart = edu.startDate?.match(/^\d{4}$/) ? edu.startDate : undefined;
         const validEnd = edu.endDate?.match(/^\d{4}$/) ? edu.endDate : undefined;
@@ -125,8 +127,9 @@ export class AIProfileService {
     }
 
     // 4. Skills
-    if (parsedData.skills && parsedData.skills.length > 0) {
-      for (const skillName of parsedData.skills) {
+    const parsedSkills = parsedData.skills as any[];
+    if (parsedSkills && parsedSkills.length > 0) {
+      for (const skillName of parsedSkills) {
         const searchRes = await this.skillsService.searchSkills({ query: skillName, limit: 1 });
         let skillId = searchRes.skills[0]?.id;
 
@@ -152,15 +155,16 @@ export class AIProfileService {
 
         await this.skillsService.addSkill(userId, {
           skillId,
-          proficiency: "Intermediate" as "Beginner" | "Intermediate" | "Advanced" | "Expert",
+          proficiency: "Intermediate" as any,
           yearsOfExperience: 1,
         }).catch(e => this.logger.warn("Failed saving skill", e.message));
       }
     }
 
     // 5. Certifications
-    if (parsedData.certifications && parsedData.certifications.length > 0) {
-      for (const cert of parsedData.certifications) {
+    const parsedCerts = parsedData.certifications as any[];
+    if (parsedCerts && parsedCerts.length > 0) {
+      for (const cert of parsedCerts) {
         if (!cert.name) continue;
         
         const searchRes = await this.certsService.searchCertifications({ query: cert.name, limit: 1 });
@@ -262,7 +266,7 @@ export class AIProfileService {
           const matchedSkill = searchRes.skills[0];
           await this.skillsService.addSkill(userId, {
             skillId: matchedSkill.id,
-            proficiency: "Intermediate" as "Beginner" | "Intermediate" | "Advanced" | "Expert",
+            proficiency: "Intermediate" as any,
             yearsOfExperience: 1,
           }).then(() => addedSkills.push(matchedSkill.name)).catch(e => this.logger.warn("Failed saving skill", e.message));
         }

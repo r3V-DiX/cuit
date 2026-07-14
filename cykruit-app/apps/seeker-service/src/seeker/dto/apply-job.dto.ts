@@ -72,4 +72,12 @@ export class ApplicationListQueryDto {
     @IsOptional()
     @IsEnum(ApplicationStatus)
     status?: ApplicationStatus;
+
+    @IsOptional()
+    @IsString()
+    search?: string;
+
+    @IsOptional()
+    @IsEnum(['newest', 'oldest'])
+    sort?: 'newest' | 'oldest' = 'newest';
 }
