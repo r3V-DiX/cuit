@@ -159,7 +159,18 @@ export class TeamRepository {
                 type: TokenType.EMPLOYER_INVITE,
                 usedAt: null,
             },
-            include: { user: true },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        email: true,
+                        firstName: true,
+                        lastName: true,
+                        role: true,
+                        status: true,
+                    },
+                },
+            },
         });
     }
 

@@ -16,7 +16,8 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import type { User } from '@prisma/client';
-import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
+import { UserRole } from '@prisma/client';
+import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
 import { TeamService } from '../services/team.service';
 import {
@@ -31,7 +32,8 @@ import { SetMetadata } from '@nestjs/common';
 const SkipKycCheck = () => SetMetadata(SKIP_KYC_CHECK_KEY, true);
 
 @Controller('employer/team')
-@UseGuards(AuthGuard, KycVerifiedGuard, PermissionGuard)
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard, KycVerifiedGuard, PermissionGuard)
+@Roles(UserRole.EMPLOYER)
 export class TeamController {
     constructor(private readonly teamService: TeamService) {}
 

@@ -2,7 +2,7 @@
 
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
-import { EmployerMemberRole } from '@prisma/client';
+import { CompanyType, CompanySize, Industry, EmployerMemberRole } from '@prisma/client';
 
 @Injectable()
 export class CompanyRepository {
@@ -53,9 +53,9 @@ export class CompanyRepository {
 
     async create(userId: string, data: {
         companyName: string;
-        companyType: any;
-        industry: any;
-        companySize: any;
+        companyType: CompanyType;
+        industry: Industry;
+        companySize: CompanySize;
         location: string;
         slug: string;
         companyWebsite?: string;

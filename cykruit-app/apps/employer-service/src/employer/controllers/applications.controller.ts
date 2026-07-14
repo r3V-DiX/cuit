@@ -13,7 +13,8 @@ import {
     HttpStatus,
     ParseUUIDPipe,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
+import { UserRole } from '@prisma/client';
+import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
 import type { User } from '@prisma/client';
 import type { Request } from 'express';
@@ -22,7 +23,8 @@ import { ApplicationListQueryDto, UpdateApplicationStatusDto } from '../dto/appl
 import { KycVerifiedGuard } from '../guards/kyc-verified.guard';
 
 @Controller('employer')
-@UseGuards(AuthGuard, KycVerifiedGuard, PermissionGuard)
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard, KycVerifiedGuard, PermissionGuard)
+@Roles(UserRole.EMPLOYER)
 export class ApplicationsController {
     constructor(private readonly applicationsService: EmployerApplicationsService) {}
 

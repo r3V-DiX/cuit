@@ -1,13 +1,15 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import type { User } from '@prisma/client';
-import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
+import { UserRole } from '@prisma/client';
+import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
 import { SkipRateLimit } from '@cykruit/rate-limit';
 import { ActivityService } from '../services/activity.service';
 import { ActivityQuery } from '../repositories/activity.repository';
 
 @Controller('employer/activity')
-@UseGuards(AuthGuard, PermissionGuard)
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard, PermissionGuard)
+@Roles(UserRole.EMPLOYER)
 export class ActivityController {
     constructor(private readonly activityService: ActivityService) {}
 

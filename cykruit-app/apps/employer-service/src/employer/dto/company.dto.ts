@@ -113,18 +113,22 @@ export class UpdateCompanyAboutDto {
 export class UpdateCompanySocialDto {
     @IsOptional()
     @IsUrl()
+    @MaxLength(500)
     linkedin?: string;
 
     @IsOptional()
-    @IsString()
+    @IsUrl()
+    @MaxLength(500)
     twitter?: string;
 
     @IsOptional()
-    @IsString()
+    @IsUrl()
+    @MaxLength(500)
     facebook?: string;
 
     @IsOptional()
-    @IsString()
+    @IsUrl()
+    @MaxLength(500)
     instagram?: string;
 }
 

@@ -6,6 +6,8 @@ import {
     BadRequestException,
     ForbiddenException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '@cykruit/prisma';
 import { JobStatus, ApplicationType } from '@prisma/client';
 import { JobErrorCodes } from '@cykruit/common';
@@ -30,6 +32,7 @@ export class JobsService {
         private readonly jobsRepository: JobsRepository,
         private readonly companyRepository: CompanyRepository,
         private readonly prisma: PrismaService,
+        private readonly configService: ConfigService,
         private readonly auditService: AuditService,
         private readonly queueService: QueueService,
         @InjectQueue(AI_QUEUES.AI_JOBS) private aiQueue: Queue,
@@ -182,7 +185,7 @@ export class JobsService {
             ...(dto.description !== undefined ? { description: dto.description } : {}),
             ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
             ...(dto.screeningQuestions !== undefined
-                ? { screeningQuestions: dto.screeningQuestions as any }
+                ? { screeningQuestions: dto.screeningQuestions as Prisma.InputJsonValue }
                 : {}),
             ...(dto.contractDuration !== undefined
                 ? { contractDuration: dto.contractDuration }
@@ -225,7 +228,7 @@ export class JobsService {
             ...(dto.description !== undefined ? { description: dto.description } : {}),
             ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
             ...(dto.screeningQuestions !== undefined
-                ? { screeningQuestions: dto.screeningQuestions as any }
+                ? { screeningQuestions: dto.screeningQuestions as Prisma.InputJsonValue }
                 : {}),
             ...(dto.contractDuration !== undefined
                 ? { contractDuration: dto.contractDuration }
@@ -411,7 +414,7 @@ export class JobsService {
     async improveDescription(userId: string, title: string, description: string, jobType?: string, experienceLevel?: string) {
         await this.resolveVerifiedEmployer(userId);
 
-        const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+        const aiUrl = this.configService.get<string>('AI_SERVICE_URL');
         const res = await fetch(`${aiUrl}/ai/jobs/improve-description`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -428,7 +431,7 @@ export class JobsService {
     async suggestSkills(userId: string, title: string, description: string) {
         await this.resolveVerifiedEmployer(userId);
 
-        const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:3005';
+        const aiUrl = this.configService.get<string>('AI_SERVICE_URL');
         const res = await fetch(`${aiUrl}/ai/jobs/suggest-skills`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

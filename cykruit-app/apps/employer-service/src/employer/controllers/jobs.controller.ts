@@ -15,16 +15,18 @@ import {
     HttpStatus,
     BadRequestException,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
+import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
 import type { User } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 import type { Request } from 'express';
 import { JobsService } from '../services/jobs.service';
 import { CreateJobDto, UpdateJobDto, CloseJobDto, JobListQueryDto } from '../dto/job.dto';
 import { KycVerifiedGuard } from '../guards/kyc-verified.guard';
 
 @Controller('employer/jobs')
-@UseGuards(AuthGuard, KycVerifiedGuard, PermissionGuard)
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard, KycVerifiedGuard, PermissionGuard)
+@Roles(UserRole.EMPLOYER)
 export class JobsController {
     constructor(private readonly jobsService: JobsService) {}
 
