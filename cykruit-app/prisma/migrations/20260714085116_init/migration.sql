@@ -1,5 +1,8 @@
+-- Enable pgvector extension (required before any vector column is created)
+CREATE EXTENSION IF NOT EXISTS vector;
+
 -- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('SEEKER', 'EMPLOYER', 'ADMIN');
+CREATE TYPE "UserRole" AS ENUM ('SEEKER', 'EMPLOYER');
 
 -- CreateEnum
 CREATE TYPE "AccountStatus" AS ENUM ('PENDING', 'ACTIVE', 'INACTIVE', 'PENDING_DELETION', 'SUSPENDED', 'DELETED');
@@ -99,6 +102,18 @@ CREATE TYPE "PaymentOrderStatus" AS ENUM ('CREATED', 'PAID', 'FAILED', 'EXPIRED'
 
 -- CreateEnum
 CREATE TYPE "PaymentStatus" AS ENUM ('CAPTURED', 'FAILED', 'REFUNDED');
+
+-- CreateEnum
+CREATE TYPE "AdminInviteStatus" AS ENUM ('PENDING', 'ACCEPTED', 'EXPIRED', 'REVOKED');
+
+-- CreateEnum
+CREATE TYPE "FlaggedContentType" AS ENUM ('JOB', 'EMPLOYER_PROFILE', 'SEEKER_PROFILE', 'MESSAGE');
+
+-- CreateEnum
+CREATE TYPE "FlagReason" AS ENUM ('SPAM', 'INAPPROPRIATE', 'MISLEADING', 'FAKE_COMPANY', 'HARASSMENT', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "FlagStatus" AS ENUM ('PENDING', 'UNDER_REVIEW', 'RESOLVED_REMOVED', 'RESOLVED_DISMISSED');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -672,6 +687,7 @@ CREATE TABLE "jobs" (
     "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "embedding" vector(1536),
     "embeddedAt" TIMESTAMP(3),
 
     CONSTRAINT "jobs_pkey" PRIMARY KEY ("id")
@@ -1150,6 +1166,7 @@ CREATE TABLE "discount_usages" (
 CREATE TABLE "resume_embeddings" (
     "id" TEXT NOT NULL,
     "seekerId" TEXT NOT NULL,
+    "embedding" vector(1536) NOT NULL,
     "embeddedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -1304,6 +1321,52 @@ CREATE TABLE "admin_permission_overrides" (
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "admin_permission_overrides_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "admin_invites" (
+    "id" UUID NOT NULL,
+    "email" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "invitedBy" UUID NOT NULL,
+    "roleId" TEXT,
+    "status" "AdminInviteStatus" NOT NULL DEFAULT 'PENDING',
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "acceptedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "admin_invites_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "platform_settings" (
+    "id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "value" TEXT NOT NULL,
+    "description" TEXT,
+    "updatedBy" UUID,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "platform_settings_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "content_reports" (
+    "id" TEXT NOT NULL,
+    "reporterId" TEXT NOT NULL,
+    "contentType" "FlaggedContentType" NOT NULL,
+    "contentId" TEXT NOT NULL,
+    "reason" "FlagReason" NOT NULL,
+    "description" TEXT,
+    "status" "FlagStatus" NOT NULL DEFAULT 'PENDING',
+    "reviewedBy" UUID,
+    "reviewedAt" TIMESTAMP(3),
+    "adminNotes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "content_reports_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -2002,6 +2065,36 @@ CREATE INDEX "admin_permission_overrides_adminId_idx" ON "admin_permission_overr
 -- CreateIndex
 CREATE UNIQUE INDEX "admin_permission_overrides_adminId_permissionId_key" ON "admin_permission_overrides"("adminId", "permissionId");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "admin_invites_email_key" ON "admin_invites"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "admin_invites_token_key" ON "admin_invites"("token");
+
+-- CreateIndex
+CREATE INDEX "admin_invites_token_idx" ON "admin_invites"("token");
+
+-- CreateIndex
+CREATE INDEX "admin_invites_status_idx" ON "admin_invites"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "platform_settings_key_key" ON "platform_settings"("key");
+
+-- CreateIndex
+CREATE INDEX "platform_settings_key_idx" ON "platform_settings"("key");
+
+-- CreateIndex
+CREATE INDEX "content_reports_contentType_contentId_idx" ON "content_reports"("contentType", "contentId");
+
+-- CreateIndex
+CREATE INDEX "content_reports_status_idx" ON "content_reports"("status");
+
+-- CreateIndex
+CREATE INDEX "content_reports_reporterId_idx" ON "content_reports"("reporterId");
+
+-- CreateIndex
+CREATE INDEX "content_reports_createdAt_idx" ON "content_reports"("createdAt");
+
 -- AddForeignKey
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -2274,3 +2367,12 @@ ALTER TABLE "admin_permission_overrides" ADD CONSTRAINT "admin_permission_overri
 
 -- AddForeignKey
 ALTER TABLE "admin_permission_overrides" ADD CONSTRAINT "admin_permission_overrides_permissionId_fkey" FOREIGN KEY ("permissionId") REFERENCES "admin_permissions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "admin_invites" ADD CONSTRAINT "admin_invites_invitedBy_fkey" FOREIGN KEY ("invitedBy") REFERENCES "admins"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "admin_invites" ADD CONSTRAINT "admin_invites_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES "admin_rbac_roles"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "content_reports" ADD CONSTRAINT "content_reports_reporterId_fkey" FOREIGN KEY ("reporterId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
