@@ -3,7 +3,7 @@
 // Previously oauth.types.ts re-exported it AND this file imported from @prisma/client
 // — two import chains for the same enum caused potential type mismatch in strict TS
 
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException, BadRequestException } from "@nestjs/common";
 import { InjectRedis } from "@nestjs-modules/ioredis";
 import Redis from "ioredis";
 import { PrismaService } from "@cykruit/prisma";
@@ -14,6 +14,7 @@ import { AccountStatus, UserRole } from "@prisma/client";
 import { SessionService } from "../session.service";
 import { OAuthUserData } from "../../types/oauth.types";
 import { generateRawToken } from "@cykruit/auth-core";
+import { isBlockedEmailDomain, getEmailDomain } from "@cykruit/common";
 
 const STATE_TTL_SECONDS = 300; // 5 minutes
 
@@ -107,6 +108,16 @@ export class OAuthBaseService {
     isNewUser: boolean;
   }> {
     const reqCtx = { ip: ipAddress, userAgent };
+
+    // Block personal email domains for new employer OAuth registrations.
+    // Existing employer accounts (existingProvider path below) are not re-checked — grandfathered in.
+    if (role === UserRole.EMPLOYER && profile.email && isBlockedEmailDomain(profile.email)) {
+      const domain = getEmailDomain(profile.email);
+      throw new BadRequestException({
+        code: "EMPLOYER_PERSONAL_EMAIL",
+        message: `Employer accounts require a company email address. @${domain} is a personal email domain and is not accepted.`,
+      });
+    }
 
     const existingProvider = await this.prisma.userOAuthProvider.findUnique({
       where: {

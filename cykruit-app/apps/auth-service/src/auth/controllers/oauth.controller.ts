@@ -119,7 +119,7 @@ export class OAuthController {
         error.stack,
         "OAuthController",
       );
-      const errorCode = error.code || ErrorCodes.GOOGLE_AUTH_FAILED;
+      const errorCode = error?.response?.code || error?.code || ErrorCodes.GOOGLE_AUTH_FAILED;
       return res.redirect(`${appUrl}/login?error=${errorCode}`);
     }
   }
@@ -205,7 +205,7 @@ export class OAuthController {
         error.stack,
         "OAuthController",
       );
-      const errorCode = error.code || ErrorCodes.GITHUB_AUTH_FAILED;
+      const errorCode = error?.response?.code || error?.code || ErrorCodes.GITHUB_AUTH_FAILED;
       return res.redirect(`${appUrl}/login?error=${errorCode}`);
     }
   }

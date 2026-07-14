@@ -205,16 +205,11 @@ export default function EmployerRegisterPage() {
   }
 
   async function handleGoogleSignIn() {
-    setOauthLoading(true);
-    try {
-      const result = await apiFetch("/api/auth/google?role=EMPLOYER");
-      if (result.data?.url) window.location.href = result.data.url;
-      else toast({ type: "error", message: "Failed to get Google sign-in URL" });
-    } catch {
-      toast({ type: "error", message: "Failed to connect to authentication server" });
-    } finally {
-      setOauthLoading(false);
-    }
+    toast({
+      type: "error",
+      message: "Company email required",
+      description: "Employer accounts cannot use personal Google accounts. Register with your company email via OTP instead.",
+    });
   }
 
   return (

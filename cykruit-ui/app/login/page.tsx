@@ -135,6 +135,22 @@ function LoginForm() {
   const hintRole = nextPath.startsWith("/employer") || nextPath.startsWith("/kyc") ? "EMPLOYER" : "SEEKER";
   const [role, setRole] = useState<"SEEKER" | "EMPLOYER">(hintRole);
 
+  // Personal email domains not accepted for employer accounts
+  const PERSONAL_DOMAINS = new Set([
+    "gmail.com","googlemail.com","yahoo.com","yahoo.in","yahoo.co.in","yahoo.co.uk",
+    "hotmail.com","hotmail.in","hotmail.co.uk","outlook.com","outlook.in",
+    "live.com","live.in","icloud.com","me.com","mac.com","msn.com",
+    "aol.com","protonmail.com","proton.me","tutanota.com","tutamail.com","tuta.io",
+    "yandex.com","yandex.ru","rediffmail.com","zoho.com","gmx.com","gmx.net",
+    "fastmail.com","qq.com","163.com","126.com","ymail.com","rocketmail.com",
+    "inbox.com","mail.com",
+  ]);
+
+  function isPersonalEmail(e: string): boolean {
+    const domain = e.split("@")[1]?.toLowerCase();
+    return !!domain && PERSONAL_DOMAINS.has(domain);
+  }
+
   // Show OAuth error redirected back from backend (e.g. ?error=GOOGLE_AUTH_FAILED)
   const OAUTH_ERROR_MESSAGES: Record<string, string> = {
     GOOGLE_AUTH_FAILED:    "Google sign-in failed. Please try again.",
@@ -144,6 +160,8 @@ function LoginForm() {
     GOOGLE_TOKEN_INVALID:  "Google returned an invalid token. Please try again.",
     OAUTH_EMAIL_MISSING:   "Google did not share your email. Enable email access and retry.",
     OAUTH_ACCOUNT_CONFLICT: "An account with this email already exists with a different sign-in method.",
+    EMPLOYER_PERSONAL_EMAIL: "Employer accounts require a company email address. Personal email domains like Gmail or Yahoo are not accepted.",
+    EMAIL_DOMAIN_NOT_ALLOWED: "Employer accounts require a company email address. Personal email domains are not accepted.",
   };
   useEffect(() => {
     const errCode = searchParams.get("error");
@@ -159,6 +177,14 @@ function LoginForm() {
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) { toast({ type: "error", message: "Email is required" }); return; }
+    if (role === "EMPLOYER" && isPersonalEmail(email.trim())) {
+      toast({
+        type: "error",
+        message: "Company email required",
+        description: "Employer accounts must use a company email address. Personal emails like Gmail or Yahoo are not accepted.",
+      });
+      return;
+    }
     setLoading(true);
     try {
       await apiFetch("/api/auth/request-otp", {
@@ -240,6 +266,14 @@ function LoginForm() {
   }
 
   async function handleGoogleSignIn() {
+    if (role === "EMPLOYER") {
+      toast({
+        type: "error",
+        message: "Company email required for employers",
+        description: "Employer accounts cannot use personal Google accounts. Sign in with your company email via OTP instead.",
+      });
+      return;
+    }
     try {
       const result = await apiFetch(`/api/auth/google?role=${role}`);
       if (result.data?.url) {
