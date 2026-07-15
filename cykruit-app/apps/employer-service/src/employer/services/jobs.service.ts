@@ -189,6 +189,15 @@ export class JobsService {
                 ...(dto.contractDuration !== undefined
                     ? { contractDuration: dto.contractDuration }
                     : {}),
+                ...(dto.requirements !== undefined
+                    ? { requirements: dto.requirements as unknown as Prisma.InputJsonValue }
+                    : {}),
+                ...(dto.responsibilities !== undefined
+                    ? { responsibilities: dto.responsibilities as unknown as Prisma.InputJsonValue }
+                    : {}),
+                ...(dto.niceToHave !== undefined
+                    ? { niceToHave: dto.niceToHave as unknown as Prisma.InputJsonValue }
+                    : {}),
             });
 
             if (dto.skillNames && dto.skillNames.length > 0) {
@@ -250,6 +259,15 @@ export class JobsService {
                         : {}),
                     ...(dto.contractDuration !== undefined
                         ? { contractDuration: dto.contractDuration }
+                        : {}),
+                    ...(dto.requirements !== undefined
+                        ? { requirements: dto.requirements as unknown as Prisma.InputJsonValue }
+                        : {}),
+                    ...(dto.responsibilities !== undefined
+                        ? { responsibilities: dto.responsibilities as unknown as Prisma.InputJsonValue }
+                        : {}),
+                    ...(dto.niceToHave !== undefined
+                        ? { niceToHave: dto.niceToHave as unknown as Prisma.InputJsonValue }
                         : {}),
                     ...(dto.roleId !== undefined
                         ? { role: dto.roleId ? { connect: { id: dto.roleId } } : { disconnect: true } }

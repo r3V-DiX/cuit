@@ -4,7 +4,9 @@ import { z } from 'zod';
 
 const JobDescriptionSchema = z.object({
   jobTitle: z.string(),
-  description: z.string().describe("A well-formatted, professional job description"),
+  description: z.string().describe("A well-formatted, concise, paragraph-based job description. DO NOT include bulleted lists for requirements and responsibilities here."),
+  requirements: z.array(z.string()).describe("A list of requirements for this job"),
+  responsibilities: z.array(z.string()).describe("A list of responsibilities for this job"),
   skills: z.array(z.string()).describe("A list of recommended skills for this job"),
 });
 
@@ -40,7 +42,7 @@ export class JobAssistantService {
   async generateJobDescription(promptText: string): Promise<GeneratedJob> {
     const prompt = `
 You are an expert HR assistant. Write a professional job description based on the following notes or prompt.
-Ensure the output includes a clear job title, a detailed description (including responsibilities and requirements), and a list of key skills.
+Ensure the output includes a clear job title, a concise paragraph-based description, separate distinct lists for responsibilities and requirements, and a list of key skills.
 
 PROMPT:
 ${promptText}

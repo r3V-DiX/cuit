@@ -291,13 +291,10 @@ export default function PostJobPage() {
         "Senior (5+ yrs)":     "SENIOR",
       };
 
-      let finalDesc = description.trim();
+      const finalDesc = description.trim();
       const resps = responsibilities.filter(r => r.trim());
-      if (resps.length > 0) finalDesc += "\n\n### Responsibilities\n" + resps.map(r => "- " + r).join("\n");
       const reqs = requirements.filter(r => r.trim());
-      if (reqs.length > 0) finalDesc += "\n\n### Requirements\n" + reqs.map(r => "- " + r).join("\n");
       const nice = niceToHave.filter(r => r.trim());
-      if (nice.length > 0) finalDesc += "\n\n### Nice to have\n" + nice.map(r => "- " + r).join("\n");
 
       const result = await apiFetch("/api/employer/jobs", {
         method: "POST",
@@ -308,6 +305,9 @@ export default function PostJobPage() {
           workMode: modeMap[remote],
           experienceLevel: levelMap[level],
           description: finalDesc || undefined,
+          requirements: reqs.length > 0 ? reqs : undefined,
+          responsibilities: resps.length > 0 ? resps : undefined,
+          niceToHave: nice.length > 0 ? nice : undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           skillNames: tags.length > 0 ? tags : undefined,
           ...(location.country && location.city ? { location } : {}),
@@ -370,13 +370,10 @@ export default function PostJobPage() {
         "Senior (5+ yrs)":     "SENIOR",
       };
 
-      let finalDesc = description.trim();
+      const finalDesc = description.trim();
       const resps = responsibilities.filter(r => r.trim());
-      if (resps.length > 0) finalDesc += "\n\n### Responsibilities\n" + resps.map(r => "- " + r).join("\n");
       const reqs = requirements.filter(r => r.trim());
-      if (reqs.length > 0) finalDesc += "\n\n### Requirements\n" + reqs.map(r => "- " + r).join("\n");
       const nice = niceToHave.filter(r => r.trim());
-      if (nice.length > 0) finalDesc += "\n\n### Nice to have\n" + nice.map(r => "- " + r).join("\n");
 
       await apiFetch("/api/employer/jobs", {
         method: "POST",
@@ -387,6 +384,9 @@ export default function PostJobPage() {
           workMode: modeMap[remote],
           experienceLevel: levelMap[level],
           description: finalDesc || undefined,
+          requirements: reqs.length > 0 ? reqs : undefined,
+          responsibilities: resps.length > 0 ? resps : undefined,
+          niceToHave: nice.length > 0 ? nice : undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           skillNames: tags.length > 0 ? tags : undefined,
           ...(location.country && location.city ? { location } : {}),
@@ -500,7 +500,7 @@ export default function PostJobPage() {
                   onClick={async () => {
                     setIsDrafting(true);
                     try {
-                      const prompt = `Job Title: ${title}\nExperience Level: ${level}\nJob Type: ${type}\nWork Mode: ${remote}`;
+                      const prompt = `Job Title: ${title}\nDomain: ${domain}\nExperience Level: ${level}\nJob Type: ${type}\nWork Mode: ${remote}`;
                       const res = await fetch("/api/ai/job-description/generate", {
                         method: "POST", headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ prompt }),
@@ -508,6 +508,8 @@ export default function PostJobPage() {
                       if (res.ok) {
                         const data = await res.json();
                         if (data.description) setDescription(data.description);
+                        if (data.requirements && data.requirements.length > 0) setReqs(data.requirements);
+                        if (data.responsibilities && data.responsibilities.length > 0) setResp(data.responsibilities);
                         if (data.skills && data.skills.length > 0) {
                           const skillIds = data.skills.map((s: string) => s.toLowerCase());
                           setTags(Array.from(new Set([...tags, ...skillIds])));

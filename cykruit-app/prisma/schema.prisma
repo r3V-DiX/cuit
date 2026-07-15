@@ -1355,6 +1355,9 @@ model Job {
 
     experienceLevel ExperienceLevel
     description     String?         @db.Text
+    requirements    Json?
+    responsibilities Json?
+    niceToHave      Json?
 
     applicationType    ApplicationType
     externalUrl        String?

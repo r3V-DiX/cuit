@@ -1,4 +1,3 @@
--- Enable pgvector extension
 CREATE EXTENSION IF NOT EXISTS vector;
 
 -- CreateEnum
@@ -674,6 +673,9 @@ CREATE TABLE "jobs" (
     "locationId" TEXT,
     "experienceLevel" "ExperienceLevel" NOT NULL,
     "description" TEXT,
+    "requirements" JSONB,
+    "responsibilities" JSONB,
+    "niceToHave" JSONB,
     "applicationType" "ApplicationType" NOT NULL,
     "externalUrl" TEXT,
     "screeningQuestions" JSONB,

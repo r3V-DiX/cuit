@@ -113,6 +113,21 @@ export class CreateJobDto {
     @ArrayMaxSize(20)
     @IsString({ each: true })
     skillNames?: string[];
+
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    requirements?: string[];
+
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    responsibilities?: string[];
+
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    niceToHave?: string[];
 }
 
 // ── Update ────────────────────────────────────────────────────────────────────
@@ -180,6 +195,21 @@ export class UpdateJobDto {
     @ArrayMaxSize(20)
     @IsString({ each: true })
     skillNames?: string[];
+
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    requirements?: string[];
+
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    responsibilities?: string[];
+
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    niceToHave?: string[];
 }
 
 // ── Close ─────────────────────────────────────────────────────────────────────

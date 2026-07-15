@@ -14,32 +14,6 @@ import {
 import { use } from "react";
 import { apiFetch, authHeaders } from "@/lib/api";
 
-function parseDescription(raw: string): {
-  intro: string;
-  responsibilities: string[];
-  requirements: string[];
-} {
-  if (!raw) return { intro: "", responsibilities: [], requirements: [] };
-
-  const lines = raw.split("\n");
-  let section: "intro" | "resp" | "req" = "intro";
-  const intro: string[] = [];
-  const resp: string[] = [];
-  const req: string[] = [];
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (/^responsibilities:/i.test(trimmed)) { section = "resp"; continue; }
-    if (/^requirements:/i.test(trimmed)) { section = "req"; continue; }
-    if (!trimmed) continue;
-    const bullet = trimmed.replace(/^[-•*]\s*/, "");
-    if (section === "intro") intro.push(bullet);
-    else if (section === "resp") resp.push(bullet);
-    else req.push(bullet);
-  }
-
-  return { intro: intro.join(" "), responsibilities: resp, requirements: req };
-}
 
 function formatEnum(value: string): string {
   if (!value) return value;
@@ -76,7 +50,6 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         const result = await apiFetch<any>(`/api/public/jobs/${id}`);
         if (result && result.data) {
           const jobData = result.data;
-          const parsed = parseDescription(jobData.description || "");
           setJob({
             id: jobData.id,
             title: jobData.jobTitle,
@@ -84,18 +57,18 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             location: jobData.location?.displayName || "Remote",
             type: jobData.jobType,
             remote: jobData.workMode,
-            description: parsed.intro || jobData.description || "",
+            description: jobData.description || "",
             logo: jobData.employer?.companyName?.[0] || "C",
             accent: "bg-blue-100 text-blue-800",
             posted: new Date(jobData.publishedAt || Date.now()).toLocaleDateString(),
-            tags: jobData.skills?.map((s: any) => s.name) || [],
+            tags: jobData.skills?.map((s: any) => s.skill?.name || s.name) || [],
             domain: jobData.role?.name || "Cybersecurity",
-            responsibilities: parsed.responsibilities,
+            responsibilities: Array.isArray(jobData.responsibilities) ? jobData.responsibilities : [],
             requirements: [
-              ...parsed.requirements,
+              ...(Array.isArray(jobData.requirements) ? jobData.requirements : []),
               ...(jobData.certifications?.map((c: any) => c.name) || []),
             ],
-            niceToHave: [],
+            niceToHave: Array.isArray(jobData.niceToHave) ? jobData.niceToHave : [],
             companyDescription: jobData.employer?.about || "",
             companyIndustry: jobData.employer?.industry || "",
             companySize: jobData.employer?.companySize || "",

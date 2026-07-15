@@ -110,6 +110,48 @@ function SaveButton({ onClick, saving, descTooShort }: { onClick: () => void; sa
   );
 }
 
+function ListInput({
+  label, items, onChange, placeholder,
+}: {
+  label: string; items: string[]; onChange: (i: string[]) => void; placeholder?: string;
+}) {
+  function update(idx: number, val: string) {
+    const next = [...items];
+    next[idx] = val;
+    onChange(next);
+  }
+  function remove(idx: number) { onChange(items.filter((_, i) => i !== idx)); }
+  function add() { onChange([...items, ""]); }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-xs font-semibold text-slate-700">{label}</label>
+      <div className="space-y-2">
+        {items.map((item, idx) => (
+          <div key={idx} className="flex items-center gap-2">
+            <input
+              value={item}
+              onChange={(e) => update(idx, e.target.value)}
+              placeholder={placeholder}
+              className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10"
+            />
+            <button onClick={() => remove(idx)} type="button" className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors shrink-0">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={add}
+          className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer"
+        >
+          <Plus className="w-3.5 h-3.5" /> Add item
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function JobEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -124,6 +166,9 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
   const [level, setLevel]             = useState("");
   const [remote, setRemote]           = useState("");
   const [description, setDescription] = useState("");
+  const [requirements, setReqs]         = useState<string[]>([""]);
+  const [responsibilities, setResp]     = useState<string[]>([""]);
+  const [niceToHave, setNice]           = useState<string[]>([""]);
   const [tags, setTags]               = useState<string[]>([]);
 
   // Read-only display fields
@@ -172,6 +217,9 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
           setLevel(levelBackToDisplay[(rawJob.experienceLevel as string) || ""] || "Mid-level (2–5 yrs)");
 
           setDescription((rawJob.description as string) || "");
+          setReqs((rawJob.requirements as string[])?.length ? (rawJob.requirements as string[]) : [""]);
+          setResp((rawJob.responsibilities as string[])?.length ? (rawJob.responsibilities as string[]) : [""]);
+          setNice((rawJob.niceToHave as string[])?.length ? (rawJob.niceToHave as string[]) : [""]);
           setTags(
             ((rawJob as { skills?: { skill: { name: string } }[] }).skills || []).map((s) => s.skill.name)
           );
@@ -264,8 +312,11 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
           jobType:         typeMap[type],
           workMode:        modeMap[remote],
           experienceLevel: levelMap[level],
-          description:     description.trim(),
-          skillNames:      tags,
+          description:     description.trim() || undefined,
+          requirements:    requirements.filter(r => r.trim()).length > 0 ? requirements.filter(r => r.trim()) : undefined,
+          responsibilities: responsibilities.filter(r => r.trim()).length > 0 ? responsibilities.filter(r => r.trim()) : undefined,
+          niceToHave:      niceToHave.filter(r => r.trim()).length > 0 ? niceToHave.filter(r => r.trim()) : undefined,
+          skillNames:      tags.length > 0 ? tags : undefined,
           ...(location.country && location.city ? { location } : { locationId: null }),
         }),
       });
@@ -366,6 +417,36 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
               <p className="text-xs text-slate-400 mb-3">Minimum {DESC_MIN} characters required.</p>
               <TextField label="" value={description} onChange={setDescription} multiline rows={10}
                 placeholder="Describe the role, responsibilities, requirements, and what makes this opportunity exciting…" />
+            </section>
+
+            <section className="bg-white rounded-2xl border border-slate-200 p-6">
+              <h2 className="text-sm font-bold text-slate-900 mb-4">Responsibilities</h2>
+              <ListInput
+                label="Key responsibilities"
+                items={responsibilities}
+                onChange={setResp}
+                placeholder="e.g. Conduct regular vulnerability assessments"
+              />
+            </section>
+
+            <section className="bg-white rounded-2xl border border-slate-200 p-6">
+              <h2 className="text-sm font-bold text-slate-900 mb-4">Requirements</h2>
+              <ListInput
+                label="Must-have requirements"
+                items={requirements}
+                onChange={setReqs}
+                placeholder="e.g. 5+ years of experience in penetration testing"
+              />
+            </section>
+
+            <section className="bg-white rounded-2xl border border-slate-200 p-6">
+              <h2 className="text-sm font-bold text-slate-900 mb-4">Nice to Have</h2>
+              <ListInput
+                label="Bonus qualifications"
+                items={niceToHave}
+                onChange={setNice}
+                placeholder="e.g. OSCP or CISSP certification"
+              />
             </section>
 
             <section className="bg-white rounded-2xl border border-slate-200 p-6">
