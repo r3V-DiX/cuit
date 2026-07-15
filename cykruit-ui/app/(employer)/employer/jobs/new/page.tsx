@@ -316,6 +316,7 @@ export default function PostJobPage() {
             type: questionTypeMap[q.type],
             question: q.question,
             required: q.required,
+            ...(q.options?.length > 0 ? { options: q.options.filter((o: string) => o.trim()) } : {}),
           })) : undefined,
         }),
       });
@@ -395,6 +396,7 @@ export default function PostJobPage() {
             type: questionTypeMap[q.type],
             question: q.question,
             required: q.required,
+            ...(q.options?.length > 0 ? { options: q.options.filter((o: string) => o.trim()) } : {}),
           })) : undefined,
         }),
       });

@@ -26,7 +26,7 @@ const STATUS_CFG: Record<JobDisplayStatus, { color: string; icon: React.ReactNod
   Expired:  { color: "text-slate-700 bg-slate-50 border-slate-200",  icon: <XCircle      className="w-3 h-3" /> },
 };
 
-const STATUS_FILTERS = ["All", "Active", "Pending", "Draft", "Closed"] as const;
+const STATUS_FILTERS = ["All", "Active", "Pending", "Draft", "Closed", "Rejected"] as const;
 type StatusFilterType = typeof STATUS_FILTERS[number];
 
 interface Job {
@@ -65,10 +65,11 @@ export default function MyJobsPage() {
       }
       if (statusFilter !== "All") {
         const filterMap: Record<string, string> = {
-          "Active": "APPROVED",
-          "Pending": "PENDING",
-          "Draft": "DRAFT",
-          "Closed": "CLOSED"
+          "Active":   "APPROVED",
+          "Pending":  "PENDING",
+          "Draft":    "DRAFT",
+          "Closed":   "CLOSED",
+          "Rejected": "REJECTED",
         };
         url.searchParams.set("status", filterMap[statusFilter]);
       }

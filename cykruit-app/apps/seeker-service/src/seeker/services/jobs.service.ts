@@ -127,7 +127,7 @@ export class JobsService {
         // We can use the same JOB_LIST_INCLUDE from the repository by querying prisma directly
         // to match the exact shape expected by the frontend.
         const jobs = await this.prisma.job.findMany({
-            where: { id: { in: jobIds } },
+            where: { id: { in: jobIds }, status: 'APPROVED' },
             include: {
                 employer: {
                     select: { id: true, companyName: true, slug: true, companyLogo: true, industry: true, isVerified: true },

@@ -11,7 +11,7 @@ import {
 import { apiFetch, authHeaders, getCsrf } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { LocationSelect, LocationValue } from "@/components/ui/LocationSelect";
-import { useKycStatus } from "@/lib/employer-context";
+import { useKycContext } from "@/lib/employer-context";
 
 const INDUSTRIES = [
   { id: "TECHNOLOGY", label: "Technology" },
@@ -68,7 +68,7 @@ export default function CompanyProfilePage() {
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
   const { toast } = useToast();
-  const kycCtx = useKycStatus();
+  const { status: kycCtx, rejectionReason: kycRejectionReason } = useKycContext();
   const kycStatus =
     kycCtx === "verified"      ? "APPROVED"     :
     kycCtx === "pending"       ? "PENDING"      :
@@ -298,6 +298,21 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
             <p className="text-sm font-semibold text-blue-800">Verification under review</p>
             <p className="text-xs text-blue-700 mt-0.5">Your KYC documents are being reviewed. Job posting unlocks once approved (1–2 business days).</p>
           </div>
+        </div>
+      )}
+      {kycStatus === "REJECTED" && (
+        <div className="mx-6 mt-4 flex items-start gap-3 px-5 py-4 bg-rose-50 border border-rose-200 rounded-2xl">
+          <ShieldAlert className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-rose-800">Verification rejected</p>
+            {kycRejectionReason && (
+              <p className="text-xs text-rose-700 mt-0.5">{kycRejectionReason}</p>
+            )}
+            <p className="text-xs text-rose-600 mt-1">Fix the issue and resubmit your documents to unlock job posting.</p>
+          </div>
+          <Link href="/kyc/employer" className="shrink-0 h-8 px-3 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors flex items-center gap-1.5">
+            Resubmit <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
       )}
       {kycStatus === "APPROVED" && (

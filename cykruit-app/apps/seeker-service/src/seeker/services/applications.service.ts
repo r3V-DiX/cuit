@@ -97,8 +97,8 @@ export class ApplicationsService {
     ) {
         if (!jobScreeningQuestions) return;
 
-        const questions: Array<{ id: string; question: string; required: boolean }> =
-            Array.isArray(jobScreeningQuestions) ? (jobScreeningQuestions as unknown as Array<{ id: string; question: string; required: boolean }>) : [];
+        const questions: Array<{ id: string; question: string; required: boolean; type?: string }> =
+            Array.isArray(jobScreeningQuestions) ? (jobScreeningQuestions as unknown as Array<{ id: string; question: string; required: boolean; type?: string }>) : [];
 
         const requiredQuestions = questions.filter((q) => q.required);
         if (!requiredQuestions.length) return;
@@ -111,7 +111,11 @@ export class ApplicationsService {
 
         for (const q of requiredQuestions) {
             const answer = answersMap.get(q.id);
-            if (!answer || answer.trim().length < 10) {
+            if (!answer || !answer.trim()) {
+                throw new BadRequestException(ApplicationErrorCodes.REQUIRED_QUESTION_MISSING);
+            }
+            // TEXT answers need substance; BOOLEAN and MULTIPLE_CHOICE answers are short by design
+            if ((!q.type || q.type === 'TEXT') && answer.trim().length < 10) {
                 throw new BadRequestException(ApplicationErrorCodes.REQUIRED_QUESTION_MISSING);
             }
         }

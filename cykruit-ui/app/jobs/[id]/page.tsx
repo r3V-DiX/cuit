@@ -34,6 +34,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [isApplied, setIsApplied] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [matchScore, setMatchScore] = useState<number | null>(null);
+  const [screeningAnswers, setScreeningAnswers] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -74,6 +75,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             companyDescription: jobData.employer?.about || "",
             companyIndustry: jobData.employer?.industry || "",
             companySize: jobData.employer?.companySize || "",
+            applicationType: jobData.applicationType || "INTERNAL",
+            externalUrl: jobData.externalUrl || null,
+            screeningQuestions: Array.isArray(jobData.screeningQuestions) ? jobData.screeningQuestions : [],
           });
           setLoading(false);
           return;
@@ -104,11 +108,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     if (user.userType !== "EMPLOYER" && job.slug) {
       apiFetch<any>(`/api/seeker/jobs/${job.slug}/match-score`)
         .then((body) => {
-          if (body?.data?.score !== undefined) {
-            setMatchScore(body.data.score);
-          } else if (body?.score !== undefined) {
-            setMatchScore(body.score);
-          }
+          const raw = body as { data?: { score?: number }; score?: number };
+          const score = raw?.data?.score ?? (raw as { score?: number })?.score;
+          if (score !== undefined) setMatchScore(score);
         })
         .catch(() => setMatchScore(null));
     }
@@ -145,19 +147,33 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       window.location.href = `/login?next=/jobs/${job.id}`;
       return;
     }
+    if (job.applicationType === "EXTERNAL" && job.externalUrl) {
+      window.open(job.externalUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
     if (isApplied) {
       toast({ type: "warning", message: "Already applied", description: "You have already applied for this role." });
       return;
     }
 
+    const requiredUnanswered = (job.screeningQuestions ?? []).filter(
+      (q: any) => q.required && !screeningAnswers[q.id]?.trim()
+    );
+    if (requiredUnanswered.length > 0) {
+      toast({ type: "warning", message: "Screening answers required", description: "Please answer all required questions before applying." });
+      document.getElementById("screening-questions")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+
+    const answers = Object.entries(screeningAnswers)
+      .filter(([, v]) => v.trim())
+      .map(([questionId, answer]) => ({ questionId, answer }));
+
     try {
       await apiFetch(`/api/seeker/jobs/${job.id}/apply`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({
-          coverLetter: "Excited about this opportunity. Let's talk!",
-          useAiScoring: true,
-        }),
+        body: JSON.stringify({ ...(answers.length > 0 ? { screeningAnswers: answers } : {}) }),
       });
 
       setIsApplied(true);
@@ -251,7 +267,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                         : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20"
                     }`}
                   >
-                    <Send className="w-4 h-4" /> {isApplied ? "Applied" : "Apply Now"}
+                    <Send className="w-4 h-4" /> {isApplied ? "Applied" : job?.applicationType === "EXTERNAL" ? "Apply Externally" : "Apply Now"}
                   </button>
                 )}
                 <button
@@ -335,6 +351,67 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 )}
               </section>
 
+              {/* Screening Questions — only for INTERNAL jobs with questions */}
+              {job.applicationType !== "EXTERNAL" && job.screeningQuestions?.length > 0 && (
+                <section id="screening-questions" className="bg-white rounded-2xl border border-slate-200 p-6">
+                  <h2 className="text-sm font-semibold text-slate-900 mb-1">Screening Questions</h2>
+                  <p className="text-xs text-slate-400 mb-4">Answer these before submitting your application.</p>
+                  <div className="space-y-5">
+                    {job.screeningQuestions.map((q: any) => (
+                      <div key={q.id}>
+                        <label className="block text-sm text-slate-700 font-medium mb-1.5">
+                          {q.question}
+                          {q.required && <span className="ml-1 text-rose-500">*</span>}
+                        </label>
+                        {q.type === "BOOLEAN" ? (
+                          <div className="flex gap-3">
+                            {["Yes", "No"].map((opt) => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setScreeningAnswers((prev) => ({ ...prev, [q.id]: opt }))}
+                                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors cursor-pointer ${
+                                  screeningAnswers[q.id] === opt
+                                    ? "bg-blue-600 text-white border-blue-600"
+                                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                                }`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        ) : q.type === "MULTIPLE_CHOICE" && q.options?.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {q.options.map((opt: string) => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setScreeningAnswers((prev) => ({ ...prev, [q.id]: opt }))}
+                                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors cursor-pointer ${
+                                  screeningAnswers[q.id] === opt
+                                    ? "bg-blue-600 text-white border-blue-600"
+                                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                                }`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <textarea
+                            rows={3}
+                            value={screeningAnswers[q.id] ?? ""}
+                            onChange={(e) => setScreeningAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                            placeholder="Your answer…"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:border-blue-400 transition-all resize-none"
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
             </div>
 
             {/* Right — sidebar */}
@@ -348,6 +425,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 <p className="text-xs text-slate-500 mb-4">
                   {user?.userType === "EMPLOYER"
                     ? "Employers cannot apply for jobs."
+                    : job.applicationType === "EXTERNAL"
+                    ? `This role uses an external application on the company website.`
                     : `Submit your application directly to ${job.company}.`}
                 </p>
                 {user?.userType !== "EMPLOYER" && (
@@ -359,7 +438,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                         : "bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20"
                     }`}
                   >
-                    <Send className="w-4 h-4" /> {isApplied ? "Applied" : "Apply Now"}
+                    <Send className="w-4 h-4" /> {isApplied ? "Applied" : job.applicationType === "EXTERNAL" ? "Apply Externally" : "Apply Now"}
                   </button>
                 )}
                 <button

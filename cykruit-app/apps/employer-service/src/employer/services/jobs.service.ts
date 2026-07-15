@@ -269,6 +269,8 @@ export class JobsService {
         }
 
         const wasApproved = job.status === JobStatus.APPROVED;
+        const wasPending  = job.status === JobStatus.PENDING;
+        const wasRejected = job.status === JobStatus.REJECTED;
 
         const resolvedLocationId = await this.resolveLocation(dto.location) || dto.locationId;
 
@@ -312,8 +314,9 @@ export class JobsService {
                                   : { disconnect: true },
                           }
                         : {}),
-                    // Editing an approved job sends it back for re-review
-                    ...(wasApproved ? { status: JobStatus.PENDING } : {}),
+                    // Editing APPROVED or PENDING sends it back for re-review; clear stale rejection reason on REJECTED edits
+                    ...((wasApproved || wasPending) ? { status: JobStatus.PENDING } : {}),
+                    ...(wasRejected ? { rejectionReason: null } : {}),
                 },
                 include: {
                     skills: { include: { skill: true } },
@@ -355,7 +358,7 @@ export class JobsService {
             metadata: { userAgent },
         });
 
-        if (wasApproved) {
+        if (wasApproved || wasPending) {
             this.notifyAdminsOfJobReview(
                 updated.jobTitle,
                 employer.companyName,

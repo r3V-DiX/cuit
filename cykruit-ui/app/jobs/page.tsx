@@ -47,7 +47,8 @@ async function fetchJobs(params: {
       url.searchParams.set("jobType", type.toUpperCase().replace(/-/g, "_"));
     }
     if (mode && mode !== "All") {
-      url.searchParams.set("workMode", mode.toUpperCase().replace("-", "_"));
+      const workModeMap: Record<string, string> = { "Remote": "REMOTE", "Hybrid": "HYBRID", "On-site": "ONSITE" };
+      url.searchParams.set("workMode", workModeMap[mode] ?? mode.toUpperCase());
     }
     url.searchParams.set("page", String(page));
     url.searchParams.set("limit", String(limit));
@@ -284,6 +285,7 @@ function JobsContent() {
                   />
                   <button
                     disabled={!smartInput.trim()}
+                    onClick={() => { if (smartInput.trim()) setParams({ q: smartInput.trim() }); }}
                     className="flex items-center gap-1.5 px-4 h-10 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
                   >
                     <Sparkles className="w-3.5 h-3.5" /> Search

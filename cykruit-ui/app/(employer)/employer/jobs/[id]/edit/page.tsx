@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Save, ChevronDown, Plus, X, ArrowLeft,
-  Users, Eye, CheckCircle2, Info, Sparkles, Loader2, MapPin,
+  Users, Eye, CheckCircle2, Info, Sparkles, Loader2, MapPin, AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
@@ -347,7 +347,12 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
   }
 
   const status = (initialJob?.status as string) || "DRAFT";
-  const statusDisplay = status === "APPROVED" ? "Active" : status === "PENDING" ? "Pending" : status === "DRAFT" ? "Draft" : "Closed";
+  const statusDisplay =
+    status === "APPROVED" ? "Active" :
+    status === "PENDING"  ? "Pending" :
+    status === "DRAFT"    ? "Draft" :
+    status === "REJECTED" ? "Rejected" :
+    "Closed";
 
 
 
@@ -359,6 +364,20 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
         <Link href={`/employer/jobs/${id}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors mb-5">
           <ArrowLeft className="w-4 h-4" /> Back to Job Details
         </Link>
+
+        {(status === "APPROVED" || status === "PENDING") && (
+          <div className="mb-5 flex items-start gap-3 px-5 py-4 bg-amber-50 border border-amber-200 rounded-2xl">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Saving will send this job for re-review</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                {status === "APPROVED"
+                  ? "This job is currently live. Saving any changes will take it offline and reset it to Pending until an admin re-approves it."
+                  : "This job is already pending review. Saving changes will restart the review process."}
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
 

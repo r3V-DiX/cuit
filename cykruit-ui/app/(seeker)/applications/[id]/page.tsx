@@ -316,7 +316,7 @@ export default function ApplicationDetailPage() {
                     <div>
                       <p className="text-[10px] text-slate-400">Last update</p>
                       <p className="text-xs font-semibold text-slate-800">
-                        {app.timeline[app.timeline.length - 1].date}
+                        {app.timeline[0].date}
                       </p>
                     </div>
                   </div>

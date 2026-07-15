@@ -41,24 +41,25 @@ async function getSessionUser(fwdHeaders: Record<string, string>) {
   }
 }
 
-async function getKycStatus(fwdHeaders: Record<string, string>): Promise<KycStatus> {
-  if (!fwdHeaders.Cookie) return "not_submitted";
+async function getKycData(fwdHeaders: Record<string, string>): Promise<{ status: KycStatus; rejectionReason?: string }> {
+  if (!fwdHeaders.Cookie) return { status: "not_submitted" };
   try {
     const res = await fetch(`${EMPLOYER_URL}/employer/kyc/status`, {
       headers: fwdHeaders,
       cache: "no-store",
     });
-    if (!res.ok) return "not_submitted";
+    if (!res.ok) return { status: "not_submitted" };
     const body = await res.json();
     const data = body?.data ?? body;
-    if (data?.isVerified) return "verified";
+    if (data?.isVerified) return { status: "verified" };
     const vs: string = data?.verification?.status ?? "";
-    if (vs === "UNDER_REVIEW") return "under_review";
-    if (vs === "PENDING")      return "pending";
-    if (vs === "REJECTED")     return "rejected";
-    return "not_submitted";
+    const rejectionReason: string | undefined = data?.verification?.rejectionReason ?? undefined;
+    if (vs === "UNDER_REVIEW") return { status: "under_review" };
+    if (vs === "PENDING")      return { status: "pending" };
+    if (vs === "REJECTED")     return { status: "rejected", rejectionReason };
+    return { status: "not_submitted" };
   } catch {
-    return "not_submitted";
+    return { status: "not_submitted" };
   }
 }
 
@@ -69,9 +70,9 @@ export default async function EmployerLayout({
 }) {
   const fwdHeaders = await buildForwardHeaders();
 
-  const [user, kycStatus] = await Promise.all([
+  const [user, kycData] = await Promise.all([
     getSessionUser(fwdHeaders),
-    getKycStatus(fwdHeaders),
+    getKycData(fwdHeaders),
   ]);
 
   if (!user || user.role !== "EMPLOYER") {
@@ -79,7 +80,7 @@ export default async function EmployerLayout({
   }
 
   return (
-    <KycProvider initialStatus={kycStatus}>
+    <KycProvider initialStatus={kycData.status} initialRejectionReason={kycData.rejectionReason}>
       <div className="flex h-screen bg-slate-50 overflow-hidden">
         <EmployerSidebar />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

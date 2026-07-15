@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
 import { authHeaders } from "@/lib/api";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
+import { useToast } from "@/components/ui/Toast";
 import {
   ChevronLeft, Edit3, MapPin, Briefcase, Users, Eye,
   CheckCircle2, Clock, XCircle, Send, ChevronRight,
-  Sparkles, MessageSquare, BarChart2, Calendar,
+  Sparkles, MessageSquare, BarChart2, Calendar, AlertTriangle, RefreshCw,
 } from "lucide-react";
 
 type JobStatus  = "Active" | "Pending" | "Draft" | "Closed";
@@ -38,9 +39,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [job, setJob] = useState<any>(null);
   const [applicants, setApplicants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [statusFilter, setStatusFilter] = useState<AppStatus | "All">("All");
   const [search, setSearch] = useState("");
   const [aiRank, setAiRank] = useState(false);
+  const { toast } = useToast();
   const { limits: subLimits } = useSubscriptionLimits();
   const aiScoringEnabled = subLimits?.aiScoringEnabled ?? false;
 
@@ -71,12 +74,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               experience: rawJob.experienceLevel || "Mid-level",
               posted: new Date(rawJob.createdAt).toLocaleDateString(),
               status: statusMap[rawJob.status] || "Draft",
+              rawStatus: rawJob.status as string,
               views: rawJob.viewCount || 0,
               description: rawJob.description || "No description provided.",
               skills: rawJob.skills?.map((s: any) => s.skill?.name).filter(Boolean) || [],
               responsibilities: Array.isArray(rawJob.responsibilities) ? rawJob.responsibilities as string[] : [],
               requirements: Array.isArray(rawJob.requirements) ? rawJob.requirements as string[] : [],
               niceToHave: Array.isArray(rawJob.niceToHave) ? rawJob.niceToHave as string[] : [],
+              rejectionReason: rawJob.rejectionReason ?? null,
             };
             setJob(mapped);
         }
@@ -142,6 +147,27 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     return () => clearInterval(interval);
   }, [id, aiRank]);
 
+  async function handleResubmit() {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/employer/jobs/${id}/submit`, {
+        method: "POST",
+        credentials: "include",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { message?: string }).message ?? "Failed to resubmit");
+      }
+      setJob((prev: any) => prev ? { ...prev, status: "Pending", rawStatus: "PENDING", rejectionReason: null } : prev);
+      toast({ type: "success", message: "Job resubmitted for review" });
+    } catch (err: unknown) {
+      toast({ type: "error", message: "Resubmit failed", description: err instanceof Error ? err.message : "Unknown error" });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (loading) {
     return (
       <>
@@ -195,6 +221,25 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors">
           <ChevronLeft className="w-3.5 h-3.5" /> Back to My Jobs
         </Link>
+
+        {job.rawStatus === "REJECTED" && (
+          <div className="flex items-start gap-3 px-5 py-4 bg-rose-50 border border-rose-200 rounded-2xl">
+            <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-rose-800">Job rejected</p>
+              <p className="text-xs text-rose-700 mt-0.5">{job.rejectionReason}</p>
+              <p className="text-xs text-rose-600 mt-1">Edit the job to address the feedback, then resubmit for review.</p>
+            </div>
+            <button
+              onClick={handleResubmit}
+              disabled={submitting}
+              className="shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {submitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Resubmit
+            </button>
+          </div>
+        )}
 
         <div className="bg-white rounded-2xl border border-slate-200 p-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">

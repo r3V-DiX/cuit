@@ -46,6 +46,13 @@ export class ScreeningQuestionDto {
 
     @IsEnum(QuestionType)
     type: QuestionType;
+
+    @IsOptional()
+    @IsArray()
+    @IsString({ each: true })
+    @ArrayMaxSize(6)
+    @MaxLength(200, { each: true })
+    options?: string[];
 }
 
 // ── Create ────────────────────────────────────────────────────────────────────
