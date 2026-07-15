@@ -53,20 +53,19 @@ export class AuthGuard implements CanActivate {
       const userAgent =
         request.headers["user-agent"]?.substring(0, 255) || "unknown";
 
-      const { user, newToken } = await this.sessionValidator.validateSession(
+      const { user, newToken, rememberMe } = await this.sessionValidator.validateSession(
         sessionToken,
         ipAddress,
         userAgent,
         request, // ✅ now passed — fingerprint comparison runs in both validators
       );
 
-      // Transparent session rotation — no re-login needed
+      // Transparent session rotation — preserve rememberMe so cookie maxAge stays correct
       if (newToken) {
-        const cookieOptions = CookieConfig.getSessionCookieOptions(false);
         response.cookie(
           CookieConfig.COOKIE_NAMES.SESSION,
           newToken,
-          cookieOptions,
+          CookieConfig.getSessionCookieOptions(rememberMe ?? false),
         );
         request.cookies[CookieConfig.COOKIE_NAMES.SESSION] = newToken;
       }

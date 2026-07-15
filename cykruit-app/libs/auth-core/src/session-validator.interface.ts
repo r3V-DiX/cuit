@@ -21,6 +21,7 @@ export interface SessionUser {
 export interface ISessionValidationResult {
   user: SessionUser;
   newToken?: string; // Present when session was rotated
+  rememberMe?: boolean; // Forwarded so AuthGuard sets correct cookie maxAge on rotation
 }
 
 export interface ISessionValidator {

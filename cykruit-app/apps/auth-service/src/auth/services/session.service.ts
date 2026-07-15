@@ -88,7 +88,7 @@ export class SessionService {
     userAgent: string,
     ipAddress: string,
     req?: Request,
-  ): Promise<{ userId: string; newToken?: string }> {
+  ): Promise<{ userId: string; newToken?: string; rememberMe: boolean }> {
     const hashedToken = hashToken(rawToken);
 
     const session = await this.prisma.session.findFirst({
@@ -206,7 +206,7 @@ export class SessionService {
         },
       );
 
-      return { userId: session.userId, newToken: newRawToken };
+      return { userId: session.userId, newToken: newRawToken, rememberMe: session.rememberMe };
     }
 
     await this.prisma.session.update({
@@ -214,7 +214,7 @@ export class SessionService {
       data: { lastActivity: new Date(), ipAddress },
     });
 
-    return { userId: session.userId };
+    return { userId: session.userId, rememberMe: session.rememberMe };
   }
 
   // ── Validate (implements ISessionValidator for AuthCoreModule) ─
@@ -225,7 +225,7 @@ export class SessionService {
     userAgent?: string,
     req?: Request, // ✅ now accepted and passed through
   ): Promise<ISessionValidationResult> {
-    const { userId, newToken } = await this.validateAndRotateSession(
+    const { userId, newToken, rememberMe } = await this.validateAndRotateSession(
       rawToken,
       userAgent || "unknown",
       ipAddress || "unknown",
@@ -244,7 +244,7 @@ export class SessionService {
       throw new UnauthorizedException("Account is not active");
     }
 
-    return { user, newToken };
+    return { user, newToken, rememberMe };
   }
 
   // ── Delete (logout) ───────────────────────────────────────────

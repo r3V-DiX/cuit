@@ -31,9 +31,6 @@ export interface DeviceFingerprint {
   components: {
     userAgent: string;
     acceptLanguage: string;
-    acceptEncoding: string;
-    secChUa: string;
-    secChUaPlatform: string;
   };
 }
 
@@ -41,18 +38,13 @@ export function generateDeviceFingerprint(req: Request): DeviceFingerprint {
   const components = {
     userAgent: normalizeHeader(req.headers["user-agent"]),
     acceptLanguage: normalizeHeader(req.headers["accept-language"]),
-    acceptEncoding: normalizeHeader(req.headers["accept-encoding"]),
-    secChUa: normalizeHeader(req.headers["sec-ch-ua"]),
-    secChUaPlatform: normalizeHeader(req.headers["sec-ch-ua-platform"]),
   };
 
-  // Stable serialization — order is fixed so header order doesn't affect hash
+  // Only stable headers — acceptEncoding/sec-ch-ua vary between fetch vs navigation
+  // requests from the same browser and cause false-positive fingerprint mismatches.
   const payload = [
     components.userAgent,
     components.acceptLanguage,
-    components.acceptEncoding,
-    components.secChUa,
-    components.secChUaPlatform,
   ].join("|");
 
   const hash = createHash("sha256")
