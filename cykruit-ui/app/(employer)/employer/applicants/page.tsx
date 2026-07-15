@@ -244,7 +244,7 @@ export default function ApplicantsPage() {
                       {aiRank && (
                         <td className="px-4 py-3.5 text-center">
                           {(() => {
-                            const score = a.aiScore ? Math.round(a.aiScore * 100) : 0;
+                            const score = a.aiScore ? Math.round(a.aiScore) : 0;
                             return (
                               <span className={`text-xs font-bold font-mono px-2.5 py-1 rounded-lg border ${score >= 80 ? "text-green-700 bg-green-50 border-green-200" : score >= 60 ? "text-amber-700 bg-amber-50 border-amber-200" : "text-rose-600 bg-rose-50 border-rose-200"}`}>
                                 {score}%
