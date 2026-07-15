@@ -69,7 +69,7 @@ export class CsrfGuard implements CanActivate {
     return `${payload}${TOKEN_SEPARATOR}${sig}`;
   }
 
-  verifyToken(token: string): boolean { console.log("verifyToken received:", token);
+  verifyToken(token: string): boolean {
     if (!token || typeof token !== "string") return false;
 
     const parts = token.split(TOKEN_SEPARATOR);
