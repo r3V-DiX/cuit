@@ -44,15 +44,31 @@ export default function KycDetailPage({ params }: { params: Promise<{ id: string
 
   const handleApprove = () => {
     if (!kyc) return;
+    let notes = '';
     openModal({
       title: 'Approve KYC Request',
-      description: `Are you sure you want to approve the verification request for ${kyc.companyName}? This will verify the employer.`,
+      content: (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-500">
+            Are you sure you want to approve the verification request for {kyc.companyName}? This will verify the employer.
+          </p>
+          <textarea
+            className="w-full rounded-xl border border-slate-200 p-3 text-sm focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+            rows={3}
+            placeholder="Internal notes (optional)..."
+            onChange={(e) => { notes = e.target.value; }}
+          />
+        </div>
+      ),
       variant: 'success',
       confirmLabel: 'Approve',
       onConfirm: async () => {
         setActionLoading(true);
         try {
-          const updated = await api.patch<EmployerVerification>(`/api/admin/kyc/${id}/approve`);
+          const updated = await api.patch<EmployerVerification>(
+            `/api/admin/kyc/${id}/approve`,
+            notes.trim() ? { adminNotes: notes.trim() } : {},
+          );
           setKyc(updated);
           toast({ type: 'success', message: 'KYC request approved.' });
         } catch (err) {
@@ -67,7 +83,8 @@ export default function KycDetailPage({ params }: { params: Promise<{ id: string
   const handleReject = () => {
     if (!kyc) return;
     let reason = '';
-    
+    let notes = '';
+
     // We can use the Modal content prop to render an input for the rejection reason.
     openModal({
       title: 'Reject KYC Request',
@@ -82,6 +99,12 @@ export default function KycDetailPage({ params }: { params: Promise<{ id: string
             placeholder="Rejection reason..."
             onChange={(e) => { reason = e.target.value; }}
           />
+          <textarea
+            className="w-full rounded-xl border border-slate-200 p-3 text-sm focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100"
+            rows={3}
+            placeholder="Internal notes (optional)..."
+            onChange={(e) => { notes = e.target.value; }}
+          />
         </div>
       ),
       variant: 'danger',
@@ -94,7 +117,10 @@ export default function KycDetailPage({ params }: { params: Promise<{ id: string
         }
         setActionLoading(true);
         try {
-          const updated = await api.patch<EmployerVerification>(`/api/admin/kyc/${id}/reject`, { reason });
+          const updated = await api.patch<EmployerVerification>(`/api/admin/kyc/${id}/reject`, {
+            rejectionReason: reason.trim(),
+            ...(notes.trim() ? { adminNotes: notes.trim() } : {}),
+          });
           setKyc(updated);
           toast({ type: 'success', message: 'KYC request rejected.' });
         } catch (err) {
@@ -247,8 +273,13 @@ export default function KycDetailPage({ params }: { params: Promise<{ id: string
                                 {entry.reason}
                               </p>
                             )}
+                            {entry.notes && (
+                              <p className="mt-2 rounded-lg bg-amber-50 p-3 text-sm text-slate-700">
+                                <span className="font-medium text-amber-700">Internal note:</span> {entry.notes}
+                              </p>
+                            )}
                             {entry.by && (
-                              <p className="mt-1 text-xs text-slate-400">By Admin ID: {entry.by}</p>
+                              <p className="mt-1 text-xs text-slate-400">By {entry.byName ?? entry.by}</p>
                             )}
                           </div>
                         </div>

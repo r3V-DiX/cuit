@@ -6,6 +6,7 @@ import { KycListQueryDto, ApproveKycDto, RejectKycDto } from '../dto/kyc.dto';
 import { AdminAuditLogger } from './admin-audit.logger';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { PrismaService } from '@cykruit/prisma';
+import { UploadService } from '@cykruit/upload';
 import { VerificationStatus } from '@prisma/client';
 
 @Injectable()
@@ -15,7 +16,45 @@ export class KycService {
         private readonly auditLogger: AdminAuditLogger,
         private readonly eventPublisher: EventPublisher,
         private readonly prisma: PrismaService,
+        private readonly uploadService: UploadService,
     ) {}
+
+    // documentUrl points into the private KYC bucket — swap it for a
+    // short-lived presigned URL before it leaves the API. statusHistory
+    // stores admin IDs (stable audit trail); attach display names at read
+    // time so renames stay fresh and old entries resolve too.
+    private async enrichForClient<
+        T extends { documentUrl?: string | null; statusHistory?: unknown },
+    >(record: T): Promise<T> {
+        const history = Array.isArray(record.statusHistory)
+            ? (record.statusHistory as Array<{ by?: string }>)
+            : [];
+
+        const adminIds = [
+            ...new Set(history.map((e) => e.by).filter((by) => by && by !== 'system')),
+        ] as string[];
+
+        const admins = adminIds.length
+            ? await this.prisma.admin.findMany({
+                  where: { id: { in: adminIds } },
+                  select: { id: true, firstName: true, lastName: true },
+              })
+            : [];
+        const nameById = new Map(
+            admins.map((a) => [a.id, `${a.firstName} ${a.lastName}`.trim()]),
+        );
+
+        return {
+            ...record,
+            documentUrl: await this.uploadService.convertToPresignedUrl(record.documentUrl),
+            statusHistory: history.map((entry) => ({
+                ...entry,
+                ...(entry.by && nameById.has(entry.by)
+                    ? { byName: nameById.get(entry.by) }
+                    : {}),
+            })),
+        };
+    }
 
     async list(query: KycListQueryDto) {
         return this.kycRepository.findAll(query);
@@ -24,7 +63,7 @@ export class KycService {
     async getById(id: string) {
         const record = await this.kycRepository.findById(id);
         if (!record) throw new NotFoundException('KYC record not found');
-        return record;
+        return this.enrichForClient(record);
     }
 
     async approve(id: string, adminId: string, dto: ApproveKycDto) {
@@ -63,7 +102,7 @@ export class KycService {
             );
         }
 
-        return updated;
+        return this.enrichForClient(updated);
     }
 
     async reject(id: string, adminId: string, dto: RejectKycDto) {
@@ -110,6 +149,6 @@ export class KycService {
             );
         }
 
-        return updated;
+        return this.enrichForClient(updated);
     }
 }

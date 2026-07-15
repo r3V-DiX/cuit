@@ -1171,7 +1171,7 @@ model EmployerVerification {
     // ============================================
     // DOCUMENT (Only ONE document)
     // ============================================
-    documentUrl      String // S3 public URL
+    documentUrl      String // S3 URL (private bucket — presign via UploadService before serving)
     documentKey      String // S3 key for deletion
     documentFileName String // Original filename
 

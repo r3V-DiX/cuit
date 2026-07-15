@@ -31,7 +31,8 @@
       "@cykruit/audit":       ["../cykruit-app/libs/audit/src/index.ts"],
       "@cykruit/rate-limit":  ["../cykruit-app/libs/rate-limit/src/index.ts"],
       "@cykruit/permissions": ["../cykruit-app/libs/permissions/src/index.ts"],
-      "@cykruit/events":     ["../cykruit-app/libs/events/src/index.ts"]
+      "@cykruit/events":     ["../cykruit-app/libs/events/src/index.ts"],
+      "@cykruit/upload":     ["../cykruit-app/libs/upload/src/index.ts"]
     }
   },
   "include": ["src/**/*"],

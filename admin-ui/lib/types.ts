@@ -60,7 +60,10 @@ export interface VerificationStatusHistoryEntry {
   status: VerificationStatus;
   timestamp: string;
   by?: string;
+  /** Resolved display name for `by` — attached at read time by admin-app. */
+  byName?: string;
   reason?: string;
+  notes?: string;
 }
 
 export interface EmployerVerification {

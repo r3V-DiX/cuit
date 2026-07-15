@@ -18,6 +18,7 @@ tsConfigPaths.register({
         '@cykruit/events':      [path.join(cykruitApp, 'libs/events/src/index.ts')],
         '@cykruit/rate-limit':  [path.join(cykruitApp, 'libs/rate-limit/src/index.ts')],
         '@cykruit/permissions': [path.join(cykruitApp, 'libs/permissions/src/index.ts')],
+        '@cykruit/upload':      [path.join(cykruitApp, 'libs/upload/src/index.ts')],
         'bcryptjs':             [path.join(cykruitApp, 'node_modules/bcryptjs/index.js')],
         '@prisma/client':       [path.join(cykruitApp, 'node_modules/@prisma/client/index.js')],
         '.prisma/client':       [path.join(cykruitApp, 'node_modules/.prisma/client/index.js')],

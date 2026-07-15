@@ -88,6 +88,14 @@ export class KycRepository {
                     reviewedBy: adminId,
                     reviewedAt: new Date(),
                     adminNotes,
+                    statusHistory: {
+                        push: {
+                            status: VerificationStatus.APPROVED,
+                            timestamp: new Date().toISOString(),
+                            by: adminId,
+                            ...(adminNotes ? { notes: adminNotes } : {}),
+                        },
+                    },
                 },
             });
             await tx.employer.update({
@@ -116,6 +124,15 @@ export class KycRepository {
                     reviewedAt: new Date(),
                     rejectionReason,
                     adminNotes,
+                    statusHistory: {
+                        push: {
+                            status: VerificationStatus.REJECTED,
+                            timestamp: new Date().toISOString(),
+                            by: adminId,
+                            reason: rejectionReason,
+                            ...(adminNotes ? { notes: adminNotes } : {}),
+                        },
+                    },
                 },
             });
             if (revokeVerification) {

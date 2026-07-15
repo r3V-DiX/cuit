@@ -19,6 +19,7 @@ import { MailModule } from '@cykruit/mail';
 import { RateLimitModule } from '@cykruit/rate-limit';
 import { EventsModule } from '@cykruit/events';
 import { AuthCoreModule } from '@cykruit/auth-core';
+import { UploadModule } from '@cykruit/upload';
 
 // Auth
 import { AdminAuthController } from './auth/admin-auth.controller';
@@ -130,6 +131,7 @@ export class RootAdminBootstrapCheck implements OnModuleInit {
         RateLimitModule,
         HttpModule,
         EventsModule.forPublisher(),
+        UploadModule,
         AuthCoreModule.forRoot({
             imports: [PrismaModule, ConfigModule],
             enableCsrf: true,
