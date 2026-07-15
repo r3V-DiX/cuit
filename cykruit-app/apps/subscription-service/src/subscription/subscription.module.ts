@@ -3,10 +3,12 @@
 import { Injectable, Module, UnauthorizedException } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 import type { Request } from 'express';
 
 import { PrismaModule, PrismaService } from '@cykruit/prisma';
 import { CommonModule } from '@cykruit/common';
+import { SubscriptionModule as EmployerLimitsModule } from '@cykruit/subscription';
 import { RateLimitModule } from '@cykruit/rate-limit';
 import { LoggerModule } from '@cykruit/logger';
 import { EventsModule } from '@cykruit/events';
@@ -69,6 +71,7 @@ export class SubscriptionSessionValidator implements ISessionValidator {
         ConfigModule,
         PrismaModule,
         CommonModule,
+        EmployerLimitsModule,
         RateLimitModule,
         LoggerModule,
         AuditModule,
@@ -88,6 +91,11 @@ export class SubscriptionSessionValidator implements ISessionValidator {
         PaymentController,
     ],
     providers: [
+        {
+            provide: 'REDIS_CLIENT',
+            useFactory: (redis: unknown) => redis,
+            inject: [{ token: getRedisConnectionToken(), optional: true }],
+        },
         SubscriptionRepository,
         PaymentRepository,
         PackagesService,

@@ -4,6 +4,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 import type { Request } from 'express';
 
 import { PrismaModule, PrismaService } from '@cykruit/prisma';
@@ -131,6 +132,11 @@ export class EmployerSessionValidator implements ISessionValidator {
         ActivityController,
     ],
     providers: [
+        {
+            provide: 'REDIS_CLIENT',
+            useFactory: (redis: unknown) => redis,
+            inject: [{ token: getRedisConnectionToken(), optional: true }],
+        },
         CompanyService,
         CompanyRepository,
         KycService,

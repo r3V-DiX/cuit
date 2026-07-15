@@ -1,6 +1,7 @@
 // admin-app/src/admin/services/subscription.service.ts
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
+import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 import {
     CreatePackageDto,
     UpdatePackageDto,
@@ -15,7 +16,17 @@ export class SubscriptionService {
     constructor(
         private readonly repository: SubscriptionRepository,
         private readonly auditLogger: AdminAuditLogger,
+        @Optional() @Inject(getRedisConnectionToken()) private readonly redis: { del: (key: string) => Promise<unknown> } | null,
     ) {}
+
+    private async invalidateLimitsCache(employerId: string): Promise<void> {
+        if (!this.redis) return;
+        try {
+            await this.redis.del(`employer-limits:${employerId}`);
+        } catch {
+            // non-fatal
+        }
+    }
 
     // ── Packages ──────────────────────────────────────────────────────────────
 
@@ -83,6 +94,7 @@ export class SubscriptionService {
 
     async assignSubscription(adminId: string, dto: AssignSubscriptionDto) {
         const result = await this.repository.assignSubscription(dto.employerId, dto.packageId, dto.status ?? 'ACTIVE');
+        await this.invalidateLimitsCache(dto.employerId);
         this.auditLogger.log({
             adminId,
             action: 'subscription:assign',
@@ -123,6 +135,7 @@ export class SubscriptionService {
 
     async updateSubscriptionStatus(adminId: string, id: string, status: string) {
         const result = await this.repository.updateSubscriptionStatus(id, status);
+        await this.invalidateLimitsCache(result.employerId);
         this.auditLogger.log({
             adminId,
             action: 'subscription:update-status',

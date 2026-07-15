@@ -248,6 +248,12 @@ export class TeamService {
         await this.teamRepository.markInviteUsed(tokenRecord.id);
         await this.permissionsService.invalidateUserCache(userId, employer.id);
 
+        // Increment team member counter (fire-and-forget)
+        this.prisma.employerSubscription.updateMany({
+            where: { employerId: employer.id },
+            data: { currentTeamMembers: { increment: 1 } },
+        }).catch(() => undefined);
+
         return member;
     }
 
@@ -347,6 +353,12 @@ export class TeamService {
 
         await this.teamRepository.removeMember(memberId);
         await this.permissionsService.invalidateUserCache(targetMember.userId, employer.id);
+
+        // Decrement team member counter (fire-and-forget)
+        this.prisma.employerSubscription.updateMany({
+            where: { employerId: employer.id, currentTeamMembers: { gt: 0 } },
+            data: { currentTeamMembers: { decrement: 1 } },
+        }).catch(() => undefined);
 
         this.auditService.logAction({
             actorId: userId,

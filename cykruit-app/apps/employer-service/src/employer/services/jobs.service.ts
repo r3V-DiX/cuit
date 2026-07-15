@@ -357,13 +357,19 @@ export class JobsService {
     }
 
     async close(userId: string, jobId: string, dto: CloseJobDto, ipAddress?: string, userAgent?: string) {
-        const { job } = await this.resolveJobForEmployer(userId, jobId);
+        const { employer, job } = await this.resolveJobForEmployer(userId, jobId);
 
         if (job.status !== JobStatus.APPROVED && job.status !== JobStatus.PENDING) {
             throw new BadRequestException(JobErrorCodes.JOB_ALREADY_CLOSED);
         }
 
         const closed = await this.jobsRepository.close(jobId, dto.reason);
+
+        // Decrement active job counter (fire-and-forget — counter staleness is non-fatal)
+        this.prisma.employerSubscription.updateMany({
+            where: { employerId: employer.id, currentActiveJobs: { gt: 0 } },
+            data: { currentActiveJobs: { decrement: 1 } },
+        }).catch(() => undefined);
 
         this.auditService.logAction({
             actorId: userId,

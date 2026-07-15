@@ -17,6 +17,7 @@ import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { SubscriptionRepository } from '../repositories/subscription.repository';
 import { PaymentRepository } from '../repositories/payment.repository';
 import { DiscountService } from './discount.service';
+import { EmployerLimitsService } from '@cykruit/subscription';
 import { CreateOrderDto, BillingCycleInput } from '../dto/payment.dto';
 
 const GST_RATE = 0.18;
@@ -36,6 +37,7 @@ export class PaymentService {
         private readonly discountService: DiscountService,
         private readonly eventPublisher: EventPublisher,
         private readonly logger: AppLogger,
+        private readonly employerLimitsService: EmployerLimitsService,
     ) {
         this.razorpay = new Razorpay({
             key_id: this.config.getOrThrow<string>('RAZORPAY_KEY_ID'),
@@ -341,6 +343,11 @@ export class PaymentService {
 
             return { subscription: sub };
         });
+
+        // Invalidate cached limits so employer immediately gets new plan limits
+        await this.employerLimitsService.invalidate(order.employerId).catch((err: unknown) =>
+            this.logger.warn(`Failed to invalidate employer limits cache: ${String(err)}`, 'PaymentService'),
+        );
 
         const ownerUserId = await this.subRepo.findOwnerUserIdForEmployer(order.employerId);
         if (ownerUserId) {

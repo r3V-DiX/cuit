@@ -13,6 +13,7 @@ import { SubscriptionListQueryDto } from '../dto/query.dto';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { AuditService } from '@cykruit/audit';
 import { AppLogger } from '@cykruit/logger';
+import { EmployerLimitsService } from '@cykruit/subscription';
 
 /** Minimum ms between auto-refresh writes to avoid write-on-every-read under load. */
 const USAGE_REFRESH_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -35,6 +36,7 @@ export class SubscriptionService {
         private readonly eventPublisher: EventPublisher,
         private readonly auditService: AuditService,
         private readonly logger: AppLogger,
+        private readonly employerLimitsService: EmployerLimitsService,
     ) {}
 
     // ── Admin operations ──────────────────────────────────────────────────────
@@ -85,6 +87,11 @@ export class SubscriptionService {
         }
 
         const updated = await this.repo.updateSubscriptionStatus(sub.id, SubscriptionStatusInput.CANCELLED);
+
+        // Invalidate cached limits — employer drops to Free tier immediately
+        this.employerLimitsService.invalidate(employerId).catch((err: unknown) =>
+            this.logger.warn(`Failed to invalidate employer limits cache: ${String(err)}`, 'SubscriptionService'),
+        );
 
         this.auditService.logAction({
             actorId: userId,
