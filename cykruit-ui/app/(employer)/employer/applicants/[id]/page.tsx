@@ -327,7 +327,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 mt-2" />
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{e.title}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{e.company} · {new Date(e.startDate).getFullYear()} – {e.isCurrent ? 'Present' : (e.endDate ? new Date(e.endDate).getFullYear() : '')}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">{e.company} · {new Date(e.startDate).getFullYear()} – {e.current ? 'Present' : (e.endDate ? new Date(e.endDate).getFullYear() : '')}</p>
                       <p className="text-xs text-slate-500 mt-1 leading-relaxed">{e.description}</p>
                     </div>
                   </div>

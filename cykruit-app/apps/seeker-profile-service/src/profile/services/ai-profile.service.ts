@@ -205,13 +205,6 @@ export class AIProfileService {
       this.logger.warn("Failed updating profile completion after AI import", e.message),
     );
 
-    // Trigger asynchronous embedding for the parsed resume
-    try {
-      await this.aiQueue.add(AI_JOB_NAMES.EMBED_RESUME, { seekerId: userId });
-    } catch (e) {
-      this.logger.error("Failed adding embed-resume job to queue:", e);
-    }
-
     return { message: "Resume parsed and profile updated successfully.", parsedData };
   }
 

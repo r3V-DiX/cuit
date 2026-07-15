@@ -6,14 +6,20 @@ import { JobSearchDto } from '../dto/job-search.dto';
 import { PrismaService } from '@cykruit/prisma';
 import { AIService, AI_PROMPTS, AITaskTier } from '@cykruit/ai';
 import { z } from 'zod';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class JobsService {
+    private readonly aiUrl: string;
+
     constructor(
         private readonly jobsRepository: JobsRepository,
         private readonly prisma: PrismaService,
         private readonly aiService: AIService,
-    ) {}
+        private readonly configService: ConfigService,
+    ) {
+        this.aiUrl = this.configService.get<string>('AI_SERVICE_URL') ?? 'http://localhost:3005';
+    }
 
     async search(query: JobSearchDto, seekerId?: string) {
         const { items, total } = await this.jobsRepository.search(query, seekerId);
@@ -67,33 +73,22 @@ export class JobsService {
             return { data: { score: existingMatch.score, reasons: [] } };
         }
 
-        const seekerSkills = profile.skills.map(s => s.skill.name);
-        const jobSkills = job.skills.map(s => s.skill.name);
+        try {
+            const res = await fetch(`${this.aiUrl}/ai/match-score`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ seekerId: profile.id, jobId: job.id })
+            });
 
-        const prompt = AI_PROMPTS.MATCH_SCORE({
-            seekerTitle: profile.title || 'Candidate',
-            seekerSkills,
-            jobTitle: job.jobTitle,
-            jobDescription: job.description,
-            requiredSkills: jobSkills,
-        });
+            if (res.ok) {
+                const data = await res.json() as { score: number };
+                return { data: { score: data.score, reasons: [] } };
+            }
+        } catch (error) {
+            console.error("AI service fetch error:", error);
+        }
 
-        const schema = z.object({
-            score: z.number().min(0).max(100),
-            reasons: z.array(z.string())
-        });
-
-        const result = (await this.aiService.generateStructured(prompt, schema, { tier: AITaskTier.SMALL })) as { score: number; reasons: string[] };
-        
-        // Cache the result using profile.id
-        const finalScore = Math.round(result.score);
-        await this.prisma.seekerJobMatch.upsert({
-            where: { seekerId_jobId: { seekerId: profile.id, jobId: job.id } },
-            create: { seekerId: profile.id, jobId: job.id, score: finalScore },
-            update: { score: finalScore, computedAt: new Date() }
-        }).catch((e) => { console.error("Cache error:", e); }); 
-
-        return { data: { ...result, score: finalScore } };
+        return { data: { score: 0, reasons: [] } };
     }
 }
 

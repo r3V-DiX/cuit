@@ -64,7 +64,12 @@ export class ResumeEmbedProcessor {
         DO UPDATE SET "embedding" = EXCLUDED."embedding", "updatedAt" = NOW()
       `;
 
-      this.logger.log(`Successfully embedded resume for seekerId: ${seekerId}`);
+      // Clear cached match scores so they are re-calculated with the new embedding
+      await this.prisma.seekerJobMatch.deleteMany({
+        where: { seekerId: seekerProfile.id }
+      });
+
+      this.logger.log(`Successfully embedded resume and cleared match cache for seekerId: ${seekerId}`);
     } catch (error) {
       this.logger.error(`Failed to embed resume for seekerId: ${seekerId}`, error);
       throw error;

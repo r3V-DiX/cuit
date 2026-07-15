@@ -14,6 +14,9 @@ import {
 } from "@cykruit/common";
 import { AppLogger } from "@cykruit/logger";
 import { UserErrorCodes, UploadErrorCodes } from "@cykruit/common";
+import { InjectQueue } from "@nestjs/bull";
+import { Queue } from "bull";
+import { AI_QUEUES, AI_JOB_NAMES } from "@cykruit/ai";
 
 @Injectable()
 export class ProfileHelpers {
@@ -22,6 +25,7 @@ export class ProfileHelpers {
     private readonly uploadService: UploadService,
     private readonly completionService: JobSeekerCompletionService,
     private readonly logger: AppLogger,
+    @InjectQueue(AI_QUEUES.AI_JOBS) private readonly aiQueue: Queue,
   ) {}
 
   // ── Profile lookups ───────────────────────────────────────────
@@ -83,6 +87,26 @@ export class ProfileHelpers {
       where: { userId },
       data: { profileCompletion: completion.percentage },
     });
+
+    if (completion.percentage >= 70) {
+      try {
+        await this.aiQueue.add(
+          AI_JOB_NAMES.EMBED_RESUME, 
+          { seekerId: userId },
+          { 
+            jobId: `embed-resume-${userId}`,
+            delay: 10000, 
+            removeOnComplete: true 
+          }
+        );
+      } catch (e: any) {
+        this.logger.error(
+          "Failed adding embed-resume job to queue:",
+          e instanceof Error ? e.stack : String(e),
+          "ProfileHelpers",
+        );
+      }
+    }
 
     return completion;
   }

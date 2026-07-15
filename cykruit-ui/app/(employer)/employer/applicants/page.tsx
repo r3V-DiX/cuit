@@ -199,8 +199,9 @@ export default function ApplicantsPage() {
                   const cfg = STATUS_CFG[a.status as AppStatus] || STATUS_CFG["New"];
                   const name = `${a.jobSeeker?.firstName || "Unknown"} ${a.jobSeeker?.lastName || ""}`.trim();
                   const role = a.job?.jobTitle || "Unknown Role";
-                  const skills = a.skills || [];
-                  const experience = a.experience || "N/A";
+                  const skills = a.jobSeeker?.jobSeekerProfile?.skills || [];
+                  const expObj = a.jobSeeker?.jobSeekerProfile?.experiences?.[0];
+                  const experience = expObj ? `${expObj.title} at ${expObj.company}` : "N/A";
                   const appliedDate = new Date(a.appliedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
                   return (
@@ -223,8 +224,8 @@ export default function ApplicantsPage() {
                         <div className="flex flex-wrap gap-1">
                           {skills.length > 0 ? (
                             <>
-                              {skills.slice(0, 2).map((s: string) => (
-                                <span key={s} className="px-2 py-0.5 text-[10px] font-mono text-slate-600 bg-slate-100 rounded-md">{s}</span>
+                              {skills.slice(0, 2).map((s: any) => (
+                                <span key={s.skill?.name || s} className="px-2 py-0.5 text-[10px] font-mono text-slate-600 bg-slate-100 rounded-md">{s.skill?.name || s}</span>
                               ))}
                               {skills.length > 2 && <span className="px-2 py-0.5 text-[10px] font-mono text-slate-400 bg-slate-50 rounded-md">+{skills.length - 2}</span>}
                             </>
