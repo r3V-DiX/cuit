@@ -6,14 +6,14 @@
 // gated on SETTINGS.MANAGE rather than SETTINGS.VIEW.
 
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '@/lib/api';
-import { ACTIONS } from '@/lib/permissions';
-import type { PlatformSetting } from '@/lib/types';
-import RequirePermission from '@/components/ui/RequirePermission';
-import NoAccess from '@/components/ui/NoAccess';
-import { SkeletonTable } from '@/components/ui/Skeleton';
-import EmptyState from '@/components/ui/EmptyState';
-import { useToast } from '@/components/ui/Toast';
+import { api } from '@/lib';
+import { ACTIONS } from '@/lib';
+import type { PlatformSetting } from '@/lib';
+import { RequirePermission } from '@/components/ui';
+import { NoAccess } from '@/components/ui';
+import { SkeletonTable } from '@/components/ui';
+import { EmptyState } from '@/components/ui';
+import { useToast } from '@/components/ui';
 import { Settings2, Save } from 'lucide-react';
 
 const BOOLEAN_VALUES = new Set(['true', 'false']);

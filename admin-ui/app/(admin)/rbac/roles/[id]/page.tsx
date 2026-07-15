@@ -6,16 +6,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
-import { ACTIONS, SYSTEM_ROLE_NAMES, SUPER_ADMIN_ROLE } from '@/lib/permissions';
+import { api } from '@/lib';
+import { ACTIONS, SYSTEM_ROLE_NAMES, SUPER_ADMIN_ROLE } from '@/lib';
 import { usePermissions } from '@/lib/permissions-context';
-import type { RbacRole, Permission } from '@/lib/types';
-import RequirePermission from '@/components/ui/RequirePermission';
-import NoAccess from '@/components/ui/NoAccess';
-import Skeleton from '@/components/ui/Skeleton';
-import StatusBadge from '@/components/ui/StatusBadge';
-import { useModal } from '@/components/ui/Modal';
-import { useToast } from '@/components/ui/Toast';
+import type { RbacRole, Permission } from '@/lib';
+import { RequirePermission } from '@/components/ui';
+import { NoAccess } from '@/components/ui';
+import { Skeleton } from '@/components/ui';
+import { StatusBadge } from '@/components/ui';
+import { useModal } from '@/components/ui';
+import { useToast } from '@/components/ui';
 import { ArrowLeft, Shield, Pencil, Lock, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 

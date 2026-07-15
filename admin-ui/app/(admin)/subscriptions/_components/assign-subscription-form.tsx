@@ -5,8 +5,8 @@
 // employer's current subscription so the admin sees what they are replacing.
 
 import { useState } from 'react';
-import { api, ApiError } from '@/lib/api';
-import type { EmployerSubscription, SubscriptionPackage } from '@/lib/types';
+import { api, ApiError } from '@/lib';
+import type { EmployerSubscription, SubscriptionPackage } from '@/lib';
 
 interface AssignSubscriptionFormProps {
   packages: SubscriptionPackage[];

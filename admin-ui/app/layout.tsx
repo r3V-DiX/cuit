@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Share_Tech_Mono, IBM_Plex_Serif } from "next/font/google";
 import "./globals.css";
-import Providers from "@/components/ui/Providers";
+import { Providers } from '@/components/ui';
 
 const ibmPlexSerif = IBM_Plex_Serif({
   variable: "--font-sans",

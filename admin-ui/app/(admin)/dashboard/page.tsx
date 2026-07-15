@@ -2,13 +2,13 @@
 
 // admin-ui/app/(admin)/dashboard/page.tsx
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
-import { ACTIONS } from '@/lib/permissions';
-import type { DashboardStats } from '@/lib/types';
-import RequirePermission from '@/components/ui/RequirePermission';
-import NoAccess from '@/components/ui/NoAccess';
-import StatCard from '@/components/ui/StatCard';
-import Skeleton from '@/components/ui/Skeleton';
+import { api } from '@/lib';
+import { ACTIONS } from '@/lib';
+import type { DashboardStats } from '@/lib';
+import { RequirePermission } from '@/components/ui';
+import { NoAccess } from '@/components/ui';
+import { StatCard } from '@/components/ui';
+import { Skeleton } from '@/components/ui';
 import { Users, Briefcase, ShieldCheck, FileText, CreditCard } from 'lucide-react';
 
 export default function DashboardPage() {

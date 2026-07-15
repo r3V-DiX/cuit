@@ -3,16 +3,16 @@
 // admin-ui/app/(admin)/kyc/[id]/page.tsx
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
-import { ACTIONS } from '@/lib/permissions';
-import type { EmployerVerification } from '@/lib/types';
-import RequirePermission from '@/components/ui/RequirePermission';
-import NoAccess from '@/components/ui/NoAccess';
-import Button from '@/components/ui/Button';
-import StatusBadge from '@/components/ui/StatusBadge';
-import { useModal } from '@/components/ui/Modal';
-import { useToast } from '@/components/ui/Toast';
-import Skeleton from '@/components/ui/Skeleton';
+import { api } from '@/lib';
+import { ACTIONS } from '@/lib';
+import type { EmployerVerification } from '@/lib';
+import { RequirePermission } from '@/components/ui';
+import { NoAccess } from '@/components/ui';
+import { Button } from '@/components/ui';
+import { StatusBadge } from '@/components/ui';
+import { useModal } from '@/components/ui';
+import { useToast } from '@/components/ui';
+import { Skeleton } from '@/components/ui';
 import { ArrowLeft, Building2, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';

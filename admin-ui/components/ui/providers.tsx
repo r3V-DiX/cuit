@@ -5,8 +5,8 @@
 // PermissionsProvider is NOT here; it lives in (admin)/layout.tsx because
 // only authenticated admin pages need permissions context.
 
-import { ToastProvider } from './Toast';
-import { ModalProvider } from './Modal';
+import { ToastProvider } from './toast';
+import { ModalProvider } from './modal';
 import type { ReactNode } from 'react';
 
 export default function Providers({ children }: { children: ReactNode }) {

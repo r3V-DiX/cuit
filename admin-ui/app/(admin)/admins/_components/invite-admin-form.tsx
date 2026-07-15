@@ -5,8 +5,8 @@
 // sent by email, there is no "edit" mode.
 
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/api';
-import type { RbacRole } from '@/lib/types';
+import { api } from '@/lib';
+import type { RbacRole } from '@/lib';
 
 interface InviteAdminFormProps {
   onSent: () => void;

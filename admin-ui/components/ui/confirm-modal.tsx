@@ -3,8 +3,8 @@
 // admin-ui/components/ui/ConfirmModal.tsx
 // A simplified wrapper around useModal for quick confirmations.
 
-import { useModal, type ModalOptions } from './Modal';
-import Button from './Button';
+import { useModal, type ModalOptions } from './modal';
+import Button from './button';
 
 interface ConfirmButtonProps {
   label: string;

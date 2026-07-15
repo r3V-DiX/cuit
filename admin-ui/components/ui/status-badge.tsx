@@ -10,7 +10,7 @@ import type {
   RiskLevel,
   SubscriptionStatus,
   UserRole,
-} from '@/lib/types';
+} from '@/lib';
 
 type StatusValue =
   | AccountStatus

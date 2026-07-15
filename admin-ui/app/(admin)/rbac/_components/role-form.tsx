@@ -4,8 +4,8 @@
 // Create-role form rendered inside the Modal's content slot.
 
 import { useState } from 'react';
-import { api } from '@/lib/api';
-import type { RbacRole, Permission } from '@/lib/types';
+import { api } from '@/lib';
+import type { RbacRole, Permission } from '@/lib';
 
 interface RoleFormProps {
   permissions: Permission[];

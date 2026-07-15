@@ -5,8 +5,8 @@
 // submit state and buttons (the modal footer is not used for forms).
 
 import { useState } from 'react';
-import { api } from '@/lib/api';
-import type { Testimonial } from '@/lib/types';
+import { api } from '@/lib';
+import type { Testimonial } from '@/lib';
 
 interface TestimonialFormProps {
   initial?: Testimonial;

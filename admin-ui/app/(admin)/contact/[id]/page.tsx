@@ -3,15 +3,15 @@
 // admin-ui/app/(admin)/contact/[id]/page.tsx
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { api } from '@/lib/api';
-import { ACTIONS } from '@/lib/permissions';
-import type { ContactForm, ContactFormStatus } from '@/lib/types';
-import RequirePermission from '@/components/ui/RequirePermission';
-import NoAccess from '@/components/ui/NoAccess';
-import Button from '@/components/ui/Button';
-import StatusBadge from '@/components/ui/StatusBadge';
-import { useToast } from '@/components/ui/Toast';
-import Skeleton from '@/components/ui/Skeleton';
+import { api } from '@/lib';
+import { ACTIONS } from '@/lib';
+import type { ContactForm, ContactFormStatus } from '@/lib';
+import { RequirePermission } from '@/components/ui';
+import { NoAccess } from '@/components/ui';
+import { Button } from '@/components/ui';
+import { StatusBadge } from '@/components/ui';
+import { useToast } from '@/components/ui';
+import { Skeleton } from '@/components/ui';
 import { ArrowLeft, Mail, Calendar, CheckCircle2, ShieldOff, Eye } from 'lucide-react';
 
 const STATUS_ACTIONS: { status: ContactFormStatus; label: string; icon: React.ReactNode }[] = [

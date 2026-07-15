@@ -1,7 +1,7 @@
 // admin-ui/components/ui/Pagination.tsx
 // Prev/next + page numbers. Renders from the API pagination object.
 
-import type { Pagination } from '@/lib/types';
+import type { Pagination } from '@/lib';
 
 interface PaginationProps {
   pagination: Pagination;

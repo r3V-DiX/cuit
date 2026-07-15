@@ -27,10 +27,10 @@ import {
   Flag,
   UserCog,
 } from 'lucide-react';
-import { useModal } from '@/components/ui/Modal';
-import { useToast } from '@/components/ui/Toast';
+import { useModal } from '@/components/ui';
+import { useToast } from '@/components/ui';
 import { usePermissions } from '@/lib/permissions-context';
-import { ACTIONS } from '@/lib/permissions';
+import { ACTIONS } from '@/lib';
 
 interface NavItem {
   label: string;

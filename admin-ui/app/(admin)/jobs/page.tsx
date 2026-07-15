@@ -3,17 +3,17 @@
 // admin-ui/app/(admin)/jobs/page.tsx
 import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
-import { ACTIONS } from '@/lib/permissions';
-import type { Job, PaginatedResponse } from '@/lib/types';
-import RequirePermission from '@/components/ui/RequirePermission';
-import NoAccess from '@/components/ui/NoAccess';
-import Table from '@/components/ui/Table';
-import PaginationBar from '@/components/ui/Pagination';
-import FilterBar from '@/components/ui/FilterBar';
-import StatusBadge from '@/components/ui/StatusBadge';
-import { SkeletonTable } from '@/components/ui/Skeleton';
-import EmptyState from '@/components/ui/EmptyState';
+import { api } from '@/lib';
+import { ACTIONS } from '@/lib';
+import type { Job, PaginatedResponse } from '@/lib';
+import { RequirePermission } from '@/components/ui';
+import { NoAccess } from '@/components/ui';
+import { Table } from '@/components/ui';
+import { PaginationBar } from '@/components/ui';
+import { FilterBar } from '@/components/ui';
+import { StatusBadge } from '@/components/ui';
+import { SkeletonTable } from '@/components/ui';
+import { EmptyState } from '@/components/ui';
 import { Briefcase } from 'lucide-react';
 import { format } from 'date-fns';
 

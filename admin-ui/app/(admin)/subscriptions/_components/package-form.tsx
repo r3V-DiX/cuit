@@ -5,8 +5,8 @@
 // Backend UpdatePackageDto has no `name` — packages cannot be renamed.
 
 import { useState } from 'react';
-import { api } from '@/lib/api';
-import type { SubscriptionPackage } from '@/lib/types';
+import { api } from '@/lib';
+import type { SubscriptionPackage } from '@/lib';
 
 interface PackageFormProps {
   initial?: SubscriptionPackage;

@@ -2,8 +2,8 @@
 // Admin shell: sidebar + topbar. PermissionsProvider lives here (not root layout)
 // so the login page has no permissions context overhead.
 
-import AdminSidebar from '@/components/admin/AdminSidebar';
-import AdminTopbar from '@/components/admin/AdminTopbar';
+import { AdminSidebar } from '@/components/admin';
+import { AdminTopbar } from '@/components/admin';
 import { PermissionsProvider } from '@/lib/permissions-context';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

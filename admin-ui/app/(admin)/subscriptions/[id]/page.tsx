@@ -2,16 +2,16 @@
 
 // admin-ui/app/(admin)/subscriptions/[id]/page.tsx
 import { useState, useEffect, useCallback, use } from 'react';
-import { api } from '@/lib/api';
-import { ACTIONS } from '@/lib/permissions';
+import { api } from '@/lib';
+import { ACTIONS } from '@/lib';
 import { usePermissions } from '@/lib/permissions-context';
-import type { EmployerSubscription, PaymentOrder, PaginatedResponse } from '@/lib/types';
-import RequirePermission from '@/components/ui/RequirePermission';
-import NoAccess from '@/components/ui/NoAccess';
-import Skeleton from '@/components/ui/Skeleton';
-import StatusBadge from '@/components/ui/StatusBadge';
-import { useModal } from '@/components/ui/Modal';
-import { useToast } from '@/components/ui/Toast';
+import type { EmployerSubscription, PaymentOrder, PaginatedResponse } from '@/lib';
+import { RequirePermission } from '@/components/ui';
+import { NoAccess } from '@/components/ui';
+import { Skeleton } from '@/components/ui';
+import { StatusBadge } from '@/components/ui';
+import { useModal } from '@/components/ui';
+import { useToast } from '@/components/ui';
 import { ArrowLeft, CreditCard, RefreshCw, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';

@@ -13,7 +13,7 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Shield, Eye, EyeOff, ArrowRight, AlertCircle, Activity } from 'lucide-react';
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError } from '@/lib';
 
 function AcceptInvitePageContent() {
   const router = useRouter();

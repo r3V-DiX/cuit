@@ -4,8 +4,8 @@
 // One admin's resolved RBAC: role assignments (assign/revoke) and
 // permission overrides (grant/deny), gated on rbac:manage.
 import { useState, useEffect, useCallback, use } from 'react';
-import { api } from '@/lib/api';
-import { ACTIONS } from '@/lib/permissions';
+import { api } from '@/lib';
+import { ACTIONS } from '@/lib';
 import { usePermissions } from '@/lib/permissions-context';
 import type {
   AdminRoleAssignment,
@@ -13,12 +13,12 @@ import type {
   AdminSummary,
   RbacRole,
   Permission,
-} from '@/lib/types';
-import RequirePermission from '@/components/ui/RequirePermission';
-import NoAccess from '@/components/ui/NoAccess';
-import Skeleton from '@/components/ui/Skeleton';
-import { useModal } from '@/components/ui/Modal';
-import { useToast } from '@/components/ui/Toast';
+} from '@/lib';
+import { RequirePermission } from '@/components/ui';
+import { NoAccess } from '@/components/ui';
+import { Skeleton } from '@/components/ui';
+import { useModal } from '@/components/ui';
+import { useToast } from '@/components/ui';
 import { ArrowLeft, Plus, Trash2, Lock } from 'lucide-react';
 import Link from 'next/link';
 

@@ -3,20 +3,20 @@
 // admin-ui/app/(admin)/reports/page.tsx
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
-import { ACTIONS } from '@/lib/permissions';
-import type { ContentReport, PaginatedResponse } from '@/lib/types';
-import RequirePermission from '@/components/ui/RequirePermission';
-import NoAccess from '@/components/ui/NoAccess';
-import Table from '@/components/ui/Table';
-import PaginationBar from '@/components/ui/Pagination';
-import FilterBar from '@/components/ui/FilterBar';
-import StatusBadge from '@/components/ui/StatusBadge';
-import Button from '@/components/ui/Button';
-import { useModal } from '@/components/ui/Modal';
-import { useToast } from '@/components/ui/Toast';
-import { SkeletonTable } from '@/components/ui/Skeleton';
-import EmptyState from '@/components/ui/EmptyState';
+import { api } from '@/lib';
+import { ACTIONS } from '@/lib';
+import type { ContentReport, PaginatedResponse } from '@/lib';
+import { RequirePermission } from '@/components/ui';
+import { NoAccess } from '@/components/ui';
+import { Table } from '@/components/ui';
+import { PaginationBar } from '@/components/ui';
+import { FilterBar } from '@/components/ui';
+import { StatusBadge } from '@/components/ui';
+import { Button } from '@/components/ui';
+import { useModal } from '@/components/ui';
+import { useToast } from '@/components/ui';
+import { SkeletonTable } from '@/components/ui';
+import { EmptyState } from '@/components/ui';
 import { Flag, Check, X } from 'lucide-react';
 
 function formatDate(value: string) {
