@@ -12,19 +12,13 @@ import { PrismaService } from '@cykruit/prisma';
 import { JobStatus, ApplicationType } from '@prisma/client';
 import { JobErrorCodes } from '@cykruit/common';
 import { AuditService } from '@cykruit/audit';
-import { QueueService } from '@cykruit/queue';
 import { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
 import { AI_QUEUES, AI_JOB_NAMES } from '@cykruit/ai';
+import { EmployerLimitsService } from '@cykruit/subscription';
 import { JobsRepository } from '../repositories/jobs.repository';
 import { CompanyRepository } from '../repositories/company.repository';
 import { CreateJobDto, UpdateJobDto, CloseJobDto, JobListQueryDto } from '../dto/job.dto';
-
-/** Default limits when no active EmployerSubscription row exists. Matches Free plan seed (3). */
-const DEFAULT_MAX_ACTIVE_JOBS = 3;
-
-/** Days until a published job automatically expires. */
-const JOB_EXPIRY_DAYS = 45;
 
 @Injectable()
 export class JobsService {
@@ -34,7 +28,7 @@ export class JobsService {
         private readonly prisma: PrismaService,
         private readonly configService: ConfigService,
         private readonly auditService: AuditService,
-        private readonly queueService: QueueService,
+        private readonly employerLimitsService: EmployerLimitsService,
         @InjectQueue(AI_QUEUES.AI_JOBS) private aiQueue: Queue,
     ) {}
 
@@ -70,35 +64,12 @@ export class JobsService {
         return { employer, job };
     }
 
-    /**
-     * Retrieve the employer's subscription limit (maxActiveJobs).
-     * Falls back to DEFAULT_MAX_ACTIVE_JOBS when no subscription record exists.
-     */
-    private async getMaxActiveJobs(employerId: string): Promise<number> {
-        const subscription = await this.prisma.employerSubscription.findUnique({
-            where: { employerId },
-            include: { package: true },
-        });
-        const now = new Date();
-        if (
-            subscription &&
-            subscription.status === 'ACTIVE' &&
-            (!subscription.expiresAt || subscription.expiresAt > now)
-        ) {
-            return subscription.package?.maxActiveJobs ?? DEFAULT_MAX_ACTIVE_JOBS;
-        }
-        return DEFAULT_MAX_ACTIVE_JOBS;
-    }
-
-    /**
-     * Assert the employer has capacity for one more active job.
-     */
     private async assertWithinActiveJobLimit(employerId: string): Promise<void> {
-        const [activeCount, maxActive] = await Promise.all([
+        const [activeCount, limits] = await Promise.all([
             this.jobsRepository.countActive(employerId),
-            this.getMaxActiveJobs(employerId),
+            this.employerLimitsService.resolveForEmployer(employerId),
         ]);
-        if (activeCount >= maxActive) {
+        if (activeCount >= limits.maxActiveJobs) {
             throw new BadRequestException(JobErrorCodes.JOB_LIMIT_REACHED);
         }
     }
@@ -398,11 +369,15 @@ export class JobsService {
         }
 
         // Reopening sends the job back through admin review → counts as a new active slot
-        await this.assertWithinActiveJobLimit(employer.id);
+        const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
+        const activeCount = await this.jobsRepository.countActive(employer.id);
+        if (activeCount >= limits.maxActiveJobs) {
+            throw new BadRequestException(JobErrorCodes.JOB_LIMIT_REACHED);
+        }
 
         const publishedAt = new Date();
         const expiresAt = new Date(publishedAt);
-        expiresAt.setDate(expiresAt.getDate() + JOB_EXPIRY_DAYS);
+        expiresAt.setDate(expiresAt.getDate() + limits.jobPostingPeriodDays);
 
         const reopened = await this.jobsRepository.updateStatus(jobId, JobStatus.PENDING, {
             closedReason: null,
@@ -432,18 +407,8 @@ export class JobsService {
     async rankApplications(userId: string, jobId: string, ipAddress?: string, userAgent?: string) {
         const { employer, job } = await this.resolveJobForEmployer(userId, jobId);
 
-        // Check subscription allows AI scoring
-        const subscription = await this.prisma.employerSubscription.findUnique({
-            where: { employerId: employer.id },
-            include: { package: true },
-        });
-        const now = new Date();
-        const isActive =
-            subscription &&
-            subscription.status === 'ACTIVE' &&
-            (!subscription.expiresAt || subscription.expiresAt > now);
-        const aiEnabled = isActive ? (subscription.package?.aiScoringEnabled ?? false) : false;
-        if (!aiEnabled) {
+        const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
+        if (!limits.aiScoringEnabled) {
             throw new ForbiddenException('AI Candidate Ranking is not available on your current plan.');
         }
 

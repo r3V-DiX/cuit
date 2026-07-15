@@ -2,6 +2,8 @@
 // Fetches dynamic job details from the API
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
+import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
+import { authHeaders } from "@/lib/api";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   ChevronLeft, Edit3, MapPin, Briefcase, Users, Eye,
@@ -39,17 +41,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [statusFilter, setStatusFilter] = useState<AppStatus | "All">("All");
   const [search, setSearch] = useState("");
   const [aiRank, setAiRank] = useState(false);
-  const [aiScoringEnabled, setAiScoringEnabled] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/subscriptions/usage", { credentials: "include" })
-      .then((r) => r.json())
-      .then((d) => {
-        const enabled = d?.data?.limits?.aiScoringEnabled ?? d?.limits?.aiScoringEnabled ?? false;
-        setAiScoringEnabled(enabled);
-      })
-      .catch(() => null);
-  }, []);
+  const { limits: subLimits } = useSubscriptionLimits();
+  const aiScoringEnabled = subLimits?.aiScoringEnabled ?? false;
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -314,7 +307,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 setAiRank(newState);
                 if (newState) {
                   try {
-                    const res = await fetch(`/api/employer/jobs/${id}/ai-rank`, { method: "POST", credentials: "include" });
+                    const res = await fetch(`/api/employer/jobs/${id}/ai-rank`, { method: "POST", credentials: "include", headers: authHeaders() });
                     if (!res.ok) console.error("AI rank fetch failed", await res.text());
                   } catch (e) {
                     console.error("Failed triggering AI rank", e);

@@ -123,6 +123,11 @@ export interface SubscriptionPackage {
   maxTeamMembers: number;
   featuredJobSlots: number;
   aiScoringEnabled: boolean;
+  jobPostingPeriodDays: number;
+  resumeViewEnabled: boolean;
+  canExportApplicants: boolean;
+  analyticsEnabled: boolean;
+  prioritySupportEnabled: boolean;
   priceMonthly?: string;
   priceYearly?: string;
   createdAt: string;

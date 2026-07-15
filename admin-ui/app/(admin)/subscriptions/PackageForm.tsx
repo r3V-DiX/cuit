@@ -25,6 +25,11 @@ export default function PackageForm({ initial, onSaved, onCancel }: PackageFormP
   const [maxTeamMembers, setMaxTeamMembers] = useState(initial?.maxTeamMembers ?? 1);
   const [featuredJobSlots, setFeaturedJobSlots] = useState(initial?.featuredJobSlots ?? 0);
   const [aiScoringEnabled, setAiScoringEnabled] = useState(initial?.aiScoringEnabled ?? false);
+  const [jobPostingPeriodDays, setJobPostingPeriodDays] = useState(initial?.jobPostingPeriodDays ?? 30);
+  const [resumeViewEnabled, setResumeViewEnabled] = useState(initial?.resumeViewEnabled ?? false);
+  const [canExportApplicants, setCanExportApplicants] = useState(initial?.canExportApplicants ?? false);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState(initial?.analyticsEnabled ?? false);
+  const [prioritySupportEnabled, setPrioritySupportEnabled] = useState(initial?.prioritySupportEnabled ?? false);
   const [priceMonthly, setPriceMonthly] = useState(initial?.priceMonthly ?? '0');
   const [priceYearly, setPriceYearly] = useState(initial?.priceYearly ?? '0');
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
@@ -41,6 +46,11 @@ export default function PackageForm({ initial, onSaved, onCancel }: PackageFormP
       maxTeamMembers,
       featuredJobSlots,
       aiScoringEnabled,
+      jobPostingPeriodDays,
+      resumeViewEnabled,
+      canExportApplicants,
+      analyticsEnabled,
+      prioritySupportEnabled,
       priceMonthly: Number(priceMonthly),
       priceYearly: Number(priceYearly),
     };
@@ -159,16 +169,36 @@ export default function PackageForm({ initial, onSaved, onCancel }: PackageFormP
         </div>
       </div>
 
-      <div className="flex items-center gap-6">
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={aiScoringEnabled}
-            onChange={(e) => setAiScoringEnabled(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-          />
-          AI scoring enabled
-        </label>
+      <div>
+        <label className={labelCls}>Job posting period (days)</label>
+        <input
+          type="number"
+          min={1}
+          required
+          value={jobPostingPeriodDays}
+          onChange={(e) => setJobPostingPeriodDays(Number(e.target.value))}
+          className={inputCls}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+        {([
+          ['aiScoringEnabled', 'AI scoring', aiScoringEnabled, setAiScoringEnabled],
+          ['resumeViewEnabled', 'Resume view', resumeViewEnabled, setResumeViewEnabled],
+          ['canExportApplicants', 'Export applicants', canExportApplicants, setCanExportApplicants],
+          ['analyticsEnabled', 'Analytics', analyticsEnabled, setAnalyticsEnabled],
+          ['prioritySupportEnabled', 'Priority support', prioritySupportEnabled, setPrioritySupportEnabled],
+        ] as [string, string, boolean, (v: boolean) => void][]).map(([key, label, value, setter]) => (
+          <label key={key} className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={value}
+              onChange={(e) => setter(e.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            {label}
+          </label>
+        ))}
         {initial && (
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input

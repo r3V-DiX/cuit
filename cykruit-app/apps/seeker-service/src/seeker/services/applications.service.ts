@@ -40,10 +40,18 @@ export class ApplicationsService {
     private async resolveJobForApplication(jobId: string) {
         const job = await this.prisma.job.findUnique({
             where: { id: jobId },
-            include: {
+            select: {
+                id: true,
+                jobTitle: true,
+                status: true,
+                expiresAt: true,
+                applicationType: true,
+                experienceLevel: true,
+                screeningQuestions: true,
+                employerId: true,
                 employer: { select: { id: true } },
-                skills: { include: { skill: true } },
-                certifications: { include: { certification: true } },
+                skills: { select: { skill: { select: { name: true } } } },
+                certifications: { select: { certification: { select: { name: true } } } },
             },
         });
 
@@ -64,14 +72,19 @@ export class ApplicationsService {
     private async resolveSeekerProfile(seekerId: string) {
         const profile = await this.prisma.jobSeekerProfile.findUnique({
             where: { userId: seekerId },
-            include: {
+            select: {
+                id: true,
+                userId: true,
+                firstName: true,
+                lastName: true,
+                profileCompletion: true,
                 user: { select: { email: true, profileImage: true } },
-                experiences: true,
-                education: true,
-                skills: { include: { skill: true } },
-                certifications: { include: { certification: true } },
-                projects: true,
-                resumes: { orderBy: { uploadedAt: 'desc' }, take: 1 },
+                experiences: { select: { id: true, title: true } },
+                education: { select: { id: true } },
+                skills: { select: { skill: { select: { name: true } } } },
+                certifications: { select: { certification: { select: { name: true } } } },
+                projects: { select: { id: true } },
+                resumes: { select: { id: true }, orderBy: { uploadedAt: 'desc' }, take: 1 },
             },
         });
 
@@ -123,10 +136,10 @@ export class ApplicationsService {
         },
     ): Promise<void> {
         try {
-            const jobSkills = job.skills?.map((s: any) => s.skill.name) ?? [];
-            const seekerSkills = profile.skills?.map((s: any) => s.skill.name) ?? [];
-            const jobCerts = job.certifications?.map((c: any) => c.certification.name) ?? [];
-            const seekerCerts = profile.certifications?.map((c: any) => c.certification.name) ?? [];
+            const jobSkills = job.skills?.map((s) => s.skill.name) ?? [];
+            const seekerSkills = profile.skills?.map((s) => s.skill.name) ?? [];
+            const jobCerts = job.certifications?.map((c) => c.certification.name) ?? [];
+            const seekerCerts = profile.certifications?.map((c) => c.certification.name) ?? [];
 
             const prompt = `
 You are an applicant tracking system. Score this job application from 0-100.
@@ -212,9 +225,9 @@ Return ONLY a JSON object: {"score": <0-100>, "breakdown": {"skills": <0-40>, "e
                 resumeId: resolvedResumeId,
                 screeningAnswers: dto.screeningAnswers ?? null,
             });
-        } catch (err: any) {
+        } catch (err: unknown) {
             // P2002 = unique constraint violation — concurrent duplicate apply
-            if (err?.code === 'P2002') {
+            if ((err as { code?: string })?.code === 'P2002') {
                 throw new BadRequestException(ApplicationErrorCodes.ALREADY_APPLIED);
             }
             throw err;

@@ -52,7 +52,6 @@ export default function MyJobsPage() {
   const kycStatus = useKycStatus();
   const isVerified = kycStatus === "verified";
 
-  // Status counts (fetched once or calculated)
   const [counts, setCounts] = useState({ active: 0, pending: 0, draft: 0, closed: 0 });
 
   const fetchJobs = async () => {
@@ -90,7 +89,7 @@ export default function MyJobsPage() {
           id: job.id,
           title: job.jobTitle,
           domain: job.role?.name || "Cybersecurity",
-          type: job.jobType?.replace("_", "-").toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase()) || "Full-time",
+          type: ({ FULL_TIME: "Full-time", PART_TIME: "Part-time", CONTRACT: "Contract", INTERNSHIP: "Internship" } as Record<string, string>)[job.jobType] || job.jobType || "Full-time",
           location: job.location?.displayName || "Remote",
           applicants: job._count?.applications || 0,
           views: job.viewCount || 0,
@@ -101,18 +100,6 @@ export default function MyJobsPage() {
 
       setJobs(mapped);
       setTotalJobs(result.data?.meta?.total || (result as any).meta?.total || mapped.length);
-
-      // Fetch summary counts if possible (otherwise calculate from list)
-      if (statusFilter === "All" && !search) {
-        const countMap = { active: 0, pending: 0, draft: 0, closed: 0 };
-        mapped.forEach((j: Job) => {
-          if (j.status === "Active") countMap.active++;
-          else if (j.status === "Pending") countMap.pending++;
-          else if (j.status === "Draft") countMap.draft++;
-          else if (j.status === "Closed") countMap.closed++;
-        });
-        setCounts(countMap);
-      }
     } catch (err: any) {
       if (process.env.NODE_ENV === 'development') console.error(err);
       toast({ type: "error", message: "Failed to load jobs" });
@@ -120,6 +107,24 @@ export default function MyJobsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isVerified) return;
+    // Fetch all jobs (high limit, no filter) to get accurate status counts
+    apiFetch<{ items?: { status: string }[] }>("/api/employer/jobs?limit=200")
+      .then((res) => {
+        const all = res.data?.items ?? [];
+        const countMap = { active: 0, pending: 0, draft: 0, closed: 0 };
+        all.forEach((j) => {
+          if (j.status === "APPROVED") countMap.active++;
+          else if (j.status === "PENDING") countMap.pending++;
+          else if (j.status === "DRAFT") countMap.draft++;
+          else if (j.status === "CLOSED") countMap.closed++;
+        });
+        setCounts(countMap);
+      })
+      .catch(() => null);
+  }, [kycStatus]);
 
   useEffect(() => {
     if (isVerified) fetchJobs();
@@ -136,6 +141,7 @@ export default function MyJobsPage() {
 
       toast({ type: "success", message: "Job draft deleted successfully" });
       fetchJobs();
+      setCounts((prev) => ({ ...prev, draft: Math.max(0, prev.draft - 1) }));
     } catch (err: any) {
       toast({ type: "error", message: err.message || "Could not delete job. Note: Only draft jobs can be deleted." });
     }
@@ -264,7 +270,7 @@ export default function MyJobsPage() {
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </Link>
-                          {job.status === "Draft" && (
+                          {(job.status === "Draft" || job.status === "Pending" || job.status === "Active") && (
                             <Link
                               href={`/employer/jobs/${job.id}/edit`}
                               className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"

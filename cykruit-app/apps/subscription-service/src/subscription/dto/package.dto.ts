@@ -51,6 +51,28 @@ export class CreatePackageDto {
     aiScoringEnabled?: boolean;
 
     @IsOptional()
+    @IsInt()
+    @Min(1)
+    @Type(() => Number)
+    jobPostingPeriodDays?: number;
+
+    @IsOptional()
+    @IsBoolean()
+    resumeViewEnabled?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    canExportApplicants?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    analyticsEnabled?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    prioritySupportEnabled?: boolean;
+
+    @IsOptional()
     @IsNumberString()
     @Matches(/^\d+(\.\d{1,2})?$/, { message: 'priceMonthly must be a positive number with up to 2 decimal places' })
     priceMonthly?: string;
@@ -97,6 +119,28 @@ export class UpdatePackageDto {
     @IsOptional()
     @IsBoolean()
     aiScoringEnabled?: boolean;
+
+    @IsOptional()
+    @IsInt()
+    @Min(1)
+    @Type(() => Number)
+    jobPostingPeriodDays?: number;
+
+    @IsOptional()
+    @IsBoolean()
+    resumeViewEnabled?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    canExportApplicants?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    analyticsEnabled?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    prioritySupportEnabled?: boolean;
 
     @IsOptional()
     @IsNumberString()

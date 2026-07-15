@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { apiFetch, authHeaders, ApiError } from "@/lib/api";
+import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
 import { KycGate } from "@/components/employer/KycGate";
 import { useKycStatus } from "@/lib/employer-context";
 import { useToast } from "@/components/ui/Toast";
@@ -45,7 +46,8 @@ export default function TeamPage() {
   const [myRole,  setMyRole]      = useState<MemberRole | null>(null);
   const [myUserId, setMyUserId]   = useState<string | null>(null);
   const [openMenu, setOpenMenu]   = useState<string | null>(null);
-  const [teamLimit, setTeamLimit] = useState<number | null>(null);
+  const { limits: subLimits, loading: subLoading } = useSubscriptionLimits();
+  const teamLimit = subLimits?.maxTeamMembers ?? null;
 
   // Invite form
   const [showInvite, setShowInvite] = useState(false);
@@ -61,10 +63,9 @@ export default function TeamPage() {
     if (kycStatus !== "verified") return;
     setLoading(true);
     try {
-      const [teamRes, meRes, usageRes] = await Promise.all([
+      const [teamRes, meRes] = await Promise.all([
         apiFetch<{ items?: Member[] }>("/api/employer/team"),
         apiFetch<{ id?: string }>("/api/auth/me"),
-        apiFetch<{ limits?: { maxTeamMembers: number } }>("/api/subscriptions/usage").catch(() => null),
       ]);
       const items: Member[] = (teamRes.data?.items ?? []) as Member[];
       setMembers(items);
@@ -72,9 +73,6 @@ export default function TeamPage() {
       setMyUserId(myId);
       const me = items.find((m) => m.userId === myId);
       setMyRole(me?.role ?? null);
-      if (usageRes?.data?.limits?.maxTeamMembers != null) {
-        setTeamLimit(usageRes.data.limits.maxTeamMembers);
-      }
     } catch (err: unknown) {
       toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to load team") });
     } finally {
@@ -172,7 +170,7 @@ export default function TeamPage() {
             {canInvite && (
               <button
                 onClick={() => setShowInvite(!showInvite)}
-                disabled={teamLimit !== null && teamLimit > 0 && members.length >= teamLimit}
+                disabled={subLoading || (teamLimit !== null && teamLimit > 0 && members.length >= teamLimit)}
                 className="flex items-center gap-2 h-10 px-4 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shadow-blue-500/20">
                 <UserPlus className="w-4 h-4" /> Invite Member
               </button>

@@ -87,6 +87,25 @@ export class EmployerApplicationsRepository {
         return { items, total };
     }
 
+    async findAllForExport(jobId: string, employerId: string) {
+        return this.prisma.application.findMany({
+            where: { jobId, job: { employerId } },
+            orderBy: [{ aiScore: { sort: 'desc', nulls: 'last' } }, { appliedAt: 'desc' }],
+            select: {
+                id: true,
+                status: true,
+                appliedAt: true,
+                aiScore: true,
+                coverLetter: true,
+                jobSeeker: {
+                    select: { id: true, firstName: true, lastName: true, profileImage: true },
+                },
+                job: { select: { id: true, jobTitle: true } },
+                resume: { select: { id: true, fileName: true, fileUrl: true } },
+            },
+        });
+    }
+
     async findByIdAndEmployer(id: string, employerId: string) {
         return this.prisma.application.findFirst({
             where: { id, job: { employerId } },

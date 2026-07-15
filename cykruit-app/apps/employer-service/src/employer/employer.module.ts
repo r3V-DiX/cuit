@@ -22,6 +22,7 @@ import {
     hashToken,
 } from '@cykruit/auth-core';
 import { PermissionsModule } from '@cykruit/permissions';
+import { SubscriptionModule } from '@cykruit/subscription';
 
 // Controllers
 import { CompanyController } from './controllers/company.controller';
@@ -111,6 +112,7 @@ export class EmployerSessionValidator implements ISessionValidator {
         AuditModule,
         RateLimitModule,
         PermissionsModule,
+        SubscriptionModule,
         ScheduleModule.forRoot(),
         EventsModule.forPublisher(),
         QueueModule.forRoot({ queues: [AI_QUEUES.AI_JOBS] }),

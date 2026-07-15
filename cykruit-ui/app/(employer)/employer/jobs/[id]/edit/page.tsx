@@ -183,6 +183,8 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
           setTags(
             ((rawJob as { skills?: { skill: { name: string } }[] }).skills || []).map((s) => s.skill.name)
           );
+          const locationId = (rawJob as { locationId?: string | null }).locationId;
+          setSelectedOfficeLocationId(locationId ?? "REMOTE");
         }
 
         if (companyResult) {
@@ -272,6 +274,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
           experienceLevel: levelMap[level],
           description:     description.trim(),
           skillNames:      tags,
+          ...(selectedOfficeLocationId !== "REMOTE" ? { locationId: selectedOfficeLocationId } : { locationId: null }),
         }),
       });
 

@@ -23,7 +23,7 @@ const USAGE_REFRESH_TTL_MS = 5 * 60 * 1000; // 5 minutes
  * because there is no cron to flip it. We detect this at read time.
  */
 function resolveEffectiveStatus(status: string, expiresAt: Date | null): string {
-    if (status === 'ACTIVE' && expiresAt && expiresAt < new Date()) return 'EXPIRED';
+    if (status === 'ACTIVE' && expiresAt && expiresAt <= new Date()) return 'EXPIRED';
     return status;
 }
 
@@ -123,7 +123,6 @@ export class SubscriptionService {
         const sub = await this.repo.findSubscriptionByEmployer(employerId);
 
         if (!sub) {
-            // Read limits from the free-tier package in DB rather than hardcoding them.
             const freePkg = await this.payRepo.findFreePackage();
             return {
                 hasSubscription: false,
@@ -132,6 +131,11 @@ export class SubscriptionService {
                     maxTeamMembers: freePkg?.maxTeamMembers ?? 0,
                     featuredJobSlots: freePkg?.featuredJobSlots ?? 0,
                     aiScoringEnabled: freePkg?.aiScoringEnabled ?? false,
+                    jobPostingPeriodDays: freePkg?.jobPostingPeriodDays ?? 30,
+                    resumeViewEnabled: freePkg?.resumeViewEnabled ?? false,
+                    canExportApplicants: freePkg?.canExportApplicants ?? false,
+                    analyticsEnabled: freePkg?.analyticsEnabled ?? false,
+                    prioritySupportEnabled: freePkg?.prioritySupportEnabled ?? false,
                 },
                 usage: {
                     currentActiveJobs: 0,
@@ -143,7 +147,6 @@ export class SubscriptionService {
 
         const effectiveStatus = resolveEffectiveStatus(sub.status, sub.expiresAt);
 
-        // Only write-refresh if stale (> TTL since last update), preventing write-on-every-read
         const staleSinceMs = Date.now() - sub.updatedAt.getTime();
         const source = staleSinceMs > USAGE_REFRESH_TTL_MS
             ? await this.repo.refreshUsage(employerId)
@@ -159,6 +162,11 @@ export class SubscriptionService {
                 maxTeamMembers: source.package.maxTeamMembers,
                 featuredJobSlots: source.package.featuredJobSlots,
                 aiScoringEnabled: source.package.aiScoringEnabled,
+                jobPostingPeriodDays: source.package.jobPostingPeriodDays,
+                resumeViewEnabled: source.package.resumeViewEnabled,
+                canExportApplicants: source.package.canExportApplicants,
+                analyticsEnabled: source.package.analyticsEnabled,
+                prioritySupportEnabled: source.package.prioritySupportEnabled,
             },
             usage: {
                 currentActiveJobs: source.currentActiveJobs,

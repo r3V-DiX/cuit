@@ -81,13 +81,39 @@ export class AdminJobsRepository {
     }
 
     async approve(id: string) {
-        // Only set publishedAt on first approval (null = never published before)
-        const job = await this.prisma.job.findUnique({ where: { id }, select: { publishedAt: true } });
+        const job = await this.prisma.job.findUnique({
+            where: { id },
+            select: { publishedAt: true, employerId: true },
+        });
+
+        const sub = job
+            ? await this.prisma.employerSubscription.findUnique({
+                  where: { employerId: job.employerId },
+                  select: {
+                      status: true,
+                      expiresAt: true,
+                      package: { select: { jobPostingPeriodDays: true } },
+                  },
+              })
+            : null;
+
+        const now = new Date();
+        const isActive =
+            sub &&
+            sub.status === 'ACTIVE' &&
+            (sub.expiresAt === null || sub.expiresAt > now);
+        const periodDays = (isActive ? sub?.package?.jobPostingPeriodDays : null) ?? 30;
+
+        const publishedAt = job?.publishedAt ?? now;
+        const expiresAt = new Date(publishedAt);
+        expiresAt.setDate(expiresAt.getDate() + periodDays);
+
         return this.prisma.job.update({
             where: { id },
             data: {
                 status: JobStatus.APPROVED,
-                ...(job?.publishedAt ? {} : { publishedAt: new Date() }),
+                ...(job?.publishedAt ? {} : { publishedAt: now }),
+                expiresAt,
             },
         });
     }

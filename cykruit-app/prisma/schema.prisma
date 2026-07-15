@@ -2022,10 +2022,15 @@ model SubscriptionPackage {
     description String?
     isActive    Boolean @default(true)
 
-    maxActiveJobs    Int     @default(5)
-    maxTeamMembers   Int     @default(3)
-    featuredJobSlots Int     @default(0)
-    aiScoringEnabled Boolean @default(false)
+    maxActiveJobs        Int     @default(5)
+    maxTeamMembers       Int     @default(3)
+    featuredJobSlots     Int     @default(0)
+    aiScoringEnabled     Boolean @default(false)
+    jobPostingPeriodDays Int     @default(45)
+    resumeViewEnabled    Boolean @default(false)
+    canExportApplicants  Boolean @default(false)
+    analyticsEnabled     Boolean @default(false)
+    prioritySupportEnabled Boolean @default(false)
 
     priceMonthly Decimal? @db.Decimal(10, 2)
     priceYearly  Decimal? @db.Decimal(10, 2)

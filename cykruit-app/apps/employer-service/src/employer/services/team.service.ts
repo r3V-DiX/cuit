@@ -15,6 +15,7 @@ import { MailService } from '@cykruit/mail';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { PermissionsService } from '@cykruit/permissions';
 import { AuditService } from '@cykruit/audit';
+import { EmployerLimitsService } from '@cykruit/subscription';
 import { CompanyRepository } from '../repositories/company.repository';
 import { TeamRepository } from '../repositories/team.repository';
 import {
@@ -22,9 +23,6 @@ import {
     UpdateMemberRoleDto,
     TransferOwnershipDto,
 } from '../dto/team.dto';
-
-// Default team size limit when no subscription package is found.
-const DEFAULT_MAX_TEAM_MEMBERS = 2;
 
 // Token expiry: 7 days in milliseconds.
 const INVITE_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -57,6 +55,7 @@ export class TeamService {
         private readonly eventPublisher: EventPublisher,
         private readonly permissionsService: PermissionsService,
         private readonly auditService: AuditService,
+        private readonly employerLimitsService: EmployerLimitsService,
     ) {}
 
     // ── Get Team ─────────────────────────────────────────────────
@@ -95,10 +94,10 @@ export class TeamService {
             this.teamRepository.findMembers(employer.id),
             this.teamRepository.countPendingInvites(employer.id),
         ]);
-        const maxMembers = await this.resolveMaxTeamMembers(employer.id);
-        if (currentMembers.length + pendingInvites >= maxMembers) {
+        const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
+        if (currentMembers.length + pendingInvites >= limits.maxTeamMembers) {
             throw new BadRequestException(
-                `Team member limit reached (${maxMembers}). Upgrade your subscription to invite more.`,
+                `Team member limit reached (${limits.maxTeamMembers}). Upgrade your subscription to invite more.`,
             );
         }
 
@@ -426,22 +425,6 @@ export class TeamService {
             );
         }
         return employer;
-    }
-
-    private async resolveMaxTeamMembers(employerId: string): Promise<number> {
-        const subscription = await this.prisma.employerSubscription.findUnique({
-            where: { employerId },
-            include: { package: true },
-        });
-        const now = new Date();
-        if (
-            subscription &&
-            subscription.status === 'ACTIVE' &&
-            (!subscription.expiresAt || subscription.expiresAt > now)
-        ) {
-            return subscription.package?.maxTeamMembers ?? DEFAULT_MAX_TEAM_MEMBERS;
-        }
-        return DEFAULT_MAX_TEAM_MEMBERS;
     }
 
     private parseRole(segment: string): EmployerMemberRole {

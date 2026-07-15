@@ -116,6 +116,11 @@ export class PaymentRepository {
                 maxTeamMembers: true,
                 featuredJobSlots: true,
                 aiScoringEnabled: true,
+                jobPostingPeriodDays: true,
+                resumeViewEnabled: true,
+                canExportApplicants: true,
+                analyticsEnabled: true,
+                prioritySupportEnabled: true,
             },
         });
     }

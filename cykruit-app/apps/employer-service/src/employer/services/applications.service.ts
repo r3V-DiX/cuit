@@ -9,6 +9,7 @@ import {
 import { ApplicationStatus } from '@prisma/client';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { AuditService } from '@cykruit/audit';
+import { EmployerLimitsService } from '@cykruit/subscription';
 import { CompanyRepository } from '../repositories/company.repository';
 import { JobsRepository } from '../repositories/jobs.repository';
 import { EmployerApplicationsRepository } from '../repositories/applications.repository';
@@ -35,6 +36,7 @@ export class EmployerApplicationsService {
         private readonly companyRepo: CompanyRepository,
         private readonly eventPublisher: EventPublisher,
         private readonly auditService: AuditService,
+        private readonly employerLimitsService: EmployerLimitsService,
     ) {}
 
     private async resolveEmployer(userId: string) {
@@ -79,6 +81,20 @@ export class EmployerApplicationsService {
         if (!application) throw new NotFoundException('Application not found');
         if (jobId && application.jobId !== jobId) throw new NotFoundException('Application not found');
         return application;
+    }
+
+    async exportForJob(userId: string, jobId: string) {
+        const employer = await this.resolveEmployer(userId);
+
+        const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
+        if (!limits.canExportApplicants) {
+            throw new ForbiddenException('Exporting applicants is not available on your current plan.');
+        }
+
+        const job = await this.jobsRepo.findByIdAndEmployer(jobId, employer.id);
+        if (!job) throw new NotFoundException('Job not found');
+
+        return this.applicationsRepo.findAllForExport(jobId, employer.id);
     }
 
     async updateStatus(

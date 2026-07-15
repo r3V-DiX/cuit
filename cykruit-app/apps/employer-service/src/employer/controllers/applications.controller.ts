@@ -49,6 +49,16 @@ export class ApplicationsController {
         return this.applicationsService.listForJob(user.id, jobId, query);
     }
 
+    // GET /employer/jobs/:jobId/applications/export — MUST be before /:id to avoid param capture
+    @Get('jobs/:jobId/applications/export')
+    @RequirePermission(ACTIONS.APPLICATIONS.READ_ALL)
+    exportForJob(
+        @CurrentUser() user: User,
+        @Param('jobId', ParseUUIDPipe) jobId: string,
+    ) {
+        return this.applicationsService.exportForJob(user.id, jobId);
+    }
+
     // GET /employer/jobs/:jobId/applications/:id
     @Get('jobs/:jobId/applications/:id')
     @RequirePermission(ACTIONS.APPLICATIONS.READ_ALL)

@@ -8,7 +8,7 @@ import {
     HttpCode,
     HttpStatus,
 } from '@nestjs/common';
-import { AuthGuard, CurrentUser } from '@cykruit/auth-core';
+import { AuthGuard, CsrfGuard, CurrentUser } from '@cykruit/auth-core';
 import type { User } from '@prisma/client';
 import { SubscriptionService } from '../services/subscription.service';
 
@@ -33,6 +33,7 @@ export class EmployerSubscriptionController {
 
     /** POST /subscriptions/cancel — employer self-cancels their active plan */
     @Post('cancel')
+    @UseGuards(CsrfGuard)
     @HttpCode(HttpStatus.OK)
     cancelMySubscription(@CurrentUser() user: User) {
         return this.subscriptionService.cancelMySubscription(user.id);

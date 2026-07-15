@@ -17,6 +17,7 @@ import {
     ParseFilePipe,
     MaxFileSizeValidator,
     FileTypeValidator,
+    ParseUUIDPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
@@ -113,7 +114,7 @@ export class CompanyController {
 
     @Delete('locations/:id')
     @RequirePermission(ACTIONS.COMPANY.UPDATE)
-    removeOfficeLocation(@CurrentUser() user: User, @Param('id') id: string) {
+    removeOfficeLocation(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
         return this.companyService.removeOfficeLocation(user.id, id);
     }
 
@@ -125,7 +126,7 @@ export class CompanyController {
 
     @Delete('benefits/:id')
     @RequirePermission(ACTIONS.COMPANY.UPDATE)
-    removeBenefit(@CurrentUser() user: User, @Param('id') id: string) {
+    removeBenefit(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
         return this.companyService.removeBenefit(user.id, id);
     }
 }

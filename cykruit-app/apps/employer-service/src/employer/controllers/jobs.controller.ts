@@ -14,6 +14,7 @@ import {
     HttpCode,
     HttpStatus,
     BadRequestException,
+    ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
@@ -42,7 +43,7 @@ export class JobsController {
 
     @Get(':id')
     @RequirePermission(ACTIONS.JOBS.READ)
-    getOne(@CurrentUser() user: User, @Param('id') id: string) {
+    getOne(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
         return this.jobsService.getOne(user.id, id);
     }
 
@@ -91,7 +92,7 @@ export class JobsController {
     @RequirePermission(ACTIONS.JOBS.UPDATE)
     update(
         @CurrentUser() user: User,
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: UpdateJobDto,
         @Req() req: Request,
     ) {
@@ -103,7 +104,7 @@ export class JobsController {
     @Post(':id/submit')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.JOBS.PUBLISH)
-    submit(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
+    submit(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
         return this.jobsService.submit(user.id, id, req.ip, req.headers['user-agent']);
     }
 
@@ -114,7 +115,7 @@ export class JobsController {
     @RequirePermission(ACTIONS.JOBS.CLOSE)
     close(
         @CurrentUser() user: User,
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: CloseJobDto,
         @Req() req: Request,
     ) {
@@ -125,7 +126,7 @@ export class JobsController {
 
     @Delete(':id')
     @RequirePermission(ACTIONS.JOBS.DELETE)
-    remove(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
+    remove(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
         return this.jobsService.delete(user.id, id, req.ip, req.headers['user-agent']);
     }
 
@@ -134,7 +135,7 @@ export class JobsController {
     @Post(':id/reopen')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.JOBS.PUBLISH)
-    reopen(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
+    reopen(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
         return this.jobsService.reopen(user.id, id, req.ip, req.headers['user-agent']);
     }
 
@@ -143,7 +144,7 @@ export class JobsController {
     @Post(':id/ai-rank')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.JOBS.UPDATE)
-    rankApplications(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
+    rankApplications(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
         return this.jobsService.rankApplications(user.id, id, req.ip, req.headers['user-agent']);
     }
 }

@@ -72,6 +72,20 @@ const EMPLOYERS = [
     companyWebsite: 'https://zepto.com',
     about: 'Zepto is India\'s fastest growing 10-minute grocery delivery startup, operating at massive scale.',
   },
+  {
+    email: 'yograj.hukumdar@rivedix.com',
+    password: 'Rivedix@2025!',
+    firstName: 'Yograj',
+    lastName: 'Hukumdar',
+    companyName: 'Rivedix Technology Solutions',
+    slug: 'rivedix',
+    companyType: 'PRIVATE_LIMITED_COMPANY' as const,
+    industry: 'TECHNOLOGY' as const,
+    companySize: 'SIZE_11_50' as const,
+    location: 'Pune, IN',
+    companyWebsite: 'https://rivedix.com',
+    about: 'Rivedix is a practitioner-grade cybersecurity consultancy delivering offensive security, defensive security, cyber GRC, data privacy, AI governance, and vCISO advisory. Outcome-first approach — not checklist compliance.',
+  },
 ];
 
 const JOB_TEMPLATES = [
@@ -198,6 +212,32 @@ Requirements:
 - eWPT or BSCP preferred`,
     skillNames: ['Application Security', 'Burp Suite', 'OWASP'],
     certNames: ['BSCP', 'eWPT'],
+  },
+  {
+    employerSlug: 'rivedix',
+    jobTitle: 'Penetration Tester – Web & Network',
+    slug: 'penetration-tester-web-network-rivedix',
+    jobType: 'FULL_TIME' as const,
+    workMode: 'HYBRID' as const,
+    experienceLevel: 'MID' as const,
+    applicationType: 'DIRECT' as const,
+    description: `Rivedix Technology Solutions is hiring a Penetration Tester to join our offensive security practice. You will conduct web application, network, and API assessments for clients across India, the US, and Europe.
+
+Responsibilities:
+- Perform black-box and grey-box web and network penetration tests
+- Write detailed technical and executive-level reports with prioritised remediation
+- Support red team engagements and adversary simulation exercises
+- Contribute to internal tooling and methodology development
+- Work across client verticals including BFSI, healthcare, and SaaS
+
+Requirements:
+- 2+ years hands-on penetration testing experience
+- Proficiency with Burp Suite Pro, Nmap, Metasploit, and custom scripting
+- Strong understanding of OWASP Top 10 and common network attack vectors
+- OSCP, eWPT, or equivalent certification preferred
+- Good written communication for client-facing report delivery`,
+    skillNames: ['Penetration Testing', 'Burp Suite', 'Python', 'OWASP'],
+    certNames: ['OSCP', 'eWPT'],
   },
   {
     employerSlug: 'crowdstrike',

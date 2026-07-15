@@ -59,6 +59,9 @@
       "@cykruit/rate-limit": [
         "libs/rate-limit/src/index.ts"
       ],
+      "@cykruit/subscription": [
+        "libs/subscription/src/index.ts"
+      ],
       "@cykruit/upload": [
         "libs/upload/src/index.ts"
       ]

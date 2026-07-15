@@ -104,7 +104,7 @@ export class AIProfileService {
     }
 
     // 2. Experiences
-    const parsedExperiences = parsedData.experiences as any[];
+    const parsedExperiences = parsedData.experiences as ParsedExp[] | undefined;
     if (parsedExperiences && parsedExperiences.length > 0) {
       for (const exp of parsedExperiences) {
         if (!exp.title || !exp.company) continue;
@@ -124,7 +124,7 @@ export class AIProfileService {
     }
 
     // 3. Education
-    const parsedEducation = parsedData.education as any[];
+    const parsedEducation = parsedData.education as ParsedEdu[] | undefined;
     if (parsedEducation && parsedEducation.length > 0) {
       for (const edu of parsedEducation) {
         if (!edu.degree || !edu.school) continue;
@@ -140,7 +140,7 @@ export class AIProfileService {
     }
 
     // 4. Skills
-    const parsedSkills = parsedData.skills as any[];
+    const parsedSkills = parsedData.skills as string[] | undefined;
     if (parsedSkills && parsedSkills.length > 0) {
       for (const skillName of parsedSkills) {
         const searchRes = await this.skillsService.searchSkills({ query: skillName, limit: 1 });
@@ -175,7 +175,7 @@ export class AIProfileService {
     }
 
     // 5. Certifications
-    const parsedCerts = parsedData.certifications as any[];
+    const parsedCerts = parsedData.certifications as ParsedCert[] | undefined;
     if (parsedCerts && parsedCerts.length > 0) {
       for (const cert of parsedCerts) {
         if (!cert.name) continue;

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
+import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
 import { KycGate } from "@/components/employer/KycGate";
 import { useKycStatus } from "@/lib/employer-context";
 
@@ -169,7 +170,10 @@ export default function PostJobPage() {
   const { toast } = useToast();
   const [publishing, setPublishing]     = useState(false);
   const [savingDraft, setSavingDraft]   = useState(false);
-  const [usageLimits, setUsageLimits]   = useState<UsageLimits | null>(null);
+  const { limits: subLimits, usage: subUsage } = useSubscriptionLimits();
+  const usageLimits: UsageLimits | null = subLimits && subUsage
+    ? { jobsUsed: subUsage.currentActiveJobs, jobsLimit: subLimits.maxActiveJobs }
+    : null;
   const [officeLocations, setOfficeLocations] = useState<OfficeLocation[]>([]);
   const [selectedOfficeLocationId, setSelectedOfficeLocationId] = useState<string>("REMOTE");
   const descTooltipTimerRef             = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -178,16 +182,6 @@ export default function PostJobPage() {
 
   useEffect(() => {
     if (kycStatus !== "verified") return;
-    apiFetch<{ usage?: { currentActiveJobs: number }; limits?: { maxActiveJobs: number } }>("/api/subscriptions/usage")
-      .then((res) => {
-        if (res.data?.usage != null && res.data?.limits != null) {
-          setUsageLimits({
-            jobsUsed:  res.data.usage.currentActiveJobs,
-            jobsLimit: res.data.limits.maxActiveJobs,
-          });
-        }
-      })
-      .catch(() => null);
     apiFetch("/api/employer/company/me")
       .then((res) => {
         const raw = (res.data || res) as Record<string, unknown>;
@@ -334,7 +328,7 @@ export default function PostJobPage() {
           description: finalDesc || undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           skillNames: tags.length > 0 ? tags : undefined,
-          ...(selectedOfficeLocationId !== "REMOTE" ? { officeLocationId: selectedOfficeLocationId } : {}),
+          ...(selectedOfficeLocationId !== "REMOTE" ? { locationId: selectedOfficeLocationId } : {}),
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
             id: crypto.randomUUID(),
             type: questionTypeMap[q.type],
@@ -413,7 +407,7 @@ export default function PostJobPage() {
           description: finalDesc || undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           skillNames: tags.length > 0 ? tags : undefined,
-          ...(selectedOfficeLocationId !== "REMOTE" ? { officeLocationId: selectedOfficeLocationId } : {}),
+          ...(selectedOfficeLocationId !== "REMOTE" ? { locationId: selectedOfficeLocationId } : {}),
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
             id: crypto.randomUUID(),
             type: questionTypeMap[q.type],

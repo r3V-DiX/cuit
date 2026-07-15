@@ -38,6 +38,23 @@ export class CreatePackageDto {
     @IsBoolean()
     aiScoringEnabled: boolean;
 
+    @IsInt()
+    @IsPositive()
+    @Type(() => Number)
+    jobPostingPeriodDays: number;
+
+    @IsBoolean()
+    resumeViewEnabled: boolean;
+
+    @IsBoolean()
+    canExportApplicants: boolean;
+
+    @IsBoolean()
+    analyticsEnabled: boolean;
+
+    @IsBoolean()
+    prioritySupportEnabled: boolean;
+
     @IsNumber()
     @Min(0)
     priceMonthly: number;
@@ -70,6 +87,28 @@ export class UpdatePackageDto {
     @IsOptional()
     @IsBoolean()
     aiScoringEnabled?: boolean;
+
+    @IsOptional()
+    @IsInt()
+    @IsPositive()
+    @Type(() => Number)
+    jobPostingPeriodDays?: number;
+
+    @IsOptional()
+    @IsBoolean()
+    resumeViewEnabled?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    canExportApplicants?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    analyticsEnabled?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    prioritySupportEnabled?: boolean;
 
     @IsOptional()
     @IsNumber()
