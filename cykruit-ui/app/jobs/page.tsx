@@ -32,9 +32,6 @@ function formatEnum(value: string): string {
 }
 
 // ── Data layer ─────────────────────────────────────────────────────────────
-// TODO: replace this with a real fetch when backend is ready:
-//   const res = await fetch(`/api/jobs?q=${q}&spec=${spec}&type=${type}&mode=${mode}&page=${page}&limit=${limit}`)
-//   return res.json()
 async function fetchJobs(params: {
   q: string; spec: string; type: string; mode: string; page: number; limit: number;
 }): Promise<{ data: Job[]; total: number; totalPages: number }> {

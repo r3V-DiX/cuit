@@ -36,12 +36,6 @@ const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }> = 
 
 // ─── Seed data ─────────────────────────────────────────────────────────────────
 
-const RECENT_APPS: { id: number; role: string; company: string; status: AppStatus }[] = [
-  { id: 1, role: "Senior Penetration Tester", company: "CrowdStrike",       status: "Shortlisted"   },
-  { id: 2, role: "Cloud Security Engineer",   company: "Palo Alto Networks", status: "Under Review"  },
-  { id: 3, role: "SOC Analyst II",            company: "Mandiant",           status: "Applied"       },
-];
-
 const RECOMMENDED_JOBS: {
   id: number;
   role: string;
@@ -52,14 +46,6 @@ const RECOMMENDED_JOBS: {
   { id: 9,  role: "Red Team Lead",   company: "Microsoft", match: 92, matchColor: "text-green-700 bg-green-50 border-green-200" },
   { id: 11, role: "AppSec Engineer", company: "GitHub",    match: 87, matchColor: "text-green-700 bg-green-50 border-green-200" },
   { id: 12, role: "Cloud Pentester", company: "Zscaler",   match: 74, matchColor: "text-amber-700 bg-amber-50 border-amber-200" },
-];
-
-const PROFILE_CHECKS: { label: string; done: boolean }[] = [
-  { label: "Experience",     done: true  },
-  { label: "Skills",         done: true  },
-  { label: "Certifications", done: true  },
-  { label: "CTF Profile",    done: false },
-  { label: "Portfolio link", done: false },
 ];
 
 const QUICK_LINKS: { label: string; href: string; icon: React.ReactNode }[] = [
