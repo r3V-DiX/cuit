@@ -202,7 +202,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     <MapPin className="h-4 w-4 text-slate-400" />
                     <div>
                       <p className="font-mono text-[10px] uppercase text-slate-400">Location</p>
-                      <p className="text-sm font-medium text-slate-900">{job.location || '—'}</p>
+                      <p className="text-sm font-medium text-slate-900">{job.location?.displayName ?? '—'}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">

@@ -130,7 +130,7 @@ function JobsPageContent() {
                 {
                   key: 'location',
                   header: 'Location',
-                  render: (j) => <span className="text-slate-600">{j.location || '—'}</span>,
+                  render: (j) => <span className="text-slate-600">{j.location?.displayName ?? '—'}</span>,
                 },
                 {
                   key: 'status',

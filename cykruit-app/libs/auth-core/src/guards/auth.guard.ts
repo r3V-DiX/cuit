@@ -5,6 +5,7 @@ import {
   ExecutionContext,
   UnauthorizedException,
   Inject,
+  Optional,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Request, Response } from "express";
@@ -14,6 +15,7 @@ import {
 } from "../session-validator.interface";
 import { CookieConfig } from "@cykruit/config";
 import { IS_OPTIONAL_AUTH_KEY, IS_PUBLIC_KEY } from "../decorators";
+import { CsrfGuard } from "./csrf.guard";
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -21,6 +23,7 @@ export class AuthGuard implements CanActivate {
     @Inject(SESSION_VALIDATOR)
     private readonly sessionValidator: ISessionValidator,
     private readonly reflector: Reflector,
+    @Optional() private readonly csrfGuard?: CsrfGuard,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -68,6 +71,17 @@ export class AuthGuard implements CanActivate {
           CookieConfig.getSessionCookieOptions(rememberMe ?? false),
         );
         request.cookies[CookieConfig.COOKIE_NAMES.SESSION] = newToken;
+      }
+
+      // Sliding-window CSRF refresh — the signed token's own HMAC expiry stays
+      // short, but renewing the cookie on every authenticated request means it
+      // never goes stale for an active session (whose cookie can outlive it).
+      if (this.csrfGuard) {
+        response.cookie(
+          CookieConfig.COOKIE_NAMES.CSRF,
+          this.csrfGuard.generateToken(),
+          CookieConfig.getCsrfCookieOptions(),
+        );
       }
 
       request["user"] = user;

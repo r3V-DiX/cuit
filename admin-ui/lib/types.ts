@@ -93,6 +93,18 @@ export interface EmployerVerification {
   employer?: Employer;
 }
 
+export interface Location {
+  id: string;
+  city: string;
+  state: string;
+  country: string;
+  displayName: string;
+  searchText: string;
+  isPopular: boolean;
+  usageCount: number;
+  createdAt: string;
+}
+
 export interface Job {
   id: string;
   employerId: string;
@@ -101,7 +113,7 @@ export interface Job {
   jobType?: string;
   workMode?: string;
   experienceLevel?: string;
-  location?: string;
+  location?: Location | null;
   description?: string;
   applicationType?: string;
   externalUrl?: string;
