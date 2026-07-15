@@ -124,7 +124,7 @@ export default function EmployerDashboardPage() {
   }, []);
 
   // Derived stats
-  const activeJobsCount = jobs.filter(j => j.status !== "DRAFT" && j.status !== "CLOSED").length;
+  const activeJobsCount = jobs.filter(j => j.status === "APPROVED").length;
   const totalApplicants = applications.length;
   const newThisWeek = applications.filter(a => {
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -153,7 +153,10 @@ export default function EmployerDashboardPage() {
       applicants: j.applicantCount ?? 0,
       views: j.viewCount ?? 0,
       posted: relativeTime(j.publishedAt),
-      status: j.status === "DRAFT" ? "Draft" : "Active",
+      status: j.status === "APPROVED" ? "Active" :
+              j.status === "PENDING" ? "Pending" :
+              j.status === "DRAFT" ? "Draft" :
+              j.status === "CLOSED" ? "Closed" : "Rejected",
     }));
 
   // Hiring funnel counts
@@ -370,7 +373,11 @@ export default function EmployerDashboardPage() {
                         <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md border shrink-0 ${
                           job.status === "Active"
                             ? "text-green-700 bg-green-50 border-green-200"
-                            : "text-slate-500 bg-slate-50 border-slate-200"
+                            : job.status === "Pending"
+                            ? "text-amber-700 bg-amber-50 border-amber-200"
+                            : job.status === "Closed" || job.status === "Draft"
+                            ? "text-slate-500 bg-slate-50 border-slate-200"
+                            : "text-rose-700 bg-rose-50 border-rose-200"
                         }`}>
                           {job.status}
                         </span>
