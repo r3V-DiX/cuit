@@ -16,6 +16,7 @@ import { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
 import { AI_QUEUES, AI_JOB_NAMES } from '@cykruit/ai';
 import { EmployerLimitsService } from '@cykruit/subscription';
+import { MailService } from '@cykruit/mail';
 import { JobsRepository } from '../repositories/jobs.repository';
 import { CompanyRepository } from '../repositories/company.repository';
 import { CreateJobDto, UpdateJobDto, CloseJobDto, JobListQueryDto } from '../dto/job.dto';
@@ -29,6 +30,7 @@ export class JobsService {
         private readonly configService: ConfigService,
         private readonly auditService: AuditService,
         private readonly employerLimitsService: EmployerLimitsService,
+        private readonly mailService: MailService,
         @InjectQueue(AI_QUEUES.AI_JOBS) private aiQueue: Queue,
     ) {}
 
@@ -72,6 +74,35 @@ export class JobsService {
         if (activeCount >= limits.maxActiveJobs) {
             throw new BadRequestException(JobErrorCodes.JOB_LIMIT_REACHED);
         }
+    }
+
+    private notifyAdminsOfJobReview(
+        jobTitle: string,
+        companyName: string,
+        jobType: string,
+        workMode: string,
+        jobId: string,
+        isResubmission: boolean,
+    ): void {
+        const adminUrl = this.configService.get<string>('ADMIN_URL') ?? 'http://localhost:3001';
+        const reviewUrl = `${adminUrl}/jobs/${jobId}`;
+
+        this.prisma.admin.findMany({
+            where: { isActive: true },
+            select: { email: true, firstName: true },
+        }).then((admins) => {
+            for (const admin of admins) {
+                this.mailService.sendJobReviewNotification(admin.email, {
+                    adminFirstName: admin.firstName,
+                    jobTitle,
+                    companyName,
+                    jobType,
+                    workMode,
+                    isResubmission,
+                    reviewUrl,
+                }).catch(() => undefined);
+            }
+        }).catch(() => undefined);
     }
 
     /**
@@ -231,11 +262,13 @@ export class JobsService {
     }
 
     async update(userId: string, jobId: string, dto: UpdateJobDto, ipAddress?: string, userAgent?: string) {
-        const { job } = await this.resolveJobForEmployer(userId, jobId);
+        const { employer, job } = await this.resolveJobForEmployer(userId, jobId);
 
         if (job.status === JobStatus.CLOSED || job.status === JobStatus.EXPIRED) {
             throw new BadRequestException(JobErrorCodes.JOB_NOT_EDITABLE);
         }
+
+        const wasApproved = job.status === JobStatus.APPROVED;
 
         const resolvedLocationId = await this.resolveLocation(dto.location) || dto.locationId;
 
@@ -279,6 +312,8 @@ export class JobsService {
                                   : { disconnect: true },
                           }
                         : {}),
+                    // Editing an approved job sends it back for re-review
+                    ...(wasApproved ? { status: JobStatus.PENDING } : {}),
                 },
                 include: {
                     skills: { include: { skill: true } },
@@ -320,6 +355,17 @@ export class JobsService {
             metadata: { userAgent },
         });
 
+        if (wasApproved) {
+            this.notifyAdminsOfJobReview(
+                updated.jobTitle,
+                employer.companyName,
+                updated.jobType,
+                updated.workMode,
+                jobId,
+                true,
+            );
+        }
+
         return updated;
     }
 
@@ -352,6 +398,15 @@ export class JobsService {
             ipAddress,
             metadata: { userAgent },
         });
+
+        this.notifyAdminsOfJobReview(
+            submitted.jobTitle,
+            employer.companyName,
+            submitted.jobType,
+            submitted.workMode,
+            jobId,
+            job.status === JobStatus.REJECTED,
+        );
 
         return submitted;
     }

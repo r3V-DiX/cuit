@@ -12,6 +12,7 @@ import { otpTemplate } from "./templates/otp.template";
 import { employerInviteTemplate } from "./templates/employer-invite.template";
 import { companyJoinRequestTemplate } from "./templates/company-join-request.template";
 import { adminInviteTemplate } from "./templates/admin-invite.template";
+import { jobReviewTemplate } from "./templates/job-review.template";
 
 @Injectable()
 export class MailService {
@@ -420,6 +421,53 @@ export class MailService {
         "MailService",
       );
       // Don't throw — contact form is saved in DB, so this is best-effort
+    }
+  }
+
+  async sendJobReviewNotification(
+    to: string,
+    data: {
+      adminFirstName: string;
+      jobTitle: string;
+      companyName: string;
+      jobType: string;
+      workMode: string;
+      isResubmission: boolean;
+      reviewUrl: string;
+    },
+  ): Promise<void> {
+    try {
+      if (this.isDev) {
+        this.logger.log(
+          `[DEV] Job review notification queued for ${to} — "${data.jobTitle}"`,
+          "MailService",
+        );
+      }
+      const subject = data.isResubmission
+        ? `Re-review required: ${data.jobTitle} at ${data.companyName}`
+        : `New job pending review: ${data.jobTitle} at ${data.companyName}`;
+
+      const { error } = await this.resend.emails.send({
+        from: `Cykruit <${this.fromEmail}>`,
+        replyTo: "support@cykruit.com",
+        to,
+        subject,
+        text: `Hi ${data.adminFirstName},\n\nA job listing ${data.isResubmission ? "was edited and needs re-approval" : "is waiting for review"}.\n\nJob: ${data.jobTitle}\nCompany: ${data.companyName}\n\nReview: ${data.reviewUrl}\n\n-- Cykruit Team`,
+        html: jobReviewTemplate(data),
+      });
+
+      if (error) throw new Error(error.message);
+      this.logger.log(
+        `Job review notification sent to ${to} for job "${data.jobTitle}"`,
+        "MailService",
+      );
+    } catch (err) {
+      this.logger.error(
+        "Failed to send job review notification",
+        err,
+        "MailService",
+      );
+      // Fire-and-forget — don't block job submit on email failure
     }
   }
 }
