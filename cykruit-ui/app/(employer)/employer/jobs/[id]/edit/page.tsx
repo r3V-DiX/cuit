@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
+import { LocationSelect, LocationValue } from "@/components/ui/LocationSelect";
 
 const JOB_TYPES    = ["Full-time", "Part-time", "Contract", "Internship"];
 const REMOTE_TYPES = ["Remote", "On-site", "Hybrid"];
@@ -17,14 +18,7 @@ const LEVELS       = ["Junior (0–2 yrs)", "Mid-level (2–5 yrs)", "Senior (5+
 
 const DESC_MIN = 50;
 
-interface OfficeLocation {
-  id: string;
-  type: string;
-  city: string;
-  state?: string;
-  country: string;
-  isHeadquarters: boolean;
-}
+
 
 function SelectField({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
@@ -135,9 +129,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
   // Read-only display fields
   const [domainDisplay, setDomainDisplay] = useState("");
 
-  // Office location
-  const [officeLocations, setOfficeLocations] = useState<OfficeLocation[]>([]);
-  const [selectedOfficeLocationId, setSelectedOfficeLocationId] = useState<string>("REMOTE");
+  const [location, setLocation] = useState<LocationValue>({ city: "", state: "", country: "" });
 
   // AI state
   const [aiRedrafting, setAiRedrafting] = useState(false);
@@ -183,14 +175,14 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
           setTags(
             ((rawJob as { skills?: { skill: { name: string } }[] }).skills || []).map((s) => s.skill.name)
           );
-          const locationId = (rawJob as { locationId?: string | null }).locationId;
-          setSelectedOfficeLocationId(locationId ?? "REMOTE");
-        }
-
-        if (companyResult) {
-          const raw = (companyResult.data || companyResult) as Record<string, unknown>;
-          const locs = (raw.officeLocations as OfficeLocation[] | undefined) || [];
-          setOfficeLocations(locs);
+          const locationData = (rawJob as { location?: { city: string; state?: string; country: string } }).location;
+          if (locationData) {
+            setLocation({
+              city: locationData.city || "",
+              state: locationData.state || "",
+              country: locationData.country || "",
+            });
+          }
         }
       } catch {
         toast({ type: "error", message: "Failed to load job" });
@@ -274,7 +266,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
           experienceLevel: levelMap[level],
           description:     description.trim(),
           skillNames:      tags,
-          ...(selectedOfficeLocationId !== "REMOTE" ? { locationId: selectedOfficeLocationId } : { locationId: null }),
+          ...(location.country && location.city ? { location } : { locationId: null }),
         }),
       });
 
@@ -304,13 +296,7 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
   const status = (initialJob?.status as string) || "DRAFT";
   const statusDisplay = status === "APPROVED" ? "Active" : status === "PENDING" ? "Pending" : status === "DRAFT" ? "Draft" : "Closed";
 
-  const locationOptions: { value: string; label: string }[] = [
-    { value: "REMOTE", label: "Remote" },
-    ...officeLocations.map((loc) => ({
-      value: loc.id,
-      label: `${loc.city}${loc.state ? `, ${loc.state}` : ""}, ${loc.country}${loc.isHeadquarters ? " (HQ)" : ""}`,
-    })),
-  ];
+
 
   return (
     <>
@@ -346,24 +332,14 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
                 <SelectField label="Job Type" value={type} onChange={setType} options={JOB_TYPES} />
                 <SelectField label="Work Mode" value={remote} onChange={setRemote} options={REMOTE_TYPES} />
 
-                {/* Office location dropdown */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Location</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                    <select
-                      value={selectedOfficeLocationId}
-                      onChange={(e) => setSelectedOfficeLocationId(e.target.value)}
-                      className="w-full appearance-none bg-white border border-slate-200 rounded-xl pl-9 pr-8 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 cursor-pointer"
-                    >
-                      {locationOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  </div>
-                  {officeLocations.length === 0 && (
-                    <p className="text-[10px] font-mono text-slate-400">Add office locations in company settings to enable location selection</p>
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <LocationSelect
+                    value={location}
+                    onChange={setLocation}
+                    required={remote !== "Remote"}
+                  />
+                  {remote === "Remote" && (
+                    <p className="text-[10px] font-mono text-slate-400">Location is optional for remote jobs</p>
                   )}
                 </div>
               </div>

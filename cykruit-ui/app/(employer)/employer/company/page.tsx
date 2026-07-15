@@ -9,8 +9,9 @@ import {
   ShieldAlert, ShieldCheck, Clock,
 } from "lucide-react";
 import { apiFetch, authHeaders, getCsrf } from "@/lib/api";
-import { useKycStatus } from "@/lib/employer-context";
 import { useToast } from "@/components/ui/Toast";
+import { LocationSelect, LocationValue } from "@/components/ui/LocationSelect";
+import { useKycStatus } from "@/lib/employer-context";
 
 const INDUSTRIES = [
   { id: "TECHNOLOGY", label: "Technology" },
@@ -78,7 +79,7 @@ export default function CompanyProfilePage() {
   const [industry, setIndustry] = useState("");
   const [size, setSize]         = useState("");
   const [website, setWebsite]   = useState("");
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState<LocationValue>({ city: "", state: "", country: "" });
   const [founded, setFounded]   = useState("");
   const [bio, setBio]           = useState("");
   const [culture, setCulture]   = useState("");
@@ -100,7 +101,19 @@ export default function CompanyProfilePage() {
         setIndustry(d.industry ?? "");
         setSize(d.companySize ?? d.size ?? "");
         setWebsite(d.companyWebsite ?? d.website ?? "");
-        setLocation(d.location ?? d.headquarters ?? "");
+        
+        const locStr = d.location ?? d.headquarters ?? "";
+        const parts = locStr.split(",").map((p: string) => p.trim());
+        let lCity = "", lState = "", lCountry = "";
+        if (parts.length === 3) {
+          lCity = parts[0]; lState = parts[1]; lCountry = parts[2];
+        } else if (parts.length === 2) {
+          lCity = parts[0]; lCountry = parts[1];
+        } else {
+          lCity = parts[0] || ""; lCountry = parts[0] || "";
+        }
+        setLocation({ city: lCity, state: lState, country: lCountry });
+
         setFounded(d.foundedYear ? String(d.foundedYear) : d.founded ? String(d.founded) : "");
         setBio(d.about ?? d.bio ?? d.description ?? "");
         setCulture(d.cultureDescription ?? d.culture ?? "");
@@ -135,7 +148,7 @@ export default function CompanyProfilePage() {
             companyWebsite: website.trim()
               ? /^https?:\/\//i.test(website.trim()) ? website.trim() : `https://${website.trim()}`
               : undefined,
-            location: location.trim() || undefined,
+            location: [location.city, location.state, location.country].filter(Boolean).join(", ") || undefined,
             foundedYear: parseInt(founded) || undefined,
           }),
         }),
@@ -239,7 +252,7 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
     size:     !!size,
     website:  !!website.trim(),
     bio:      bio.trim().length > 30,
-    location: !!location.trim(),
+    location: !!location.city && !!location.country,
     culture:  culture.trim().length > 20,
     perks:    perks.length > 0,
     linkedin: !!linkedin.trim(),
@@ -330,7 +343,7 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-slate-900">{name || "Your Company"}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">{INDUSTRIES.find(i => i.id === industry)?.label || industry} · {location || "—"}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{INDUSTRIES.find(i => i.id === industry)?.label || industry} · {[location.city, location.state, location.country].filter(Boolean).join(", ") || "—"}</p>
                   <button
                     onClick={() => logoInputRef.current?.click()}
                     className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors cursor-pointer">
@@ -368,9 +381,8 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>
                 </div>
-                <div>
-                  <label className={labelCls}>Headquarters <span className="text-rose-400">*</span></label>
-                  <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. San Francisco, CA" className={inputCls} />
+                <div className="sm:col-span-2 flex flex-col gap-1.5">
+                  <LocationSelect value={location} onChange={setLocation} />
                 </div>
                 <div>
                   <label className={labelCls}>Founded</label>

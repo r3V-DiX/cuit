@@ -16,6 +16,7 @@ import {
     ValidateIf,
     ValidateNested,
     ArrayMaxSize,
+    IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { JobType, WorkMode, ExperienceLevel, ApplicationType, JobStatus } from '@prisma/client';
@@ -24,6 +25,12 @@ enum QuestionType {
     TEXT = 'TEXT',
     BOOLEAN = 'BOOLEAN',
     MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
+}
+
+class LocationDataDto {
+    @IsString() @MaxLength(100) city: string;
+    @IsOptional() @IsString() @MaxLength(100) state?: string;
+    @IsString() @MaxLength(100) country: string;
 }
 
 export class ScreeningQuestionDto {
@@ -62,6 +69,12 @@ export class CreateJobDto {
     @IsOptional()
     @IsUUID()
     locationId?: string;
+
+    @IsOptional()
+    @ValidateNested()
+    @Type(() => LocationDataDto)
+    @IsObject()
+    location?: LocationDataDto;
 
     @IsEnum(ExperienceLevel)
     experienceLevel: ExperienceLevel;
@@ -126,6 +139,12 @@ export class UpdateJobDto {
     @IsOptional()
     @IsUUID()
     locationId?: string;
+
+    @IsOptional()
+    @ValidateNested()
+    @Type(() => LocationDataDto)
+    @IsObject()
+    location?: LocationDataDto;
 
     @IsOptional()
     @IsEnum(ExperienceLevel)

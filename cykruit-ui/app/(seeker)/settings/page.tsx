@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { SessionsPanel } from "@/components/settings/SessionsPanel";
 import { useSessionGuard } from "@/lib/use-session-guard";
+import { LocationSelect, LocationValue } from "@/components/ui/LocationSelect";
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
@@ -84,8 +85,15 @@ export default function SettingsPage() {
   // ── Account / preferences ─────────────────────────────────────────────────
   const [lockedUser, setLockedUser] = useState({ name: "User", email: "user@email.com" });
 
-  const [prefs, setPrefs] = useState({
-    location: "Mumbai, India",
+  const [prefs, setPrefs] = useState<{
+    location: LocationValue;
+    phone: string;
+    desiredRole: string;
+    workMode: string;
+    noticePeriod: string;
+    openToWork: boolean;
+  }>({
+    location: { city: "Mumbai", state: "Maharashtra", country: "India" },
     phone: "+91 98765 43210",
     desiredRole: "Penetration Tester",
     workMode: "Remote",
@@ -132,7 +140,7 @@ export default function SettingsPage() {
           const notif = data.notifications || {};
 
           const newPrefs = {
-            location: "",
+            location: { city: "", state: "", country: "" },
             phone: "",
             desiredRole: gen.desiredRole || "Penetration Tester",
             workMode: gen.preferredWorkModes?.[0] ? (gen.preferredWorkModes[0] === "ONSITE" ? "On-site" : gen.preferredWorkModes[0][0] + gen.preferredWorkModes[0].slice(1).toLowerCase()) : "Remote",
@@ -158,11 +166,13 @@ export default function SettingsPage() {
           });
         }
 
-        const profileResult = await apiFetch<{ basicInfo?: { phone?: string; location?: { city?: string; country?: string }; title?: string } }>("/api/profile");
+        const profileResult = await apiFetch<{ basicInfo?: { phone?: string; location?: { city?: string; state?: string; country?: string }; title?: string } }>("/api/profile");
         if (profileResult.data) {
           const basics = profileResult.data.basicInfo || {};
           const phoneVal = basics.phone || "";
-          const locVal = basics.location ? [basics.location.city, basics.location.country].filter(Boolean).join(", ") : "";
+          const locVal: LocationValue = basics.location
+            ? { city: basics.location.city || "", state: basics.location.state || "", country: basics.location.country || "" }
+            : { city: "", state: "", country: "" };
 
           setPrefs((prev) => {
             const updated = { ...prev, phone: phoneVal, location: locVal, desiredRole: basics.title || prev.desiredRole };
@@ -192,13 +202,9 @@ export default function SettingsPage() {
         }),
       });
 
-      let locObj = null;
-      if (prefsBuffer.location) {
-        const parts = prefsBuffer.location.split(",").map(p => p.trim());
-        locObj = {
-          city: parts[0] || "",
-          country: parts[1] || parts[0] || "",
-        };
+      let locObj: LocationValue | null = null;
+      if (prefsBuffer.location && prefsBuffer.location.city && prefsBuffer.location.country) {
+        locObj = prefsBuffer.location;
       }
 
       await apiFetch("/api/profile/basic-info", {
@@ -329,13 +335,10 @@ export default function SettingsPage() {
                         className={inputCls}
                       />
                     </div>
-                    <div>
-                      <label className={labelCls}>Location</label>
-                      <input
+                    <div className="flex flex-col gap-1.5 sm:col-span-2">
+                      <LocationSelect
                         value={prefsBuffer.location}
-                        onChange={(e) => setPrefsBuffer({ ...prefsBuffer, location: e.target.value })}
-                        placeholder="City, Country"
-                        className={inputCls}
+                        onChange={(val) => setPrefsBuffer({ ...prefsBuffer, location: val })}
                       />
                     </div>
                   </div>

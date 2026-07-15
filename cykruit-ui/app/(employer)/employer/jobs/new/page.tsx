@@ -11,15 +11,9 @@ import { apiFetch, authHeaders } from "@/lib/api";
 import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
 import { KycGate } from "@/components/employer/KycGate";
 import { useKycStatus } from "@/lib/employer-context";
+import { LocationSelect, LocationValue } from "@/components/ui/LocationSelect";
 
-interface OfficeLocation {
-  id: string;
-  type: string;
-  city: string;
-  state?: string;
-  country: string;
-  isHeadquarters: boolean;
-}
+
 
 const JOB_TYPES   = ["Full-time", "Part-time", "Contract", "Internship"];
 const REMOTE_TYPES = ["Remote", "On-site", "Hybrid"];
@@ -174,22 +168,10 @@ export default function PostJobPage() {
   const usageLimits: UsageLimits | null = subLimits && subUsage
     ? { jobsUsed: subUsage.currentActiveJobs, jobsLimit: subLimits.maxActiveJobs }
     : null;
-  const [officeLocations, setOfficeLocations] = useState<OfficeLocation[]>([]);
-  const [selectedOfficeLocationId, setSelectedOfficeLocationId] = useState<string>("REMOTE");
+  const [location, setLocation] = useState<LocationValue>({ city: "", state: "", country: "" });
   const descTooltipTimerRef             = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showDescTip, setShowDescTip]   = useState(false);
   const kycStatus = useKycStatus();
-
-  useEffect(() => {
-    if (kycStatus !== "verified") return;
-    apiFetch("/api/employer/company/me")
-      .then((res) => {
-        const raw = (res.data || res) as Record<string, unknown>;
-        const locs = (raw.officeLocations as OfficeLocation[] | undefined) || [];
-        setOfficeLocations(locs);
-      })
-      .catch(() => null);
-  }, [kycStatus]);
   const [title, setTitle]               = useState("");
   const [domain, setDomain]             = useState("");
   const [type, setType]                 = useState("");
@@ -328,7 +310,7 @@ export default function PostJobPage() {
           description: finalDesc || undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           skillNames: tags.length > 0 ? tags : undefined,
-          ...(selectedOfficeLocationId !== "REMOTE" ? { locationId: selectedOfficeLocationId } : {}),
+          ...(location.country && location.city ? { location } : {}),
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
             id: crypto.randomUUID(),
             type: questionTypeMap[q.type],
@@ -407,7 +389,7 @@ export default function PostJobPage() {
           description: finalDesc || undefined,
           applicationType: questions.length > 0 ? "SCREENING" : "DIRECT",
           skillNames: tags.length > 0 ? tags : undefined,
-          ...(selectedOfficeLocationId !== "REMOTE" ? { locationId: selectedOfficeLocationId } : {}),
+          ...(location.country && location.city ? { location } : {}),
           screeningQuestions: questions.length > 0 ? questions.map(q => ({
             id: crypto.randomUUID(),
             type: questionTypeMap[q.type],
@@ -493,27 +475,14 @@ export default function PostJobPage() {
                 <SelectField label="Experience Level" value={level} onChange={setLevel} options={LEVELS} required />
                 <SelectField label="Job Type" value={type} onChange={setType} options={JOB_TYPES} required />
                 <SelectField label="Work Mode" value={remote} onChange={setRemote} options={REMOTE_TYPES} required />
-                {/* Office location dropdown */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Location</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                    <select
-                      value={selectedOfficeLocationId}
-                      onChange={(e) => setSelectedOfficeLocationId(e.target.value)}
-                      className="w-full appearance-none bg-white border border-slate-200 rounded-xl pl-9 pr-8 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 cursor-pointer"
-                    >
-                      <option value="REMOTE">Remote</option>
-                      {officeLocations.map((loc) => (
-                        <option key={loc.id} value={loc.id}>
-                          {loc.city}{loc.state ? `, ${loc.state}` : ""}, {loc.country}{loc.isHeadquarters ? " (HQ)" : ""}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  </div>
-                  {officeLocations.length === 0 && (
-                    <p className="text-[10px] font-mono text-slate-400">Add office locations in company settings to enable city-level selection</p>
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <LocationSelect
+                    value={location}
+                    onChange={setLocation}
+                    required={remote !== "Remote"}
+                  />
+                  {remote === "Remote" && (
+                    <p className="text-[10px] font-mono text-slate-400">Location is optional for remote jobs</p>
                   )}
                 </div>
               </div>

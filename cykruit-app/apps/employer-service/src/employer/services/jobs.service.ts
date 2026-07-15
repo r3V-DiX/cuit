@@ -96,6 +96,32 @@ export class JobsService {
         return `${base}-${employerSlug}-${Date.now().toString(36)}`;
     }
 
+    private async resolveLocation(locationDto?: { city: string; state?: string; country: string }): Promise<string | undefined> {
+        if (!locationDto) return undefined;
+        const existing = await this.prisma.location.findFirst({
+            where: {
+                city: locationDto.city,
+                country: locationDto.country,
+                ...(locationDto.state ? { state: locationDto.state } : {}),
+            },
+        });
+        if (existing) return existing.id;
+
+        const displayName = [locationDto.city, locationDto.state, locationDto.country]
+            .filter(Boolean)
+            .join(', ');
+        const newLocation = await this.prisma.location.create({
+            data: {
+                city: locationDto.city,
+                state: locationDto.state,
+                country: locationDto.country,
+                displayName,
+                searchText: displayName.toLowerCase(),
+            },
+        });
+        return newLocation.id;
+    }
+
     // ── Public methods ────────────────────────────────────────────────────────
 
     async list(userId: string, query: JobListQueryDto) {
@@ -141,6 +167,7 @@ export class JobsService {
         // (The limit is enforced on submit/reopen instead.)
 
         const slug = await this.generateUniqueSlug(dto.jobTitle, employer.slug);
+        const resolvedLocationId = await this.resolveLocation(dto.location) || dto.locationId;
 
         const job = await this.prisma.$transaction(async (tx) => {
             const created = await this.jobsRepository.create({
@@ -153,7 +180,7 @@ export class JobsService {
                 applicationType: dto.applicationType,
                 status: JobStatus.DRAFT,
                 ...(dto.roleId ? { role: { connect: { id: dto.roleId } } } : {}),
-                ...(dto.locationId ? { location: { connect: { id: dto.locationId } } } : {}),
+                ...(resolvedLocationId ? { location: { connect: { id: resolvedLocationId } } } : {}),
                 ...(dto.description !== undefined ? { description: dto.description } : {}),
                 ...(dto.externalUrl !== undefined ? { externalUrl: dto.externalUrl } : {}),
                 ...(dto.screeningQuestions !== undefined
@@ -201,6 +228,8 @@ export class JobsService {
             throw new BadRequestException(JobErrorCodes.JOB_NOT_EDITABLE);
         }
 
+        const resolvedLocationId = await this.resolveLocation(dto.location) || dto.locationId;
+
         const updated = await this.prisma.$transaction(async (tx) => {
             const result = await tx.job.update({
                 where: { id: jobId },
@@ -225,10 +254,10 @@ export class JobsService {
                     ...(dto.roleId !== undefined
                         ? { role: dto.roleId ? { connect: { id: dto.roleId } } : { disconnect: true } }
                         : {}),
-                    ...(dto.locationId !== undefined
+                    ...(resolvedLocationId !== undefined || dto.locationId !== undefined
                         ? {
-                              location: dto.locationId
-                                  ? { connect: { id: dto.locationId } }
+                              location: resolvedLocationId
+                                  ? { connect: { id: resolvedLocationId } }
                                   : { disconnect: true },
                           }
                         : {}),
