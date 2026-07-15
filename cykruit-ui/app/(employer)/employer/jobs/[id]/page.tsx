@@ -73,7 +73,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               status: statusMap[rawJob.status] || "Draft",
               views: rawJob.viewCount || 0,
               description: rawJob.description || "No description provided.",
-              skills: rawJob.skills?.map((s: any) => s.skill.name) || [],
+              skills: rawJob.skills?.map((s: any) => s.skill?.name).filter(Boolean) || [],
+              responsibilities: Array.isArray(rawJob.responsibilities) ? rawJob.responsibilities as string[] : [],
+              requirements: Array.isArray(rawJob.requirements) ? rawJob.requirements as string[] : [],
+              niceToHave: Array.isArray(rawJob.niceToHave) ? rawJob.niceToHave as string[] : [],
             };
             setJob(mapped);
         }
@@ -228,7 +231,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors">
                 <Edit3 className="w-3.5 h-3.5" /> Edit Job
               </Link>
-              <Link href={`/jobs/${job.id}`}
+              <Link href={`/employer/jobs/${job.id}/preview`}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors">
                 <Eye className="w-3.5 h-3.5" /> Preview
               </Link>
@@ -238,6 +241,45 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           <p className="mt-5 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-4 whitespace-pre-wrap">
             {job.description}
           </p>
+
+          {job.responsibilities?.length > 0 && (
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <p className="text-xs font-semibold text-slate-500 mb-2">Responsibilities</p>
+              <ul className="space-y-1.5">
+                {job.responsibilities.map((r: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />{r}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {job.requirements?.length > 0 && (
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <p className="text-xs font-semibold text-slate-500 mb-2">Requirements</p>
+              <ul className="space-y-1.5">
+                {job.requirements.map((r: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0 mt-0.5" />{r}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {job.niceToHave?.length > 0 && (
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <p className="text-xs font-semibold text-slate-500 mb-2">Nice to Have</p>
+              <ul className="space-y-1.5">
+                {job.niceToHave.map((r: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-slate-500">
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-slate-200 shrink-0 mt-0.5" />{r}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="mt-4 flex flex-wrap gap-1.5">
             {job.skills?.map((s: string) => (

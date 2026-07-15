@@ -221,7 +221,9 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
           setResp((rawJob.responsibilities as string[])?.length ? (rawJob.responsibilities as string[]) : [""]);
           setNice((rawJob.niceToHave as string[])?.length ? (rawJob.niceToHave as string[]) : [""]);
           setTags(
-            ((rawJob as { skills?: { skill: { name: string } }[] }).skills || []).map((s) => s.skill.name)
+            ((rawJob as { skills?: { skill?: { name: string } }[] }).skills || [])
+              .map((s) => s.skill?.name)
+              .filter((n): n is string => Boolean(n))
           );
           const locationData = (rawJob as { location?: { city: string; state?: string; country: string } }).location;
           if (locationData) {

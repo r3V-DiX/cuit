@@ -10,6 +10,16 @@ const JOB_DETAIL_INCLUDE = {
     certifications: { include: { certification: true } },
     role: true,
     location: true,
+    employer: {
+        select: {
+            id: true,
+            companyName: true,
+            companyLogo: true,
+            about: true,
+            industry: true,
+            companySize: true,
+        },
+    },
 } satisfies Prisma.JobInclude;
 
 @Injectable()
