@@ -12,7 +12,7 @@ import { MailModule } from '@cykruit/mail';
 import { CommonModule } from '@cykruit/common';
 import { LoggerMiddleware } from '@cykruit/logger';
 
-import { AdminModule } from './admin/admin.module';
+import { AdminModule } from './modules/admin.module';
 
 @Module({
     imports: [
