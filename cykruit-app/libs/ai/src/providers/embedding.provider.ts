@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { BedrockEmbeddings } from "@langchain/aws";
 import { OllamaEmbeddings } from "@langchain/ollama";
 
 export interface IEmbeddingProvider {
@@ -10,19 +11,37 @@ export interface IEmbeddingProvider {
 @Injectable()
 export class EmbeddingProvider implements IEmbeddingProvider {
   private readonly logger = new Logger(EmbeddingProvider.name);
-  private embeddingsModel: OllamaEmbeddings;
+  private embeddingsModel: BedrockEmbeddings | OllamaEmbeddings;
   private readonly targetDimension = 1536;
 
   constructor(private configService: ConfigService) {
-    const baseUrl = this.configService.get<string>("OLLAMA_BASE_URL") || "http://127.0.0.1:11434";
-    const model = this.configService.get<string>("OLLAMA_EMBEDDING_MODEL") || "nomic-embed-text";
+    const providerStr = this.configService.get<string>("ai.provider");
 
-    this.embeddingsModel = new OllamaEmbeddings({
-      baseUrl,
-      model,
-    });
+    if (providerStr === "bedrock") {
+      const region = this.configService.get<string>("ai.bedrock.region") || "us-east-1";
+      const accessKeyId = this.configService.get<string>("ai.bedrock.accessKeyId");
+      const secretAccessKey = this.configService.get<string>("ai.bedrock.secretAccessKey");
+      const model = this.configService.get<string>("BEDROCK_EMBEDDING_MODEL") || "amazon.titan-embed-text-v2:0";
+
+      this.embeddingsModel = new BedrockEmbeddings({
+        region,
+        model,
+        credentials: {
+          accessKeyId: accessKeyId || "",
+          secretAccessKey: secretAccessKey || "",
+        }
+      });
+    } else {
+      // Default to Local Ollama model for development
+      const baseUrl = this.configService.get<string>("OLLAMA_BASE_URL") || "http://127.0.0.1:11434";
+      const model = this.configService.get<string>("OLLAMA_EMBEDDING_MODEL") || "nomic-embed-text";
+
+      this.embeddingsModel = new OllamaEmbeddings({
+        baseUrl,
+        model,
+      });
+    }
   }
-
   private padVector(vector: number[]): number[] {
     if (vector.length === this.targetDimension) return vector;
     if (vector.length > this.targetDimension) {

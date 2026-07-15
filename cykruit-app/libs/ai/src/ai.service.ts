@@ -23,6 +23,13 @@ export class AIService {
   ) {}
 
   private getProviderForTier(tier?: AITaskTier): AIProvider {
+    const providerStr = this.configService.get<string>("ai.provider");
+    
+    // If explicitly set to bedrock, all traffic routes there
+    if (providerStr === "bedrock") {
+      return this.awsBedrockProvider;
+    }
+
     if (tier === AITaskTier.SMALL) {
       if (this.configService.get<string>("USE_OLLAMA") === "true") {
         return this.ollamaProvider;
