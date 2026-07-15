@@ -1,5 +1,4 @@
 // admin-app/src/admin/controllers/subscription.controller.ts
-// Thin controller — all logic lives in subscription-service (:4008).
 
 import {
     Controller,
@@ -13,6 +12,7 @@ import {
     UseGuards,
     HttpCode,
     HttpStatus,
+    ParseUUIDPipe,
 } from '@nestjs/common';
 import { AdminAuthGuard } from '../auth/admin-auth.guard';
 import { CurrentAdmin } from '../auth/current-admin.decorator';
@@ -45,58 +45,45 @@ export class SubscriptionController {
 
     @Get('packages/:id')
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.VIEW)
-    getPackage(@Param('id') id: string) {
+    getPackage(@Param('id', ParseUUIDPipe) id: string) {
         return this.subscriptionService.getPackage(id);
     }
 
     @Post('packages')
     @HttpCode(HttpStatus.CREATED)
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.MANAGE)
-    createPackage(@Body() dto: CreatePackageDto) {
-        return this.subscriptionService.createPackage(dto);
+    createPackage(@CurrentAdmin() admin: Admin, @Body() dto: CreatePackageDto) {
+        return this.subscriptionService.createPackage(admin.id, dto);
     }
 
     @Patch('packages/:id')
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.MANAGE)
-    updatePackage(@Param('id') id: string, @Body() dto: UpdatePackageDto) {
-        return this.subscriptionService.updatePackage(id, dto);
+    updatePackage(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdatePackageDto) {
+        return this.subscriptionService.updatePackage(admin.id, id, dto);
     }
 
     @Delete('packages/:id')
     @HttpCode(HttpStatus.NO_CONTENT)
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.MANAGE)
-    deletePackage(@Param('id') id: string) {
-        return this.subscriptionService.deletePackage(id);
+    deletePackage(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string) {
+        return this.subscriptionService.deletePackage(admin.id, id);
     }
 
     // ── Employer subscriptions ────────────────────────────────────────────────
-
-    @Get()
-    @RequirePermission(ACTIONS.SUBSCRIPTIONS.VIEW)
-    listSubscriptions(@Query() query: SubscriptionListQueryDto) {
-        return this.subscriptionService.listSubscriptions(query);
-    }
-
-    @Get(':id')
-    @RequirePermission(ACTIONS.SUBSCRIPTIONS.VIEW)
-    getSubscription(@Param('id') id: string) {
-        return this.subscriptionService.getSubscriptionById(id);
-    }
+    // IMPORTANT: static routes must come before /:id to avoid NestJS param capture
 
     @Get('employer/:employerId')
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.VIEW)
-    getEmployerSubscription(@Param('employerId') employerId: string) {
+    getEmployerSubscription(@Param('employerId', ParseUUIDPipe) employerId: string) {
         return this.subscriptionService.getEmployerSubscription(employerId);
     }
 
     @Post('employer/:employerId/refresh-usage')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.MANAGE)
-    refreshUsage(@CurrentAdmin() admin: Admin, @Param('employerId') employerId: string) {
+    refreshUsage(@CurrentAdmin() admin: Admin, @Param('employerId', ParseUUIDPipe) employerId: string) {
         return this.subscriptionService.refreshUsage(admin.id, employerId);
     }
-
-    // ── Payment orders ────────────────────────────────────────────────────────
 
     @Get('payment-orders')
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.VIEW)
@@ -114,7 +101,7 @@ export class SubscriptionController {
 
     @Get('payment-orders/:id')
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.VIEW)
-    getPaymentOrder(@Param('id') id: string) {
+    getPaymentOrder(@Param('id', ParseUUIDPipe) id: string) {
         return this.subscriptionService.getPaymentOrder(id);
     }
 
@@ -125,10 +112,22 @@ export class SubscriptionController {
         return this.subscriptionService.assignSubscription(admin.id, dto);
     }
 
+    @Get()
+    @RequirePermission(ACTIONS.SUBSCRIPTIONS.VIEW)
+    listSubscriptions(@Query() query: SubscriptionListQueryDto) {
+        return this.subscriptionService.listSubscriptions(query);
+    }
+
+    @Get(':id')
+    @RequirePermission(ACTIONS.SUBSCRIPTIONS.VIEW)
+    getSubscription(@Param('id', ParseUUIDPipe) id: string) {
+        return this.subscriptionService.getSubscriptionById(id);
+    }
+
     @Patch(':id/status')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.MANAGE)
-    updateStatus(@CurrentAdmin() admin: Admin, @Param('id') id: string, @Body() dto: UpdateSubscriptionStatusDto) {
+    updateStatus(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateSubscriptionStatusDto) {
         return this.subscriptionService.updateSubscriptionStatus(admin.id, id, dto.status);
     }
 }

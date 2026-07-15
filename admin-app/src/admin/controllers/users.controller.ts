@@ -11,6 +11,7 @@ import {
     UseGuards,
     HttpCode,
     HttpStatus,
+    ParseUUIDPipe,
 } from '@nestjs/common';
 import { AdminAuthGuard } from '../auth/admin-auth.guard';
 import { CurrentAdmin } from '../auth/current-admin.decorator';
@@ -36,7 +37,7 @@ export class UsersController {
     // GET /admin/users/:id
     @Get(':id')
     @RequirePermission(ACTIONS.USERS.VIEW)
-    getOne(@Param('id') id: string) {
+    getOne(@Param('id', ParseUUIDPipe) id: string) {
         return this.usersService.getById(id);
     }
 
@@ -46,7 +47,7 @@ export class UsersController {
     @RequirePermission(ACTIONS.USERS.SUSPEND)
     suspend(
         @CurrentAdmin() admin: Admin,
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: SuspendUserDto,
     ) {
         return this.usersService.suspend(id, admin.id, dto);
@@ -58,7 +59,7 @@ export class UsersController {
     @RequirePermission(ACTIONS.USERS.SUSPEND)
     unsuspend(
         @CurrentAdmin() admin: Admin,
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: UnsuspendUserDto,
     ) {
         return this.usersService.unsuspend(id, admin.id, dto);
@@ -68,7 +69,7 @@ export class UsersController {
     @Delete(':id')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.USERS.DELETE)
-    delete(@CurrentAdmin() admin: Admin, @Param('id') id: string) {
+    delete(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string) {
         return this.usersService.delete(id, admin.id);
     }
 
@@ -76,7 +77,7 @@ export class UsersController {
     @Patch(':id/verify-email')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.USERS.SUSPEND)
-    verifyEmail(@CurrentAdmin() admin: Admin, @Param('id') id: string) {
+    verifyEmail(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string) {
         return this.usersService.verifyEmail(id, admin.id);
     }
 
@@ -84,7 +85,7 @@ export class UsersController {
     @Patch(':id/unlock')
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.USERS.UNLOCK)
-    unlock(@CurrentAdmin() admin: Admin, @Param('id') id: string) {
+    unlock(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string) {
         return this.usersService.unlock(id, admin.id);
     }
 }

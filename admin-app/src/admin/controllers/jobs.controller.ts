@@ -10,6 +10,7 @@ import {
     UseGuards,
     HttpCode,
     HttpStatus,
+    ParseUUIDPipe,
 } from '@nestjs/common';
 import { AdminAuthGuard } from '../auth/admin-auth.guard';
 import { CurrentAdmin } from '../auth/current-admin.decorator';
@@ -35,7 +36,7 @@ export class AdminJobsController {
     // GET /admin/jobs/:id
     @Get(':id')
     @RequirePermission(ACTIONS.JOBS.VIEW)
-    getOne(@Param('id') id: string) {
+    getOne(@Param('id', ParseUUIDPipe) id: string) {
         return this.jobsService.getById(id);
     }
 
@@ -45,7 +46,7 @@ export class AdminJobsController {
     @RequirePermission(ACTIONS.JOBS.REVIEW)
     approve(
         @CurrentAdmin() admin: Admin,
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: ApproveJobDto,
     ) {
         return this.jobsService.approve(id, admin.id, dto);
@@ -57,7 +58,7 @@ export class AdminJobsController {
     @RequirePermission(ACTIONS.JOBS.REVIEW)
     reject(
         @CurrentAdmin() admin: Admin,
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: RejectJobDto,
     ) {
         return this.jobsService.reject(id, admin.id, dto);

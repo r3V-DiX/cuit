@@ -1,5 +1,4 @@
 // admin-app/src/admin/services/subscription.service.ts
-// Admin-app owns subscription data locally and uses the Prisma-backed repository.
 
 import { Injectable } from '@nestjs/common';
 import {
@@ -28,16 +27,48 @@ export class SubscriptionService {
         return this.repository.findPackageById(id);
     }
 
-    async createPackage(dto: CreatePackageDto) {
-        return this.repository.createPackage(dto);
+    async createPackage(adminId: string, dto: CreatePackageDto) {
+        const result = await this.repository.createPackage(dto);
+        this.auditLogger.log({
+            adminId,
+            action: 'subscription:create-package',
+            module: 'subscription',
+            resource: 'SubscriptionPackage',
+            resourceId: result.id,
+            newData: JSON.parse(JSON.stringify(dto)),
+            riskLevel: 'HIGH',
+            result: 'SUCCESS',
+        });
+        return result;
     }
 
-    async updatePackage(id: string, dto: UpdatePackageDto) {
-        return this.repository.updatePackage(id, dto);
+    async updatePackage(adminId: string, id: string, dto: UpdatePackageDto) {
+        const result = await this.repository.updatePackage(id, dto);
+        this.auditLogger.log({
+            adminId,
+            action: 'subscription:update-package',
+            module: 'subscription',
+            resource: 'SubscriptionPackage',
+            resourceId: id,
+            newData: JSON.parse(JSON.stringify(dto)),
+            riskLevel: 'HIGH',
+            result: 'SUCCESS',
+        });
+        return result;
     }
 
-    async deletePackage(id: string) {
-        return this.repository.deletePackage(id);
+    async deletePackage(adminId: string, id: string) {
+        const result = await this.repository.deletePackage(id);
+        this.auditLogger.log({
+            adminId,
+            action: 'subscription:delete-package',
+            module: 'subscription',
+            resource: 'SubscriptionPackage',
+            resourceId: id,
+            riskLevel: 'HIGH',
+            result: 'SUCCESS',
+        });
+        return result;
     }
 
     // ── Employer subscriptions ────────────────────────────────────────────────

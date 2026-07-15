@@ -10,6 +10,7 @@ import {
     UseGuards,
     HttpCode,
     HttpStatus,
+    ParseUUIDPipe,
 } from '@nestjs/common';
 import { AdminAuthGuard } from '../auth/admin-auth.guard';
 import { CurrentAdmin } from '../auth/current-admin.decorator';
@@ -35,7 +36,7 @@ export class KycController {
     // GET /admin/kyc/:id
     @Get(':id')
     @RequirePermission(ACTIONS.KYC.VIEW)
-    getOne(@Param('id') id: string) {
+    getOne(@Param('id', ParseUUIDPipe) id: string) {
         return this.kycService.getById(id);
     }
 
@@ -45,7 +46,7 @@ export class KycController {
     @RequirePermission(ACTIONS.KYC.REVIEW)
     approve(
         @CurrentAdmin() admin: Admin,
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: ApproveKycDto,
     ) {
         return this.kycService.approve(id, admin.id, dto);
@@ -57,7 +58,7 @@ export class KycController {
     @RequirePermission(ACTIONS.KYC.REVIEW)
     reject(
         @CurrentAdmin() admin: Admin,
-        @Param('id') id: string,
+        @Param('id', ParseUUIDPipe) id: string,
         @Body() dto: RejectKycDto,
     ) {
         return this.kycService.reject(id, admin.id, dto);
