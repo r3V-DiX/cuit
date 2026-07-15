@@ -74,8 +74,20 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
   const cfg = STATUS_CFG[status];
 
   // Format seeker profile data safely
-  const seeker = app.jobSeeker || {};
-  const name = `${seeker.firstName || ""} ${seeker.lastName || ""}`.trim() || "Applicant";
+  const user = app.jobSeeker || {};
+  const profile = user.jobSeekerProfile || {};
+  const name = `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Applicant";
+
+  const seeker = {
+    ...user,
+    headline: profile.title,
+    bio: profile.professionalSummary,
+    skills: profile.skills || [],
+    experience: profile.experiences || [],
+    location: profile.location?.city ? `${profile.location.city}, ${profile.location.country}` : "Remote",
+    email: user.email || profile.professionalEmail,
+    phone: user.phone
+  };
 
   // AI score data safely parsed
   const aiScoreData = app.aiScoreData || {};

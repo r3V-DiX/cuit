@@ -23,6 +23,17 @@ const APPLICATION_INCLUDE = {
             firstName: true,
             lastName: true,
             profileImage: true,
+            email: true,
+            phone: true,
+            jobSeekerProfile: {
+                include: {
+                    skills: { include: { skill: true } },
+                    experiences: true,
+                    certifications: true,
+                    education: true,
+                    location: true,
+                }
+            }
         },
     },
     resume: { select: { id: true, fileName: true, fileUrl: true } },
