@@ -36,17 +36,7 @@ const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }> = 
 
 // ─── Seed data ─────────────────────────────────────────────────────────────────
 
-const RECOMMENDED_JOBS: {
-  id: number;
-  role: string;
-  company: string;
-  match: number;
-  matchColor: string;
-}[] = [
-  { id: 9,  role: "Red Team Lead",   company: "Microsoft", match: 92, matchColor: "text-green-700 bg-green-50 border-green-200" },
-  { id: 11, role: "AppSec Engineer", company: "GitHub",    match: 87, matchColor: "text-green-700 bg-green-50 border-green-200" },
-  { id: 12, role: "Cloud Pentester", company: "Zscaler",   match: 74, matchColor: "text-amber-700 bg-amber-50 border-amber-200" },
-];
+// Seed data removed to prevent fabricated metrics.
 
 const QUICK_LINKS: { label: string; href: string; icon: React.ReactNode }[] = [
   { label: "Browse Jobs",       href: "/jobs",         icon: <Briefcase className="w-4 h-4" /> },
@@ -168,13 +158,13 @@ export default function DashboardPage() {
               }));
               setRecommendedJobs(jobs);
             } else {
-              setRecommendedJobs(RECOMMENDED_JOBS);
+              setRecommendedJobs([]);
             }
           } else {
-            setRecommendedJobs(RECOMMENDED_JOBS);
+            setRecommendedJobs([]);
           }
         } catch (e) {
-          setRecommendedJobs(RECOMMENDED_JOBS);
+          setRecommendedJobs([]);
         }
       } catch (error) {
         // Silent catch for guest fallback
@@ -299,7 +289,14 @@ export default function DashboardPage() {
               </div>
 
               <div className="divide-y divide-slate-100">
-                {recentApps.map((app) => {
+                {recentApps.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                    <FileText className="w-8 h-8 text-slate-200 mb-2" />
+                    <p className="text-sm font-medium text-slate-500">No applications yet</p>
+                    <p className="text-xs text-slate-400 mt-1">Start applying to track your progress</p>
+                  </div>
+                ) : (
+                recentApps.map((app) => {
                   const cfg = STATUS_CFG[app.status as AppStatus];
                   return (
                     <div
@@ -329,7 +326,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   );
-                })}
+                }))}
               </div>
             </div>
 
@@ -406,7 +403,14 @@ export default function DashboardPage() {
               </div>
 
               <div className="divide-y divide-slate-100">
-                {recommendedJobs.map((job) => (
+                {recommendedJobs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                    <Sparkles className="w-8 h-8 text-slate-200 mb-2" />
+                    <p className="text-sm font-medium text-slate-500">No recommendations available</p>
+                    <p className="text-xs text-slate-400 mt-1">Complete your profile to get personalized matches</p>
+                  </div>
+                ) : (
+                recommendedJobs.map((job) => (
                   <div
                     key={job.id}
                     className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-slate-50/60 transition-colors group"
@@ -440,7 +444,7 @@ export default function DashboardPage() {
                       </Link>
                     </div>
                   </div>
-                ))}
+                )))}
               </div>
             </div>
 

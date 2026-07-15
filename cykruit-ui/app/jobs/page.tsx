@@ -31,7 +31,6 @@ function formatEnum(value: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// ── Data layer ─────────────────────────────────────────────────────────────
 async function fetchJobs(params: {
   q: string; spec: string; type: string; mode: string; page: number; limit: number;
 }): Promise<{ data: Job[]; total: number; totalPages: number }> {

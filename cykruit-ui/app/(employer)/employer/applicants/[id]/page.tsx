@@ -245,7 +245,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                       <p className="text-xs font-bold text-green-800">Where they're strong</p>
                     </div>
                     <div className="space-y-2">
-                      {ai.strengths.map((s, i) => (
+                      {ai.strengths.map((s: string, i: number) => (
                         <div key={i} className="flex items-start gap-2 text-xs text-green-700">
                           <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0 mt-0.5" />
                           {s}
@@ -259,7 +259,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                       <p className="text-xs font-bold text-amber-800">Areas to probe</p>
                     </div>
                     <div className="space-y-2">
-                      {ai.weaknesses.map((w, i) => (
+                      {ai.weaknesses.map((w: string, i: number) => (
                         <div key={i} className="flex items-start gap-2 text-xs text-amber-700">
                           <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                           {w}
@@ -278,7 +278,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                         <CheckCircle2 className="w-3 h-3" />{s}
                       </span>
                     ))}
-                    {ai.requiredSkillsMissing.map((s) => (
+                    {ai.requiredSkillsMissing.map((s: string) => (
                       <span key={s} className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-mono font-semibold rounded-lg bg-rose-50 text-rose-600 border border-rose-200">
                         <XCircle className="w-3 h-3" />{s}
                       </span>
