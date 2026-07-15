@@ -14,7 +14,7 @@ import {
     SUPER_ADMIN_ROLE,
     splitAction,
     Action,
-} from '../src/admin/rbac/permissions.registry';
+} from '../src/common/rbac/permissions.registry';
 
 const prisma = new PrismaClient();
 
