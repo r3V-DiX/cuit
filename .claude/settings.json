@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/hooks/no-global-search.sh"
+            "command": ".claude/hooks/require-search-justification.sh"
           }
         ]
       }

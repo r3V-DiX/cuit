@@ -1,0 +1,36 @@
+# .claudeignore
+#
+# Scopes Claude's search and directory exploration away from generated /
+# vendored noise. This is a discovery filter, not a security boundary --
+# ignored content can still surface through direct reference, indexing, or
+# system-reminder injection. For actual secrets (.env, etc.), use the
+# permissions.deny block in settings.json instead -- see note at the bottom.
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Test / coverage artifacts
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Prisma -- generated migration SQL, rarely worth a broad search.
+# schema.prisma itself is NOT excluded (it's outside prisma/migrations/).
+prisma/migrations/
+
+# Editor / OS noise
+.DS_Store
+.vscode/
+.idea/
+
+# Version control internals
+.git/
