@@ -96,7 +96,7 @@ export class EmployerApplicationsRepository {
                 status: true,
                 appliedAt: true,
                 aiScore: true,
-                coverLetter: true,
+                screeningAnswers: true,
                 jobSeeker: {
                     select: { id: true, firstName: true, lastName: true, profileImage: true },
                 },
