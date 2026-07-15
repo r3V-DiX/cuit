@@ -101,10 +101,10 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
       { label: "Skills match", score: aiScoreData.breakdown?.skills || 0, icon: <TrendingUp className="w-3.5 h-3.5" />, color: "bg-blue-400", textColor: "text-blue-700" },
       { label: "Experience", score: aiScoreData.breakdown?.experience || 0, icon: <TrendingUp className="w-3.5 h-3.5" />, color: "bg-blue-400", textColor: "text-blue-700" },
     ],
-    strengths: ["Matching skills found in profile"],
-    weaknesses: ["Missing some core requirements"],
-    requiredSkillsMatched: (seeker.skills || []).map((s: any): string => s.skill?.name ?? s).slice(0, 5),
-    requiredSkillsMissing: []
+    strengths: aiScoreData.strengths || ["Matching skills found in profile"],
+    weaknesses: aiScoreData.weaknesses || ["Missing some core requirements"],
+    requiredSkillsMatched: aiScoreData.requiredSkillsMatched || (seeker.skills || []).map((s: any): string => s.skill?.name ?? s).slice(0, 5),
+    requiredSkillsMissing: aiScoreData.requiredSkillsMissing || []
   };
 
   return (

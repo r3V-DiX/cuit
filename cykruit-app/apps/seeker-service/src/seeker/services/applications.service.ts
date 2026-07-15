@@ -154,10 +154,22 @@ Applicant Certifications: ${seekerCerts.join(', ') || 'None'}
 Applicant Experience: ${profile.experiences?.length ?? 0} positions
 Applicant Education: ${profile.education?.length ?? 0} entries
 
-Return ONLY a JSON object: {"score": <0-100>, "breakdown": {"skills": <0-40>, "experience": <0-30>, "education": <0-20>, "certifications": <0-10>}, "summary": "<1 sentence>"}
+Analyze the applicant against the job requirements. Keep strengths and weaknesses concise (maximum 3 items each).
+When matching skills, semantic matches count as matched (e.g. Next.js counts as a match for React).
+
+Return ONLY a JSON object exactly matching this schema:
+{
+  "score": <0-100>,
+  "breakdown": {"skills": <0-40>, "experience": <0-30>, "education": <0-20>, "certifications": <0-10>},
+  "summary": "<1 sentence recommendation>",
+  "strengths": ["<strength 1>", "<strength 2>"],
+  "weaknesses": ["<weakness 1>"],
+  "requiredSkillsMatched": ["<skill 1>"],
+  "requiredSkillsMissing": ["<skill 2>"]
+}
             `.trim();
 
-            const result = await this.aiService.generate(prompt, { maxTokens: 300, temperature: 0.1 });
+            const result = await this.aiService.generate(prompt, { maxTokens: 600, temperature: 0.1 });
 
             // Parse JSON from AI response
             const jsonMatch = result.text.match(/\{[\s\S]*\}/);
