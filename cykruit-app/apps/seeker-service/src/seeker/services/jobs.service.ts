@@ -70,7 +70,7 @@ export class JobsService {
             where: { seekerId_jobId: { seekerId: profile.id, jobId: job.id } }
         });
         if (existingMatch) {
-            return { data: { score: existingMatch.score, reasons: [] } };
+            return { score: existingMatch.score, reasons: [] };
         }
 
         try {
@@ -82,13 +82,75 @@ export class JobsService {
 
             if (res.ok) {
                 const data = await res.json() as { score: number };
-                return { data: { score: data.score, reasons: [] } };
+                return { score: data.score, reasons: [] };
             }
         } catch (error) {
             console.error("AI service fetch error:", error);
         }
 
-        return { data: { score: 0, reasons: [] } };
+        return { score: 0, reasons: [] };
+    }
+
+    async getRecommendedJobs(userId: string, limit: number = 3) {
+        const profile = await this.prisma.jobSeekerProfile.findUnique({
+            where: { userId }
+        });
+
+        if (!profile) throw new NotFoundException('PROFILE_NOT_FOUND');
+
+        let recommendedJobs: { jobId: string, score: number }[] = [];
+
+        try {
+            const res = await fetch(`${this.aiUrl}/ai/jobs/recommend`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ seekerId: profile.id, limit })
+            });
+
+            if (res.ok) {
+                const data = await res.json() as { data: { jobId: string, score: number }[] };
+                // Handle the global ResponseInterceptor wrapping from AI service if it applies, 
+                // but actually AI service doesn't have it. Let's handle both just in case.
+                recommendedJobs = Array.isArray(data) ? data : (data.data || []);
+            }
+        } catch (error) {
+            console.error("AI service fetch error during recommendations:", error);
+        }
+
+        if (recommendedJobs.length === 0) {
+            return { items: [] };
+        }
+
+        const jobIds = recommendedJobs.map(r => r.jobId);
+        const scoreMap = new Map(recommendedJobs.map(r => [r.jobId, r.score]));
+
+        // We can use the same JOB_LIST_INCLUDE from the repository by querying prisma directly
+        // to match the exact shape expected by the frontend.
+        const jobs = await this.prisma.job.findMany({
+            where: { id: { in: jobIds } },
+            include: {
+                employer: {
+                    select: { id: true, companyName: true, slug: true, companyLogo: true, industry: true, isVerified: true },
+                },
+                role: true,
+                location: true,
+                skills: { include: { skill: { select: { id: true, name: true } } } },
+                _count: { select: { applications: true } },
+            }
+        });
+
+        // Sort by the AI score order
+        const sortedJobs = jobs.sort((a, b) => {
+            return (scoreMap.get(b.id) || 0) - (scoreMap.get(a.id) || 0);
+        });
+
+        // Attach the match score to each job
+        const items = sortedJobs.map(job => ({
+            ...job,
+            matchScore: scoreMap.get(job.id) || 0
+        }));
+
+        return { items };
     }
 }
 

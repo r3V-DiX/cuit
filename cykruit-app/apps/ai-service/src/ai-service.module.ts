@@ -14,6 +14,8 @@ import { ResumeParserService } from './services/resume-parser.service';
 import { JobAssistantService } from './services/job-assistant.service';
 import { SeekerAssistantService } from './services/seeker-assistant.service';
 import { MatchService } from './services/match.service';
+import { JobEmbedSyncService } from './services/job-embed-sync.service';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -21,6 +23,7 @@ import { MatchService } from './services/match.service';
     PrismaModule,
     AIModule,
     QueueModule.forRoot({ queues: [AI_QUEUES.AI_JOBS] }),
+    ScheduleModule.forRoot(),
   ],
   controllers: [AiServiceController],
   providers: [
@@ -34,6 +37,7 @@ import { MatchService } from './services/match.service';
     JobAssistantService,
     SeekerAssistantService,
     MatchService,
+    JobEmbedSyncService,
   ],
 })
 export class AiServiceModule {}

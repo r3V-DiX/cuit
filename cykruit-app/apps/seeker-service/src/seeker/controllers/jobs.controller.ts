@@ -19,6 +19,14 @@ export class JobsController {
         return this.jobsService.search(query, user?.id);
     }
 
+    // ── GET /jobs/recommended ─────────────────────────────────────────────────
+
+    @Get('recommended')
+    @UseGuards(AuthGuard)
+    getRecommendedJobs(@Query('limit') limit: string, @CurrentUser() user: User) {
+        return this.jobsService.getRecommendedJobs(user.id, limit ? parseInt(limit, 10) : 3);
+    }
+
     // ── GET /jobs/:slug ───────────────────────────────────────────────────────
 
     @Get(':slug')

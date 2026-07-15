@@ -33,6 +33,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [isSaved, setIsSaved] = useState(false);
   const [isApplied, setIsApplied] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [matchScore, setMatchScore] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -59,6 +60,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             remote: jobData.workMode,
             description: jobData.description || "",
             logo: jobData.employer?.companyName?.[0] || "C",
+            slug: jobData.slug,
             accent: "bg-blue-100 text-blue-800",
             posted: new Date(jobData.publishedAt || Date.now()).toLocaleDateString(),
             tags: jobData.skills?.map((s: any) => s.skill?.name || s.name) || [],
@@ -98,6 +100,18 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         setIsApplied(items.some((a: any) => a.jobId === job.id));
       })
       .catch(() => {});
+
+    if (user.userType !== "EMPLOYER" && job.slug) {
+      apiFetch<any>(`/api/seeker/jobs/${job.slug}/match-score`)
+        .then((body) => {
+          if (body?.data?.score !== undefined) {
+            setMatchScore(body.data.score);
+          } else if (body?.score !== undefined) {
+            setMatchScore(body.score);
+          }
+        })
+        .catch(() => setMatchScore(null));
+    }
   }, [job, user]);
 
   async function handleSave() {
@@ -271,9 +285,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               </section>
 
               {/* Responsibilities */}
-              {job.responsibilities?.length > 0 && (
-                <section className="bg-white rounded-2xl border border-slate-200 p-6">
-                  <h2 className="text-sm font-semibold text-slate-900 mb-3">Responsibilities</h2>
+              <section className="bg-white rounded-2xl border border-slate-200 p-6">
+                <h2 className="text-sm font-semibold text-slate-900 mb-3">Responsibilities</h2>
+                {job.responsibilities?.length > 0 ? (
                   <ul className="space-y-2.5">
                     {job.responsibilities.map((r: string, i: number) => (
                       <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
@@ -282,13 +296,15 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                       </li>
                     ))}
                   </ul>
-                </section>
-              )}
+                ) : (
+                  <p className="text-sm text-slate-400 italic">No specific responsibilities listed.</p>
+                )}
+              </section>
 
               {/* Requirements */}
-              {job.requirements?.length > 0 && (
-                <section className="bg-white rounded-2xl border border-slate-200 p-6">
-                  <h2 className="text-sm font-semibold text-slate-900 mb-3">Requirements</h2>
+              <section className="bg-white rounded-2xl border border-slate-200 p-6">
+                <h2 className="text-sm font-semibold text-slate-900 mb-3">Requirements</h2>
+                {job.requirements?.length > 0 ? (
                   <ul className="space-y-2.5">
                     {job.requirements.map((r: string, i: number) => (
                       <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
@@ -297,13 +313,15 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                       </li>
                     ))}
                   </ul>
-                </section>
-              )}
+                ) : (
+                  <p className="text-sm text-slate-400 italic">No specific requirements listed.</p>
+                )}
+              </section>
 
               {/* Nice to have */}
-              {job.niceToHave?.length > 0 && (
-                <section className="bg-white rounded-2xl border border-slate-200 p-6">
-                  <h2 className="text-sm font-semibold text-slate-900 mb-3">Nice to Have</h2>
+              <section className="bg-white rounded-2xl border border-slate-200 p-6">
+                <h2 className="text-sm font-semibold text-slate-900 mb-3">Nice to Have</h2>
+                {job.niceToHave?.length > 0 ? (
                   <ul className="space-y-2.5">
                     {job.niceToHave.map((r: string, i: number) => (
                       <li key={i} className="flex items-start gap-2.5 text-sm text-slate-500 font-mono">
@@ -312,8 +330,10 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                       </li>
                     ))}
                   </ul>
-                </section>
-              )}
+                ) : (
+                  <p className="text-sm text-slate-400 italic">No nice-to-haves listed.</p>
+                )}
+              </section>
 
             </div>
 
@@ -374,8 +394,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 </div>
               </div>
 
-              {/* AI Match Score — only shown to logged-in seekers */}
-              {user && user.userType !== "EMPLOYER" && (
+              {/* AI Match Score — only shown to logged-in seekers and if score exists */}
+              {user && user.userType !== "EMPLOYER" && matchScore !== null && matchScore > 0 && (
                 <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5">
                   <div className="flex items-center gap-2 mb-3">
                     <Sparkles className="w-4 h-4 text-violet-600" />
@@ -383,26 +403,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     <span className="ml-auto text-[10px] font-bold text-white bg-violet-500 px-1.5 py-0.5 rounded-full">AI</span>
                   </div>
                   <div className="flex items-end gap-2 mb-2">
-                    <span className="text-3xl font-bold text-violet-700 font-mono leading-none">84%</span>
+                    <span className="text-3xl font-bold text-violet-700 font-mono leading-none">{matchScore}%</span>
                     <span className="text-xs text-violet-500 mb-0.5">match with your profile</span>
                   </div>
                   <div className="h-2 bg-violet-200 rounded-full overflow-hidden mb-3">
-                    <div className="h-full w-[84%] bg-violet-500 rounded-full" />
-                  </div>
-                  <div className="space-y-1.5">
-                    {[
-                      { label: "Skills match",     pct: 90 },
-                      { label: "Experience level", pct: 80 },
-                      { label: "Certifications",   pct: 75 },
-                    ].map((s) => (
-                      <div key={s.label} className="flex items-center gap-2 text-[11px] text-violet-700">
-                        <span className="w-24 shrink-0">{s.label}</span>
-                        <div className="flex-1 h-1 bg-violet-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-violet-400 rounded-full" style={{ width: `${s.pct}%` }} />
-                        </div>
-                        <span className="font-bold font-mono w-8 text-right">{s.pct}%</span>
-                      </div>
-                    ))}
+                    <div className="h-full bg-violet-500 rounded-full" style={{ width: `${matchScore}%` }} />
                   </div>
                 </div>
               )}

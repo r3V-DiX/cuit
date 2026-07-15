@@ -165,7 +165,7 @@ export default function DashboardPage() {
         });
 
         try {
-          const jobsRes = await fetch("/api/public/jobs?limit=3");
+          const jobsRes = await fetch("/api/seeker/jobs/recommended?limit=3", { credentials: "include" });
           if (jobsRes.ok) {
             const jobsData = await jobsRes.json();
             // Handle both { data: [...] } and { data: { items: [...] } } formats
@@ -176,36 +176,11 @@ export default function DashboardPage() {
                 slug: j.slug,
                 role: j.jobTitle,
                 company: j.employer?.companyName || "Unknown Company",
-                loadingMatch: true,
+                match: j.matchScore || 0,
+                matchColor: (j.matchScore || 0) >= 80 ? "text-green-700 bg-green-50 border-green-200" : "text-amber-700 bg-amber-50 border-amber-200",
+                loadingMatch: false,
               }));
               setRecommendedJobs(jobs);
-
-              // Fetch real match scores from our new AI endpoint
-              jobs.forEach(async (job: any) => {
-                try {
-                  const scoreRes = await fetch(`/api/seeker/jobs/${job.slug}/match-score`, { credentials: "include" });
-                  if (scoreRes.ok) {
-                    const scoreData = await scoreRes.json();
-                    const match = scoreData.data.score;
-                    setRecommendedJobs(prev => prev.map(p => {
-                      if (p.id === job.id) {
-                        return {
-                          ...p,
-                          match,
-                          matchColor: match >= 80 ? "text-green-700 bg-green-50 border-green-200" : "text-amber-700 bg-amber-50 border-amber-200",
-                          loadingMatch: false,
-                        };
-                      }
-                      return p;
-                    }));
-                  } else {
-                    setRecommendedJobs(prev => prev.map(p => p.id === job.id ? { ...p, loadingMatch: false, match: 50, matchColor: "text-slate-500 bg-slate-50 border-slate-200" } : p));
-                  }
-                } catch (e) {
-                   setRecommendedJobs(prev => prev.map(p => p.id === job.id ? { ...p, loadingMatch: false, match: 50, matchColor: "text-slate-500 bg-slate-50 border-slate-200" } : p));
-                }
-              });
-
             } else {
               setRecommendedJobs(RECOMMENDED_JOBS);
             }

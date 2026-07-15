@@ -86,4 +86,12 @@ export class AiServiceController {
     }
     return this.matchService.matchSeekerToJob(body.seekerId, body.jobId);
   }
+
+  @Post('jobs/recommend')
+  async getRecommendedJobs(@Body() body: { seekerId: string, limit?: number }) {
+    if (!body.seekerId) {
+      throw new BadRequestException('seekerId is required');
+    }
+    return this.matchService.getRecommendedJobs(body.seekerId, body.limit || 3);
+  }
 }

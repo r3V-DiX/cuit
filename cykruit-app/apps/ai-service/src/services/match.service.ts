@@ -65,4 +65,36 @@ export class MatchService {
       throw new BadRequestException("An error occurred during match calculation");
     }
   }
+
+  async getRecommendedJobs(seekerId: string, limit: number = 3) {
+    try {
+      // 1. Check if seeker has embedding
+      const seekerData = await this.prisma.$queryRaw`SELECT id FROM resume_embeddings WHERE "seekerId" = ${seekerId} AND embedding IS NOT NULL` as any[];
+      
+      if (!seekerData || seekerData.length === 0) {
+        return []; // Return empty array if seeker has no resume embedding yet
+      }
+
+      // 2. Fetch top N matches ordered by cosine similarity
+      const results = await this.prisma.$queryRaw`
+        SELECT 
+          j.id as "jobId",
+          (1 - (r.embedding <=> j.embedding)) * 100 as score
+        FROM resume_embeddings r, jobs j
+        WHERE r."seekerId" = ${seekerId} 
+          AND j.embedding IS NOT NULL 
+          AND j.status = 'APPROVED'
+        ORDER BY score DESC
+        LIMIT ${Number(limit)}
+      ` as { jobId: string, score: number }[];
+
+      return results.map(row => ({
+        jobId: row.jobId,
+        score: Math.max(0, Math.min(100, Math.round(row.score)))
+      }));
+    } catch (error) {
+      this.logger.error(`Error getting recommended jobs for seeker ${seekerId}`, error);
+      throw new BadRequestException("An error occurred while fetching recommended jobs");
+    }
+  }
 }
