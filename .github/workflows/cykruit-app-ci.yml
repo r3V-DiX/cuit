@@ -23,6 +23,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: AI Service
+            tag_prefix: ai-service
+            context: ./cykruit-app
+            dockerfile: ./cykruit-app/apps/ai-service/Dockerfile
           - name: Auth Service
             tag_prefix: auth-service
             context: ./cykruit-app
