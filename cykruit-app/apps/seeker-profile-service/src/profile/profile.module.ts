@@ -6,12 +6,13 @@ import { ConfigModule } from "@nestjs/config";
 import { PrismaModule } from "@cykruit/prisma";
 import { UploadModule } from "@cykruit/upload";
 import { CommonModule } from "@cykruit/common";
-import { AuthCoreModule } from "@cykruit/auth-core";
+import { AuthCoreModule, SharedSessionValidator } from "@cykruit/auth-core";
 import { RateLimitModule } from "@cykruit/rate-limit";
 import { AuditModule } from "@cykruit/audit";
 import { QueueModule } from "@cykruit/queue";
 
-import { SessionValidatorService } from "./session/session-validator.service";
+// Session validation moved to SharedSessionValidator (@cykruit/auth-core) —
+// see docs/SESSION_MEMORY.md.
 
 // Controllers
 import { ProfileController } from "./controllers/profile.controller";
@@ -50,7 +51,7 @@ import { AIModule, AI_QUEUES } from "@cykruit/ai";
     QueueModule.forRoot({ queues: [AI_QUEUES.AI_JOBS] }),
     AIModule,
     AuthCoreModule.forRoot({
-      sessionValidatorClass: SessionValidatorService,
+      sessionValidatorClass: SharedSessionValidator,
       imports: [PrismaModule, ConfigModule],
       enableCsrf: true,
     }),
@@ -67,7 +68,6 @@ import { AIModule, AI_QUEUES } from "@cykruit/ai";
     AIProfileController,
   ],
   providers: [
-    SessionValidatorService,
     ProfileHelpers,
     ProfileService,
     ExperienceService,

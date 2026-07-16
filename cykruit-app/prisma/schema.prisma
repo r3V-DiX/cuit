@@ -339,6 +339,10 @@ model Session {
     revokedAt         DateTime?
     revokedBy         String?
     lastRotatedAt     DateTime? // FIX [11]: moved here from after relation
+    // Grace-period overlap for token rotation — see SharedSessionValidator.
+    // Keeps a request that raced a concurrent rotation from being rejected.
+    previousToken           String?
+    previousTokenExpiresAt  DateTime?
     deviceFingerprint String? // FIX [11]: moved here from after relation
 
     // Device classification
@@ -360,6 +364,7 @@ model Session {
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     @@index([token])
+    @@index([previousToken])
     @@index([userId])
     @@index([expiresAt])
     @@index([userId, isActive])

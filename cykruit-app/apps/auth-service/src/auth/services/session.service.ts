@@ -17,22 +17,18 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { PrismaService } from "@cykruit/prisma";
-import { AppLogger } from "@cykruit/logger";
 import { AuditService, AuditAction } from "@cykruit/audit";
-import { SessionType, DeviceType, AccountStatus } from "@prisma/client";
+import { SessionType, DeviceType } from "@prisma/client";
 import {
   generateRawToken,
   hashToken,
   resolveSessionExpiry,
   generateDeviceFingerprint,
-  compareFingerprints,
-  type ISessionValidationResult,
 } from "@cykruit/auth-core";
 import type { Request } from "express";
 import { UAParser } from "ua-parser-js";
 import * as geoip from "geoip-lite";
 
-const SESSION_ROTATION_INTERVAL_MS = 15 * 60 * 1000;
 const MAX_SESSIONS_PER_DEVICE_TYPE = 10;
 
 @Injectable()
@@ -40,7 +36,6 @@ export class SessionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
-    private readonly logger: AppLogger,
   ) {}
 
   // ── Create ───────────────────────────────────────────────────
@@ -81,171 +76,9 @@ export class SessionService {
     return rawToken;
   }
 
-  // ── Validate & Rotate ────────────────────────────────────────
-
-  async validateAndRotateSession(
-    rawToken: string,
-    userAgent: string,
-    ipAddress: string,
-    req?: Request,
-  ): Promise<{ userId: string; newToken?: string; rememberMe: boolean }> {
-    const hashedToken = hashToken(rawToken);
-
-    const session = await this.prisma.session.findFirst({
-      where: { token: hashedToken, isActive: true },
-    });
-
-    if (!session)
-      throw new UnauthorizedException("Session not found or expired");
-
-    if (session.expiresAt && new Date() >= session.expiresAt) {
-      await this.prisma.session.update({
-        where: { id: session.id },
-        data: { isActive: false, revokedAt: new Date(), revokedBy: "expiry" },
-      });
-
-      this.auditService.log(
-        AuditAction.SESSION_EXPIRED,
-        "FAILURE",
-        session.userId,
-        {
-          ip: ipAddress,
-          userAgent,
-          sessionId: session.id,
-        },
-      );
-
-      throw new UnauthorizedException("Session expired");
-    }
-
-    // ── UA binding check ──────────────────────────────────────
-    if (
-      session.sessionType === SessionType.COOKIE &&
-      session.userAgent !== userAgent
-    ) {
-      this.logger.warn(
-        `[SESSION_UA_MISMATCH] uid:${session.userId} sessionId:${session.id}`,
-        "SessionService",
-      );
-    }
-
-    // ── Device fingerprint check ──────────────────────────────
-    const storedFingerprint = session.deviceFingerprint;
-    if (storedFingerprint && req) {
-      const currentFp = generateDeviceFingerprint(req);
-      const comparison = compareFingerprints(storedFingerprint, currentFp.hash);
-
-      if (!comparison.match) {
-        this.logger.warn(
-          `[FINGERPRINT_MISMATCH] uid:${session.userId} sessionId:${session.id} confidence:${comparison.confidence}`,
-          "SessionService",
-        );
-
-        this.auditService.log(
-          AuditAction.SESSION_FINGERPRINT_MISMATCH,
-          "FAILURE",
-          session.userId,
-          { ip: ipAddress, userAgent, sessionId: session.id },
-          { confidence: comparison.confidence },
-        );
-
-        // ✅ BLOCK on low confidence — completely different browser/device
-        // Medium confidence = minor browser update, allow through
-        if (comparison.confidence === "low") {
-          await this.prisma.session.update({
-            where: { id: session.id },
-            data: {
-              isActive: false,
-              revokedAt: new Date(),
-              revokedBy: "fingerprint_mismatch",
-            },
-          });
-          throw new UnauthorizedException(
-            "Session invalidated — device mismatch detected. Please login again.",
-          );
-        }
-      }
-    }
-
-    // ── IP change log ─────────────────────────────────────────
-    if (session.ipAddress !== ipAddress) {
-      this.logger.warn(
-        `[SESSION_IP_CHANGE] uid:${session.userId} prev:${session.ipAddress} now:${ipAddress}`,
-        "SessionService",
-      );
-    }
-
-    // ── Rotation ──────────────────────────────────────────────
-    const shouldRotate =
-      !session.lastRotatedAt ||
-      Date.now() - session.lastRotatedAt.getTime() >
-        SESSION_ROTATION_INTERVAL_MS;
-
-    if (shouldRotate) {
-      const newRawToken = generateRawToken(64);
-      const newHashedToken = hashToken(newRawToken);
-
-      await this.prisma.session.update({
-        where: { id: session.id },
-        data: {
-          token: newHashedToken,
-          lastRotatedAt: new Date(),
-          lastActivity: new Date(),
-          ipAddress,
-        },
-      });
-
-      this.auditService.log(
-        AuditAction.SESSION_ROTATED,
-        "SUCCESS",
-        session.userId,
-        {
-          ip: ipAddress,
-          userAgent,
-          sessionId: session.id,
-        },
-      );
-
-      return { userId: session.userId, newToken: newRawToken, rememberMe: session.rememberMe };
-    }
-
-    await this.prisma.session.update({
-      where: { id: session.id },
-      data: { lastActivity: new Date(), ipAddress },
-    });
-
-    return { userId: session.userId, rememberMe: session.rememberMe };
-  }
-
-  // ── Validate (implements ISessionValidator for AuthCoreModule) ─
-
-  async validateSession(
-    rawToken: string,
-    ipAddress?: string,
-    userAgent?: string,
-    req?: Request, // ✅ now accepted and passed through
-  ): Promise<ISessionValidationResult> {
-    const { userId, newToken, rememberMe } = await this.validateAndRotateSession(
-      rawToken,
-      userAgent || "unknown",
-      ipAddress || "unknown",
-      req, // ✅ passed down so fingerprint check runs
-    );
-
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new UnauthorizedException("User not found");
-
-    if (
-      user.status === AccountStatus.SUSPENDED ||
-      user.status === AccountStatus.DELETED ||
-      user.status === AccountStatus.INACTIVE ||
-      user.status === AccountStatus.PENDING_DELETION
-    ) {
-      throw new UnauthorizedException("Account is not active");
-    }
-
-    return { user, newToken, rememberMe };
-  }
+  // ── Validate & Rotate: moved to SharedSessionValidator (@cykruit/auth-core) ──
+  // See docs/SESSION_MEMORY.md — this and 8 other hand-copied implementations
+  // were consolidated into one canonical ISessionValidator.
 
   // ── Delete (logout) ───────────────────────────────────────────
 

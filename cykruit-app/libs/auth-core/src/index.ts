@@ -8,6 +8,9 @@ export { OptionalAuthGuard } from "./guards/optional-auth.guard";
 export { RolesGuard } from "./guards/roles.guard";
 export { CsrfGuard } from "./guards/csrf.guard";
 
+// Shared session validator — canonical ISessionValidator for every service
+export { SharedSessionValidator } from "./shared-session-validator.service";
+
 // Decorators
 export {
   CurrentUser,

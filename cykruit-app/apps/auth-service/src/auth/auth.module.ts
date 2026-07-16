@@ -4,7 +4,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 import { BullModule } from "@nestjs/bull";
 
-import { AuthCoreModule } from "@cykruit/auth-core";
+import { AuthCoreModule, SharedSessionValidator } from "@cykruit/auth-core";
 import { PrismaModule } from "@cykruit/prisma";
 import { MailModule } from "@cykruit/mail";
 import { CommonModule } from "@cykruit/common";
@@ -56,7 +56,7 @@ import { AuthRepository } from "./repositories/auth.repository";
     }),
 
     AuthCoreModule.forRoot({
-      sessionValidatorClass: SessionService,
+      sessionValidatorClass: SharedSessionValidator,
       imports: [PrismaModule, ConfigModule],
       enableCsrf: true, // ✅ registers CsrfGuard as APP_GUARD for auth-service
     }),

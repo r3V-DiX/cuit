@@ -3,7 +3,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 
-import { AuthCoreModule } from "@cykruit/auth-core";
+import { AuthCoreModule, SharedSessionValidator } from "@cykruit/auth-core";
 import { PrismaModule } from "@cykruit/prisma";
 import { CommonModule } from "@cykruit/common";
 import { RateLimitModule } from "@cykruit/rate-limit";
@@ -22,7 +22,8 @@ import { EmployerSettingsRepository } from "./repositories/employer-settings.rep
 import { NotificationPreferenceRepository } from "./repositories/notification-preference.repository";
 import { LocationPreferenceRepository } from "./repositories/location-preference.repository";
 
-import { SessionValidatorService } from "./session/session-validator.service";
+// Session validation moved to SharedSessionValidator (@cykruit/auth-core) —
+// see docs/SESSION_MEMORY.md.
 
 @Module({
   imports: [
@@ -42,7 +43,7 @@ import { SessionValidatorService } from "./session/session-validator.service";
     }),
 
     AuthCoreModule.forRoot({
-      sessionValidatorClass: SessionValidatorService,
+      sessionValidatorClass: SharedSessionValidator,
       imports: [PrismaModule, ConfigModule],
       enableCsrf: true, // ✅ now settings service is also CSRF protected
     }),
@@ -58,8 +59,6 @@ import { SessionValidatorService } from "./session/session-validator.service";
     EmployerSettingsRepository,
     NotificationPreferenceRepository,
     LocationPreferenceRepository,
-
-    SessionValidatorService,
   ],
 })
 export class UserSettingsModule {}
