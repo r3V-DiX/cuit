@@ -94,6 +94,33 @@ export class OAuthBaseService {
     return { role: payload.role, redirectUrl: payload.redirectUrl };
   }
 
+  private async findEmployerByDomain(
+    domain: string,
+  ): Promise<{ companyName: string; companyLogo: string | null } | null> {
+    // Find any ACTIVE EMPLOYER whose email shares the same domain.
+    // We use the OWNER member's user email as the canonical domain source.
+    const match = await this.prisma.user.findFirst({
+      where: {
+        role: UserRole.EMPLOYER,
+        status: AccountStatus.ACTIVE,
+        email: { endsWith: `@${domain}` },
+      },
+      select: {
+        employer: {
+          select: {
+            companyName: true,
+            companyLogo: true,
+          },
+        },
+      },
+    });
+    if (!match?.employer?.companyName) return null;
+    return {
+      companyName: match.employer.companyName,
+      companyLogo: match.employer.companyLogo ?? null,
+    };
+  }
+
   async findOrCreateUser(
     profile: OAuthUserData,
     role: UserRole,
@@ -104,6 +131,7 @@ export class OAuthBaseService {
     sessionToken: string;
     user: User;
     isNewUser: boolean;
+    domainMatchEmployer: { companyName: string; companyLogo: string | null } | null;
   }> {
     const reqCtx = { ip: ipAddress, userAgent };
 
@@ -172,7 +200,7 @@ export class OAuthBaseService {
         },
       );
 
-      return { userId: user.id, sessionToken, user, isNewUser: false };
+      return { userId: user.id, sessionToken, user, isNewUser: false, domainMatchEmployer: null };
     }
 
     const existingUserByEmail = profile.email
@@ -257,7 +285,18 @@ export class OAuthBaseService {
         sessionToken,
         user: linkedUser,
         isNewUser: false,
+        domainMatchEmployer: null,
       };
+    }
+
+    // Domain match detection: new SEEKER whose email domain matches an existing employer.
+    // We still create them as SEEKER — they can request an invite from their admin.
+    let domainMatchEmployer: { companyName: string; companyLogo: string | null } | null = null;
+    if (role === UserRole.SEEKER && profile.email) {
+      const domain = getEmailDomain(profile.email);
+      if (domain) {
+        domainMatchEmployer = await this.findEmployerByDomain(domain);
+      }
     }
 
     const newUser = await this.prisma.$transaction(async (tx) => {
@@ -345,6 +384,6 @@ export class OAuthBaseService {
       "OAuthBaseService",
     );
 
-    return { userId: newUser.id, sessionToken, user: newUser, isNewUser: true };
+    return { userId: newUser.id, sessionToken, user: newUser, isNewUser: true, domainMatchEmployer };
   }
 }

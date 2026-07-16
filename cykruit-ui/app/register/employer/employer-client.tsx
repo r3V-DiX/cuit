@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Shield, ArrowRight, Building2, ChevronLeft, Lock, Mail, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -111,8 +111,13 @@ export default function EmployerClient() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
+  }, []);
 
   function handleEmailChange(val: string) {
     setEmail(val);
@@ -124,9 +129,17 @@ export default function EmployerClient() {
   }
 
   function startResendCooldown() {
+    if (cooldownRef.current) clearInterval(cooldownRef.current);
     setResendCooldown(60);
-    const id = setInterval(() => {
-      setResendCooldown((c) => { if (c <= 1) { clearInterval(id); return 0; } return c - 1; });
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown((c) => {
+        if (c <= 1) {
+          clearInterval(cooldownRef.current!);
+          cooldownRef.current = null;
+          return 0;
+        }
+        return c - 1;
+      });
     }, 1000);
   }
 
@@ -201,7 +214,7 @@ export default function EmployerClient() {
       await apiFetch("/api/auth/request-otp", {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ email: email.trim().toLowerCase(), role: "EMPLOYER" }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), role: "EMPLOYER", flow: "register" }),
       });
       setOtp("");
       startResendCooldown();

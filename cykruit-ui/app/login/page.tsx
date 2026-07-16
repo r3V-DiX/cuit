@@ -123,6 +123,7 @@ function LoginForm() {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -206,11 +207,20 @@ function LoginForm() {
     }
   }
 
+  useEffect(() => {
+    return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
+  }, []);
+
   function startResendCooldown() {
+    if (cooldownRef.current) clearInterval(cooldownRef.current);
     setResendCooldown(60);
-    const id = setInterval(() => {
+    cooldownRef.current = setInterval(() => {
       setResendCooldown((c) => {
-        if (c <= 1) { clearInterval(id); return 0; }
+        if (c <= 1) {
+          clearInterval(cooldownRef.current!);
+          cooldownRef.current = null;
+          return 0;
+        }
         return c - 1;
       });
     }, 1000);
@@ -349,7 +359,12 @@ function LoginForm() {
                   Continue with Google
                 </button>
 
-                <p className="text-center text-sm text-slate-500 mt-6">
+                <p className="text-center text-xs text-slate-400 mt-2.5 px-2">
+                  Google sign-in creates a Job Seeker account.{" "}
+                  <span className="text-slate-500">Employers:</span> use email above or ask your admin for an invite link.
+                </p>
+
+                <p className="text-center text-sm text-slate-500 mt-4">
                   New here?{" "}
                   <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
                     Create an account

@@ -115,9 +115,15 @@ export class OAuthController {
         `Google OAuth successful: ${result.user.email}`,
         "OAuthController",
       );
-      const callbackUrl = result.isNewUser
+      let callbackUrl = result.isNewUser
         ? `${appUrl}/auth/callback?new=1`
         : `${appUrl}/auth/callback`;
+
+      if (result.domainMatchEmployer) {
+        const sep = callbackUrl.includes("?") ? "&" : "?";
+        callbackUrl += `${sep}domain_match=1&company=${encodeURIComponent(result.domainMatchEmployer.companyName)}`;
+      }
+
       return res.redirect(callbackUrl);
     } catch (error) {
       this.logger.error(

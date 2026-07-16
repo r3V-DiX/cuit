@@ -17,7 +17,7 @@ import {
   OAuthUserData,
   OAuthTokenResponse,
 } from "../../types/oauth.types";
-import { UserRole } from "@prisma/client";
+import { UserRole, type User } from "@prisma/client";
 
 @Injectable()
 export class GoogleOAuthService {
@@ -81,7 +81,13 @@ export class GoogleOAuthService {
     state: string,
     ipAddress?: string,
     userAgent?: string,
-  ) {
+  ): Promise<{
+    userId: string;
+    sessionToken: string;
+    user: User;
+    isNewUser: boolean;
+    domainMatchEmployer: { companyName: string; companyLogo: string | null } | null;
+  }> {
     const stateData = await this.oauthBaseService.validateAndConsumeState(
       OAuthProvider.GOOGLE,
       state,
