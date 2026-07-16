@@ -16,13 +16,10 @@ const cyberBadges = [
 export default function HeroSection() {
   const router = useRouter();
   return (
-    <section className="relative min-h-screen flex flex-col justify-center bg-white pt-16">
+    <section className="relative min-h-screen flex flex-col justify-center pt-16">
 
       {/* Decorative layer — overflow clipped here so dropdowns are unaffected */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-
-      {/* Grid lines */}
-      <div className="absolute inset-0 bg-grid-hero" />
 
 
       {/* Circuit lines — top-left */}

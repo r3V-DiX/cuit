@@ -55,7 +55,10 @@ export default async function LandingPage() {
     <>
       <Navbar />
       <main className="flex-1">
-        <HeroSection />
+        <div className="relative bg-white">
+          <div className="absolute inset-0 bg-grid-hero pointer-events-none" />
+          <HeroSection />
+        </div>
         <FeaturedJobsSection jobs={jobs} />
         <HowItWorksSection />
         <FeaturesSection />
