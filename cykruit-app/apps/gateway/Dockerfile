@@ -12,4 +12,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev --ignore-scripts
 COPY --from=builder /app/dist/apps/gateway dist/apps/gateway
+ENV NODE_ENV=production
+USER node
+EXPOSE 5000
 CMD ["node", "dist/apps/gateway/src/main.js"]

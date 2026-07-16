@@ -32,6 +32,8 @@ COPY --from=builder /app/prisma ./prisma
 
 ENV NODE_ENV=production
 
+USER node
+
 EXPOSE 4004
 
 CMD ["node", "-r", "./dist/tsconfig-paths-bootstrap.js", "dist/apps/employer-service/src/main"]

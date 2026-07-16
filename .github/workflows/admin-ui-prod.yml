@@ -1,4 +1,4 @@
-name: Build and Push Admin UI (Production)
+name: Build, Push & Deploy Admin UI (Staging + Production)
 
 on:
   workflow_dispatch:
@@ -16,7 +16,6 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    environment: production
 
     permissions:
       contents: read
@@ -48,11 +47,14 @@ jobs:
           images: ${{ steps.login-ecr.outputs.registry }}/cykruit-admin-ui
           tags: |
             type=raw,value=latest
+            type=raw,value=staging-latest
             type=raw,value=prod-latest
+            type=sha,prefix=staging-
             type=sha,prefix=prod-
+            type=raw,value=staging-${{ github.run_number }}
             type=raw,value=prod-${{ github.run_number }}
 
-      - name: 📦 Build Docker image (for testing)
+      - name: 📦 Build Docker image (for testing, using prod API URL)
         uses: docker/build-push-action@v5
         with:
           context: ./admin-ui
@@ -65,7 +67,19 @@ jobs:
           load: true
           no-cache: true
 
-      - name: 🚀 Build and Push Docker image
+      - name: 🚀 Build and Push Docker image — staging
+        uses: docker/build-push-action@v5
+        with:
+          context: ./admin-ui
+          file: ./admin-ui/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.login-ecr.outputs.registry }}/cykruit-admin-ui:staging-${{ github.sha }},${{ steps.login-ecr.outputs.registry }}/cykruit-admin-ui:staging-latest
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}
+          no-cache: true
+
+      - name: 🚀 Build and Push Docker image — prod
         uses: docker/build-push-action@v5
         with:
           context: ./admin-ui
@@ -79,10 +93,61 @@ jobs:
 
       - name: ✅ Build Summary
         run: |
-          echo "### 🎉 Production Admin UI Build Successful" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎉 Admin UI Build Successful" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image Tags:**" >> $GITHUB_STEP_SUMMARY
-          echo "- \`latest\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`prod-latest\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`prod-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`prod-${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tags:** \`staging-${{ github.sha }}\`, \`prod-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+  # ── Deploy: staging — no approval gate (see Environment protection rules in repo Settings) ──
+  deploy-staging:
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: staging
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: 🔐 Configure AWS Credentials (staging deploy role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: 🚀 Deploy admin-ui to staging EC2
+        run: |
+          aws ssm send-command \
+            --targets "Key=tag:Name,Values=cykruit-v2-app-server-staging" \
+            --document-name "AWS-RunShellScript" \
+            --comment "cykruit-v2 staging: deploy admin-ui (${{ github.sha }})" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging admin-ui ${{ github.sha }}\"]" \
+            --region ${{ vars.AWS_REGION }}
+
+  # ── Deploy: production — gated. Configure a required-reviewer protection rule on the
+  #    'production' Environment in repo Settings → Environments; this job pauses until approved ──
+  deploy-prod:
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: 🔐 Configure AWS Credentials (prod deploy role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: 🚀 Deploy admin-ui to prod EC2
+        run: |
+          aws ssm send-command \
+            --targets "Key=tag:Name,Values=cykruit-v2-app-server-prod" \
+            --document-name "AWS-RunShellScript" \
+            --comment "cykruit-v2 prod: deploy admin-ui (${{ github.sha }})" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh prod admin-ui ${{ github.sha }}\"]" \
+            --region ${{ vars.AWS_REGION }}

@@ -1,4 +1,4 @@
-name: Build and Push Cykruit App (Production)
+name: Build, Push & Deploy Cykruit App (Staging + Production)
 
 on:
   workflow_dispatch:
@@ -18,7 +18,6 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    environment: production
     strategy:
       fail-fast: false
       matrix:
@@ -94,8 +93,11 @@ jobs:
           images: ${{ steps.login-ecr.outputs.registry }}/cykruit-app
           tags: |
             type=raw,value=${{ matrix.tag_prefix }}-latest
+            type=raw,value=${{ matrix.tag_prefix }}-staging-latest
             type=raw,value=${{ matrix.tag_prefix }}-prod-latest
+            type=sha,prefix=${{ matrix.tag_prefix }}-staging-
             type=sha,prefix=${{ matrix.tag_prefix }}-prod-
+            type=raw,value=${{ matrix.tag_prefix }}-staging-${{ github.run_number }}
             type=raw,value=${{ matrix.tag_prefix }}-prod-${{ github.run_number }}
 
       - name: 🚀 Build and Push Docker image
@@ -115,8 +117,77 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** \`${{ steps.login-ecr.outputs.registry }}/cykruit-app\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ matrix.tag_prefix }}-latest\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ matrix.tag_prefix }}-prod-latest\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ matrix.tag_prefix }}-prod-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ matrix.tag_prefix }}-prod-${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:** \`${{ matrix.tag_prefix }}-staging-${{ github.sha }}\`, \`${{ matrix.tag_prefix }}-prod-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+  # ── Deploy: staging — no approval gate (see Environment protection rules in repo Settings) ──
+  deploy-staging:
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: staging
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: 🔐 Configure AWS Credentials (staging deploy role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: 🗄️ Run DB migrations (prisma migrate deploy, via auth-service image — owns the schema)
+        run: |
+          aws ssm send-command \
+            --targets "Key=tag:Name,Values=cykruit-v2-app-server-staging" \
+            --document-name "AWS-RunShellScript" \
+            --comment "cykruit-v2 staging: prisma migrate deploy (${{ github.sha }})" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging migrate ${{ github.sha }}\"]" \
+            --region ${{ vars.AWS_REGION }}
+
+      - name: 🚀 Deploy all cykruit-app services to staging EC2
+        run: |
+          aws ssm send-command \
+            --targets "Key=tag:Name,Values=cykruit-v2-app-server-staging" \
+            --document-name "AWS-RunShellScript" \
+            --comment "cykruit-v2 staging: deploy cykruit-app (${{ github.sha }})" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging cykruit-app ${{ github.sha }}\"]" \
+            --region ${{ vars.AWS_REGION }}
+
+  # ── Deploy: production — gated. Configure a required-reviewer protection rule on the
+  #    'production' Environment in repo Settings → Environments; this job pauses until approved ──
+  deploy-prod:
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment: production
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: 🔐 Configure AWS Credentials (prod deploy role)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: 🗄️ Run DB migrations (prisma migrate deploy, via auth-service image — owns the schema)
+        run: |
+          aws ssm send-command \
+            --targets "Key=tag:Name,Values=cykruit-v2-app-server-prod" \
+            --document-name "AWS-RunShellScript" \
+            --comment "cykruit-v2 prod: prisma migrate deploy (${{ github.sha }})" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh prod migrate ${{ github.sha }}\"]" \
+            --region ${{ vars.AWS_REGION }}
+
+      - name: 🚀 Deploy all cykruit-app services to prod EC2
+        run: |
+          aws ssm send-command \
+            --targets "Key=tag:Name,Values=cykruit-v2-app-server-prod" \
+            --document-name "AWS-RunShellScript" \
+            --comment "cykruit-v2 prod: deploy cykruit-app (${{ github.sha }})" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh prod cykruit-app ${{ github.sha }}\"]" \
+            --region ${{ vars.AWS_REGION }}
