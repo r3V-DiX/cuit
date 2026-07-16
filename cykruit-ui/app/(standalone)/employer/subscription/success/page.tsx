@@ -1,38 +1,78 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { apiFetch } from "@/lib/api";
 import {
   Shield, Check, Zap, ArrowRight, Download,
-  LayoutDashboard, Briefcase, Star,
+  LayoutDashboard, Briefcase, Building2,
 } from "lucide-react";
 
-const PLAN_NAMES: Record<string, string> = { starter: "Starter", growth: "Growth" };
+interface SubPackage {
+  id: string;
+  name: string;
+  maxActiveJobs: number;
+  maxTeamMembers: number;
+  featuredJobSlots: number;
+  aiScoringEnabled: boolean;
+  resumeViewEnabled: boolean;
+  analyticsEnabled: boolean;
+  priceMonthly?: string | null;
+  priceYearly?: string | null;
+}
 
-const PLAN_ICONS: Record<string, React.ReactNode> = {
-  starter: <Shield className="w-5 h-5 text-blue-500"   />,
-  growth:  <Zap    className="w-5 h-5 text-violet-500" />,
-};
+function pkgFeatures(p: SubPackage): string[] {
+  const f: string[] = [
+    `${p.maxActiveJobs} active job listings`,
+    `${p.maxTeamMembers} team members`,
+  ];
+  if (p.featuredJobSlots > 0) f.push(`${p.featuredJobSlots} featured job slots`);
+  if (p.aiScoringEnabled) f.push("AI candidate scoring");
+  if (p.resumeViewEnabled) f.push("Resume access");
+  if (p.analyticsEnabled) f.push("Analytics dashboard");
+  return f;
+}
 
-const PLAN_FEATURES: Record<string, string[]> = {
-  starter: ["5 active job listings", "Basic applicant tracking", "Company profile", "Email support"],
-  growth:  ["25 active job listings", "AI candidate scoring", "3 team seats", "Analytics dashboard", "Priority support"],
-};
+function pkgIcon(name: string) {
+  const n = name.toLowerCase();
+  if (n === "growth")     return <Zap      className="w-5 h-5 text-violet-500" />;
+  if (n === "enterprise") return <Building2 className="w-5 h-5 text-slate-500" />;
+  return                         <Shield   className="w-5 h-5 text-blue-500"   />;
+}
 
 function inr(paise: number) {
   return "₹" + Math.round(paise / 100).toLocaleString("en-IN");
 }
 
 function SuccessContent() {
-  const params  = useSearchParams();
-  const planId  = params.get("plan")    || "growth";
-  const billing = params.get("billing") || "monthly";
-  const amount  = parseInt(params.get("amount") || "0", 10);
+  const params     = useSearchParams();
+  const packageId  = params.get("packageId") ?? "";
+  const planParam  = params.get("plan") ?? "";
+  const billing    = params.get("billing") ?? "monthly";
+  const amount     = parseInt(params.get("amount") || "0", 10);
 
-  const planName     = PLAN_NAMES[planId]    || "Growth";
-  const planFeatures = PLAN_FEATURES[planId] || [];
-  const planIcon     = PLAN_ICONS[planId];
+  const [pkg, setPkg] = useState<SubPackage | null>(null);
+
+  useEffect(() => {
+    apiFetch<SubPackage[]>("/api/subscriptions/packages")
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : [];
+        let found: SubPackage | undefined;
+        if (packageId) {
+          found = list.find((p) => p.id === packageId);
+        }
+        if (!found && planParam) {
+          found = list.find((p) => p.name.toLowerCase() === planParam.toLowerCase());
+        }
+        if (found) setPkg(found);
+      })
+      .catch(() => undefined);
+  }, [packageId, planParam]);
+
+  const planName     = pkg?.name ?? planParam ?? "Your plan";
+  const planFeatures = pkg ? pkgFeatures(pkg) : [];
+  const planIcon     = pkgIcon(planName);
 
   const today    = new Date();
   const renewsOn = new Date(today);
@@ -97,31 +137,31 @@ function SuccessContent() {
                     <p className="text-xs text-slate-400 capitalize">{billing} billing · Renews {fmt(renewsOn)}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-slate-900">{inr(amount)}</p>
-                  <p className="text-[10px] text-slate-400 font-mono">Charged today</p>
-                </div>
+                {amount > 0 && (
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-slate-900">{inr(amount)}</p>
+                    <p className="text-[10px] text-slate-400 font-mono">Charged today</p>
+                  </div>
+                )}
               </div>
 
               {/* Features unlocked */}
-              <div className="text-left mb-6">
-                <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-3 text-center">Features Unlocked</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {planFeatures.map((f) => (
-                    <div key={f} className="flex items-center gap-2 text-xs text-slate-600">
-                      <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                        <Check className="w-2.5 h-2.5 text-emerald-600" strokeWidth={3} />
+              {planFeatures.length > 0 && (
+                <div className="text-left mb-6">
+                  <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-3 text-center">Features Unlocked</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {planFeatures.map((f) => (
+                      <div key={f} className="flex items-center gap-2 text-xs text-slate-600">
+                        <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                          <Check className="w-2.5 h-2.5 text-emerald-600" strokeWidth={3} />
+                        </div>
+                        {f}
                       </div>
-                      {f}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Stars */}
-              <div className="flex items-center justify-center gap-1 mb-3">
-                {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />)}
-              </div>
               <p className="text-xs text-slate-400 mb-6">Thank you for choosing Cykruit for your hiring needs.</p>
 
               {/* CTA */}

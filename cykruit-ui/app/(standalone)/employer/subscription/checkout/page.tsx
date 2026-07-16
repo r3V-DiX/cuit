@@ -82,10 +82,15 @@ function loadRazorpayScript(): Promise<void> {
   });
 }
 
-const FEATURES: Record<string, string[]> = {
-  Starter: ["5 active job listings", "3 team members", "Basic applicant tracking", "Company profile", "Email support"],
-  Growth:  ["25 active job listings", "10 team members", "3 featured job slots", "AI candidate scoring", "Priority search placement", "Analytics dashboard"],
-};
+function pkgFeatures(p: SubPackage): string[] {
+  const f: string[] = [
+    `${p.maxActiveJobs} active job listings`,
+    `${p.maxTeamMembers} team members`,
+  ];
+  if (p.featuredJobSlots > 0) f.push(`${p.featuredJobSlots} featured job slots`);
+  if (p.aiScoringEnabled) f.push("AI candidate scoring");
+  return f;
+}
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
@@ -135,7 +140,7 @@ function CheckoutContent() {
   const gstPaise     = confirmedBreakdown?.gstAmountPaise  ?? Math.round(basePaise * 0.18);
   const totalPaise   = confirmedBreakdown?.totalAmountPaise ?? basePaise + gstPaise;
   const isFree       = basePrice === 0;
-  const features     = (pkg && FEATURES[pkg.name]) ?? [];
+  const features     = pkg ? pkgFeatures(pkg) : [];
   const isGrowth     = pkg?.name?.toLowerCase() === "growth";
 
   async function handlePay() {
@@ -180,7 +185,7 @@ function CheckoutContent() {
         handler: (response) => {
           // Webhook handles actual activation. Redirect to success page immediately.
           router.push(
-            `/employer/subscription/success?plan=${pkg.name.toLowerCase()}&billing=${billingParam.toLowerCase()}&amount=${order.amount}&paymentId=${response.razorpay_payment_id}`,
+            `/employer/subscription/success?packageId=${pkg.id}&plan=${pkg.name.toLowerCase()}&billing=${billingParam.toLowerCase()}&amount=${order.amount}&paymentId=${response.razorpay_payment_id}`,
           );
         },
       });
