@@ -14,7 +14,7 @@ import {
     UnprocessableEntityException,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { AuthGuard, CurrentUser, Public } from '@cykruit/auth-core';
+import { AuthGuard, CsrfGuard, CurrentUser, Public } from '@cykruit/auth-core';
 import type { User } from '@prisma/client';
 import { PaymentService } from '../services/payment.service';
 import { CreateOrderDto } from '../dto/payment.dto';
@@ -26,7 +26,7 @@ export class PaymentController {
 
     /** POST /subscriptions/orders — create Razorpay order */
     @Post('orders')
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, CsrfGuard)
     createOrder(@CurrentUser() user: User, @Body() dto: CreateOrderDto) {
         return this.paymentService.createOrder(user.id, dto);
     }

@@ -126,13 +126,14 @@ function CheckoutContent() {
 
   // Pay state
   const [paying, setPaying] = useState(false);
+  const [confirmedBreakdown, setConfirmedBreakdown] = useState<CreateOrderResponse["breakdown"] | null>(null);
 
   const basePrice = pkg
     ? (billingParam === "YEARLY" ? Number(pkg.priceYearly ?? 0) : Number(pkg.priceMonthly ?? 0))
     : 0;
-  const basePaise    = basePrice * 100;
-  const gstPaise     = Math.round(basePaise * 0.18);
-  const totalPaise   = basePaise + gstPaise;
+  const basePaise    = confirmedBreakdown?.baseAmountPaise ?? basePrice * 100;
+  const gstPaise     = confirmedBreakdown?.gstAmountPaise  ?? Math.round(basePaise * 0.18);
+  const totalPaise   = confirmedBreakdown?.totalAmountPaise ?? basePaise + gstPaise;
   const isFree       = basePrice === 0;
   const features     = (pkg && FEATURES[pkg.name]) ?? [];
   const isGrowth     = pkg?.name?.toLowerCase() === "growth";
@@ -155,6 +156,9 @@ function CheckoutContent() {
         body: JSON.stringify({ packageId: pkg.id, billingCycle: billingParam }),
       });
       const order = orderRes.data;
+
+      // Sync displayed totals to backend-confirmed values (discounts may differ)
+      setConfirmedBreakdown(order.breakdown);
 
       // 2. Load Razorpay checkout script
       await loadRazorpayScript();

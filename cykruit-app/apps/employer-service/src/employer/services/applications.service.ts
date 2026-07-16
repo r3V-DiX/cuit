@@ -45,6 +45,17 @@ export class EmployerApplicationsService {
         return employer;
     }
 
+    private async redactResume<T extends { resume?: { id: string; fileName: string; fileUrl: string } | null }>(
+        item: T,
+        resumeViewEnabled: boolean,
+    ): Promise<T> {
+        if (resumeViewEnabled || !item.resume) return item;
+        return {
+            ...item,
+            resume: { id: item.resume.id, fileName: item.resume.fileName, fileUrl: null },
+        };
+    }
+
     async listForJob(userId: string, jobId: string, query: ApplicationListQueryDto) {
         const employer = await this.resolveEmployer(userId);
 
@@ -52,12 +63,17 @@ export class EmployerApplicationsService {
         const job = await this.jobsRepo.findByIdAndEmployer(jobId, employer.id);
         if (!job) throw new NotFoundException('Job not found');
 
-        const { items, total } = await this.applicationsRepo.findByJob(jobId, employer.id, query);
+        const [{ items, total }, limits] = await Promise.all([
+            this.applicationsRepo.findByJob(jobId, employer.id, query),
+            this.employerLimitsService.resolveForEmployer(employer.id),
+        ]);
         const page = query.page ?? 1;
         const limit = query.limit ?? 20;
 
+        const redacted = await Promise.all(items.map((a) => this.redactResume(a, limits.resumeViewEnabled)));
+
         return {
-            items,
+            items: redacted,
             meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
         };
     }
@@ -65,12 +81,17 @@ export class EmployerApplicationsService {
     async listForEmployer(userId: string, query: ApplicationListQueryDto) {
         const employer = await this.resolveEmployer(userId);
 
-        const { items, total } = await this.applicationsRepo.findByEmployer(employer.id, query);
+        const [{ items, total }, limits] = await Promise.all([
+            this.applicationsRepo.findByEmployer(employer.id, query),
+            this.employerLimitsService.resolveForEmployer(employer.id),
+        ]);
         const page = query.page ?? 1;
         const limit = query.limit ?? 20;
 
+        const redacted = await Promise.all(items.map((a) => this.redactResume(a, limits.resumeViewEnabled)));
+
         return {
-            items,
+            items: redacted,
             meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
         };
     }
@@ -80,7 +101,9 @@ export class EmployerApplicationsService {
         const application = await this.applicationsRepo.findByIdAndEmployer(applicationId, employer.id);
         if (!application) throw new NotFoundException('Application not found');
         if (jobId && application.jobId !== jobId) throw new NotFoundException('Application not found');
-        return application;
+
+        const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
+        return this.redactResume(application, limits.resumeViewEnabled);
     }
 
     async exportForJob(userId: string, jobId: string) {
