@@ -107,7 +107,7 @@ export default function ForEmployersSection() {
 
                 <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
                   <p className="text-xs text-blue-700 font-medium">
-                    🤖 AI Insight: 3 top candidates match your Senior Pentester role above 90%
+                    AI Insight: 3 top candidates match your Senior Pentester role above 90%
                   </p>
                 </div>
               </div>

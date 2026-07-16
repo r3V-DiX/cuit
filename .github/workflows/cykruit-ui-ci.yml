@@ -1,0 +1,90 @@
+name: Build and Push Cykruit UI (Production)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'cykruit-ui/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'cykruit-ui/**'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: production
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: UI
+            image: cykruit-ui
+            context: ./cykruit-ui
+            dockerfile: ./cykruit-ui/Dockerfile
+            backend_url_secret: PROD_NEXT_PUBLIC_BACKEND_URL
+            api_url_secret: PROD_NEXT_PUBLIC_API_URL
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: 🔑 Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 🛠️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 📝 Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.image }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=prod-latest
+            type=sha,prefix=prod-
+            type=raw,value=prod-${{ github.run_number }}
+
+      - name: 🚀 Build and Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_BACKEND_URL=${{ secrets[matrix.backend_url_secret] }}
+            NEXT_PUBLIC_API_URL=${{ secrets[matrix.api_url_secret] }}
+            NODE_ENV=production
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: ✅ Build Summary
+        run: |
+          echo "### 🎉 ${{ matrix.name }} Build Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ steps.login-ecr.outputs.registry }}/${{ matrix.image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:**" >> $GITHUB_STEP_SUMMARY
+          echo "- \`latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`prod-latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`prod-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`prod-${{ github.run_number }}\`" >> $GITHUB_STEP_SUMMARY

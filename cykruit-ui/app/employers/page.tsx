@@ -242,7 +242,7 @@ export default async function EmployersPage() {
                     ))}
                     <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
                       <p className="text-xs font-mono text-blue-700">
-                        🤖 AI: 3 top candidates match Senior Pentester above 90%
+                        AI: 3 top candidates match Senior Pentester above 90%
                       </p>
                     </div>
                   </div>
