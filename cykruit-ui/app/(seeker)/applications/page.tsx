@@ -61,8 +61,8 @@ export default function ApplicationsPage() {
         const mapped: AppListItem[] = items.map((a: any) => ({
           id: a.id,
           role: a.job.jobTitle,
-          company: a.job.employer.companyName,
-          location: a.job.locationType || a.job.location || "Remote",
+          company: a.job.employer?.companyName || "Unknown",
+          location: a.job.location?.displayName || a.job.locationType || "Remote",
           type: a.job.jobType || "Full-time",
           applied: new Date(a.appliedAt).toLocaleDateString(),
           status: statusMap[a.status] ?? "Applied",
