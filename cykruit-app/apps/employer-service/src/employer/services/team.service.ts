@@ -184,6 +184,42 @@ export class TeamService {
         return { message: 'Invitation sent successfully.' };
     }
 
+    // ── Preview Invite ────────────────────────────────────────────
+
+    async previewInvite(rawToken: string) {
+        const colonIndex = rawToken.indexOf(':');
+        if (colonIndex === -1) {
+            throw new BadRequestException('Invalid invite token format.');
+        }
+
+        const roleSegment = rawToken.substring(0, colonIndex);
+        const targetRole = this.parseRole(roleSegment);
+
+        const hashedToken = this.hashService.hashToken(rawToken);
+        const tokenRecord = await this.teamRepository.findInviteToken(hashedToken);
+
+        if (!tokenRecord) {
+            throw new BadRequestException('Invite token is invalid or has already been used.');
+        }
+
+        if (new Date() > tokenRecord.expiresAt) {
+            throw new BadRequestException('Invite token has expired. Please request a new invitation.');
+        }
+
+        const employer = await this.companyRepository.findByMemberId(tokenRecord.userId);
+        if (!employer) {
+            throw new BadRequestException('The company associated with this invitation no longer exists.');
+        }
+
+        return {
+            companyName: employer.companyName,
+            companyLogo: employer.companyLogo ?? null,
+            role: targetRole,
+            expiresAt: tokenRecord.expiresAt,
+            invitedEmail: (tokenRecord.metadata as { invitedEmail?: string } | null)?.invitedEmail ?? null,
+        };
+    }
+
     // ── Accept Invite ─────────────────────────────────────────────
 
     async acceptInvite(userId: string, rawToken: string) {
@@ -250,6 +286,17 @@ export class TeamService {
 
         await this.teamRepository.markInviteUsed(tokenRecord.id);
         await this.permissionsService.invalidateUserCache(userId, employer.id);
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'team:accept_invite',
+            module: 'TEAM',
+            targetType: 'Employer',
+            targetId: employer.id,
+            newData: { role: targetRole, invitedBy: inviterUserId },
+            result: 'SUCCESS',
+        });
 
         // Increment team member counter (fire-and-forget)
         this.prisma.employerSubscription.updateMany({

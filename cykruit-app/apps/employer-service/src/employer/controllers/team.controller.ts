@@ -8,6 +8,7 @@ import {
     Delete,
     Body,
     Param,
+    Query,
     Req,
     ParseUUIDPipe,
     HttpCode,
@@ -56,6 +57,17 @@ export class TeamController {
     @RequirePermission(ACTIONS.COMPANY.INVITE_MEMBER)
     inviteMember(@CurrentUser() user: User, @Body() dto: InviteMemberDto, @Req() req: Request) {
         return this.teamService.inviteMember(user.id, dto, req.ip, req.headers['user-agent']);
+    }
+
+    /**
+     * GET /employer/team/invite-preview?token=...
+     * Returns invite metadata (company name, role, expiry) without consuming the token.
+     * Used by the accept-invite UI to show a confirmation screen before committing.
+     */
+    @Get('invite-preview')
+    @SkipKycCheck()
+    previewInvite(@Query('token') token: string) {
+        return this.teamService.previewInvite(token);
     }
 
     /**
