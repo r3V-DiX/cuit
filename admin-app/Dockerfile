@@ -41,6 +41,8 @@ ENV NODE_ENV=production
 # never reaches cykruit-app's deps (resend, ...) — NODE_PATH is the fallback.
 ENV NODE_PATH=/app/cykruit-app/node_modules
 
+USER node
+
 EXPOSE 4010
 
 # tsc's rootDir spans admin-app + cykruit-app/libs, so main.js lands at
