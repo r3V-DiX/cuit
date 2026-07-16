@@ -98,14 +98,16 @@ export class AdminJobsRepository {
             : null;
 
         const now = new Date();
+        // Use resolveEffectiveStatus logic inline: treat sub as inactive if expiresAt has passed
         const isActive =
             sub &&
             sub.status === 'ACTIVE' &&
             (sub.expiresAt === null || sub.expiresAt > now);
         const periodDays = (isActive ? sub?.package?.jobPostingPeriodDays : null) ?? 30;
 
-        const publishedAt = job?.publishedAt ?? now;
-        const expiresAt = new Date(publishedAt);
+        // Always compute expiresAt from now — if this is a re-approval, using the
+        // original publishedAt would produce a past expiry date.
+        const expiresAt = new Date(now);
         expiresAt.setDate(expiresAt.getDate() + periodDays);
 
         return this.prisma.job.update({
