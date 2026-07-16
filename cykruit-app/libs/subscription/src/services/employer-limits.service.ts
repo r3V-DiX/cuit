@@ -59,7 +59,23 @@ export class EmployerLimitsService {
     private async loadFromDb(employerId: string): Promise<EmployerLimits> {
         const sub = await this.prisma.employerSubscription.findUnique({
             where: { employerId },
-            include: { package: true },
+            select: {
+                status: true,
+                expiresAt: true,
+                package: {
+                    select: {
+                        maxActiveJobs: true,
+                        maxTeamMembers: true,
+                        featuredJobSlots: true,
+                        aiScoringEnabled: true,
+                        jobPostingPeriodDays: true,
+                        resumeViewEnabled: true,
+                        canExportApplicants: true,
+                        analyticsEnabled: true,
+                        prioritySupportEnabled: true,
+                    },
+                },
+            },
         });
 
         const now = new Date();

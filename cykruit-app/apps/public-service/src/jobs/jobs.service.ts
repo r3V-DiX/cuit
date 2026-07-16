@@ -330,32 +330,27 @@ export class JobsService {
 
       if (!job) return;
 
+      let shouldIncrement = true;
+
       if (userId) {
-        // Create unique user view row (upsert ensures safety against concurrent updates)
-        await this.prisma.jobView.upsert({
-          where: {
-            jobId_viewerId: {
-              jobId,
-              viewerId: userId,
-            },
-          },
-          update: {},
-          create: {
-            jobId,
-            viewerId: userId,
-          },
+        // Only increment viewCount on first view per user
+        const existing = await this.prisma.jobView.findUnique({
+          where: { jobId_viewerId: { jobId, viewerId: userId } },
+          select: { jobId: true },
         });
+        if (existing) {
+          shouldIncrement = false;
+        } else {
+          await this.prisma.jobView.create({ data: { jobId, viewerId: userId } });
+        }
       }
 
-      // Increment public viewCount
-      await this.prisma.job.update({
-        where: { id: jobId },
-        data: {
-          viewCount: {
-            increment: 1,
-          },
-        },
-      });
+      if (shouldIncrement) {
+        await this.prisma.job.update({
+          where: { id: jobId },
+          data: { viewCount: { increment: 1 } },
+        });
+      }
     } catch {
       // Never throw - fire and forget requirement
     }
