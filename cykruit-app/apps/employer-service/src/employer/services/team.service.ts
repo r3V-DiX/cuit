@@ -5,6 +5,7 @@ import {
     BadRequestException,
     ForbiddenException,
     ConflictException,
+    Logger,
     NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -45,6 +46,8 @@ const CAN_REMOVE = new Set<EmployerMemberRole>([
 
 @Injectable()
 export class TeamService {
+    private readonly logger = new Logger(TeamService.name);
+
     constructor(
         private readonly teamRepository: TeamRepository,
         private readonly companyRepository: CompanyRepository,
@@ -252,7 +255,7 @@ export class TeamService {
         this.prisma.employerSubscription.updateMany({
             where: { employerId: employer.id },
             data: { currentTeamMembers: { increment: 1 } },
-        }).catch(() => undefined);
+        }).catch((err: unknown) => this.logger.warn(`Failed to increment team member counter for employer ${employer.id}: ${String(err)}`));
 
         return member;
     }
@@ -358,7 +361,7 @@ export class TeamService {
         this.prisma.employerSubscription.updateMany({
             where: { employerId: employer.id, currentTeamMembers: { gt: 0 } },
             data: { currentTeamMembers: { decrement: 1 } },
-        }).catch(() => undefined);
+        }).catch((err: unknown) => this.logger.warn(`Failed to decrement team member counter for employer ${employer.id}: ${String(err)}`));
 
         this.auditService.logAction({
             actorId: userId,

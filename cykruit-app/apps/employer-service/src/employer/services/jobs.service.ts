@@ -2,6 +2,7 @@
 
 import {
     Injectable,
+    Logger,
     NotFoundException,
     BadRequestException,
     ForbiddenException,
@@ -23,6 +24,8 @@ import { CreateJobDto, UpdateJobDto, CloseJobDto, JobListQueryDto } from '../dto
 
 @Injectable()
 export class JobsService {
+    private readonly logger = new Logger(JobsService.name);
+
     constructor(
         private readonly jobsRepository: JobsRepository,
         private readonly companyRepository: CompanyRepository,
@@ -100,9 +103,9 @@ export class JobsService {
                     workMode,
                     isResubmission,
                     reviewUrl,
-                }).catch(() => undefined);
+                }).catch((err: unknown) => this.logger.warn(`Failed to send job review email to ${admin.email}: ${String(err)}`));
             }
-        }).catch(() => undefined);
+        }).catch((err: unknown) => this.logger.warn(`Failed to fetch admins for job review notification jobId=${jobId}: ${String(err)}`));
     }
 
     /**
@@ -427,7 +430,7 @@ export class JobsService {
         this.prisma.employerSubscription.updateMany({
             where: { employerId: employer.id, currentActiveJobs: { gt: 0 } },
             data: { currentActiveJobs: { decrement: 1 } },
-        }).catch(() => undefined);
+        }).catch((err: unknown) => this.logger.warn(`Failed to decrement active job counter for employer ${employer.id}: ${String(err)}`));
 
         this.auditService.logAction({
             actorId: userId,
