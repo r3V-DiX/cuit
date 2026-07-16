@@ -1,4 +1,4 @@
-import { Injectable, Inject, Optional } from '@nestjs/common';
+import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 
 export interface EmployerLimits {
@@ -29,6 +29,8 @@ const CACHE_TTL_SECONDS = 120; // 2 minutes
 
 @Injectable()
 export class EmployerLimitsService {
+    private readonly logger = new Logger(EmployerLimitsService.name);
+
     constructor(
         private readonly prisma: PrismaService,
         @Optional() @Inject('REDIS_CLIENT') private readonly redis: unknown,
@@ -51,8 +53,8 @@ export class EmployerLimitsService {
         if (!this.redis) return;
         try {
             await (this.redis as { del: (key: string) => Promise<unknown> }).del(this.cacheKey(employerId));
-        } catch {
-            // non-fatal
+        } catch (err) {
+            this.logger.warn(`Redis cache invalidation failed for employer ${employerId}: ${String(err)}`);
         }
     }
 
@@ -128,7 +130,8 @@ export class EmployerLimitsService {
             );
             if (!raw) return null;
             return JSON.parse(raw) as EmployerLimits;
-        } catch {
+        } catch (err) {
+            this.logger.warn(`Redis cache read failed for employer ${employerId}: ${String(err)}`);
             return null;
         }
     }
@@ -141,8 +144,8 @@ export class EmployerLimitsService {
                     setex: (key: string, ttl: number, value: string) => Promise<unknown>;
                 }
             ).setex(this.cacheKey(employerId), CACHE_TTL_SECONDS, JSON.stringify(limits));
-        } catch {
-            // non-fatal
+        } catch (err) {
+            this.logger.warn(`Redis cache write failed for employer ${employerId}: ${String(err)}`);
         }
     }
 }

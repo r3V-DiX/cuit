@@ -287,7 +287,13 @@ export class PaymentService {
         }
 
         const pkg = await this.subRepo.findPackageById(order.packageId);
-        if (!pkg) return;
+        if (!pkg) {
+            this.logger.error(
+                `Package ${order.packageId} not found during payment capture — subscription NOT activated. razorpayOrderId=${razorpayOrderId}`,
+                'PaymentService',
+            );
+            return;
+        }
 
         const expiresAt = this.computeExpiry(order.billingCycle as BillingCycle);
 

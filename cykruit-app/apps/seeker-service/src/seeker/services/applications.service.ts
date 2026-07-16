@@ -3,6 +3,7 @@
 import {
     Injectable,
     BadRequestException,
+    Logger,
     NotFoundException,
     ForbiddenException,
 } from '@nestjs/common';
@@ -27,6 +28,8 @@ const NON_WITHDRAWABLE_STATUSES: ApplicationStatus[] = [
 
 @Injectable()
 export class ApplicationsService {
+    private readonly logger = new Logger(ApplicationsService.name);
+
     constructor(
         private readonly applicationsRepository: ApplicationsRepository,
         private readonly prisma: PrismaService,
@@ -183,8 +186,8 @@ Return ONLY a JSON object exactly matching this schema:
             const score = Math.min(100, Math.max(0, Math.round(scored.score ?? 0)));
 
             await this.applicationsRepository.updateAiScore(applicationId, score, scored);
-        } catch {
-            // AI scoring is non-critical — never fail the apply flow
+        } catch (err) {
+            this.logger.warn(`AI scoring failed for applicationId=${applicationId}: ${String(err)}`);
         }
     }
 

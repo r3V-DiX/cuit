@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "@cykruit/prisma";
 import { JobsQueryDto } from "./dto/jobs-query.dto";
@@ -7,6 +7,7 @@ import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class JobsService {
+  private readonly logger = new Logger(JobsService.name);
   private readonly aiUrl: string;
 
   constructor(
@@ -90,7 +91,7 @@ export class JobsService {
           searchVector = body.vector;
         }
       } catch (err) {
-        // Fallback to text search silently
+        this.logger.warn(`Semantic search service unavailable, falling back to text search: ${String(err)}`);
       }
 
       if (searchVector) {
@@ -351,8 +352,8 @@ export class JobsService {
           data: { viewCount: { increment: 1 } },
         });
       }
-    } catch {
-      // Never throw - fire and forget requirement
+    } catch (err) {
+      this.logger.warn(`trackJobView failed for jobId=${jobId}: ${String(err)}`);
     }
   }
 
