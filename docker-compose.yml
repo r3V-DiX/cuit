@@ -238,8 +238,8 @@ services:
 
   admin-app:
     build:
-      context: ./admin-app
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: admin-app/Dockerfile
     container_name: cykruit_admin
     restart: unless-stopped
     env_file: ./admin-app/.env
