@@ -25,22 +25,13 @@ export class AIService {
   private getProviderForTier(tier?: AITaskTier): AIProvider {
     const providerStr = this.configService.get<string>("ai.provider");
     
-    // If explicitly set to bedrock, all traffic routes there
-    if (providerStr === "bedrock") {
-      return this.awsBedrockProvider;
+    // Only Ollama (dev) or Bedrock (prod)
+    if (providerStr === "ollama") {
+      return this.ollamaProvider;
     }
-
-    if (tier === AITaskTier.SMALL) {
-      if (this.configService.get<string>("USE_OLLAMA") === "true") {
-        return this.ollamaProvider;
-      }
-      return this.openRouterProvider;
-    }
-    // Heavy tasks go to Bedrock, or fallback to Gemini if Bedrock is not configured
-    if (this.configService.get<string>("ai.bedrock.accessKeyId")) {
-      return this.awsBedrockProvider;
-    }
-    return this.geminiProvider;
+    
+    // Default to Bedrock
+    return this.awsBedrockProvider;
   }
 
   async generate(
@@ -48,16 +39,7 @@ export class AIService {
     options?: AIGenerateOptions,
   ): Promise<AIGenerateResponse> {
     const provider = this.getProviderForTier(options?.tier);
-    try {
-      return await provider.generate(prompt, options);
-    } catch (error) {
-      if (provider !== this.geminiProvider) {
-        // Fallback to Gemini if primary fails
-        console.warn(`[AIService] ${provider.constructor.name} failed, falling back to GeminiProvider:`, error.message);
-        return this.geminiProvider.generate(prompt, options);
-      }
-      throw error;
-    }
+    return await provider.generate(prompt, options);
   }
 
   async generateStructured<T>(
@@ -66,16 +48,7 @@ export class AIService {
     options?: AIGenerateOptions,
   ): Promise<T> {
     const provider = this.getProviderForTier(options?.tier);
-    try {
-      return await provider.generateStructured<T>(prompt, schema, options);
-    } catch (error) {
-      if (provider !== this.geminiProvider) {
-        // Fallback to Gemini if primary fails
-        console.warn(`[AIService] ${provider.constructor.name} structured generation failed, falling back to GeminiProvider:`, error.message);
-        return this.geminiProvider.generateStructured<T>(prompt, schema, options);
-      }
-      throw error;
-    }
+    return await provider.generateStructured<T>(prompt, schema, options);
   }
 
   async generateJobDescription(params: {
@@ -86,15 +59,8 @@ export class AIService {
     requiredSkills?: string[];
     preferredCertifications?: string[];
   }): Promise<string> {
-    // Heavy task, use Bedrock
-    if (this.configService.get<string>("ai.bedrock.accessKeyId")) {
-      try {
-        return await this.awsBedrockProvider.generateJobDescription(params);
-      } catch (error) {
-        console.warn(`[AIService] Bedrock generateJobDescription failed, falling back to Gemini:`, error.message);
-      }
-    }
-    return this.geminiProvider.generateJobDescription(params);
+    const provider = this.getProviderForTier(AITaskTier.HEAVY);
+    return provider.generateJobDescription(params);
   }
 
   async extractTextFromPDF(pdfBuffer: Buffer): Promise<string> {
@@ -138,14 +104,7 @@ export class AIService {
       }
     }
 
-    // Heavy task, use Bedrock natively if available
-    if (this.configService.get<string>("ai.bedrock.accessKeyId")) {
-      try {
-        return await this.awsBedrockProvider.extractTextFromPDF(pdfBuffer);
-      } catch (error: any) {
-        console.warn(`[AIService] Bedrock PDF extract failed, falling back to Gemini:`, error.message);
-      }
-    }
-    return this.geminiProvider.extractTextFromPDF(pdfBuffer);
+    const provider = this.getProviderForTier(AITaskTier.HEAVY);
+    return provider.extractTextFromPDF(pdfBuffer);
   }
 }

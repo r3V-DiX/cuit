@@ -8,7 +8,7 @@ import {
   AIGenerateOptions,
   AIGenerateResponse,
 } from "./ai-provider.interface";
-import { AI_PROMPTS } from "../constants/ai.constants";
+import { AITaskTier, AI_PROMPTS } from "../constants/ai.constants";
 
 @Injectable()
 export class AWSBedrockProvider extends AIProvider {
@@ -20,14 +20,14 @@ export class AWSBedrockProvider extends AIProvider {
     const region = this.configService.get<string>("ai.bedrock.region");
     const accessKeyId = this.configService.get<string>("ai.bedrock.accessKeyId");
     const secretAccessKey = this.configService.get<string>("ai.bedrock.secretAccessKey");
-    const modelId = this.configService.get<string>("ai.bedrock.modelId", "us.anthropic.claude-haiku-4-5-20251001-v1:0");
+    const modelLarge = this.configService.get<string>("ai.bedrock.modelLarge", "anthropic.claude-3-5-sonnet-20240620-v1:0");
 
     if (!accessKeyId || !secretAccessKey) {
       this.logger.warn("AWS Bedrock credentials not fully configured");
     }
 
     this.model = new ChatBedrockConverse({
-      model: modelId,
+      model: modelLarge,
       region: region || "us-east-1",
       credentials: {
         accessKeyId: accessKeyId || "",
@@ -43,8 +43,12 @@ export class AWSBedrockProvider extends AIProvider {
     options?: AIGenerateOptions,
   ): Promise<AIGenerateResponse> {
     try {
+      const modelId = options?.tier === AITaskTier.SMALL
+        ? this.configService.get<string>("ai.bedrock.modelSmall", "anthropic.claude-3-haiku-20240307-v1:0")
+        : this.configService.get<string>("ai.bedrock.modelLarge", "anthropic.claude-3-5-sonnet-20240620-v1:0");
+
       const model = options ? new ChatBedrockConverse({
-        model: this.configService.get<string>("ai.bedrock.modelId", "us.anthropic.claude-haiku-4-5-20251001-v1:0"),
+        model: modelId,
         region: this.configService.get<string>("ai.bedrock.region") || "us-east-1",
         credentials: {
           accessKeyId: this.configService.get<string>("ai.bedrock.accessKeyId") || "",
@@ -77,8 +81,12 @@ export class AWSBedrockProvider extends AIProvider {
     options?: AIGenerateOptions,
   ): Promise<T> {
     try {
+      const modelId = options?.tier === AITaskTier.SMALL
+        ? this.configService.get<string>("ai.bedrock.modelSmall", "anthropic.claude-3-haiku-20240307-v1:0")
+        : this.configService.get<string>("ai.bedrock.modelLarge", "anthropic.claude-3-5-sonnet-20240620-v1:0");
+
       const model = options ? new ChatBedrockConverse({
-        model: this.configService.get<string>("ai.bedrock.modelId", "us.anthropic.claude-haiku-4-5-20251001-v1:0"),
+        model: modelId,
         region: this.configService.get<string>("ai.bedrock.region") || "us-east-1",
         credentials: {
           accessKeyId: this.configService.get<string>("ai.bedrock.accessKeyId") || "",

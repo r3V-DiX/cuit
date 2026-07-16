@@ -13,6 +13,7 @@ export default registerAs("ai", () => ({
     region: process.env.BEDROCK_AWS_REGION,
     accessKeyId: process.env.BEDROCK_AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.BEDROCK_AWS_SECRET_ACCESS_KEY,
-    modelId: process.env.BEDROCK_MODEL_ID || "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    modelLarge: process.env.BEDROCK_MODEL_LARGE || "anthropic.claude-3-5-sonnet-20240620-v1:0",
+    modelSmall: process.env.BEDROCK_MODEL_SMALL || "anthropic.claude-3-haiku-20240307-v1:0",
   },
 }));
