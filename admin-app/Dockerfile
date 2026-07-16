@@ -8,7 +8,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY admin-app/package*.json ./admin-app/
-COPY admin-app/tsconfig.json admin-app/tsconfig.build.json admin-app/tsconfig-paths-bootstrap.js admin-app/nest-cli.json ./admin-app/
+COPY admin-app/tsconfig.json admin-app/tsconfig.build.json admin-app/tsconfig-paths-bootstrap.js ./admin-app/
 COPY admin-app/src/ ./admin-app/src/
 
 COPY cykruit-app/libs/ ./cykruit-app/libs/
@@ -32,13 +32,17 @@ WORKDIR /app/admin-app
 
 COPY --from=builder /app/admin-app/package*.json ./
 COPY --from=builder /app/admin-app/node_modules ./node_modules
-COPY --from=builder /app/admin-app/tsconfig-paths-bootstrap.js ./
+COPY admin-app/tsconfig-paths-bootstrap.prod.js ./
 COPY --from=builder /app/admin-app/dist ./dist
-COPY --from=builder /app/cykruit-app/libs ../cykruit-app/libs
 COPY --from=builder /app/cykruit-app/node_modules ../cykruit-app/node_modules
 
 ENV NODE_ENV=production
+# Compiled libs live under admin-app/dist, so Node's upward node_modules walk
+# never reaches cykruit-app's deps (resend, ...) — NODE_PATH is the fallback.
+ENV NODE_PATH=/app/cykruit-app/node_modules
 
 EXPOSE 4010
 
-CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/main.js"]
+# tsc's rootDir spans admin-app + cykruit-app/libs, so main.js lands at
+# dist/admin-app/src/main.js and libs compile to dist/cykruit-app/libs/*.
+CMD ["node", "-r", "./tsconfig-paths-bootstrap.prod.js", "dist/admin-app/src/main.js"]
