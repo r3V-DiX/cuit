@@ -7,11 +7,13 @@ on:
       - main
     paths:
       - 'cykruit-app/**'
+      - '.github/workflows/cykruit-app-ci.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'cykruit-app/**'
+      - '.github/workflows/cykruit-app-ci.yml'
 
 jobs:
   build-and-push:
