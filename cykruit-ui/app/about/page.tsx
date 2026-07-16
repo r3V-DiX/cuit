@@ -47,10 +47,7 @@ export default function AboutPage() {
         {/* ── Hero ── */}
         <div className="relative bg-white border-b border-slate-200 overflow-hidden">
           {/* Grid lines */}
-          <div className="absolute inset-0 pointer-events-none" style={{
-            backgroundImage: "linear-gradient(rgba(59,130,246,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.12) 1px, transparent 1px)",
-            backgroundSize: "44px 44px",
-          }} />
+          <div className="absolute inset-0 pointer-events-none bg-grid-md" />
 
           {/* Circuit lines top-right */}
           <svg className="absolute top-0 right-0 w-80 h-80 pointer-events-none opacity-40" viewBox="0 0 280 280" fill="none">

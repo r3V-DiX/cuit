@@ -155,10 +155,7 @@ function JobsContent() {
         {/* ── Hero / search + filters ─────────────────────────────────────── */}
         <div className="relative bg-white border-b-2 border-slate-200">
           {/* Grid */}
-          <div className="absolute inset-0 pointer-events-none" style={{
-            backgroundImage: "linear-gradient(rgba(59,130,246,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.08) 1px, transparent 1px)",
-            backgroundSize: "44px 44px",
-          }} />
+          <div className="absolute inset-0 pointer-events-none bg-grid-xs" />
           {/* Top glow line */}
           <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-blue-500/60 to-transparent" />
           {/* Bottom glow line */}

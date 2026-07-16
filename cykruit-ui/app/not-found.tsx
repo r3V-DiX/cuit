@@ -5,10 +5,7 @@ export default function NotFound() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center relative overflow-hidden px-4">
       {/* Grid background */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        backgroundImage: "linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px)",
-        backgroundSize: "44px 44px",
-      }} />
+      <div className="absolute inset-0 pointer-events-none bg-grid-faint" />
 
       {/* Corner brackets */}
       <div className="absolute top-6 left-6 w-8 h-8 border-t-2 border-l-2 border-blue-400/20 pointer-events-none" />

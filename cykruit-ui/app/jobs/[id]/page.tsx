@@ -207,10 +207,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="relative bg-white border-b border-slate-200 overflow-hidden">
-          <div className="absolute inset-0 pointer-events-none opacity-40" style={{
-            backgroundImage: "linear-gradient(rgba(59,130,246,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.1) 1px, transparent 1px)",
-            backgroundSize: "44px 44px",
-          }} />
+          <div className="absolute inset-0 pointer-events-none opacity-40 bg-grid-sm" />
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-400/50 to-transparent" />
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">

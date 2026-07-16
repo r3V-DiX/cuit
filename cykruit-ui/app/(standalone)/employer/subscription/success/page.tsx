@@ -84,10 +84,7 @@ function SuccessContent() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Grid bg */}
-      <div className="fixed inset-0 pointer-events-none z-0" style={{
-        backgroundImage: "linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px)",
-        backgroundSize: "44px 44px",
-      }} />
+      <div className="fixed inset-0 pointer-events-none z-0 bg-grid-ghost" />
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none z-0" />
 
       {/* Top bar */}

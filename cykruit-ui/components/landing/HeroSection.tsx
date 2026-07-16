@@ -22,14 +22,7 @@ export default function HeroSection() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
 
       {/* Grid lines */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(59,130,246,0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.18) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
-        }}
-      />
+      <div className="absolute inset-0 bg-grid-hero" />
 
 
       {/* Circuit lines — top-left */}

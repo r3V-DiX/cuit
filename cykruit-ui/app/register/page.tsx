@@ -9,10 +9,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center relative overflow-hidden px-4">
       {/* Grid background */}
-      <div className="absolute inset-0 pointer-events-none" style={{
-        backgroundImage: "linear-gradient(rgba(59,130,246,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.07) 1px, transparent 1px)",
-        backgroundSize: "44px 44px",
-      }} />
+      <div className="absolute inset-0 pointer-events-none bg-grid-auth" />
 
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-80 bg-blue-500/6 rounded-full blur-3xl pointer-events-none" />
 

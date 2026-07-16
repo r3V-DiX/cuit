@@ -148,3 +148,73 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #60a5fa;
 }
+
+/* ── Grid line patterns ────────────────────────────────────────────────────────
+   Applied as CSS classes so the grid is painted from the stylesheet on first
+   paint and never flashes during React hydration (inline style props cause a
+   momentary blank on SSR → hydration reconciliation).
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* hero section — 48px, blue 0.18 */
+.bg-grid-hero {
+  background-image:
+    linear-gradient(rgba(59,130,246,0.18) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.18) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+/* employers / about — 44px, blue 0.12 */
+.bg-grid-md {
+  background-image:
+    linear-gradient(rgba(59,130,246,0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.12) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+/* job detail / preview — 44px, blue 0.10 */
+.bg-grid-sm {
+  background-image:
+    linear-gradient(rgba(59,130,246,0.10) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.10) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+/* jobs listing — 44px, blue 0.08 */
+.bg-grid-xs {
+  background-image:
+    linear-gradient(rgba(59,130,246,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.08) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+/* login / register / register-seeker — 44px, blue 0.07 */
+.bg-grid-auth {
+  background-image:
+    linear-gradient(rgba(59,130,246,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.07) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+/* register-employer — 44px, purple 0.07 */
+.bg-grid-auth-purple {
+  background-image:
+    linear-gradient(rgba(139,92,246,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139,92,246,0.07) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+/* not-found / pricing — 44px, blue 0.05 */
+.bg-grid-faint {
+  background-image:
+    linear-gradient(rgba(59,130,246,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+/* success page — 44px, blue 0.04 */
+.bg-grid-ghost {
+  background-image:
+    linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+/* profile page card — 24px, purple 0.30 */
+.bg-grid-purple-dense {
+  background-image:
+    linear-gradient(rgba(139,92,246,0.30) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139,92,246,0.30) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

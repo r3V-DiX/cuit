@@ -1061,10 +1061,7 @@ export default function ProfilePage() {
 
             {/* AI autofill */}
             <div className="relative rounded-xl overflow-hidden border border-violet-200 bg-linear-to-r from-violet-50 to-purple-50 px-4 py-3 flex items-center gap-3">
-              <div className="absolute inset-0 pointer-events-none opacity-20" style={{
-                backgroundImage: "linear-gradient(rgba(139,92,246,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(139,92,246,0.3) 1px, transparent 1px)",
-                backgroundSize: "24px 24px",
-              }} />
+              <div className="absolute inset-0 pointer-events-none opacity-20 bg-grid-purple-dense" />
               <div className="relative z-10 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-violet-500 shrink-0" />
                 <div>
