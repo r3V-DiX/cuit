@@ -201,7 +201,7 @@ export default function PricingClient({ packages }: { packages: PricingPackage[]
 
       {/* Hero */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none bg-grid-faint" />
+        {/* grid rendered by server parent page.tsx */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative max-w-4xl mx-auto px-6 py-20 text-center">

@@ -18,5 +18,10 @@ async function getPackages(): Promise<PricingPackage[]> {
 
 export default async function PricingPage() {
   const packages = await getPackages();
-  return <PricingClient packages={packages} />;
+  return (
+    <div className="relative">
+      <div className="absolute inset-0 pointer-events-none bg-grid-faint" />
+      <PricingClient packages={packages} />
+    </div>
+  );
 }

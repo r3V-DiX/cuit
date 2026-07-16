@@ -154,7 +154,7 @@ function JobsContent() {
 
         {/* ── Hero / search + filters ─────────────────────────────────────── */}
         <div className="relative bg-white border-b-2 border-slate-200">
-          {/* Grid */}
+          {/* Grid — server-safe CSS class, no inline style */}
           <div className="absolute inset-0 pointer-events-none bg-grid-xs" />
           {/* Top glow line */}
           <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-blue-500/60 to-transparent" />
@@ -256,7 +256,7 @@ function JobsContent() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-900">Smart Search <span className="ml-1 text-[10px] font-bold text-white bg-violet-500 px-1.5 py-0.5 rounded-full align-middle">AI</span></p>
-                <p className="text-xs text-slate-400">Describe what you're looking for in plain English</p>
+                <p className="text-xs text-slate-400">Describe what you&apos;re looking for in plain English</p>
               </div>
               <button
                 type="button"

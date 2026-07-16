@@ -13,7 +13,7 @@ import { broadcastLogin } from "@/lib/auth-sync";
 function PageBackground() {
   return (
     <>
-      <div className="absolute inset-0 pointer-events-none bg-grid-auth" />
+      {/* grid rendered by server layout.tsx */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-80 bg-blue-500/6 rounded-full blur-3xl pointer-events-none" />
       <svg className="absolute top-0 right-0 w-72 h-72 pointer-events-none opacity-30" viewBox="0 0 260 260" fill="none">
         <path d="M260 50 L200 50 L200 10 L120 10" stroke="#3B82F6" strokeWidth="1.5" strokeDasharray="4 3"/>
@@ -278,7 +278,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center relative overflow-hidden px-4">
+    <>
       <PageBackground />
 
       <div className="relative z-10 w-full max-w-md">
@@ -472,7 +472,7 @@ function LoginForm() {
           <span className="text-xs font-mono text-slate-400 tracking-widest">VERIFIED · SECURE · ENCRYPTED</span>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
