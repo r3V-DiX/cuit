@@ -23,7 +23,6 @@ import { SessionMobileService } from "./services/session-mobile.service";
 import { CleanupService } from "./services/cleanup.service";
 import { OAuthBaseService } from "./services/oauth/oauth-base.service";
 import { GoogleOAuthService } from "./services/oauth/google-oauth.service";
-import { GitHubOAuthService } from "./services/oauth/github-oauth.service";
 import { AuthRepository } from "./repositories/auth.repository";
 
 // ✅ CsrfGuard import from local guards REMOVED — now lives in @cykruit/auth-core
@@ -75,7 +74,6 @@ import { AuthRepository } from "./repositories/auth.repository";
     CleanupService,
     OAuthBaseService,
     GoogleOAuthService,
-    GitHubOAuthService,
     AuthRepository,
   ],
   exports: [AuthService, OtpService, SessionService],

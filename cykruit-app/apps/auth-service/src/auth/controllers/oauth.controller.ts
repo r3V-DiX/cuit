@@ -20,7 +20,6 @@ import {
 import { ConfigService } from "@nestjs/config";
 import type { Request, Response } from "express";
 import { GoogleOAuthService } from "../services/oauth/google-oauth.service";
-import { GitHubOAuthService } from "../services/oauth/github-oauth.service";
 import { CsrfGuard, Public } from "@cykruit/auth-core";
 import { CookieConfig } from "@cykruit/config";
 import { AppLogger } from "@cykruit/logger";
@@ -35,8 +34,6 @@ export class OAuthController {
 
   constructor(
     private readonly googleOAuthService: GoogleOAuthService,
-    private readonly githubOAuthService: GitHubOAuthService,
-    // FIX [6] + [5]: Inject CsrfGuard to generate CSRF token on OAuth login
     private readonly csrfGuard: CsrfGuard,
     private readonly logger: AppLogger,
     private readonly configService: ConfigService,
@@ -118,7 +115,10 @@ export class OAuthController {
         `Google OAuth successful: ${result.user.email}`,
         "OAuthController",
       );
-      return res.redirect(`${appUrl}/auth/callback`);
+      const callbackUrl = result.isNewUser
+        ? `${appUrl}/auth/callback?new=1`
+        : `${appUrl}/auth/callback`;
+      return res.redirect(callbackUrl);
     } catch (error) {
       this.logger.error(
         `Google OAuth failed: ${error.message}`,
@@ -126,92 +126,6 @@ export class OAuthController {
         "OAuthController",
       );
       const errorCode = error?.response?.code || error?.code || ErrorCodes.GOOGLE_AUTH_FAILED;
-      return res.redirect(`${appUrl}/login?error=${errorCode}`);
-    }
-  }
-
-  // ── GitHub ──────────────────────────────────────────────────
-
-  @Public()
-  @OAuthRateLimit()
-  @Get("github")
-  @HttpCode(HttpStatus.OK)
-  async githubAuth(@Query("role") roleParam?: string) {
-    try {
-      const role = this.parseRole(roleParam);
-      const { url } = await this.githubOAuthService.getAuthorizationUrl(role);
-      this.logger.log(
-        `GitHub OAuth URL generated for role: ${role}`,
-        "OAuthController",
-      );
-      return {
-        data: { url, provider: "github" },
-        message: "GitHub OAuth URL generated",
-      };
-    } catch (error) {
-      if (error instanceof BadRequestException) throw error;
-      throw new InternalServerErrorException({
-        code: ErrorCodes.OAUTH_INIT_FAILED,
-        message: "Failed to initialize GitHub OAuth. Please try again.",
-      });
-    }
-  }
-
-  @Public()
-  @Get("github/callback")
-  async githubCallback(
-    @Query("code") code: string,
-    @Query("state") state: string,
-    @Req() req: Request,
-    @Res() res: Response,
-  ) {
-    const appUrl = this.appUrl;
-    if (!code || !state) {
-      return res.redirect(`${appUrl}/login?error=oauth_params_missing`);
-    }
-
-    try {
-      const ipAddress = sanitizeIpAddress(req.ip || req.socket.remoteAddress);
-      const userAgent = req.headers["user-agent"];
-      const result = await this.githubOAuthService.handleCallback(
-        code,
-        state,
-        ipAddress,
-        userAgent,
-      );
-
-      // Session cookie
-      res.cookie(
-        CookieConfig.COOKIE_NAMES.SESSION,
-        result.sessionToken,
-        CookieConfig.getSessionCookieOptions(false),
-      );
-
-      // FIX [6]: Set CSRF cookie — was missing, caused 403 on all subsequent mutating requests
-      res.cookie(
-        CookieConfig.COOKIE_NAMES.CSRF,
-        this.csrfGuard.generateToken(),
-        CookieConfig.getCsrfCookieOptions(),
-      );
-
-      res.cookie(
-        CookieConfig.COOKIE_NAMES.ROLE,
-        result.user.role,
-        CookieConfig.getRoleCookieOptions(false),
-      );
-
-      this.logger.log(
-        `GitHub OAuth successful: ${result.user.email}`,
-        "OAuthController",
-      );
-      return res.redirect(`${appUrl}/auth/callback`);
-    } catch (error) {
-      this.logger.error(
-        `GitHub OAuth failed: ${error.message}`,
-        error.stack,
-        "OAuthController",
-      );
-      const errorCode = error?.response?.code || error?.code || ErrorCodes.GITHUB_AUTH_FAILED;
       return res.redirect(`${appUrl}/login?error=${errorCode}`);
     }
   }

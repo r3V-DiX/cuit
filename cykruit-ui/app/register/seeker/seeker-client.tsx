@@ -123,6 +123,11 @@ export default function SeekerClient() {
         router.push("/login");
         return;
       }
+      if (err instanceof ApiError && err.code === "ROLE_MISMATCH") {
+        toast({ type: "error", message: "This email is registered as an Employer. Please sign in on the employer portal." });
+        router.push("/login");
+        return;
+      }
       toast({ type: "error", message: err.message || "Failed to send OTP" });
     } finally {
       setLoading(false);

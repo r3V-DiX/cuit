@@ -1,15 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Shield } from "lucide-react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { broadcastLogin } from "@/lib/auth-sync";
 
 export default function AuthCallbackPage() {
+  return (
+    <Suspense>
+      <AuthCallback />
+    </Suspense>
+  );
+}
+
+function AuthCallback() {
   const router = useRouter();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const isNewUser = searchParams.get("new") === "1";
 
   useEffect(() => {
     async function completeAuth() {
@@ -17,6 +27,13 @@ export default function AuthCallbackPage() {
         const { data } = await apiFetch<{ role?: string; employerStatus?: { hasProfile?: boolean; needsVerification?: boolean } }>("/api/auth/me");
         const role = data?.role;
         broadcastLogin(role === "EMPLOYER" ? "EMPLOYER" : "SEEKER");
+
+        if (isNewUser) {
+          toast({ type: "success", message: "Account created! Complete your profile to get started." });
+          router.push(role === "EMPLOYER" ? "/kyc/employer" : "/dashboard");
+          return;
+        }
+
         toast({ type: "success", message: "Signed in successfully" });
         if (role === "EMPLOYER") {
           const es = data?.employerStatus as { hasProfile?: boolean; needsVerification?: boolean } | undefined;
@@ -28,7 +45,7 @@ export default function AuthCallbackPage() {
         } else {
           router.push("/dashboard");
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (err instanceof ApiError) {
           toast({ type: "error", message: "Authentication failed", description: "Could not retrieve user session." });
         } else {
@@ -38,7 +55,8 @@ export default function AuthCallbackPage() {
       }
     }
     completeAuth();
-  }, [router, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">

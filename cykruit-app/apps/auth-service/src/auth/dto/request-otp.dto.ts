@@ -7,8 +7,9 @@ export class RequestOtpDto {
   @IsEmail({}, { message: "Invalid email format" })
   email: string;
 
+  @IsOptional()
   @IsIn([UserRole.SEEKER, UserRole.EMPLOYER], { message: "Role must be SEEKER or EMPLOYER" })
-  role: UserRole;
+  role?: UserRole;
 
   @IsOptional()
   @IsIn(["login", "register"], { message: "flow must be login or register" })

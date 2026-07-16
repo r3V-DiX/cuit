@@ -24,12 +24,17 @@ let _loggingOut = false;
 
 export async function apiFetch<T = unknown>(
   url: string,
-  options?: RequestInit,
+  options?: RequestInit & { skipAuthRedirect?: boolean },
 ): Promise<ApiResult<T>> {
+  const { skipAuthRedirect, ...fetchOptions } = options ?? {};
   const response = await fetch(url, {
-    ...options,
+    ...fetchOptions,
     credentials: 'include',
   });
+
+  if (response.status === 401 && skipAuthRedirect) {
+    return { data: undefined as unknown as T };
+  }
 
   let body: unknown;
   try {

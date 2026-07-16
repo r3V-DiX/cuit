@@ -128,35 +128,10 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") ?? "";
 
-  // Pre-select role from nextPath hint, but user can change it
-  const hintRole = nextPath.startsWith("/employer") || nextPath.startsWith("/kyc") ? "EMPLOYER" : "SEEKER";
-  const [role, setRole] = useState<"SEEKER" | "EMPLOYER">(hintRole);
-
-  // Personal email domains not accepted for employer accounts — kept in sync with backend email-domain.util.ts
-  const PERSONAL_DOMAINS = new Set([
-    "gmail.com","googlemail.com",
-    "yahoo.com","yahoo.in","yahoo.co.in","yahoo.co.uk","ymail.com","rocketmail.com",
-    "hotmail.com","hotmail.in","hotmail.co.uk","outlook.com","outlook.in","live.com","live.in","msn.com",
-    "icloud.com","me.com","mac.com",
-    "aol.com",
-    "protonmail.com","proton.me","tutanota.com","tutamail.com","tuta.io","hushmail.com",
-    "zoho.com","fastmail.com","gmx.com","gmx.net","web.de",
-    "inbox.com","mail.com","libero.it",
-    "yandex.com","yandex.ru","qq.com","163.com","126.com",
-    "rediffmail.com",
-    "guerrillamail.com","tempmail.com","throwam.com","sharklasers.com","mailnull.com",
-  ]);
-
-  function isPersonalEmail(e: string): boolean {
-    const domain = e.split("@")[1]?.toLowerCase();
-    return !!domain && PERSONAL_DOMAINS.has(domain);
-  }
-
   // Show OAuth error redirected back from backend (e.g. ?error=GOOGLE_AUTH_FAILED)
   const OAUTH_ERROR_MESSAGES: Record<string, string> = {
     GOOGLE_AUTH_FAILED:    "Google sign-in failed. Please try again.",
-    GITHUB_AUTH_FAILED:    "GitHub sign-in failed. Please try again.",
-    OAUTH_INVALID_ROLE:    "Invalid role selected. Please choose Seeker or Employer.",
+    OAUTH_INVALID_ROLE:    "Sign-in failed. Please try again.",
     INVALID_OAUTH_STATE:   "Sign-in session expired. Please try again.",
     GOOGLE_TOKEN_INVALID:  "Google returned an invalid token. Please try again.",
     OAUTH_EMAIL_MISSING:   "Google did not share your email. Enable email access and retry.",
@@ -176,20 +151,12 @@ function LoginForm() {
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) { toast({ type: "error", message: "Email is required" }); return; }
-    if (role === "EMPLOYER" && isPersonalEmail(email.trim())) {
-      toast({
-        type: "error",
-        message: "Company email required",
-        description: "Employer accounts must use a company email address. Personal emails like Gmail or Yahoo are not accepted.",
-      });
-      return;
-    }
     setLoading(true);
     try {
       await apiFetch("/api/auth/request-otp", {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ email: email.trim().toLowerCase(), role, flow: "login" }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), flow: "login" }),
       });
       setStep("otp");
       startResendCooldown();
@@ -198,6 +165,10 @@ function LoginForm() {
       if (err instanceof ApiError && (err.code === "ACCOUNT_NOT_FOUND" || err.code === "REGISTRATION_INCOMPLETE")) {
         toast({ type: "error", message: err.message });
         router.push("/register");
+        return;
+      }
+      if (err instanceof ApiError && err.code === "ROLE_MISMATCH") {
+        toast({ type: "error", message: err.message });
         return;
       }
       toast({ type: "error", message: err.message || "Failed to send OTP" });
@@ -252,7 +223,7 @@ function LoginForm() {
       await apiFetch("/api/auth/request-otp", {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ email: email.trim().toLowerCase(), role, flow: "login" }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), flow: "login" }),
       });
       setOtp("");
       startResendCooldown();
@@ -266,7 +237,7 @@ function LoginForm() {
 
   async function handleGoogleSignIn() {
     try {
-      const result = await apiFetch<{ url?: string }>(`/api/auth/google?role=${role}`);
+      const result = await apiFetch<{ url?: string }>("/api/auth/google");
       if (result.data?.url) {
         window.location.href = result.data.url;
       } else {
@@ -327,25 +298,6 @@ function LoginForm() {
 
                 <form className="space-y-4" onSubmit={handleSendOtp}>
                   <div>
-                    <label className="block text-xs font-mono text-slate-400 tracking-widest mb-1.5 uppercase">I am a</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(["SEEKER", "EMPLOYER"] as const).map((r) => (
-                        <button
-                          key={r}
-                          type="button"
-                          onClick={() => setRole(r)}
-                          className={`h-10 rounded-xl border text-base font-medium transition-all ${
-                            role === r
-                              ? "border-blue-500 bg-blue-50 text-blue-700"
-                              : "border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300"
-                          }`}
-                        >
-                          {r === "SEEKER" ? "Job Seeker" : "Employer"}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
                     <label className="block text-xs font-mono text-slate-400 tracking-widest mb-1.5 uppercase">Email</label>
                     <input
                       type="email"
@@ -377,29 +329,25 @@ function LoginForm() {
                   </button>
                 </form>
 
-                {role === "SEEKER" && (
-                  <>
-                    <div className="flex items-center gap-3 my-6">
-                      <div className="flex-1 h-px bg-slate-100" />
-                      <span className="text-xs font-mono text-slate-400 tracking-widest">OR</span>
-                      <div className="flex-1 h-px bg-slate-100" />
-                    </div>
+                <div className="flex items-center gap-3 my-6">
+                  <div className="flex-1 h-px bg-slate-100" />
+                  <span className="text-xs font-mono text-slate-400 tracking-widest">OR</span>
+                  <div className="flex-1 h-px bg-slate-100" />
+                </div>
 
-                    <button
-                      type="button"
-                      onClick={handleGoogleSignIn}
-                      className="w-full h-11 rounded-xl bg-white border border-slate-200 text-slate-700 text-base font-medium hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-3 shadow-sm"
-                    >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                      </svg>
-                      Continue with Google
-                    </button>
-                  </>
-                )}
+                <button
+                  type="button"
+                  onClick={handleGoogleSignIn}
+                  className="w-full h-11 rounded-xl bg-white border border-slate-200 text-slate-700 text-base font-medium hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-3 shadow-sm"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                  </svg>
+                  Continue with Google
+                </button>
 
                 <p className="text-center text-sm text-slate-500 mt-6">
                   New here?{" "}

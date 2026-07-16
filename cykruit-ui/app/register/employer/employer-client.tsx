@@ -156,6 +156,11 @@ export default function EmployerClient() {
         router.push("/login");
         return;
       }
+      if (err instanceof ApiError && err.code === "ROLE_MISMATCH") {
+        toast({ type: "error", message: "This email is registered as a Job Seeker. Please sign in on the seeker portal." });
+        router.push("/login");
+        return;
+      }
       toast({ type: "error", message: err.message || "Failed to send OTP" });
     } finally {
       setLoading(false);

@@ -62,7 +62,7 @@ export class OtpService {
 
   async requestOtp(
     email: string,
-    role: UserRole,
+    role: UserRole | undefined,
     ip: string,
     ua: string,
     flow?: "login" | "register",
@@ -71,7 +71,7 @@ export class OtpService {
 
     await this.enforceEmailRateLimit(email);
 
-    if (role !== UserRole.SEEKER && role !== UserRole.EMPLOYER) {
+    if (role !== undefined && role !== UserRole.SEEKER && role !== UserRole.EMPLOYER) {
       throw new BadRequestException({
         code: "INVALID_ROLE",
         message: "Role must be SEEKER or EMPLOYER.",
@@ -88,11 +88,16 @@ export class OtpService {
 
     let user = await this.authRepository.findUserByEmail(email);
 
-    if (user && user.role !== role) {
+    // When role is provided (register flow or explicit login toggle), enforce match.
+    // When role is omitted (login without toggle), derive it from the existing account.
+    if (role !== undefined && user && user.role !== role) {
       throw new BadRequestException({
         code: "ROLE_MISMATCH",
         message: "No account found for this email on this portal. Try the other sign-in page.",
       });
+    }
+    if (role === undefined && flow === "login" && user) {
+      role = user.role;
     }
 
     // Flow gate: login requires an existing ACTIVE account; register requires no account yet
@@ -133,6 +138,12 @@ export class OtpService {
     const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60_000);
 
     if (!user) {
+      if (!role) {
+        throw new BadRequestException({
+          code: "ROLE_REQUIRED",
+          message: "Role is required to create a new account.",
+        });
+      }
       // Create stub user — PENDING status, no password, isEmailVerified=false.
       // token.create is inside the same transaction so user + OTP are atomic.
       let tokenCreatedInTx = false;
