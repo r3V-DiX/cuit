@@ -23,13 +23,14 @@ export class EmbeddingProvider implements IEmbeddingProvider {
       const secretAccessKey = this.configService.get<string>("ai.bedrock.secretAccessKey");
       const model = this.configService.get<string>("BEDROCK_EMBEDDING_MODEL") || "amazon.titan-embed-text-v2:0";
 
+      // Explicit credentials override the SDK default chain, so only pass them when
+      // both keys are configured (local dev); on EC2 the instance role authenticates.
       this.embeddingsModel = new BedrockEmbeddings({
         region,
         model,
-        credentials: {
-          accessKeyId: accessKeyId || "",
-          secretAccessKey: secretAccessKey || "",
-        }
+        ...(accessKeyId && secretAccessKey
+          ? { credentials: { accessKeyId, secretAccessKey } }
+          : {}),
       });
     } else {
       // Default to Local Ollama model for development

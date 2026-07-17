@@ -18,24 +18,28 @@ export class AWSBedrockProvider extends AIProvider {
   constructor(private configService: ConfigService) {
     super();
     const region = this.configService.get<string>("ai.bedrock.region");
-    const accessKeyId = this.configService.get<string>("ai.bedrock.accessKeyId");
-    const secretAccessKey = this.configService.get<string>("ai.bedrock.secretAccessKey");
     const modelLarge = this.configService.get<string>("ai.bedrock.modelLarge", "anthropic.claude-3-5-sonnet-20240620-v1:0");
+    const credentials = this.staticCredentials();
 
-    if (!accessKeyId || !secretAccessKey) {
-      this.logger.warn("AWS Bedrock credentials not fully configured");
+    if (!credentials) {
+      this.logger.log("No static Bedrock credentials set — using AWS default credential chain (instance role)");
     }
 
     this.model = new ChatBedrockConverse({
       model: modelLarge,
       region: region || "us-east-1",
-      credentials: {
-        accessKeyId: accessKeyId || "",
-        secretAccessKey: secretAccessKey || "",
-      },
+      ...(credentials ? { credentials } : {}),
       temperature: 0.7,
       maxTokens: 4096,
     });
+  }
+
+  // Explicit credentials override the SDK default chain, so only pass them when
+  // both keys are configured (local dev); on EC2 the instance role authenticates.
+  private staticCredentials(): { accessKeyId: string; secretAccessKey: string } | undefined {
+    const accessKeyId = this.configService.get<string>("ai.bedrock.accessKeyId");
+    const secretAccessKey = this.configService.get<string>("ai.bedrock.secretAccessKey");
+    return accessKeyId && secretAccessKey ? { accessKeyId, secretAccessKey } : undefined;
   }
 
   async generate(
@@ -47,13 +51,11 @@ export class AWSBedrockProvider extends AIProvider {
         ? this.configService.get<string>("ai.bedrock.modelSmall", "anthropic.claude-3-haiku-20240307-v1:0")
         : this.configService.get<string>("ai.bedrock.modelLarge", "anthropic.claude-3-5-sonnet-20240620-v1:0");
 
+      const credentials = this.staticCredentials();
       const model = options ? new ChatBedrockConverse({
         model: modelId,
         region: this.configService.get<string>("ai.bedrock.region") || "us-east-1",
-        credentials: {
-          accessKeyId: this.configService.get<string>("ai.bedrock.accessKeyId") || "",
-          secretAccessKey: this.configService.get<string>("ai.bedrock.secretAccessKey") || "",
-        },
+        ...(credentials ? { credentials } : {}),
         maxTokens: options.maxTokens || 4096,
         temperature: options.temperature ?? 0.7,
         topP: options.topP,
@@ -85,13 +87,11 @@ export class AWSBedrockProvider extends AIProvider {
         ? this.configService.get<string>("ai.bedrock.modelSmall", "anthropic.claude-3-haiku-20240307-v1:0")
         : this.configService.get<string>("ai.bedrock.modelLarge", "anthropic.claude-3-5-sonnet-20240620-v1:0");
 
+      const credentials = this.staticCredentials();
       const model = options ? new ChatBedrockConverse({
         model: modelId,
         region: this.configService.get<string>("ai.bedrock.region") || "us-east-1",
-        credentials: {
-          accessKeyId: this.configService.get<string>("ai.bedrock.accessKeyId") || "",
-          secretAccessKey: this.configService.get<string>("ai.bedrock.secretAccessKey") || "",
-        },
+        ...(credentials ? { credentials } : {}),
         maxTokens: options.maxTokens || 4096,
         temperature: options.temperature ?? 0.7,
         topP: options.topP,
