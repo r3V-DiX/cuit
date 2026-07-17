@@ -106,21 +106,21 @@ export class DiscountService {
         });
 
         for (const discount of candidates) {
+            // assertEligible throws for globally-ineligible discounts — skip those.
             try {
                 this.assertEligible(discount, employerId, packageId, billingCycle, baseAmountPaise, discount._count.usages);
-
-                const perUserCount = await this.prisma.discountUsage.count({
-                    where: { discountId: discount.id, employerId },
-                });
-                if (perUserCount >= discount.maxUsesPerUser) continue;
-
-                // Evaluate JSON conditions
-                if (!await this.evaluateConditions(discount.conditions, employerId, billingCycle)) continue;
-
-                return this.buildPreview(discount, baseAmountPaise);
             } catch {
                 continue;
             }
+
+            const perUserCount = await this.prisma.discountUsage.count({
+                where: { discountId: discount.id, employerId },
+            });
+            if (perUserCount >= discount.maxUsesPerUser) continue;
+
+            if (!await this.evaluateConditions(discount.conditions, employerId, billingCycle)) continue;
+
+            return this.buildPreview(discount, baseAmountPaise);
         }
 
         return null;

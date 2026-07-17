@@ -140,7 +140,7 @@ export class JobsRepository {
             await tx.application.updateMany({
                 where: {
                     jobId: id,
-                    status: { in: [ApplicationStatus.APPLIED, ApplicationStatus.UNDER_REVIEW] },
+                    status: { in: [ApplicationStatus.APPLIED, ApplicationStatus.UNDER_REVIEW, ApplicationStatus.SHORTLISTED] },
                 },
                 data: { status: ApplicationStatus.WITHDRAWN },
             });

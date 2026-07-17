@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Shield, CheckCircle, XCircle, Loader2, Users, Building2 } from "lucide-react";
+import { Shield, CheckCircle, XCircle, Loader2, Users, Building2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { apiFetch, authHeaders, ApiError } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
@@ -15,6 +15,7 @@ interface InvitePreview {
   role: string;
   expiresAt: string;
   invitedEmail: string | null;
+  requiresRoleUpgrade: boolean;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -130,9 +131,21 @@ export default function AcceptInvitePage() {
               </p>
 
               {preview.invitedEmail && (
-                <div className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 mb-6 text-left">
+                <div className="bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 mb-4 text-left">
                   <p className="text-xs text-slate-500 mb-0.5">Invitation sent to</p>
                   <p className="text-sm font-medium text-slate-800">{preview.invitedEmail}</p>
+                </div>
+              )}
+
+              {preview.requiresRoleUpgrade && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-6 text-left flex gap-3">
+                  <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-amber-700 mb-0.5">Account type will change</p>
+                    <p className="text-xs text-amber-600">
+                      Accepting this invite converts your account to an Employer account. You will no longer be able to apply to jobs as a candidate.
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -142,7 +155,7 @@ export default function AcceptInvitePage() {
                   className="w-full h-11 rounded-xl bg-violet-500 text-white text-sm font-semibold hover:bg-violet-600 active:bg-violet-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Users className="w-4 h-4" />
-                  Accept &amp; Join Team
+                  {preview.requiresRoleUpgrade ? "Accept & Upgrade Account" : "Accept & Join Team"}
                 </button>
                 <Link
                   href="/employer/dashboard"

@@ -61,23 +61,25 @@ export class TeamController {
 
     /**
      * GET /employer/team/invite-preview?token=...
-     * Returns invite metadata (company name, role, expiry) without consuming the token.
-     * Used by the accept-invite UI to show a confirmation screen before committing.
+     * Returns invite metadata (company name, role, expiry, requiresRoleUpgrade) without consuming the token.
+     * Accessible to both SEEKER and EMPLOYER roles — SEEKER needs to see the upgrade warning.
      */
     @Get('invite-preview')
     @SkipKycCheck()
-    previewInvite(@Query('token') token: string) {
-        return this.teamService.previewInvite(token);
+    @Roles(UserRole.SEEKER, UserRole.EMPLOYER)
+    previewInvite(@CurrentUser() user: User, @Query('token') token: string) {
+        return this.teamService.previewInvite(token, user.id);
     }
 
     /**
      * POST /employer/team/accept-invite
-     * Accepts a pending invitation using the raw token from the invite link.
-     * The user must be authenticated (they register first if they don't have an account).
+     * Accepts a pending invitation. SEEKER accounts are atomically upgraded to EMPLOYER
+     * and added as a team member in a single transaction.
      */
     @Post('accept-invite')
     @HttpCode(HttpStatus.CREATED)
     @SkipKycCheck()
+    @Roles(UserRole.SEEKER, UserRole.EMPLOYER)
     acceptInvite(@CurrentUser() user: User, @Body() dto: AcceptInviteDto) {
         return this.teamService.acceptInvite(user.id, dto.token);
     }

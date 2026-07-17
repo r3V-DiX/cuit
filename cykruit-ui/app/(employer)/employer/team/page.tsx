@@ -74,7 +74,7 @@ export default function TeamPage() {
       const me = items.find((m) => m.userId === myId);
       setMyRole(me?.role ?? null);
     } catch (err: unknown) {
-      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to load team") });
+      toast({ type: "error", message: (err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Failed to load team") });
     } finally {
       setLoading(false);
     }

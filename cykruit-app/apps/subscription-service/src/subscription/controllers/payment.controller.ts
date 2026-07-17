@@ -16,13 +16,17 @@ import {
 import type { Request } from 'express';
 import { AuthGuard, CsrfGuard, CurrentUser, Public } from '@cykruit/auth-core';
 import type { User } from '@prisma/client';
+import { AppLogger } from '@cykruit/logger';
 import { PaymentService } from '../services/payment.service';
 import { CreateOrderDto } from '../dto/payment.dto';
 
 @Controller('subscriptions')
 export class PaymentController {
 
-    constructor(private readonly paymentService: PaymentService) {}
+    constructor(
+        private readonly paymentService: PaymentService,
+        private readonly logger: AppLogger,
+    ) {}
 
     /** POST /subscriptions/orders — create Razorpay order */
     @Post('orders')
@@ -47,9 +51,11 @@ export class PaymentController {
         @Headers('x-razorpay-signature') signature: string,
     ) {
         if (!req.rawBody) {
+            this.logger.warn('Webhook rejected: missing raw body', 'PaymentController');
             throw new UnprocessableEntityException('Raw body required');
         }
         if (!signature) {
+            this.logger.warn('Webhook rejected: missing x-razorpay-signature header', 'PaymentController');
             throw new UnprocessableEntityException('Missing x-razorpay-signature header');
         }
         await this.paymentService.handleWebhook(req.rawBody, signature);
