@@ -7,11 +7,13 @@ on:
       - main
     paths:
       - "admin-ui/**"
+      - ".github/workflows/admin-ui-prod.yml"
   pull_request:
     branches:
       - main
     paths:
       - "admin-ui/**"
+      - ".github/workflows/admin-ui-prod.yml"
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 

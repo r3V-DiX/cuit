@@ -9,6 +9,7 @@ on:
       - "admin-app/**"
       - "cykruit-app/libs/**"
       - "cykruit-app/prisma/**"
+      - ".github/workflows/admin-app-prod.yml"
   pull_request:
     branches:
       - main
@@ -16,6 +17,7 @@ on:
       - "admin-app/**"
       - "cykruit-app/libs/**"
       - "cykruit-app/prisma/**"
+      - ".github/workflows/admin-app-prod.yml"
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
