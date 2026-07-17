@@ -18,7 +18,7 @@ export class AWSBedrockProvider extends AIProvider {
   constructor(private configService: ConfigService) {
     super();
     const region = this.configService.get<string>("ai.bedrock.region");
-    const modelLarge = this.configService.get<string>("ai.bedrock.modelLarge", "anthropic.claude-3-5-sonnet-20240620-v1:0");
+    const modelLarge = this.configService.get<string>("ai.bedrock.modelLarge", "us.anthropic.claude-sonnet-4-5-20250929-v1:0");
     const credentials = this.staticCredentials();
 
     if (!credentials) {
@@ -48,8 +48,8 @@ export class AWSBedrockProvider extends AIProvider {
   ): Promise<AIGenerateResponse> {
     try {
       const modelId = options?.tier === AITaskTier.SMALL
-        ? this.configService.get<string>("ai.bedrock.modelSmall", "anthropic.claude-3-haiku-20240307-v1:0")
-        : this.configService.get<string>("ai.bedrock.modelLarge", "anthropic.claude-3-5-sonnet-20240620-v1:0");
+        ? this.configService.get<string>("ai.bedrock.modelSmall", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
+        : this.configService.get<string>("ai.bedrock.modelLarge", "us.anthropic.claude-sonnet-4-5-20250929-v1:0");
 
       const credentials = this.staticCredentials();
       const model = options ? new ChatBedrockConverse({
@@ -84,8 +84,8 @@ export class AWSBedrockProvider extends AIProvider {
   ): Promise<T> {
     try {
       const modelId = options?.tier === AITaskTier.SMALL
-        ? this.configService.get<string>("ai.bedrock.modelSmall", "anthropic.claude-3-haiku-20240307-v1:0")
-        : this.configService.get<string>("ai.bedrock.modelLarge", "anthropic.claude-3-5-sonnet-20240620-v1:0");
+        ? this.configService.get<string>("ai.bedrock.modelSmall", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
+        : this.configService.get<string>("ai.bedrock.modelLarge", "us.anthropic.claude-sonnet-4-5-20250929-v1:0");
 
       const credentials = this.staticCredentials();
       const model = options ? new ChatBedrockConverse({

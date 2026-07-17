@@ -20,6 +20,7 @@ env:
 jobs:
   build-staging:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: staging
     strategy:
       fail-fast: false
@@ -86,6 +87,7 @@ jobs:
 
   build-prod:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: production
     strategy:
       fail-fast: false
@@ -156,6 +158,7 @@ jobs:
     needs: build-staging
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: staging
 
     permissions:
@@ -184,6 +187,7 @@ jobs:
     needs: build-prod
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: production
 
     permissions:

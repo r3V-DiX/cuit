@@ -1,4 +1,4 @@
-name: Build, Push & Deploy Admin App (Staging + Production)
+name: Build, Push & Deploy Admin UI (Staging + Production)
 
 on:
   workflow_dispatch:
@@ -6,24 +6,21 @@ on:
     branches:
       - main
     paths:
-      - "admin-app/**"
-      - "cykruit-app/libs/**"
-      - "cykruit-app/prisma/**"
-      - ".github/workflows/admin-app-prod.yml"
+      - "admin-ui/**"
+      - ".github/workflows/admin-ui-prod.yml"
   pull_request:
     branches:
       - main
     paths:
-      - "admin-app/**"
-      - "cykruit-app/libs/**"
-      - "cykruit-app/prisma/**"
-      - ".github/workflows/admin-app-prod.yml"
+      - "admin-ui/**"
+      - ".github/workflows/admin-ui-prod.yml"
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
   build-staging:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: staging
 
     permissions:
@@ -53,7 +50,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ steps.login-ecr.outputs.registry }}/cykruit-admin-app
+          images: ${{ steps.login-ecr.outputs.registry }}/cykruit-admin-ui
           tags: |
             type=raw,value=staging-latest
             type=sha,prefix=staging-
@@ -62,21 +59,24 @@ jobs:
       - name: 🚀 Build and Push Docker image — staging
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./admin-app/Dockerfile
+          context: ./admin-ui
+          file: ./admin-ui/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.STAGING_ADMIN_NEXT_PUBLIC_API_URL }}
           no-cache: true
 
       - name: ✅ Build Summary
         run: |
-          echo "### 🎉 Admin App Build Successful (staging)" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎉 Admin UI Build Successful (staging)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Image Tag:** \`staging-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
 
   build-prod:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment: production
 
     permissions:
@@ -106,26 +106,41 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ steps.login-ecr.outputs.registry }}/cykruit-admin-app
+          images: ${{ steps.login-ecr.outputs.registry }}/cykruit-admin-ui
           tags: |
             type=raw,value=latest
             type=raw,value=prod-latest
             type=sha,prefix=prod-
             type=raw,value=prod-${{ github.run_number }}
 
+      - name: 📦 Build Docker image (for testing)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./admin-ui
+          file: ./admin-ui/Dockerfile
+          push: false
+          tags: test-image:latest
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.PROD_ADMIN_NEXT_PUBLIC_API_URL }}
+          load: true
+          no-cache: true
+
       - name: 🚀 Build and Push Docker image — prod
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./admin-app/Dockerfile
+          context: ./admin-ui
+          file: ./admin-ui/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.PROD_ADMIN_NEXT_PUBLIC_API_URL }}
           no-cache: true
 
       - name: ✅ Build Summary
         run: |
-          echo "### 🎉 Admin App Build Successful (prod)" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎉 Admin UI Build Successful (prod)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Image Tags:** \`prod-${{ github.sha }}\`, \`latest\`" >> $GITHUB_STEP_SUMMARY
 
@@ -134,6 +149,7 @@ jobs:
     needs: build-staging
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: staging
 
     permissions:
@@ -147,13 +163,13 @@ jobs:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
 
-      - name: 🚀 Deploy admin-app to staging EC2
+      - name: 🚀 Deploy admin-ui to staging EC2
         run: |
           aws ssm send-command \
             --targets "Key=tag:Name,Values=cykruit-v2-app-server-staging" \
             --document-name "AWS-RunShellScript" \
-            --comment "cykruit-v2 staging: deploy admin-app (${{ github.sha }})" \
-            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging admin-app ${{ github.sha }}\"]" \
+            --comment "cykruit-v2 staging: deploy admin-ui (${{ github.sha }})" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging admin-ui ${{ github.sha }}\"]" \
             --region ${{ vars.AWS_REGION || 'ap-south-1' }}
 
   # ── Deploy: production — gated. Configure a required-reviewer protection rule on the
@@ -162,6 +178,7 @@ jobs:
     needs: build-prod
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: production
 
     permissions:
@@ -175,11 +192,11 @@ jobs:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
 
-      - name: 🚀 Deploy admin-app to prod EC2
+      - name: 🚀 Deploy admin-ui to prod EC2
         run: |
           aws ssm send-command \
             --targets "Key=tag:Name,Values=cykruit-v2-app-server-prod" \
             --document-name "AWS-RunShellScript" \
-            --comment "cykruit-v2 prod: deploy admin-app (${{ github.sha }})" \
-            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh prod admin-app ${{ github.sha }}\"]" \
+            --comment "cykruit-v2 prod: deploy admin-ui (${{ github.sha }})" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh prod admin-ui ${{ github.sha }}\"]" \
             --region ${{ vars.AWS_REGION || 'ap-south-1' }}
