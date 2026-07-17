@@ -16,6 +16,8 @@ on:
       - "admin-app/**"
       - "cykruit-app/libs/**"
       - "cykruit-app/prisma/**"
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
   build-and-push:
@@ -35,7 +37,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
 
       - name: 🔑 Log in to Amazon ECR
         id: login-ecr
@@ -101,7 +103,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
 
       - name: 🚀 Deploy admin-app to staging EC2
         run: |
@@ -110,7 +112,7 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "cykruit-v2 staging: deploy admin-app (${{ github.sha }})" \
             --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging admin-app ${{ github.sha }}\"]" \
-            --region ${{ vars.AWS_REGION }}
+            --region ${{ vars.AWS_REGION || 'ap-south-1' }}
 
   # ── Deploy: production — gated. Configure a required-reviewer protection rule on the
   #    'production' Environment in repo Settings → Environments; this job pauses until approved ──
@@ -129,7 +131,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
 
       - name: 🚀 Deploy admin-app to prod EC2
         run: |
@@ -138,4 +140,4 @@ jobs:
             --document-name "AWS-RunShellScript" \
             --comment "cykruit-v2 prod: deploy admin-app (${{ github.sha }})" \
             --parameters "commands=[\"/opt/cykruit-v2/deploy.sh prod admin-app ${{ github.sha }}\"]" \
-            --region ${{ vars.AWS_REGION }}
+            --region ${{ vars.AWS_REGION || 'ap-south-1' }}
