@@ -18,8 +18,75 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
-  build-and-push:
+  build-staging:
     runs-on: ubuntu-latest
+    environment: staging
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: UI
+            image: cykruit-ui
+            context: ./cykruit-ui
+            dockerfile: ./cykruit-ui/Dockerfile
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
+
+      - name: 🔑 Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 🛠️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 📝 Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.image }}
+          tags: |
+            type=raw,value=staging-latest
+            type=sha,prefix=staging-
+            type=raw,value=staging-${{ github.run_number }}
+
+      - name: 🚀 Build and Push Docker image — staging
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_BACKEND_URL=${{ secrets.STAGING_NEXT_PUBLIC_BACKEND_URL }}
+            NEXT_PUBLIC_API_URL=${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}
+            NODE_ENV=production
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: ✅ Build Summary
+        run: |
+          echo "### 🎉 ${{ matrix.name }} Build Successful (staging)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tag:** \`staging-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+  build-prod:
+    runs-on: ubuntu-latest
+    environment: production
     strategy:
       fail-fast: false
       matrix:
@@ -63,21 +130,6 @@ jobs:
             type=sha,prefix=prod-
             type=raw,value=prod-${{ github.run_number }}
 
-      - name: 🚀 Build and Push Docker image — staging
-        uses: docker/build-push-action@v5
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.image }}:staging-${{ github.sha }},${{ steps.login-ecr.outputs.registry }}/${{ matrix.image }}:staging-latest
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            NEXT_PUBLIC_BACKEND_URL=${{ secrets.STAGING_NEXT_PUBLIC_BACKEND_URL }}
-            NEXT_PUBLIC_API_URL=${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}
-            NODE_ENV=production
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
       - name: 🚀 Build and Push Docker image — prod
         uses: docker/build-push-action@v5
         with:
@@ -95,13 +147,13 @@ jobs:
 
       - name: ✅ Build Summary
         run: |
-          echo "### 🎉 ${{ matrix.name }} Build Successful" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎉 ${{ matrix.name }} Build Successful (prod)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image Tags:** \`staging-${{ github.sha }}\`, \`prod-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tags:** \`prod-${{ github.sha }}\`, \`latest\`" >> $GITHUB_STEP_SUMMARY
 
   # ── Deploy: staging — no approval gate (see Environment protection rules in repo Settings) ──
   deploy-staging:
-    needs: build-and-push
+    needs: build-staging
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment: staging
@@ -129,7 +181,7 @@ jobs:
   # ── Deploy: production — gated. Configure a required-reviewer protection rule on the
   #    'production' Environment in repo Settings → Environments; this job pauses until approved ──
   deploy-prod:
-    needs: build-and-push
+    needs: build-prod
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment: production

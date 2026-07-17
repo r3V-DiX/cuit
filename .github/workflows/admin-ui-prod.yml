@@ -16,8 +16,64 @@ env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
-  build-and-push:
+  build-staging:
     runs-on: ubuntu-latest
+    environment: staging
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: 🔐 Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
+
+      - name: 🔑 Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: 🛠️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 📝 Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.login-ecr.outputs.registry }}/cykruit-admin-ui
+          tags: |
+            type=raw,value=staging-latest
+            type=sha,prefix=staging-
+            type=raw,value=staging-${{ github.run_number }}
+
+      - name: 🚀 Build and Push Docker image — staging
+        uses: docker/build-push-action@v5
+        with:
+          context: ./admin-ui
+          file: ./admin-ui/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.STAGING_ADMIN_NEXT_PUBLIC_API_URL }}
+          no-cache: true
+
+      - name: ✅ Build Summary
+        run: |
+          echo "### 🎉 Admin UI Build Successful (staging)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tag:** \`staging-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+  build-prod:
+    runs-on: ubuntu-latest
+    environment: production
 
     permissions:
       contents: read
@@ -49,14 +105,11 @@ jobs:
           images: ${{ steps.login-ecr.outputs.registry }}/cykruit-admin-ui
           tags: |
             type=raw,value=latest
-            type=raw,value=staging-latest
             type=raw,value=prod-latest
-            type=sha,prefix=staging-
             type=sha,prefix=prod-
-            type=raw,value=staging-${{ github.run_number }}
             type=raw,value=prod-${{ github.run_number }}
 
-      - name: 📦 Build Docker image (for testing, using prod API URL)
+      - name: 📦 Build Docker image (for testing)
         uses: docker/build-push-action@v5
         with:
           context: ./admin-ui
@@ -65,20 +118,8 @@ jobs:
           tags: test-image:latest
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.PROD_NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_API_URL=${{ secrets.PROD_ADMIN_NEXT_PUBLIC_API_URL }}
           load: true
-          no-cache: true
-
-      - name: 🚀 Build and Push Docker image — staging
-        uses: docker/build-push-action@v5
-        with:
-          context: ./admin-ui
-          file: ./admin-ui/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.login-ecr.outputs.registry }}/cykruit-admin-ui:staging-${{ github.sha }},${{ steps.login-ecr.outputs.registry }}/cykruit-admin-ui:staging-latest
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}
           no-cache: true
 
       - name: 🚀 Build and Push Docker image — prod
@@ -90,18 +131,18 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.PROD_NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_API_URL=${{ secrets.PROD_ADMIN_NEXT_PUBLIC_API_URL }}
           no-cache: true
 
       - name: ✅ Build Summary
         run: |
-          echo "### 🎉 Admin UI Build Successful" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎉 Admin UI Build Successful (prod)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image Tags:** \`staging-${{ github.sha }}\`, \`prod-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tags:** \`prod-${{ github.sha }}\`, \`latest\`" >> $GITHUB_STEP_SUMMARY
 
   # ── Deploy: staging — no approval gate (see Environment protection rules in repo Settings) ──
   deploy-staging:
-    needs: build-and-push
+    needs: build-staging
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment: staging
@@ -129,7 +170,7 @@ jobs:
   # ── Deploy: production — gated. Configure a required-reviewer protection rule on the
   #    'production' Environment in repo Settings → Environments; this job pauses until approved ──
   deploy-prod:
-    needs: build-and-push
+    needs: build-prod
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment: production
