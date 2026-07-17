@@ -561,7 +561,11 @@ export class JobsService {
             throw new BadRequestException("Failed to improve description from AI service");
         }
 
-        return res.json();
+        try {
+            return await res.json();
+        } catch {
+            throw new BadRequestException("AI service returned an invalid response");
+        }
     }
 
     async suggestSkills(userId: string, title: string, description: string) {
@@ -578,6 +582,10 @@ export class JobsService {
             throw new BadRequestException("Failed to suggest skills from AI service");
         }
 
-        return res.json();
+        try {
+            return await res.json();
+        } catch {
+            throw new BadRequestException("AI service returned an invalid response");
+        }
     }
 }

@@ -186,7 +186,7 @@ export class TeamService {
 
     // ── Preview Invite ────────────────────────────────────────────
 
-    async previewInvite(rawToken: string) {
+    async previewInvite(rawToken: string, userId?: string) {
         const colonIndex = rawToken.indexOf(':');
         if (colonIndex === -1) {
             throw new BadRequestException('Invalid invite token format.');
@@ -202,7 +202,7 @@ export class TeamService {
             throw new BadRequestException('Invite token is invalid or has already been used.');
         }
 
-        if (new Date() > tokenRecord.expiresAt) {
+        if (new Date() >= tokenRecord.expiresAt) {
             throw new BadRequestException('Invite token has expired. Please request a new invitation.');
         }
 
@@ -211,12 +211,22 @@ export class TeamService {
             throw new BadRequestException('The company associated with this invitation no longer exists.');
         }
 
+        let requiresRoleUpgrade = false;
+        if (userId) {
+            const viewer = await this.prisma.user.findUnique({
+                where: { id: userId },
+                select: { role: true },
+            });
+            requiresRoleUpgrade = viewer?.role === UserRole.SEEKER;
+        }
+
         return {
             companyName: employer.companyName,
             companyLogo: employer.companyLogo ?? null,
             role: targetRole,
             expiresAt: tokenRecord.expiresAt,
             invitedEmail: (tokenRecord.metadata as { invitedEmail?: string } | null)?.invitedEmail ?? null,
+            requiresRoleUpgrade,
         };
     }
 
@@ -239,7 +249,7 @@ export class TeamService {
             throw new BadRequestException('Invite token is invalid or has already been used.');
         }
 
-        if (new Date() > tokenRecord.expiresAt) {
+        if (new Date() >= tokenRecord.expiresAt) {
             throw new BadRequestException('Invite token has expired. Please request a new invitation.');
         }
 
@@ -255,11 +265,15 @@ export class TeamService {
             );
         }
 
-        if (acceptingUser.role !== UserRole.EMPLOYER) {
+        // Only SEEKER and EMPLOYER roles may accept an invite.
+        // ADMIN accounts are not eligible for team membership.
+        if (acceptingUser.role !== UserRole.SEEKER && acceptingUser.role !== UserRole.EMPLOYER) {
             throw new ForbiddenException(
-                'Only EMPLOYER accounts can join a company team.',
+                'Your account type is not eligible to join a company team.',
             );
         }
+
+        const roleUpgraded = acceptingUser.role === UserRole.SEEKER;
 
         // Derive employer from the inviter's membership.
         const inviterUserId = tokenRecord.userId;
@@ -276,16 +290,48 @@ export class TeamService {
             throw new ConflictException('You are already a member of this company.');
         }
 
-        // Create membership and mark token consumed.
-        const member = await this.teamRepository.addMember(
-            employer.id,
-            userId,
-            targetRole,
-            inviterUserId,
-        );
+        // Atomically: upgrade role if needed + create membership + consume token.
+        const member = await this.prisma.$transaction(async (tx) => {
+            if (roleUpgraded) {
+                await tx.user.update({
+                    where: { id: userId },
+                    data: { role: UserRole.EMPLOYER },
+                });
+            }
 
-        await this.teamRepository.markInviteUsed(tokenRecord.id);
+            const newMember = await tx.employerMember.create({
+                data: {
+                    employerId: employer.id,
+                    userId,
+                    role: targetRole,
+                    ...(inviterUserId ? { invitedBy: inviterUserId } : {}),
+                },
+            });
+
+            await tx.token.update({
+                where: { id: tokenRecord.id },
+                data: { usedAt: new Date() },
+            });
+
+            return newMember;
+        });
+
         await this.permissionsService.invalidateUserCache(userId, employer.id);
+
+        if (roleUpgraded) {
+            this.auditService.logAction({
+                actorId: userId,
+                actorRole: 'EMPLOYER',
+                action: 'account:role_upgraded',
+                module: 'AUTH',
+                targetType: 'User',
+                targetId: userId,
+                oldData: { role: UserRole.SEEKER },
+                newData: { role: UserRole.EMPLOYER },
+                riskLevel: 'MEDIUM',
+                result: 'SUCCESS',
+            });
+        }
 
         this.auditService.logAction({
             actorId: userId,
@@ -294,12 +340,23 @@ export class TeamService {
             module: 'TEAM',
             targetType: 'Employer',
             targetId: employer.id,
-            newData: { role: targetRole, invitedBy: inviterUserId },
+            newData: { role: targetRole, invitedBy: inviterUserId, roleUpgraded },
             result: 'SUCCESS',
         });
 
-        // Increment team member counter (fire-and-forget)
-        this.prisma.employerSubscription.updateMany({
+        this.eventPublisher.publish(
+            DomainEventType.TEAM_INVITE_ACCEPTED,
+            {
+                userId,
+                employerId: employer.id,
+                companyName: employer.companyName,
+                role: targetRole,
+                roleUpgraded,
+            },
+            'employer-service',
+        );
+
+        await this.prisma.employerSubscription.updateMany({
             where: { employerId: employer.id },
             data: { currentTeamMembers: { increment: 1 } },
         }).catch((err: unknown) => this.logger.warn(`Failed to increment team member counter for employer ${employer.id}: ${String(err)}`));
@@ -404,8 +461,7 @@ export class TeamService {
         await this.teamRepository.removeMember(memberId);
         await this.permissionsService.invalidateUserCache(targetMember.userId, employer.id);
 
-        // Decrement team member counter (fire-and-forget)
-        this.prisma.employerSubscription.updateMany({
+        await this.prisma.employerSubscription.updateMany({
             where: { employerId: employer.id, currentTeamMembers: { gt: 0 } },
             data: { currentTeamMembers: { decrement: 1 } },
         }).catch((err: unknown) => this.logger.warn(`Failed to decrement team member counter for employer ${employer.id}: ${String(err)}`));

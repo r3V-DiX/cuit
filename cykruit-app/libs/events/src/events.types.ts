@@ -33,6 +33,9 @@ export enum DomainEventType {
 
     // ── Employer ─────────────────────────────────────────────────────────────
     EMPLOYER_SETUP_COMPLETE       = 'employer.setup_complete',         // employer finished company setup
+
+    // ── Team (accept) ────────────────────────────────────────────────────────
+    TEAM_INVITE_ACCEPTED          = 'team.invite_accepted',            // member accepted invite (may include role upgrade)
 }
 
 // ── Payload types per event ────────────────────────────────────────────────────
@@ -169,6 +172,14 @@ export interface EmployerSetupCompletePayload {
     userId: string;
 }
 
+export interface TeamInviteAcceptedPayload {
+    userId: string;
+    employerId: string;
+    companyName: string;
+    role: string;
+    roleUpgraded: boolean; // true when user was SEEKER and was upgraded to EMPLOYER
+}
+
 // ── Discriminated union ────────────────────────────────────────────────────────
 
 export type DomainEventPayloadMap = {
@@ -189,6 +200,7 @@ export type DomainEventPayloadMap = {
     [DomainEventType.SUBSCRIPTION_RENEWED]:           SubscriptionRenewedPayload;
     [DomainEventType.SUBSCRIPTION_CANCELLED]:         SubscriptionCancelledPayload;
     [DomainEventType.EMPLOYER_SETUP_COMPLETE]:        EmployerSetupCompletePayload;
+    [DomainEventType.TEAM_INVITE_ACCEPTED]:           TeamInviteAcceptedPayload;
 };
 
 export interface DomainEvent<T extends DomainEventType = DomainEventType> {

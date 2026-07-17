@@ -278,7 +278,7 @@ export class PaymentService {
         if (order.status === 'PAID') return; // idempotent
 
         // Reject captures for expired orders — Razorpay may send the event late
-        if (order.status === 'EXPIRED' || (order.expiresAt && order.expiresAt < new Date())) {
+        if (order.status === 'EXPIRED' || (order.expiresAt && order.expiresAt <= new Date())) {
             this.logger.warn(
                 `payment.captured received for expired order razorpayOrderId=${razorpayOrderId}`,
                 'PaymentService',
@@ -401,11 +401,15 @@ export class PaymentService {
 
     private computeExpiry(billingCycle: BillingCycle): Date {
         const now = new Date();
-        if (billingCycle === BillingCycle.MONTHLY) {
-            return new Date(now.getFullYear(), now.getMonth() + 1, now.getDate(),
-                now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
-        }
-        return new Date(now.getFullYear() + 1, now.getMonth(), now.getDate(),
-            now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+        const targetYear  = billingCycle === BillingCycle.YEARLY ? now.getFullYear() + 1 : now.getFullYear();
+        const targetMonth = billingCycle === BillingCycle.YEARLY ? now.getMonth()       : now.getMonth() + 1;
+        // Clamp day to the last valid day of the target month.
+        // e.g. Jan 31 + 1 month → Feb 28/29, not Mar 2.
+        const daysInTarget = new Date(targetYear, targetMonth + 1, 0).getDate();
+        const clampedDay   = Math.min(now.getDate(), daysInTarget);
+        return new Date(
+            targetYear, targetMonth, clampedDay,
+            now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds(),
+        );
     }
 }

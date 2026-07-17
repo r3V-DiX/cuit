@@ -36,6 +36,11 @@ export async function apiFetch<T = unknown>(
     return { data: undefined as unknown as T };
   }
 
+  // Reset logout flag on any successful response so future 401s still redirect.
+  if (response.ok) {
+    _loggingOut = false;
+  }
+
   let body: unknown;
   try {
     body = await response.json();

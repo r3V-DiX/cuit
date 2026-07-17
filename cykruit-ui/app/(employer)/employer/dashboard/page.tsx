@@ -86,11 +86,9 @@ export default function EmployerDashboardPage() {
   useEffect(() => {
     async function fetchUser() {
       try {
-        const result = await apiFetch("/api/auth/me");
-        const resData = result as any;
-        const dataObj = resData?.data || resData;
-        if (dataObj?.firstName) {
-          setDisplayName(dataObj.firstName);
+        const result = await apiFetch<{ firstName?: string }>("/api/auth/me");
+        if (result.data?.firstName) {
+          setDisplayName(result.data.firstName);
         }
       } catch {
         // Silent catch for guest fallback
@@ -105,12 +103,12 @@ export default function EmployerDashboardPage() {
       setError(false);
       try {
         const [jobsData, appsData] = await Promise.all([
-          apiFetch("/api/employer/jobs").catch(() => ({ data: { items: [] } })),
-          apiFetch("/api/employer/applications").catch(() => ({ data: { items: [] } })),
+          apiFetch<{ items: ApiJob[] } | ApiJob[]>("/api/employer/jobs").catch(() => ({ data: { items: [] as ApiJob[] } })),
+          apiFetch<{ items: ApiApplication[] } | ApiApplication[]>("/api/employer/applications").catch(() => ({ data: { items: [] as ApiApplication[] } })),
         ]);
-        const jobsRaw = jobsData.data as any;
+        const jobsRaw = jobsData.data;
         const jobsArr: ApiJob[] = Array.isArray(jobsRaw) ? jobsRaw : (jobsRaw?.items ?? []);
-        const appsRaw = appsData.data as any;
+        const appsRaw = appsData.data;
         const appsArr: ApiApplication[] = Array.isArray(appsRaw) ? appsRaw : (appsRaw?.items ?? []);
         setJobs(jobsArr);
         setApplications(appsArr);
