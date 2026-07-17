@@ -20,6 +20,10 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    # environment: staging is only for variable/OIDC scoping (AWS_ROLE_ARN lives in
+    # the Environments, not repo-level); this single job still pushes both staging-*
+    # and prod-* tags of the same image, as before.
+    environment: staging
     strategy:
       fail-fast: false
       matrix:
