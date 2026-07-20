@@ -15,4 +15,4 @@ COPY --from=builder /app/dist/apps/gateway dist/apps/gateway
 ENV NODE_ENV=production
 USER node
 EXPOSE 5000
-CMD ["node", "dist/apps/gateway/src/main.js"]
+CMD ["node", "dist/apps/gateway/apps/gateway/src/main.js"]

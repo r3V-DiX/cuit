@@ -29,7 +29,7 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/tsconfig-paths-bootstrap.js ./
+COPY tsconfig-paths-bootstrap.prod.js ./
 
 ENV NODE_ENV=production
 
@@ -37,4 +37,4 @@ USER node
 
 EXPOSE 4002
 
-CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/apps/user-settings-service/apps/user-settings-service/src/main.js"]
+CMD ["node", "-r", "./tsconfig-paths-bootstrap.prod.js", "dist/apps/user-settings-service/apps/user-settings-service/src/main.js"]
