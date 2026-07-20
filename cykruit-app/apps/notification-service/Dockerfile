@@ -37,4 +37,4 @@ USER node
 
 EXPOSE 4007
 
-CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/apps/notification-service/src/main"]
+CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/apps/notification-service/src/main.js"]

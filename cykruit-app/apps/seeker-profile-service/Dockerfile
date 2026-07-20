@@ -37,4 +37,4 @@ USER node
 
 EXPOSE 4003
 
-CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/apps/seeker-profile-service/src/main"]
+CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/apps/seeker-profile-service/src/main.js"]

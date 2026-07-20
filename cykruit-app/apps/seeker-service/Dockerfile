@@ -37,4 +37,4 @@ USER node
 
 EXPOSE 4005
 
-CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/apps/seeker-service/src/main"]
+CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/apps/seeker-service/src/main.js"]
