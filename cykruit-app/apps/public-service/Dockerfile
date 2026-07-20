@@ -18,7 +18,7 @@ RUN npm ci
 
 RUN npx prisma generate
 
-RUN npx nest build public-service
+RUN npx tsc -p apps/public-service/tsconfig.build.json
 
 # ── Production image ────────────────────────────────────────────────
 FROM node:20-alpine AS production

@@ -18,7 +18,7 @@ RUN npm ci
 
 RUN npx prisma generate
 
-RUN npx nest build seeker-profile-service
+RUN npx tsc -p apps/seeker-profile-service/tsconfig.build.json
 
 # ── Production image ────────────────────────────────────────────────
 FROM node:20-alpine AS production
