@@ -65,18 +65,11 @@ DB_NAME_VAL="cykruit_db"
 DB_USER_VAL="postgres"
 REDIS_HOST_VAL="redis"
 
-# ⚠️ These two are NOT stored anywhere in Secrets Manager / SSM as of this writing.
 # CSRF_SECRET is generated once and persisted to disk (regenerating it on every
 # deploy would invalidate live sessions/tokens).
-# MESSAGE_ENCRYPTION_KEY must be supplied by you — the script refuses to invent one,
-# because generating a fresh key would make any already-encrypted data unreadable.
-# Export it before running:  export CYKRUIT_MESSAGE_ENCRYPTION_KEY="..."
-if [ "$MODE" = "deploy" ] && [ -z "$CYKRUIT_MESSAGE_ENCRYPTION_KEY" ]; then
-    print_error "CYKRUIT_MESSAGE_ENCRYPTION_KEY is not set."
-    print_error "Export the real key before running: export CYKRUIT_MESSAGE_ENCRYPTION_KEY=\"...\""
-    print_error "Do NOT generate a new one if data has already been encrypted with an existing key."
-    exit 1
-fi
+# MESSAGE_ENCRYPTION_KEY now lives in Secrets Manager (see STEP 4 below).
+# ⚠️ Once real data has been encrypted with it, this key must NEVER be rotated
+# or regenerated — doing so makes existing encrypted data permanently unreadable.
 
 CSRF_SECRET_FILE="$DEPLOY_DIR/.csrf_secret"
 
@@ -274,6 +267,9 @@ BEDROCK_AWS_SECRET_ACCESS_KEY="$AWS_S3_SECRET_ACCESS_KEY"
 # admin-backend/*
 ADMIN_JWT_SECRET=$(get_secret_field "$SSM_PREFIX/admin-backend/jwt-secret" "secret" "JWT_SECRET" "jwt_secret")
 ADMIN_RESEND_API_KEY=$(get_secret_field "$SSM_PREFIX/admin-backend/resend-api-key" "RESEND_API_KEY" "api_key")
+
+# message encryption key — DO NOT rotate/regenerate once real data is encrypted with it
+CYKRUIT_MESSAGE_ENCRYPTION_KEY=$(get_secret_field "$SSM_PREFIX/backend/message-encryption-key" "MESSAGE_ENCRYPTION_KEY")
 
 print_info "Secrets fetched ✓"
 
