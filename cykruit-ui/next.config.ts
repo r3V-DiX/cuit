@@ -1,5 +1,14 @@
 import type { NextConfig } from "next";
+import fs from "fs";
 import path from "path";
+
+// turbopack.root must point at the real monorepo root (fixes Turbopack's
+// multi-lockfile root-inference warning in local dev, where cykruit-new/package-lock.json
+// sits alongside this app's own). In the Docker build, the build context is scoped to
+// cykruit-ui/ alone, so the parent dir isn't the monorepo root — falling back to this
+// app's own dir keeps output: "standalone" from nesting server.js under a wrong subpath.
+const monorepoRoot = path.resolve(__dirname, "..");
+const hasMonorepoRoot = fs.existsSync(path.join(monorepoRoot, "package-lock.json"));
 
 const AUTH_URL      = process.env.AUTH_SERVICE_URL      || "http://127.0.0.1:4001";
 const SETTINGS_URL  = process.env.SETTINGS_SERVICE_URL  || "http://127.0.0.1:4002";
@@ -24,7 +33,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   devIndicators: false,
   turbopack: {
-    root: path.resolve(__dirname, ".."),
+    root: hasMonorepoRoot ? monorepoRoot : __dirname,
   },
   experimental: {
     proxyTimeout: 300000,

@@ -147,20 +147,22 @@ jobs:
 
       - name: 🗄️ Run DB migrations (prisma migrate deploy, via auth-service image — owns the schema)
         run: |
+          SHORT_SHA=${GITHUB_SHA::7}
           aws ssm send-command \
             --targets "Key=tag:Name,Values=cykruit-v2-app-server-staging" \
             --document-name "AWS-RunShellScript" \
-            --comment "cykruit-v2 staging: prisma migrate deploy (${{ github.sha }})" \
-            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging migrate ${{ github.sha }}\"]" \
+            --comment "cykruit-v2 staging: prisma migrate deploy ($SHORT_SHA)" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging migrate $SHORT_SHA\"]" \
             --region ${{ vars.AWS_REGION || 'ap-south-1' }}
 
       - name: 🚀 Deploy all cykruit-app services to staging EC2
         run: |
+          SHORT_SHA=${GITHUB_SHA::7}
           aws ssm send-command \
             --targets "Key=tag:Name,Values=cykruit-v2-app-server-staging" \
             --document-name "AWS-RunShellScript" \
-            --comment "cykruit-v2 staging: deploy cykruit-app (${{ github.sha }})" \
-            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging cykruit-app ${{ github.sha }}\"]" \
+            --comment "cykruit-v2 staging: deploy cykruit-app ($SHORT_SHA)" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging cykruit-app $SHORT_SHA\"]" \
             --region ${{ vars.AWS_REGION || 'ap-south-1' }}
 
   # ── Deploy: production — gated. Configure a required-reviewer protection rule on the
@@ -185,18 +187,20 @@ jobs:
 
       - name: 🗄️ Run DB migrations (prisma migrate deploy, via auth-service image — owns the schema)
         run: |
+          SHORT_SHA=${GITHUB_SHA::7}
           aws ssm send-command \
             --targets "Key=tag:Name,Values=cykruit-v2-app-server-prod" \
             --document-name "AWS-RunShellScript" \
-            --comment "cykruit-v2 prod: prisma migrate deploy (${{ github.sha }})" \
-            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh prod migrate ${{ github.sha }}\"]" \
+            --comment "cykruit-v2 prod: prisma migrate deploy ($SHORT_SHA)" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh prod migrate $SHORT_SHA\"]" \
             --region ${{ vars.AWS_REGION || 'ap-south-1' }}
 
       - name: 🚀 Deploy all cykruit-app services to prod EC2
         run: |
+          SHORT_SHA=${GITHUB_SHA::7}
           aws ssm send-command \
             --targets "Key=tag:Name,Values=cykruit-v2-app-server-prod" \
             --document-name "AWS-RunShellScript" \
-            --comment "cykruit-v2 prod: deploy cykruit-app (${{ github.sha }})" \
-            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh prod cykruit-app ${{ github.sha }}\"]" \
+            --comment "cykruit-v2 prod: deploy cykruit-app ($SHORT_SHA)" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh prod cykruit-app $SHORT_SHA\"]" \
             --region ${{ vars.AWS_REGION || 'ap-south-1' }}

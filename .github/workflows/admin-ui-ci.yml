@@ -165,11 +165,12 @@ jobs:
 
       - name: 🚀 Deploy admin-ui to staging EC2
         run: |
+          SHORT_SHA=${GITHUB_SHA::7}
           aws ssm send-command \
             --targets "Key=tag:Name,Values=cykruit-v2-app-server-staging" \
             --document-name "AWS-RunShellScript" \
-            --comment "cykruit-v2 staging: deploy admin-ui (${{ github.sha }})" \
-            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging admin-ui ${{ github.sha }}\"]" \
+            --comment "cykruit-v2 staging: deploy admin-ui ($SHORT_SHA)" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging admin-ui $SHORT_SHA\"]" \
             --region ${{ vars.AWS_REGION || 'ap-south-1' }}
 
   # ── Deploy: production — gated. Configure a required-reviewer protection rule on the
@@ -194,9 +195,10 @@ jobs:
 
       - name: 🚀 Deploy admin-ui to prod EC2
         run: |
+          SHORT_SHA=${GITHUB_SHA::7}
           aws ssm send-command \
             --targets "Key=tag:Name,Values=cykruit-v2-app-server-prod" \
             --document-name "AWS-RunShellScript" \
-            --comment "cykruit-v2 prod: deploy admin-ui (${{ github.sha }})" \
-            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh prod admin-ui ${{ github.sha }}\"]" \
+            --comment "cykruit-v2 prod: deploy admin-ui ($SHORT_SHA)" \
+            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh prod admin-ui $SHORT_SHA\"]" \
             --region ${{ vars.AWS_REGION || 'ap-south-1' }}
