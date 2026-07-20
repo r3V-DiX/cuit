@@ -13,6 +13,12 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(process.env.port ?? 3005);
+  const port = process.env.port ?? 3005;
+  await app.listen(port);
+
+  const httpServer = app.getHttpAdapter().getInstance() as import('express').Application;
+  httpServer.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
 }
 bootstrap();

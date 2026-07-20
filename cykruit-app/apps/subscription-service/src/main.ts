@@ -2,6 +2,8 @@
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { PrismaService } from '@cykruit/prisma';
+import type { Redis } from 'ioredis';
 import { AppLogger } from '@cykruit/logger';
 import { LoggerInterceptor } from '@cykruit/logger';
 import { GlobalExceptionFilter, ValidationExceptionFilter } from '@cykruit/common';
@@ -110,6 +112,20 @@ async function bootstrap() {
     const host = process.env.HOST || '0.0.0.0';
 
     await app.listen(port, host);
+
+    const httpServer = app.getHttpAdapter().getInstance() as import('express').Application;
+    const prisma = app.get(PrismaService);
+    const redis = app.get<Redis>('IORedisModuleConnectionToken');
+    httpServer.get('/health', async (_req, res) => {
+        try {
+            await prisma.$queryRaw`SELECT 1`;
+            await redis.ping();
+            res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+        } catch (err) {
+            res.status(503).json({ status: 'error', error: String(err) });
+        }
+    });
+
     logger.log(`🚀 Subscription Service running on http://${host}:${port}`, 'Bootstrap');
     logger.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`, 'Bootstrap');
 }

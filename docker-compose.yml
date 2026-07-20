@@ -51,6 +51,12 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - '4001:4001'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4001/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,6 +78,12 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - '4002:4002'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4002/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -93,6 +105,12 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - '4003:4003'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4003/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -114,6 +132,12 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - '4004:4004'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4004/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -135,6 +159,12 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - '4005:4005'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4005/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -156,6 +186,12 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - '4006:4006'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4006/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -177,6 +213,12 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
       - '4007:4007'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4007/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -201,6 +243,12 @@ services:
       RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET}
     ports:
       - '4008:4008'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4008/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
@@ -226,15 +274,29 @@ services:
       SUBSCRIPTION_SERVICE_URL: http://subscription-service:4008
     ports:
       - '5000:5000'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:5000/gateway/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     depends_on:
-      - auth-service
-      - user-settings-service
-      - seeker-profile-service
-      - employer-service
-      - seeker-service
-      - public-service
-      - notification-service
-      - subscription-service
+      auth-service:
+        condition: service_healthy
+      user-settings-service:
+        condition: service_healthy
+      seeker-profile-service:
+        condition: service_healthy
+      employer-service:
+        condition: service_healthy
+      seeker-service:
+        condition: service_healthy
+      public-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      subscription-service:
+        condition: service_healthy
 
   admin-app:
     build:
@@ -252,13 +314,19 @@ services:
       SUBSCRIPTION_SERVICE_URL: http://subscription-service:4008
     ports:
       - '4010:4010'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4010/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
       subscription-service:
-        condition: service_started
+        condition: service_healthy
 
 volumes:
   postgres_data:
