@@ -223,10 +223,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
 
                 <div className="p-6">
                   <h4 className="font-semibold text-slate-900">Description</h4>
-                  <div 
-                    className="mt-4 prose prose-sm max-w-none text-slate-600"
-                    dangerouslySetInnerHTML={{ __html: job.description || 'No description provided.' }}
-                  />
+                  <p className="mt-4 whitespace-pre-wrap text-sm text-slate-600">
+                    {job.description
+                      ? job.description.replace(/<[^>]*>/g, '')
+                      : 'No description provided.'}
+                  </p>
                 </div>
               </div>
 

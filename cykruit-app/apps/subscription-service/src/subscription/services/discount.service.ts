@@ -135,6 +135,21 @@ export class DiscountService {
         orderId: string,
         amountSavedPaise: number,
     ): Promise<void> {
+        // Re-check per-user limit inside the transaction to prevent race condition
+        // where two concurrent checkouts both passed validateCoupon with count=0.
+        const discount = await tx.discount.findUnique({
+            where: { id: discountId },
+            select: { maxUsesPerUser: true },
+        });
+        if (discount) {
+            const currentCount = await tx.discountUsage.count({
+                where: { discountId, employerId },
+            });
+            if (currentCount >= discount.maxUsesPerUser) {
+                throw new BadRequestException('Coupon usage limit reached — coupon already applied by your account');
+            }
+        }
+
         await tx.discountUsage.create({
             data: { discountId, employerId, orderId, amountSavedPaise },
             select: { id: true },

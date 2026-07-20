@@ -8,9 +8,10 @@ import {
   ArrowLeft, MapPin, Briefcase, CheckCircle2, Clock, XCircle, Send,
   Mail, Phone, Globe, Award, ChevronRight, MessageSquare, Calendar,
   Download, Sparkles, TrendingUp, TrendingDown, Minus,
-  ShieldCheck, AlertTriangle, ThumbsUp,
+  ShieldCheck, AlertTriangle, ThumbsUp, Lock,
 } from "lucide-react";
 import { apiFetch, authHeaders } from "@/lib/api";
+import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
 
 type AppStatus = "New" | "Shortlisted" | "Under Review" | "Rejected" | "Withdrawn";
 
@@ -29,6 +30,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
   const router = useRouter();
   const [app, setApp] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { limits } = useSubscriptionLimits();
 
   const [status, setStatus] = useState<AppStatus>("New");
 
@@ -158,10 +160,24 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
               >
                 <MessageSquare className="w-4 h-4" /> Message
               </button>
-              {app.resume && (
-                <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors cursor-pointer">
+              {app.resume && limits?.resumeViewEnabled && (
+                <a
+                  href={app.resume.fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors"
+                >
                   <Download className="w-4 h-4" /> Resume
-                </button>
+                </a>
+              )}
+              {app.resume && !limits?.resumeViewEnabled && (
+                <Link
+                  href="/employer/subscription"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-400 text-sm font-semibold cursor-not-allowed opacity-60"
+                  title="Upgrade plan to view resumes"
+                >
+                  <Lock className="w-4 h-4" /> Resume
+                </Link>
               )}
             </div>
           </div>
@@ -174,6 +190,27 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
           <div className="lg:col-span-2 flex flex-col gap-4">
 
             {/* ── AI Candidate Analysis (above summary) ───────────────────── */}
+            {!limits?.aiScoringEnabled && (
+              <div className="rounded-2xl border-2 border-violet-200 bg-linear-to-br from-violet-50 to-white overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3.5 bg-violet-600 border-b border-violet-500">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-white" />
+                    <p className="text-sm font-bold text-white">AI Candidate Analysis</p>
+                    <span className="text-[9px] font-bold text-violet-600 bg-white px-1.5 py-0.5 rounded-full">AI</span>
+                  </div>
+                  <Lock className="w-4 h-4 text-violet-200" />
+                </div>
+                <div className="flex flex-col items-center justify-center p-10 gap-3 text-center">
+                  <Lock className="w-8 h-8 text-violet-300" />
+                  <p className="text-sm font-semibold text-slate-700">AI Analysis requires a paid plan</p>
+                  <p className="text-xs text-slate-500">Upgrade to unlock AI-powered candidate scoring and recommendations.</p>
+                  <Link href="/employer/subscription" className="mt-2 px-4 py-2 rounded-xl bg-violet-600 text-white text-xs font-bold hover:bg-violet-700 transition-colors">
+                    Upgrade Plan
+                  </Link>
+                </div>
+              </div>
+            )}
+            {limits?.aiScoringEnabled && (
             <div className="rounded-2xl border-2 border-violet-200 bg-linear-to-br from-violet-50 to-white overflow-hidden">
 
               {/* Header bar */}
@@ -288,6 +325,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
 
               </div>
             </div>
+            )}
 
             {/* Summary */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5">

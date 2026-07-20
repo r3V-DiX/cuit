@@ -100,6 +100,10 @@ export default function ProfilePage() {
   async function handleAiResumeParse(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast({ type: "error", message: "Invalid file type", description: "Only PDF files are accepted." });
+      return;
+    }
     if (file.size > 5 * 1024 * 1024) {
       toast({ type: "error", message: "File too large", description: "Please upload a PDF under 5 MB." });
       return;
@@ -806,6 +810,10 @@ export default function ProfilePage() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   function handleResumeFile(file: File) {
+    if (file.type !== "application/pdf") {
+      toast({ type: "error", message: "Invalid file type", description: "Only PDF files are accepted." });
+      return;
+    }
     if (file.size > 5 * 1024 * 1024) {
       toast({ type: "error", message: "File too large", description: "Please upload a PDF under 5 MB." });
       return;

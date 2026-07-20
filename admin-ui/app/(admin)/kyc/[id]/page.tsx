@@ -27,6 +27,7 @@ export default function KycDetailPage({ params }: { params: Promise<{ id: string
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [docUrlLoading, setDocUrlLoading] = useState(false);
 
   useEffect(() => {
     async function loadKyc() {
@@ -78,6 +79,20 @@ export default function KycDetailPage({ params }: { params: Promise<{ id: string
         }
       },
     });
+  };
+
+  const handleViewDocument = async () => {
+    setDocUrlLoading(true);
+    try {
+      const fresh = await api.get<EmployerVerification>(`/api/admin/kyc/${id}`);
+      if (fresh.documentUrl) {
+        window.open(fresh.documentUrl, '_blank', 'noreferrer');
+      }
+    } catch {
+      toast({ type: 'error', message: 'Failed to load document link.' });
+    } finally {
+      setDocUrlLoading(false);
+    }
   };
 
   const handleReject = () => {
@@ -304,14 +319,13 @@ export default function KycDetailPage({ params }: { params: Promise<{ id: string
                     <p className="mb-4 text-sm text-slate-600">
                       {kyc.documentFileName || 'Document provided'}
                     </p>
-                    <a
-                      href={kyc.documentUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors"
+                    <button
+                      onClick={handleViewDocument}
+                      disabled={docUrlLoading}
+                      className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-50"
                     >
-                      View Document
-                    </a>
+                      {docUrlLoading ? 'Loading...' : 'View Document'}
+                    </button>
                   </div>
                 </div>
               </div>

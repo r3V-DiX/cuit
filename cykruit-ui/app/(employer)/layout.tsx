@@ -2,9 +2,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import EmployerSidebar from "@/components/employer/EmployerSidebar";
 import { KycProvider, type KycStatus } from "@/lib/employer-context";
+import { SubscriptionBanner } from "@/components/employer/SubscriptionBanner";
 
-const AUTH_URL     = process.env.AUTH_SERVICE_URL     || "http://127.0.0.1:4001";
-const EMPLOYER_URL = process.env.EMPLOYER_SERVICE_URL || "http://127.0.0.1:4004";
+const AUTH_URL         = process.env.AUTH_SERVICE_URL         || "http://127.0.0.1:4001";
+const EMPLOYER_URL     = process.env.EMPLOYER_SERVICE_URL     || "http://127.0.0.1:4004";
+const SUBSCRIPTION_URL = process.env.SUBSCRIPTION_SERVICE_URL || "http://127.0.0.1:4007";
 
 async function buildForwardHeaders(): Promise<Record<string, string>> {
   const cookieStore = await cookies();
@@ -41,6 +43,22 @@ async function getSessionUser(fwdHeaders: Record<string, string>) {
   }
 }
 
+async function getSubscriptionStatus(fwdHeaders: Record<string, string>): Promise<string | null> {
+  if (!fwdHeaders.Cookie) return null;
+  try {
+    const res = await fetch(`${SUBSCRIPTION_URL}/subscriptions/my`, {
+      headers: fwdHeaders,
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const body = await res.json();
+    const data = body?.data ?? body;
+    return data?.status ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function getKycData(fwdHeaders: Record<string, string>): Promise<{ status: KycStatus; rejectionReason?: string }> {
   if (!fwdHeaders.Cookie) return { status: "not_submitted" };
   try {
@@ -70,20 +88,24 @@ export default async function EmployerLayout({
 }) {
   const fwdHeaders = await buildForwardHeaders();
 
-  const [user, kycData] = await Promise.all([
+  const [user, kycData, subscriptionStatus] = await Promise.all([
     getSessionUser(fwdHeaders),
     getKycData(fwdHeaders),
+    getSubscriptionStatus(fwdHeaders),
   ]);
 
   if (!user || user.role !== "EMPLOYER") {
     redirect("/login?next=/employer/dashboard");
   }
 
+  const isExpired = subscriptionStatus === "EXPIRED" || subscriptionStatus === "CANCELLED";
+
   return (
     <KycProvider initialStatus={kycData.status} initialRejectionReason={kycData.rejectionReason}>
       <div className="flex h-screen bg-slate-50 overflow-hidden">
         <EmployerSidebar />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {isExpired && <SubscriptionBanner status={subscriptionStatus!} />}
           {children}
         </div>
       </div>

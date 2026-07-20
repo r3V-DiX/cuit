@@ -1374,8 +1374,9 @@ model Job {
     closedReason String?   @db.VarChar(200)
     closedAt     DateTime?
 
-    viewCount        Int @default(0)
-    applicationCount Int @default(0)
+    viewCount        Int     @default(0)
+    applicationCount Int     @default(0)
+    isFeatured       Boolean @default(false)
 
     expiresAt   DateTime?
     publishedAt DateTime?
@@ -1406,6 +1407,7 @@ model Job {
     @@index([locationId])
     @@index([expiresAt])
     @@index([createdAt])
+    @@index([isFeatured])
     @@index([slug])
     @@map("jobs")
 }

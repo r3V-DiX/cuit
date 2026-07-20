@@ -28,12 +28,14 @@ const WS_URL =
     ? (process.env.NEXT_PUBLIC_WS_URL || window.location.origin)
     : "";
 
-async function fetchWsToken(): Promise<string | null> {
+async function fetchWsToken(attempt = 0): Promise<string | null> {
   try {
     const { data } = await apiFetch<{ token?: string }>("/api/notifications/ws/token");
     return data?.token ?? null;
   } catch {
-    return null;
+    if (attempt >= 3) return null;
+    await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+    return fetchWsToken(attempt + 1);
   }
 }
 

@@ -92,7 +92,8 @@ export class DiscountsService {
         return updated;
     }
 
-    getUsages(id: string, query: DiscountUsagesQueryDto) {
+    async getUsages(id: string, query: DiscountUsagesQueryDto) {
+        await this.getById(id);
         return this.repo.findUsages(id, query);
     }
 }

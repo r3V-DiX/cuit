@@ -59,6 +59,7 @@ export interface MobileLoginResult {
 // Returned by POST /auth/mobile/refresh
 export interface TokenRefreshResult {
   accessToken: string;
+  refreshToken: string; // rotated on every refresh — client must store new value
   expiresIn: number; // 900
   tokenType: "Bearer";
 }

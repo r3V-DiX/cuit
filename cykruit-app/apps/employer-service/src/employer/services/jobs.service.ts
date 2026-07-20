@@ -79,6 +79,21 @@ export class JobsService {
         }
     }
 
+    private async assertWithinFeaturedSlotLimit(employerId: string): Promise<void> {
+        const [usedSlots, limits] = await Promise.all([
+            this.prisma.job.count({
+                where: { employerId, isFeatured: true, status: { notIn: ['CLOSED', 'EXPIRED'] } },
+            }),
+            this.employerLimitsService.resolveForEmployer(employerId),
+        ]);
+        if (limits.featuredJobSlots === 0) {
+            throw new ForbiddenException('Featured job slots require a paid subscription plan');
+        }
+        if (usedSlots >= limits.featuredJobSlots) {
+            throw new BadRequestException(`Featured job slot limit reached (${limits.featuredJobSlots} slots on your plan)`);
+        }
+    }
+
     private notifyAdminsOfJobReview(
         jobTitle: string,
         companyName: string,
@@ -200,6 +215,11 @@ export class JobsService {
         // a new DRAFT does not consume a slot — skip the check here.
         // (The limit is enforced on submit/reopen instead.)
 
+        // Featured slot check on creation (featured drafts pre-reserve a slot)
+        if (dto.isFeatured) {
+            await this.assertWithinFeaturedSlotLimit(employer.id);
+        }
+
         const slug = await this.generateUniqueSlug(dto.jobTitle, employer.slug);
         const resolvedLocationId = await this.resolveLocation(dto.location) || dto.locationId;
 
@@ -213,6 +233,7 @@ export class JobsService {
                 experienceLevel: dto.experienceLevel,
                 applicationType: dto.applicationType,
                 status: JobStatus.DRAFT,
+                isFeatured: dto.isFeatured ?? false,
                 ...(dto.roleId ? { role: { connect: { id: dto.roleId } } } : {}),
                 ...(resolvedLocationId ? { location: { connect: { id: resolvedLocationId } } } : {}),
                 ...(dto.description !== undefined ? { description: dto.description } : {}),
@@ -271,6 +292,11 @@ export class JobsService {
             throw new BadRequestException(JobErrorCodes.JOB_NOT_EDITABLE);
         }
 
+        // Check featured slot limit when upgrading a non-featured job to featured
+        if (dto.isFeatured === true && !job.isFeatured) {
+            await this.assertWithinFeaturedSlotLimit(employer.id);
+        }
+
         const wasApproved = job.status === JobStatus.APPROVED;
         const wasPending  = job.status === JobStatus.PENDING;
         const wasRejected = job.status === JobStatus.REJECTED;
@@ -317,6 +343,7 @@ export class JobsService {
                                   : { disconnect: true },
                           }
                         : {}),
+                    ...(dto.isFeatured !== undefined ? { isFeatured: dto.isFeatured } : {}),
                     // Editing APPROVED or PENDING sends it back for re-review; clear stale rejection reason on REJECTED edits
                     ...((wasApproved || wasPending) ? { status: JobStatus.PENDING } : {}),
                     ...(wasRejected ? { rejectionReason: null } : {}),
@@ -431,6 +458,14 @@ export class JobsService {
             where: { employerId: employer.id, currentActiveJobs: { gt: 0 } },
             data: { currentActiveJobs: { decrement: 1 } },
         }).catch((err: unknown) => this.logger.warn(`Failed to decrement active job counter for employer ${employer.id}: ${String(err)}`));
+
+        // Decrement featured slot counter if this was a featured job
+        if (job.isFeatured) {
+            this.prisma.employerSubscription.updateMany({
+                where: { employerId: employer.id, usedFeaturedJobSlots: { gt: 0 } },
+                data: { usedFeaturedJobSlots: { decrement: 1 } },
+            }).catch((err: unknown) => this.logger.warn(`Failed to decrement featured slot counter for employer ${employer.id}: ${String(err)}`));
+        }
 
         this.auditService.logAction({
             actorId: userId,
@@ -548,7 +583,11 @@ export class JobsService {
     }
 
     async improveDescription(userId: string, title: string, description: string, jobType?: string, experienceLevel?: string) {
-        await this.resolveVerifiedEmployer(userId);
+        const employer = await this.resolveVerifiedEmployer(userId);
+        const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
+        if (!limits.aiScoringEnabled) {
+            throw new ForbiddenException('AI features require a paid subscription plan');
+        }
 
         const aiUrl = this.configService.get<string>('AI_SERVICE_URL') || 'http://localhost:3005';
         const res = await fetch(`${aiUrl}/ai/jobs/improve-description`, {
@@ -569,7 +608,11 @@ export class JobsService {
     }
 
     async suggestSkills(userId: string, title: string, description: string) {
-        await this.resolveVerifiedEmployer(userId);
+        const employer = await this.resolveVerifiedEmployer(userId);
+        const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
+        if (!limits.aiScoringEnabled) {
+            throw new ForbiddenException('AI features require a paid subscription plan');
+        }
 
         const aiUrl = this.configService.get<string>('AI_SERVICE_URL') || 'http://localhost:3005';
         const res = await fetch(`${aiUrl}/ai/jobs/suggest-skills`, {

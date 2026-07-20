@@ -39,6 +39,16 @@ export class DiscountsController {
         return this.service.list(query);
     }
 
+    // GET /admin/discounts/:id/usages — must come before :id to avoid NestJS swallowing it
+    @Get(':id/usages')
+    @RequirePermission(ACTIONS.DISCOUNTS.VIEW)
+    usages(
+        @Param('id', ParseUUIDPipe) id: string,
+        @Query() query: DiscountUsagesQueryDto,
+    ) {
+        return this.service.getUsages(id, query);
+    }
+
     // GET /admin/discounts/:id
     @Get(':id')
     @RequirePermission(ACTIONS.DISCOUNTS.VIEW)
@@ -54,6 +64,14 @@ export class DiscountsController {
         return this.service.create(admin.id, dto);
     }
 
+    // PATCH /admin/discounts/:id/deactivate — must come before :id
+    @Patch(':id/deactivate')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.DISCOUNTS.MANAGE)
+    deactivate(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string) {
+        return this.service.deactivate(admin.id, id);
+    }
+
     // PATCH /admin/discounts/:id
     @Patch(':id')
     @HttpCode(HttpStatus.OK)
@@ -64,23 +82,5 @@ export class DiscountsController {
         @Body() dto: UpdateDiscountDto,
     ) {
         return this.service.update(admin.id, id, dto);
-    }
-
-    // PATCH /admin/discounts/:id/deactivate
-    @Patch(':id/deactivate')
-    @HttpCode(HttpStatus.OK)
-    @RequirePermission(ACTIONS.DISCOUNTS.MANAGE)
-    deactivate(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string) {
-        return this.service.deactivate(admin.id, id);
-    }
-
-    // GET /admin/discounts/:id/usages
-    @Get(':id/usages')
-    @RequirePermission(ACTIONS.DISCOUNTS.VIEW)
-    usages(
-        @Param('id', ParseUUIDPipe) id: string,
-        @Query() query: DiscountUsagesQueryDto,
-    ) {
-        return this.service.getUsages(id, query);
     }
 }

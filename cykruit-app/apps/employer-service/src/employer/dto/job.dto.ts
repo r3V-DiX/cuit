@@ -135,6 +135,10 @@ export class CreateJobDto {
     @IsArray()
     @IsString({ each: true })
     niceToHave?: string[];
+
+    @IsOptional()
+    @IsBoolean()
+    isFeatured?: boolean;
 }
 
 // ── Update ────────────────────────────────────────────────────────────────────
@@ -217,6 +221,10 @@ export class UpdateJobDto {
     @IsArray()
     @IsString({ each: true })
     niceToHave?: string[];
+
+    @IsOptional()
+    @IsBoolean()
+    isFeatured?: boolean;
 }
 
 // ── Close ─────────────────────────────────────────────────────────────────────

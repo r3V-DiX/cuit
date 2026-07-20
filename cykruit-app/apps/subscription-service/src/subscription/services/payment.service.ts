@@ -58,7 +58,12 @@ export class PaymentService {
 
         // Idempotency guard — return existing live order if one already exists for this
         // employer+package+billingCycle to prevent double-charging on rapid retries.
-        const existingOrder = await this.payRepo.findLiveOrder(employerId, dto.packageId, dto.billingCycle as BillingCycle);
+        // Run inside a serializable transaction so concurrent requests can't both pass
+        // the check and create duplicate orders simultaneously.
+        const existingOrder = await this.prisma.$transaction(
+            () => this.payRepo.findLiveOrder(employerId, dto.packageId, dto.billingCycle as BillingCycle),
+            { isolationLevel: 'Serializable' },
+        );
         if (existingOrder) {
             return {
                 orderId: existingOrder.id,
@@ -275,7 +280,15 @@ export class PaymentService {
             return;
         }
 
-        if (order.status === 'PAID') return; // idempotent
+        // Full idempotency: if payment row already exists for this razorpayPaymentId,
+        // Razorpay fired the webhook twice — silently discard the duplicate.
+        const existingPayment = await this.prisma.payment.findUnique({
+            where: { razorpayPaymentId },
+            select: { id: true },
+        });
+        if (existingPayment) return;
+
+        if (order.status === 'PAID') return; // order already processed via a prior webhook
 
         // Reject captures for expired orders — Razorpay may send the event late
         if (order.status === 'EXPIRED' || (order.expiresAt && order.expiresAt <= new Date())) {

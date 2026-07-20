@@ -128,7 +128,7 @@ export class SessionMobileService {
     rawRefreshToken: string,
     ipAddress: string,
     userAgent?: string,
-  ): Promise<{ accessToken: string; expiresIn: number }> {
+  ): Promise<{ accessToken: string; refreshToken: string; expiresIn: number }> {
     const hashedRefreshToken = hashToken(rawRefreshToken); // ✅ shared util
 
     const session = await this.prisma.session.findFirst({
@@ -166,10 +166,15 @@ export class SessionMobileService {
       },
     );
 
+    // Rotate refresh token on every use — stolen token can't be replayed
+    const newRawRefreshToken = generateRawToken(32);
+    const newRefreshTokenHash = hashToken(newRawRefreshToken);
+
     await this.prisma.session.update({
       where: { id: session.id },
       data: {
         accessTokenJti: newJti,
+        refreshTokenHash: newRefreshTokenHash,
         lastActivity: new Date(),
         ipAddress,
       },
@@ -186,7 +191,7 @@ export class SessionMobileService {
       },
     );
 
-    return { accessToken, expiresIn: ACCESS_TOKEN_EXPIRY_SECONDS };
+    return { accessToken, refreshToken: newRawRefreshToken, expiresIn: ACCESS_TOKEN_EXPIRY_SECONDS };
   }
 
   // ── Find session by refresh token hash ────────────────────────

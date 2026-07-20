@@ -346,10 +346,9 @@ export class OtpService {
       });
     }
 
-    // OTP correct — mark used
-    await this.prisma.token.update({
+    // OTP correct — delete immediately to prevent row accumulation and replay
+    await this.prisma.token.delete({
       where: { id: tokenRecord.id },
-      data: { usedAt: new Date() },
     });
 
     const isNewUser = !user.isEmailVerified;
