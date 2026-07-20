@@ -19,7 +19,7 @@ import { PaymentRepository } from '../repositories/payment.repository';
 import { DiscountService } from './discount.service';
 import { EmployerLimitsService } from '@cykruit/subscription';
 import { AuditService } from '@cykruit/audit';
-import { CreateOrderDto, BillingCycleInput } from '../dto/payment.dto';
+import { CreateOrderDto, PreviewOrderDto, BillingCycleInput } from '../dto/payment.dto';
 
 const GST_RATE = 0.18;
 /** Razorpay order validity — 15 minutes */
@@ -185,6 +185,88 @@ export class PaymentService {
             packageName: pkg.name,
             billingCycle: dto.billingCycle,
             keyId: this.config.getOrThrow<string>('RAZORPAY_KEY_ID'),
+        };
+    }
+
+    // ── Preview order (no order created) ─────────────────────────────────────
+
+    async previewOrder(userId: string, dto: PreviewOrderDto) {
+        const employerId = await this.subRepo.resolveEmployerIdFromUser(userId);
+        if (!employerId) throw new ForbiddenException('Employer account required');
+
+        const pkg = await this.subRepo.findPackageById(dto.packageId);
+        if (!pkg) throw new NotFoundException('Package not found');
+        if (!pkg.isActive) throw new BadRequestException('Package is not active');
+
+        const basePrice = this.resolveBasePrice(pkg, dto.billingCycle);
+        if (basePrice === null) {
+            return {
+                packageId: dto.packageId,
+                packageName: pkg.name,
+                billingCycle: dto.billingCycle,
+                breakdown: {
+                    baseAmountPaise: 0,
+                    discountAmountPaise: 0,
+                    gstAmountPaise: 0,
+                    totalAmountPaise: 0,
+                    gstPercent: 18,
+                },
+                isFree: true,
+            };
+        }
+
+        const basePaise = Math.round(Number(basePrice) * 100);
+        let discountAmountPaise = 0;
+        let discountId: string | undefined;
+        let couponCode: string | undefined;
+        let discountName: string | undefined;
+
+        if (dto.couponCode) {
+            // validateCoupon throws descriptive errors — let them propagate to the client
+            const preview = await this.discountService.validateCoupon(
+                dto.couponCode,
+                employerId,
+                dto.packageId,
+                dto.billingCycle as BillingCycle,
+                basePaise,
+            );
+            discountAmountPaise = preview.discountAmountPaise;
+            discountId = preview.discountId;
+            couponCode = dto.couponCode.toUpperCase();
+            discountName = preview.name;
+        } else {
+            const autoPreview = await this.discountService.findApplicableAutoDiscount(
+                employerId,
+                dto.packageId,
+                dto.billingCycle as BillingCycle,
+                basePaise,
+            );
+            if (autoPreview) {
+                discountAmountPaise = autoPreview.discountAmountPaise;
+                discountId = autoPreview.discountId;
+                discountName = autoPreview.name;
+            }
+        }
+
+        const discountedBase = basePaise - discountAmountPaise;
+        const gstPaise = Math.round(discountedBase * GST_RATE);
+        const totalPaise = discountedBase + gstPaise;
+
+        return {
+            packageId: dto.packageId,
+            packageName: pkg.name,
+            billingCycle: dto.billingCycle,
+            breakdown: {
+                baseAmountPaise: basePaise,
+                discountAmountPaise,
+                gstAmountPaise: gstPaise,
+                totalAmountPaise: totalPaise,
+                gstPercent: 18,
+            },
+            ...(discountId && {
+                discountApplied: { id: discountId, code: couponCode ?? null, name: discountName ?? '' },
+            }),
+            isFree: false,
         };
     }
 

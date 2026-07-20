@@ -20,6 +20,19 @@ export class CreateOrderDto {
     couponCode?: string;
 }
 
+export class PreviewOrderDto {
+    @IsUUID()
+    packageId: string;
+
+    @IsEnum(BillingCycleInput)
+    billingCycle: BillingCycleInput;
+
+    @IsOptional()
+    @IsString()
+    @Length(1, 50)
+    couponCode?: string;
+}
+
 export class VerifyPaymentDto {
     @IsString()
     @IsNotEmpty()

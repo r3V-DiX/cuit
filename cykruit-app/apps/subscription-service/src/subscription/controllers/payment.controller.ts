@@ -18,7 +18,7 @@ import { AuthGuard, CsrfGuard, CurrentUser, Public } from '@cykruit/auth-core';
 import type { User } from '@prisma/client';
 import { AppLogger } from '@cykruit/logger';
 import { PaymentService } from '../services/payment.service';
-import { CreateOrderDto } from '../dto/payment.dto';
+import { CreateOrderDto, PreviewOrderDto } from '../dto/payment.dto';
 
 @Controller('subscriptions')
 export class PaymentController {
@@ -27,6 +27,13 @@ export class PaymentController {
         private readonly paymentService: PaymentService,
         private readonly logger: AppLogger,
     ) {}
+
+    /** POST /subscriptions/orders/preview — price breakdown + coupon validation, no order created */
+    @Post('orders/preview')
+    @UseGuards(AuthGuard)
+    previewOrder(@CurrentUser() user: User, @Body() dto: PreviewOrderDto) {
+        return this.paymentService.previewOrder(user.id, dto);
+    }
 
     /** POST /subscriptions/orders — create Razorpay order */
     @Post('orders')
