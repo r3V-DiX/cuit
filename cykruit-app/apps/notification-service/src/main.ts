@@ -5,6 +5,7 @@ import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 import { PrismaService } from '@cykruit/prisma';
 import type { Redis } from 'ioredis';
+import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 import { AppLogger } from '@cykruit/logger';
 import { LoggerInterceptor } from '@cykruit/logger';
 import { GlobalExceptionFilter, ValidationExceptionFilter } from '@cykruit/common';
@@ -117,7 +118,7 @@ async function bootstrap() {
 
     const httpServer = app.getHttpAdapter().getInstance() as import('express').Application;
     const prisma = app.get(PrismaService);
-    const redis = app.get<Redis>('IORedisModuleConnectionToken');
+    const redis = app.get<Redis>(getRedisConnectionToken());
     httpServer.get('/health', async (_req, res) => {
         try {
             await prisma.$queryRaw`SELECT 1`;
