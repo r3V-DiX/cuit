@@ -159,21 +159,27 @@ export class SubscriptionService {
             ? await this.repo.refreshUsage(employerId)
             : sub;
 
+        // When subscription is not active (expired/cancelled), enforce Free-tier limits
+        // so the UI doesn't show the old paid plan's limits as still available.
+        const isActive = effectiveStatus === 'ACTIVE';
+        const freePkg = !isActive ? await this.payRepo.findFreePackage() : null;
+        const limits = freePkg ?? source.package;
+
         return {
             hasSubscription: true,
             effectiveStatus,
             expiresAt: source.expiresAt,
-            packageName: source.package.name,
+            packageName: isActive ? source.package.name : (freePkg?.name ?? 'Free'),
             limits: {
-                maxActiveJobs: source.package.maxActiveJobs,
-                maxTeamMembers: source.package.maxTeamMembers,
-                featuredJobSlots: source.package.featuredJobSlots,
-                aiScoringEnabled: source.package.aiScoringEnabled,
-                jobPostingPeriodDays: source.package.jobPostingPeriodDays,
-                resumeViewEnabled: source.package.resumeViewEnabled,
-                canExportApplicants: source.package.canExportApplicants,
-                analyticsEnabled: source.package.analyticsEnabled,
-                prioritySupportEnabled: source.package.prioritySupportEnabled,
+                maxActiveJobs: limits.maxActiveJobs,
+                maxTeamMembers: limits.maxTeamMembers,
+                featuredJobSlots: limits.featuredJobSlots,
+                aiScoringEnabled: limits.aiScoringEnabled,
+                jobPostingPeriodDays: limits.jobPostingPeriodDays,
+                resumeViewEnabled: limits.resumeViewEnabled,
+                canExportApplicants: limits.canExportApplicants,
+                analyticsEnabled: limits.analyticsEnabled,
+                prioritySupportEnabled: limits.prioritySupportEnabled,
             },
             usage: {
                 currentActiveJobs: source.currentActiveJobs,

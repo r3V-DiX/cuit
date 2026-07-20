@@ -207,8 +207,11 @@ export class SubscriptionRepository {
                 status: 'ACTIVE',
                 startedAt: new Date(),
                 expiresAt: expiresAt ?? null,
-                // Do NOT reset usage counters here — live counts come from refreshUsage().
-                // Resetting would cause the limit check in employer-service to show wrong headroom.
+                // Reset featured slot counter on plan change — the new plan has its own
+                // slot allowance and the old count no longer represents reality.
+                // currentActiveJobs / currentTeamMembers are NOT reset here — they are
+                // real-time counts that stay valid across plan changes.
+                usedFeaturedJobSlots: 0,
             },
             select: SUBSCRIPTION_SELECT,
         });
@@ -281,7 +284,7 @@ export class SubscriptionRepository {
 
     /** Sync real-time usage from live DB counts. */
     async refreshUsage(employerId: string) {
-        const [activeJobs, teamMembers] = await this.prisma.$transaction([
+        const [activeJobs, teamMembers, featuredJobs] = await this.prisma.$transaction([
             this.prisma.job.count({
                 where: {
                     employerId,
@@ -291,6 +294,13 @@ export class SubscriptionRepository {
             this.prisma.employerMember.count({
                 where: { employerId },
             }),
+            this.prisma.job.count({
+                where: {
+                    employerId,
+                    isFeatured: true,
+                    status: { in: ['APPROVED', 'PENDING'] },
+                },
+            }),
         ]);
 
         return this.prisma.employerSubscription.update({
@@ -298,6 +308,7 @@ export class SubscriptionRepository {
             data: {
                 currentActiveJobs: activeJobs,
                 currentTeamMembers: teamMembers,
+                usedFeaturedJobSlots: featuredJobs,
             },
             select: SUBSCRIPTION_SELECT,
         });

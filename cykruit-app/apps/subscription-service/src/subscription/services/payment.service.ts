@@ -18,6 +18,7 @@ import { SubscriptionRepository } from '../repositories/subscription.repository'
 import { PaymentRepository } from '../repositories/payment.repository';
 import { DiscountService } from './discount.service';
 import { EmployerLimitsService } from '@cykruit/subscription';
+import { AuditService } from '@cykruit/audit';
 import { CreateOrderDto, BillingCycleInput } from '../dto/payment.dto';
 
 const GST_RATE = 0.18;
@@ -38,6 +39,7 @@ export class PaymentService {
         private readonly eventPublisher: EventPublisher,
         private readonly logger: AppLogger,
         private readonly employerLimitsService: EmployerLimitsService,
+        private readonly auditService: AuditService,
     ) {
         this.razorpay = new Razorpay({
             key_id: this.config.getOrThrow<string>('RAZORPAY_KEY_ID'),
@@ -148,6 +150,25 @@ export class PaymentService {
             expiresAt: new Date(Date.now() + ORDER_TTL_MS),
         });
 
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'subscriptions:order_created',
+            module: 'SUBSCRIPTIONS',
+            targetType: 'PaymentOrder',
+            targetId: order.id,
+            newData: {
+                packageId: dto.packageId,
+                packageName: pkg.name,
+                billingCycle: dto.billingCycle,
+                totalAmountPaise: totalPaise,
+                discountAmountPaise,
+                razorpayOrderId: rzOrder.id,
+            },
+            riskLevel: 'MEDIUM',
+            result: 'SUCCESS',
+        });
+
         return {
             orderId: order.id,
             razorpayOrderId: rzOrder.id,
@@ -221,6 +242,18 @@ export class PaymentService {
             `Free tier "${freePkg.name}" auto-activated for employer ${employerId}`,
             'PaymentService',
         );
+
+        this.auditService.logAction({
+            actorId: 'SYSTEM',
+            actorRole: 'ADMIN',
+            action: 'subscriptions:free_tier_activated',
+            module: 'SUBSCRIPTIONS',
+            targetType: 'EmployerSubscription',
+            targetId: employerId,
+            newData: { packageId: freePkg.id, packageName: freePkg.name, employerId },
+            riskLevel: 'LOW',
+            result: 'SUCCESS',
+        });
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -369,6 +402,25 @@ export class PaymentService {
         );
 
         const ownerUserId = await this.subRepo.findOwnerUserIdForEmployer(order.employerId);
+
+        this.auditService.logAction({
+            actorId: ownerUserId ?? order.employerId,
+            actorRole: 'EMPLOYER',
+            action: 'subscriptions:payment_captured',
+            module: 'SUBSCRIPTIONS',
+            targetType: 'EmployerSubscription',
+            targetId: subscription.id,
+            newData: {
+                packageId: order.packageId,
+                packageName: pkg.name,
+                billingCycle: order.billingCycle,
+                totalAmountPaise: order.totalAmountPaise,
+                razorpayPaymentId,
+                expiresAt: expiresAt.toISOString(),
+            },
+            riskLevel: 'HIGH',
+            result: 'SUCCESS',
+        });
         if (ownerUserId) {
             await this.eventPublisher.publish(
                 DomainEventType.SUBSCRIPTION_PAYMENT_CAPTURED,

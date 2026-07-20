@@ -123,11 +123,21 @@ function CheckoutContent() {
       .finally(() => setLoading(false));
   }, [packageIdParam, planParam]);
 
-  // Contact fields
+  // Contact fields — prefilled from employer profile on load
   const [email,   setEmail]   = useState("");
   const [company, setCompany] = useState("");
   const [gstIn,   setGstIn]   = useState("");
   const [emailError, setEmailError] = useState("");
+
+  useEffect(() => {
+    apiFetch<{ contactEmail?: string; companyName?: string }>("/api/employer/company")
+      .then((res) => {
+        if (res.data?.contactEmail && !email) setEmail(res.data.contactEmail);
+        if (res.data?.companyName && !company) setCompany(res.data.companyName);
+      })
+      .catch(() => { /* prefill is best-effort */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Pay state
   const [paying, setPaying] = useState(false);

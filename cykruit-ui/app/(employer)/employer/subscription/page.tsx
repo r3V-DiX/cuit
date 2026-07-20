@@ -62,6 +62,8 @@ interface PaymentOrder {
   razorpayOrderId: string;
   billingCycle: string;
   amountPaise: number;
+  discountAmountPaise: number;
+  couponCode?: string | null;
   gstAmountPaise: number;
   totalAmountPaise: number;
   currency: string;
@@ -542,7 +544,7 @@ export default function SubscriptionPage() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-slate-100">
-                          {["Package", "Cycle", "Base", "GST", "Total", "Status", "Date"].map((h) => (
+                          {["Package", "Cycle", "Base", "Discount", "GST", "Total", "Status", "Date"].map((h) => (
                             <th key={h} className="px-6 py-3 text-left text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{h}</th>
                           ))}
                         </tr>
@@ -553,6 +555,14 @@ export default function SubscriptionPage() {
                             <td className="px-6 py-3.5 text-slate-700 font-medium">{o.package?.name ?? "—"}</td>
                             <td className="px-6 py-3.5 font-mono text-xs text-slate-500">{o.billingCycle}</td>
                             <td className="px-6 py-3.5 font-mono text-xs text-slate-600">{paise(o.amountPaise)}</td>
+                            <td className="px-6 py-3.5 font-mono text-xs text-emerald-600">
+                              {o.discountAmountPaise > 0 ? (
+                                <span title={o.couponCode ?? undefined}>
+                                  -{paise(o.discountAmountPaise)}
+                                  {o.couponCode && <span className="ml-1 text-[9px] text-slate-400">({o.couponCode})</span>}
+                                </span>
+                              ) : "—"}
+                            </td>
                             <td className="px-6 py-3.5 font-mono text-xs text-slate-500">{paise(o.gstAmountPaise)}</td>
                             <td className="px-6 py-3.5 font-mono text-xs font-semibold text-slate-900">{paise(o.totalAmountPaise)}</td>
                             <td className="px-6 py-3.5">

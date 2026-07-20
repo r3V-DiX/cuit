@@ -161,6 +161,8 @@ export class PaymentRepository {
                 razorpayOrderId: true,
                 billingCycle: true,
                 amountPaise: true,
+                discountAmountPaise: true,
+                couponCode: true,
                 gstAmountPaise: true,
                 totalAmountPaise: true,
                 currency: true,
