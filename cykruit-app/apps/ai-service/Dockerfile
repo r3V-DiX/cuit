@@ -18,7 +18,7 @@ RUN npm ci
 
 RUN npx prisma generate
 
-RUN npx tsc -p apps/ai-service/tsconfig.build.json
+RUN npx tsc -p apps/ai-service/tsconfig.app.json
 
 # ── Production image ────────────────────────────────────────────────
 FROM node:20-alpine AS production
