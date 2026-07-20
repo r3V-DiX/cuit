@@ -66,6 +66,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.STAGING_ADMIN_NEXT_PUBLIC_API_URL }}
+            ADMIN_SERVICE_URL=http://admin-app:4010
           no-cache: true
 
       - name: ✅ Build Summary
@@ -136,6 +137,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.PROD_ADMIN_NEXT_PUBLIC_API_URL }}
+            ADMIN_SERVICE_URL=http://admin-app:4010
           no-cache: true
 
       - name: ✅ Build Summary

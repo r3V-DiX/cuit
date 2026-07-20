@@ -76,6 +76,15 @@ jobs:
             NEXT_PUBLIC_BACKEND_URL=${{ secrets.STAGING_NEXT_PUBLIC_BACKEND_URL }}
             NEXT_PUBLIC_API_URL=${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}
             NODE_ENV=production
+            AUTH_SERVICE_URL=http://auth-service:4001
+            SETTINGS_SERVICE_URL=http://user-settings-service:4002
+            PROFILE_SERVICE_URL=http://seeker-profile-service:4003
+            EMPLOYER_SERVICE_URL=http://employer-service:4004
+            SEEKER_SERVICE_URL=http://seeker-service:4005
+            PUBLIC_SERVICE_URL=http://public-service:4006
+            NOTIF_SERVICE_URL=http://notification-service:4007
+            SUBS_SERVICE_URL=http://subscription-service:4008
+            AI_SERVICE_URL=http://ai-service:3005
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -144,6 +153,15 @@ jobs:
             NEXT_PUBLIC_BACKEND_URL=${{ secrets.PROD_NEXT_PUBLIC_BACKEND_URL }}
             NEXT_PUBLIC_API_URL=${{ secrets.PROD_NEXT_PUBLIC_API_URL }}
             NODE_ENV=production
+            AUTH_SERVICE_URL=http://auth-service:4001
+            SETTINGS_SERVICE_URL=http://user-settings-service:4002
+            PROFILE_SERVICE_URL=http://seeker-profile-service:4003
+            EMPLOYER_SERVICE_URL=http://employer-service:4004
+            SEEKER_SERVICE_URL=http://seeker-service:4005
+            PUBLIC_SERVICE_URL=http://public-service:4006
+            NOTIF_SERVICE_URL=http://notification-service:4007
+            SUBS_SERVICE_URL=http://subscription-service:4008
+            AI_SERVICE_URL=http://ai-service:3005
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

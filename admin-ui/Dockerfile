@@ -14,6 +14,11 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
+# Server-side rewrite destination (next.config.ts) is resolved at `next build`
+# time — runtime env vars can't override it, so this must be a build arg.
+ARG ADMIN_SERVICE_URL
+ENV ADMIN_SERVICE_URL=${ADMIN_SERVICE_URL}
+
 RUN npm run build
 
 # ── Production image ────────────────────────────────────────────────
