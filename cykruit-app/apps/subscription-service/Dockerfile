@@ -37,4 +37,4 @@ USER node
 
 EXPOSE 4008
 
-CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/apps/subscription-service/src/main.js"]
+CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/apps/subscription-service/apps/subscription-service/src/main.js"]

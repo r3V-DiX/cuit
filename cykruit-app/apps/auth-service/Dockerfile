@@ -37,4 +37,4 @@ USER node
 
 EXPOSE 4001
 
-CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/apps/auth-service/src/main.js"]
+CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/apps/auth-service/apps/auth-service/src/main.js"]

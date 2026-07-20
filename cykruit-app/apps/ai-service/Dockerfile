@@ -37,4 +37,4 @@ USER node
 
 EXPOSE 3005
 
-CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/apps/ai-service/src/main.js"]
+CMD ["node", "-r", "./tsconfig-paths-bootstrap.js", "dist/apps/ai-service/apps/ai-service/src/main.js"]
