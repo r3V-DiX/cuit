@@ -74,5 +74,14 @@ echo "RESEND_API_KEY=${admin_resend}" >> "$ADMIN_OUT"
 
 grep -E "^(DATABASE_URL|REDIS_HOST|REDIS_PORT|REDIS_PASSWORD|EMAIL_FROM)=" "$BACKEND_OUT" >> "$ADMIN_OUT"
 
+# Docker Compose's OWN variable interpolation (used directly in docker-compose.yml,
+# e.g. redis's ${REDIS_PASSWORD}) is resolved from a .env file in the compose
+# project directory - separate from env_file: (which only injects into containers).
+# Keep it in sync here so no command ever needs a manual `export REDIS_PASSWORD=...`.
+COMPOSE_ENV="/opt/cykruit-v2/.env"
+: > "$COMPOSE_ENV"; chmod 600 "$COMPOSE_ENV"
+echo "ENV=${ENV}" >> "$COMPOSE_ENV"
+grep "^REDIS_PASSWORD=" "$BACKEND_OUT" >> "$COMPOSE_ENV"
+
 echo "Wrote $(wc -l < "$BACKEND_OUT") lines to $BACKEND_OUT"
 echo "Wrote $(wc -l < "$ADMIN_OUT") lines to $ADMIN_OUT"

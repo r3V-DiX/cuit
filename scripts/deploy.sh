@@ -25,15 +25,17 @@ export ENV="$ENV"
 export REDIS_PASSWORD
 REDIS_PASSWORD=$(grep '^REDIS_PASSWORD=' "/opt/cykruit-v2/.env.$ENV" | cut -d'=' -f2-)
 
+# Permanent fix for repeated "no space left on device" mid-pull failures during
+# rapid iterative deploys — a time-filtered prune (e.g. >72h old) is NOT enough,
+# since images pulled and replaced within the same day are exactly what filled
+# the disk. Full prune, every deploy.
+step "Pruning docker system..."
+docker system prune -af
+
 step "ECR login..."
 aws ecr get-login-password --region ap-south-1 | \
   docker login --username AWS --password-stdin "$ECR_REGISTRY"
 info "ECR login OK"
-
-# Prune only images older than 72h — avoids deleting layers mid-pull
-# when running concurrent or back-to-back deploys.
-step "Pruning stale images (>72h old)..."
-docker image prune -af --filter "until=72h"
 
 wait_healthy() {
   local services=("$@")
