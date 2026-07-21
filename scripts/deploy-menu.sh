@@ -45,12 +45,12 @@ RECENT_TAGS=$(aws ecr describe-images \
   --region ap-south-1 \
   --repository-name cykruit-app \
   --query "sort_by(imageDetails,&imagePushedAt)[-5:].imageTags" \
-  --output json 2>/dev/null \
+  --output json 2>&1 \
   | jq -r '.[] | .[]? | select(startswith("auth-service-'"$ENV"'-"))' \
   | sed "s/auth-service-${ENV}-//" \
   | sort -u \
   | tail -5 \
-  || echo "  (could not fetch)")
+  || echo "  (could not fetch — check IAM role has ecr:DescribeImages)")
 echo ""
 echo "  Recent tags for $ENV:"
 echo "$RECENT_TAGS" | while read -r t; do echo "    $t"; done
