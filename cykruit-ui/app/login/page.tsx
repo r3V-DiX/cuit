@@ -46,9 +46,16 @@ function OtpInput({ value, onChange, disabled }: { value: string; onChange: (v: 
   const refs = useRef<Array<HTMLInputElement | null>>([]);
 
   function handleChange(i: number, e: React.ChangeEvent<HTMLInputElement>) {
-    const digit = e.target.value.replace(/\D/g, "").slice(-1);
-    if (!digit) return;
-    const newOtp = value.slice(0, i) + digit + value.slice(i + 1);
+    const digits = e.target.value.replace(/\D/g, "");
+    if (!digits) return;
+    // Handle paste/autofill of multiple digits (e.g. SMS autofill on mobile)
+    if (digits.length > 1) {
+      const filled = (value.slice(0, i) + digits).slice(0, 6);
+      onChange(filled);
+      refs.current[Math.min(filled.length, 5)]?.focus();
+      return;
+    }
+    const newOtp = value.slice(0, i) + digits + value.slice(i + 1);
     onChange(newOtp.slice(0, 6));
     if (i < 5) refs.current[i + 1]?.focus();
   }
