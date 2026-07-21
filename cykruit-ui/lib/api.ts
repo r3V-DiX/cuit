@@ -24,9 +24,9 @@ let _loggingOut = false;
 
 export async function apiFetch<T = unknown>(
   url: string,
-  options?: RequestInit & { skipAuthRedirect?: boolean },
+  options?: RequestInit & { skipAuthRedirect?: boolean; skipLogoutOn401?: boolean },
 ): Promise<ApiResult<T>> {
-  const { skipAuthRedirect, ...fetchOptions } = options ?? {};
+  const { skipAuthRedirect, skipLogoutOn401, ...fetchOptions } = options ?? {};
   const response = await fetch(url, {
     ...fetchOptions,
     credentials: 'include',
@@ -34,6 +34,21 @@ export async function apiFetch<T = unknown>(
 
   if (response.status === 401 && skipAuthRedirect) {
     return { data: undefined as unknown as T };
+  }
+
+  // When caller opts out of the auto-logout flow (e.g. OTP verify — a 401 means
+  // wrong code, not expired session), parse the body and throw like a normal error.
+  if (response.status === 401 && skipLogoutOn401) {
+    let errBody: unknown;
+    try { errBody = await response.json(); } catch { errBody = null; }
+    const envelope = (errBody && typeof errBody === 'object' && 'error' in errBody)
+      ? (errBody as { error?: { code?: string; message?: string; statusCode?: number } }).error
+      : null;
+    throw new ApiError(
+      envelope?.code ?? 'UNAUTHORIZED',
+      envelope?.message ?? 'Unauthorized',
+      envelope?.statusCode ?? 401,
+    );
   }
 
   // Reset logout flag on any successful response so future 401s still redirect.

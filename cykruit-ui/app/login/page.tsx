@@ -187,6 +187,7 @@ function LoginForm() {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ email: email.trim().toLowerCase(), otp, rememberMe: true }),
+        skipLogoutOn401: true,
       });
       const userRole = result.data?.role;
       broadcastLogin(userRole === "EMPLOYER" ? "EMPLOYER" : "SEEKER");
