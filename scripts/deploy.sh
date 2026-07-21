@@ -75,37 +75,21 @@ ecr_login() {
   info "ECR login OK"
 }
 
-show_recent_tags() {
-  info "Fetching recent tags from ECR..."
-  local recent
-  recent=$(aws ecr describe-images \
+
+resolve_tag() {
+  info "Fetching latest tag from ECR..."
+  TAG=$(aws ecr describe-images \
     --region ap-south-1 \
     --repository-name cykruit-app \
-    --query "sort_by(imageDetails,&imagePushedAt)[-5:].imageTags" \
-    --output json 2>&1 \
-    | jq -r '.[] | .[]? | select(startswith("auth-service-'"$ENV"'-"))' \
-    | sed "s/auth-service-${ENV}-//" \
-    | sort -u | tail -5 \
-    || echo "  (could not fetch — check IAM ecr:DescribeImages)")
-  echo ""
-  echo "  Recent tags for $ENV:"
-  if [ -n "$recent" ]; then
-    while IFS= read -r t; do echo "    $t"; done <<< "$recent"
+    --query "sort_by(imageDetails,&imagePushedAt)[-1:].imageTags" \
+    --output json 2>/dev/null \
+    | jq -r '.[] | .[]? | select(startswith("auth-service-'"$ENV"'-")) | ltrimstr("auth-service-'"$ENV"'-")' \
+    | tail -1 || true)
+  if [ -z "$TAG" ]; then
+    warn "No SHA tag found in ECR — using 'latest'"
+    TAG="latest"
   else
-    echo "    (none found)"
-  fi
-  echo ""
-}
-
-prompt_tag() {
-  show_recent_tags
-  read -rp "Tag (git sha or 'latest'): " TAG
-  if [ "$TAG" = "latest" ]; then
-    warn "'latest' may deploy different code versions across services."
-    read -rp "Continue? (yes/no): " C; [ "$C" = "yes" ] || { info "Aborted."; exit 0; }
-  elif [[ ! "$TAG" =~ ^[0-9a-f]{7,40}$ ]]; then
-    warn "Tag '$TAG' doesn't look like a git SHA. Continue? (yes/no)"
-    read -rp "" C; [ "$C" = "yes" ] || exit 1
+    info "Auto-selected tag: $TAG"
   fi
 }
 
@@ -255,7 +239,7 @@ read -rp "Select (1-8): " OPT
 
 case "$OPT" in
   1|2|3|4|5)
-    prompt_tag
+    resolve_tag
     cd "$DEPLOY_DIR"
     export ENV="$ENV"
     export REDIS_PASSWORD
@@ -272,7 +256,7 @@ case "$OPT" in
     esac
     ;;
   6)
-    prompt_tag
+    resolve_tag
     warn "This will redeploy ALL services + run migrations."
     read -rp "Confirm? (yes/no): " C; [ "$C" = "yes" ] || { info "Aborted."; exit 0; }
     cd "$DEPLOY_DIR"
@@ -293,7 +277,7 @@ case "$OPT" in
     ;;
   8)
     do_build_env
-    prompt_tag
+    resolve_tag
     warn "This will rebuild env + redeploy ALL services + run migrations."
     read -rp "Confirm? (yes/no): " C; [ "$C" = "yes" ] || { info "Aborted."; exit 0; }
     cd "$DEPLOY_DIR"
