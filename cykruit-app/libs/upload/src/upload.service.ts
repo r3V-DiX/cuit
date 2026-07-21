@@ -32,12 +32,16 @@ export class UploadService {
   constructor(private configService: ConfigService) {
     const awsConfig = this.configService.get("upload.aws");
 
+    // Explicit credentials override the SDK default chain, so only pass them
+    // when both keys are configured (local dev); on EC2 the instance role
+    // authenticates. Matches libs/ai/src/providers/bedrock.provider.ts.
+    const credentials = awsConfig.accessKeyId && awsConfig.secretAccessKey
+      ? { accessKeyId: awsConfig.accessKeyId, secretAccessKey: awsConfig.secretAccessKey }
+      : undefined;
+
     this.s3Client = new S3Client({
       region: awsConfig.region,
-      credentials: {
-        accessKeyId: awsConfig.accessKeyId,
-        secretAccessKey: awsConfig.secretAccessKey,
-      },
+      ...(credentials ? { credentials } : {}),
     });
 
     this.buckets = awsConfig.buckets;
