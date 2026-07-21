@@ -89,7 +89,11 @@ show_recent_tags() {
     || echo "  (could not fetch — check IAM ecr:DescribeImages)")
   echo ""
   echo "  Recent tags for $ENV:"
-  echo "$recent" | while read -r t; do [ -n "$t" ] && echo "    $t"; done
+  if [ -n "$recent" ]; then
+    while IFS= read -r t; do echo "    $t"; done <<< "$recent"
+  else
+    echo "    (none found)"
+  fi
   echo ""
 }
 
