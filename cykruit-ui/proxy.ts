@@ -4,7 +4,12 @@ import type { NextRequest } from "next/server";
 const SESSION_COOKIE = "session_token";
 const ROLE_COOKIE    = "user_role";
 
-const WS_ORIGIN = process.env.NEXT_PUBLIC_WS_URL ?? "ws://127.0.0.1:4007 wss://127.0.0.1:4007";
+// Derived (not hand-maintained) so the CSP scheme always matches what socket.io-client
+// actually uses: it upgrades http->ws and https->wss based on NEXT_PUBLIC_WS_URL's own
+// scheme (see hooks/useMessaging.ts). A mismatched scheme here would make the browser
+// block its own WebSocket connection.
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "http://127.0.0.1:4007";
+const WS_ORIGIN = WS_URL.replace(/^http/, "ws");
 
 function buildCsp(nonce: string): string {
   const isDev = process.env.NODE_ENV === "development";

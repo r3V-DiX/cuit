@@ -75,6 +75,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_BACKEND_URL=${{ secrets.STAGING_NEXT_PUBLIC_BACKEND_URL }}
             NEXT_PUBLIC_API_URL=${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_WS_URL=${{ secrets.STAGING_NEXT_PUBLIC_API_URL }}
             NODE_ENV=production
             AUTH_SERVICE_URL=http://auth-service:4001
             SETTINGS_SERVICE_URL=http://user-settings-service:4002
@@ -152,6 +153,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_BACKEND_URL=${{ secrets.PROD_NEXT_PUBLIC_BACKEND_URL }}
             NEXT_PUBLIC_API_URL=${{ secrets.PROD_NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_WS_URL=${{ secrets.PROD_NEXT_PUBLIC_API_URL }}
             NODE_ENV=production
             AUTH_SERVICE_URL=http://auth-service:4001
             SETTINGS_SERVICE_URL=http://user-settings-service:4002

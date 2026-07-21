@@ -68,6 +68,10 @@ export function useMessaging({
 
       socket = io(`${WS_URL}/messaging`, {
         auth: { token },
+        // Gateway only proxies WebSocket traffic under /ws (see apps/gateway/src/main.ts),
+        // stripping that prefix before forwarding to notification-service's default
+        // /socket.io path — the client must request the same /ws-prefixed path.
+        path: "/ws/socket.io",
         transports: ["websocket", "polling"],
         reconnectionAttempts: 5,
         reconnectionDelay: 2000,
