@@ -3,80 +3,139 @@ name: Build, Push & Deploy Cykruit App (Staging + Production)
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'cykruit-app/**'
       - '.github/workflows/cykruit-app-ci.yml'
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'cykruit-app/**'
       - '.github/workflows/cykruit-app-ci.yml'
+
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
+  # ── Detect which services changed ────────────────────────────────────────────
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.build-matrix.outputs.matrix }}
+      empty:  ${{ steps.build-matrix.outputs.empty }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            libs:
+              - 'cykruit-app/libs/**'
+              - 'cykruit-app/prisma/**'
+              - '.github/workflows/cykruit-app-ci.yml'
+            ai-service:
+              - 'cykruit-app/apps/ai-service/**'
+            auth-service:
+              - 'cykruit-app/apps/auth-service/**'
+            user-settings-service:
+              - 'cykruit-app/apps/user-settings-service/**'
+            seeker-profile-service:
+              - 'cykruit-app/apps/seeker-profile-service/**'
+            employer-service:
+              - 'cykruit-app/apps/employer-service/**'
+            seeker-service:
+              - 'cykruit-app/apps/seeker-service/**'
+            public-service:
+              - 'cykruit-app/apps/public-service/**'
+            notification-service:
+              - 'cykruit-app/apps/notification-service/**'
+            subscription-service:
+              - 'cykruit-app/apps/subscription-service/**'
+            gateway:
+              - 'cykruit-app/apps/gateway/**'
+
+      - id: build-matrix
+        env:
+          FORCE_ALL: ${{ github.event_name == 'workflow_dispatch' }}
+          LIBS:     ${{ steps.filter.outputs.libs }}
+          AI:       ${{ steps.filter.outputs.ai-service }}
+          AUTH:     ${{ steps.filter.outputs.auth-service }}
+          SETTINGS: ${{ steps.filter.outputs.user-settings-service }}
+          PROFILE:  ${{ steps.filter.outputs.seeker-profile-service }}
+          EMPLOYER: ${{ steps.filter.outputs.employer-service }}
+          SEEKER:   ${{ steps.filter.outputs.seeker-service }}
+          PUBLIC:   ${{ steps.filter.outputs.public-service }}
+          NOTIF:    ${{ steps.filter.outputs.notification-service }}
+          SUBS:     ${{ steps.filter.outputs.subscription-service }}
+          GATEWAY:  ${{ steps.filter.outputs.gateway }}
+        run: |
+          python3 - << 'EOF'
+          import json, os
+
+          ALL = [
+            {"name": "AI Service",            "tag_prefix": "ai-service",            "dockerfile": "./cykruit-app/apps/ai-service/Dockerfile"},
+            {"name": "Auth Service",           "tag_prefix": "auth-service",          "dockerfile": "./cykruit-app/apps/auth-service/Dockerfile"},
+            {"name": "User Settings Service",  "tag_prefix": "user-settings-service", "dockerfile": "./cykruit-app/apps/user-settings-service/Dockerfile"},
+            {"name": "Seeker Profile Service", "tag_prefix": "seeker-profile-service","dockerfile": "./cykruit-app/apps/seeker-profile-service/Dockerfile"},
+            {"name": "Employer Service",       "tag_prefix": "employer-service",      "dockerfile": "./cykruit-app/apps/employer-service/Dockerfile"},
+            {"name": "Seeker Service",         "tag_prefix": "seeker-service",        "dockerfile": "./cykruit-app/apps/seeker-service/Dockerfile"},
+            {"name": "Public Service",         "tag_prefix": "public-service",        "dockerfile": "./cykruit-app/apps/public-service/Dockerfile"},
+            {"name": "Notification Service",   "tag_prefix": "notification-service",  "dockerfile": "./cykruit-app/apps/notification-service/Dockerfile"},
+            {"name": "Subscription Service",   "tag_prefix": "subscription-service",  "dockerfile": "./cykruit-app/apps/subscription-service/Dockerfile"},
+            {"name": "Gateway",                "tag_prefix": "gateway",               "dockerfile": "./cykruit-app/apps/gateway/Dockerfile"},
+          ]
+
+          env = os.environ
+          force_all    = env.get("FORCE_ALL") == "true"
+          libs_changed = env.get("LIBS") == "true"
+
+          svc_map = {
+            "ai-service":            env.get("AI")       == "true",
+            "auth-service":          env.get("AUTH")     == "true",
+            "user-settings-service": env.get("SETTINGS") == "true",
+            "seeker-profile-service":env.get("PROFILE")  == "true",
+            "employer-service":      env.get("EMPLOYER") == "true",
+            "seeker-service":        env.get("SEEKER")   == "true",
+            "public-service":        env.get("PUBLIC")   == "true",
+            "notification-service":  env.get("NOTIF")    == "true",
+            "subscription-service":  env.get("SUBS")     == "true",
+            "gateway":               env.get("GATEWAY")  == "true",
+          }
+
+          if force_all or libs_changed:
+            matrix = ALL
+          else:
+            matrix = [s for s in ALL if svc_map.get(s["tag_prefix"], False)]
+
+          empty = "true" if not matrix else "false"
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+            f.write(f"matrix={json.dumps(matrix)}\n")
+            f.write(f"empty={empty}\n")
+
+          print(f"Building {len(matrix)} service(s): {[s['name'] for s in matrix]}")
+          EOF
+
+  # ── Build only the services that changed ─────────────────────────────────────
   build-and-push:
+    needs: detect
+    if: needs.detect.outputs.empty == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # environment: staging is only for variable/OIDC scoping (AWS_ROLE_ARN lives in
-    # the Environments, not repo-level); this single job still pushes both staging-*
-    # and prod-* tags of the same image, as before.
     environment: staging
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: AI Service
-            tag_prefix: ai-service
-            context: ./cykruit-app
-            dockerfile: ./cykruit-app/apps/ai-service/Dockerfile
-          - name: Auth Service
-            tag_prefix: auth-service
-            context: ./cykruit-app
-            dockerfile: ./cykruit-app/apps/auth-service/Dockerfile
-          - name: User Settings Service
-            tag_prefix: user-settings-service
-            context: ./cykruit-app
-            dockerfile: ./cykruit-app/apps/user-settings-service/Dockerfile
-          - name: Seeker Profile Service
-            tag_prefix: seeker-profile-service
-            context: ./cykruit-app
-            dockerfile: ./cykruit-app/apps/seeker-profile-service/Dockerfile
-          - name: Employer Service
-            tag_prefix: employer-service
-            context: ./cykruit-app
-            dockerfile: ./cykruit-app/apps/employer-service/Dockerfile
-          - name: Seeker Service
-            tag_prefix: seeker-service
-            context: ./cykruit-app
-            dockerfile: ./cykruit-app/apps/seeker-service/Dockerfile
-          - name: Public Service
-            tag_prefix: public-service
-            context: ./cykruit-app
-            dockerfile: ./cykruit-app/apps/public-service/Dockerfile
-          - name: Notification Service
-            tag_prefix: notification-service
-            context: ./cykruit-app
-            dockerfile: ./cykruit-app/apps/notification-service/Dockerfile
-          - name: Subscription Service
-            tag_prefix: subscription-service
-            context: ./cykruit-app
-            dockerfile: ./cykruit-app/apps/subscription-service/Dockerfile
-          - name: Gateway
-            tag_prefix: gateway
-            context: ./cykruit-app
-            dockerfile: ./cykruit-app/apps/gateway/Dockerfile
+        include: ${{ fromJSON(needs.detect.outputs.matrix) }}
 
     permissions:
       contents: read
       id-token: write
 
     steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
@@ -110,34 +169,29 @@ jobs:
       - name: 🚀 Build and Push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ${{ matrix.context }}
+          context: ./cykruit-app
           file: ${{ matrix.dockerfile }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.tag_prefix }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.tag_prefix }}
 
       - name: ✅ Build Summary
         run: |
           echo "### 🎉 ${{ matrix.name }} Build Successful" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** \`${{ steps.login-ecr.outputs.registry }}/cykruit-app\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Tags:** \`${{ matrix.tag_prefix }}-staging-${{ github.sha }}\`, \`${{ matrix.tag_prefix }}-prod-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
 
-  # ── Deploy: staging — no approval gate (see Environment protection rules in repo Settings) ──
+  # ── Deploy: staging ───────────────────────────────────────────────────────────
   deploy-staging:
     needs: build-and-push
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: staging
-
     permissions:
       contents: read
       id-token: write
-
     steps:
       - name: 🔐 Configure AWS Credentials (staging deploy role)
         uses: aws-actions/configure-aws-credentials@v4
@@ -145,7 +199,7 @@ jobs:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
 
-      - name: 🗄️ Run DB migrations (prisma migrate deploy, via auth-service image — owns the schema)
+      - name: 🗄️ Run DB migrations
         run: |
           SHORT_SHA=${GITHUB_SHA::7}
           aws ssm send-command \
@@ -165,19 +219,16 @@ jobs:
             --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging cykruit-app $SHORT_SHA\"]" \
             --region ${{ vars.AWS_REGION || 'ap-south-1' }}
 
-  # ── Deploy: production — gated. Configure a required-reviewer protection rule on the
-  #    'production' Environment in repo Settings → Environments; this job pauses until approved ──
+  # ── Deploy: production (gated) ────────────────────────────────────────────────
   deploy-prod:
     needs: build-and-push
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
-
     permissions:
       contents: read
       id-token: write
-
     steps:
       - name: 🔐 Configure AWS Credentials (prod deploy role)
         uses: aws-actions/configure-aws-credentials@v4
@@ -185,7 +236,7 @@ jobs:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
 
-      - name: 🗄️ Run DB migrations (prisma migrate deploy, via auth-service image — owns the schema)
+      - name: 🗄️ Run DB migrations
         run: |
           SHORT_SHA=${GITHUB_SHA::7}
           aws ssm send-command \

@@ -3,17 +3,16 @@ name: Build, Push & Deploy Cykruit UI (Staging + Production)
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'cykruit-ui/**'
       - '.github/workflows/cykruit-ui-ci.yml'
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'cykruit-ui/**'
       - '.github/workflows/cykruit-ui-ci.yml'
+
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
@@ -22,22 +21,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: staging
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: UI
-            image: cykruit-ui
-            context: ./cykruit-ui
-            dockerfile: ./cykruit-ui/Dockerfile
-
     permissions:
       contents: read
       id-token: write
-
     steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
@@ -58,7 +46,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.image }}
+          images: ${{ steps.login-ecr.outputs.registry }}/cykruit-ui
           tags: |
             type=raw,value=staging-latest
             type=sha,prefix=staging-
@@ -67,8 +55,8 @@ jobs:
       - name: 🚀 Build and Push Docker image — staging
         uses: docker/build-push-action@v5
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
+          context: ./cykruit-ui
+          file: ./cykruit-ui/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -86,35 +74,25 @@ jobs:
             NOTIF_SERVICE_URL=http://notification-service:4007
             SUBS_SERVICE_URL=http://subscription-service:4008
             AI_SERVICE_URL=http://ai-service:3005
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=cykruit-ui-staging
+          cache-to: type=gha,mode=max,scope=cykruit-ui-staging
 
       - name: ✅ Build Summary
         run: |
-          echo "### 🎉 ${{ matrix.name }} Build Successful (staging)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎉 Cykruit UI Build Successful (staging)" >> $GITHUB_STEP_SUMMARY
           echo "**Image Tag:** \`staging-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
 
+  # Only build prod on actual pushes to main, not on PRs
   build-prod:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: production
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: UI
-            image: cykruit-ui
-            context: ./cykruit-ui
-            dockerfile: ./cykruit-ui/Dockerfile
-
     permissions:
       contents: read
       id-token: write
-
     steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
@@ -135,7 +113,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ steps.login-ecr.outputs.registry }}/${{ matrix.image }}
+          images: ${{ steps.login-ecr.outputs.registry }}/cykruit-ui
           tags: |
             type=raw,value=latest
             type=raw,value=prod-latest
@@ -145,9 +123,9 @@ jobs:
       - name: 🚀 Build and Push Docker image — prod
         uses: docker/build-push-action@v5
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.dockerfile }}
-          push: ${{ github.event_name != 'pull_request' }}
+          context: ./cykruit-ui
+          file: ./cykruit-ui/Dockerfile
+          push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
@@ -164,27 +142,23 @@ jobs:
             NOTIF_SERVICE_URL=http://notification-service:4007
             SUBS_SERVICE_URL=http://subscription-service:4008
             AI_SERVICE_URL=http://ai-service:3005
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=cykruit-ui-prod
+          cache-to: type=gha,mode=max,scope=cykruit-ui-prod
 
       - name: ✅ Build Summary
         run: |
-          echo "### 🎉 ${{ matrix.name }} Build Successful (prod)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎉 Cykruit UI Build Successful (prod)" >> $GITHUB_STEP_SUMMARY
           echo "**Image Tags:** \`prod-${{ github.sha }}\`, \`latest\`" >> $GITHUB_STEP_SUMMARY
 
-  # ── Deploy: staging — no approval gate (see Environment protection rules in repo Settings) ──
   deploy-staging:
     needs: build-staging
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: staging
-
     permissions:
       contents: read
       id-token: write
-
     steps:
       - name: 🔐 Configure AWS Credentials (staging deploy role)
         uses: aws-actions/configure-aws-credentials@v4
@@ -202,19 +176,15 @@ jobs:
             --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging cykruit-ui $SHORT_SHA\"]" \
             --region ${{ vars.AWS_REGION || 'ap-south-1' }}
 
-  # ── Deploy: production — gated. Configure a required-reviewer protection rule on the
-  #    'production' Environment in repo Settings → Environments; this job pauses until approved ──
   deploy-prod:
     needs: build-prod
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
-
     permissions:
       contents: read
       id-token: write
-
     steps:
       - name: 🔐 Configure AWS Credentials (prod deploy role)
         uses: aws-actions/configure-aws-credentials@v4

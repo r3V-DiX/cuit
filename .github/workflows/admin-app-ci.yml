@@ -3,92 +3,34 @@ name: Build, Push & Deploy Admin App (Staging + Production)
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - "admin-app/**"
       - "cykruit-app/libs/**"
       - "cykruit-app/prisma/**"
       - ".github/workflows/admin-app-ci.yml"
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
       - "admin-app/**"
       - "cykruit-app/libs/**"
       - "cykruit-app/prisma/**"
       - ".github/workflows/admin-app-ci.yml"
+
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
 jobs:
-  build-staging:
+  # ── Single job builds both staging and prod tags (same image, no env-specific args) ──
+  build-and-push:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: staging
-
     permissions:
       contents: read
       id-token: write
-
     steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: 🔐 Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
-
-      - name: 🔑 Log in to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: 🛠️ Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 📝 Extract metadata for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ steps.login-ecr.outputs.registry }}/cykruit-admin-app
-          tags: |
-            type=raw,value=staging-latest
-            type=sha,prefix=staging-
-            type=raw,value=staging-${{ github.run_number }}
-
-      - name: 🚀 Build and Push Docker image — staging
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./admin-app/Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: ✅ Build Summary
-        run: |
-          echo "### 🎉 Admin App Build Successful (staging)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image Tag:** \`staging-${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-
-  build-prod:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    environment: production
-
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
@@ -112,11 +54,14 @@ jobs:
           images: ${{ steps.login-ecr.outputs.registry }}/cykruit-admin-app
           tags: |
             type=raw,value=latest
+            type=raw,value=staging-latest
             type=raw,value=prod-latest
+            type=sha,prefix=staging-
             type=sha,prefix=prod-
+            type=raw,value=staging-${{ github.run_number }}
             type=raw,value=prod-${{ github.run_number }}
 
-      - name: 🚀 Build and Push Docker image — prod
+      - name: 🚀 Build and Push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -124,27 +69,24 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=admin-app
+          cache-to: type=gha,mode=max,scope=admin-app
 
       - name: ✅ Build Summary
         run: |
-          echo "### 🎉 Admin App Build Successful (prod)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Image Tags:** \`prod-${{ github.sha }}\`, \`latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎉 Admin App Build Successful" >> $GITHUB_STEP_SUMMARY
+          echo "**Tags:** \`staging-${{ github.sha }}\`, \`prod-${{ github.sha }}\`, \`latest\`" >> $GITHUB_STEP_SUMMARY
 
-  # ── Deploy: staging — no approval gate (see Environment protection rules in repo Settings) ──
+  # ── Deploy: staging ───────────────────────────────────────────────────────────
   deploy-staging:
-    needs: build-staging
+    needs: build-and-push
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: staging
-
     permissions:
       contents: read
       id-token: write
-
     steps:
       - name: 🔐 Configure AWS Credentials (staging deploy role)
         uses: aws-actions/configure-aws-credentials@v4
@@ -162,19 +104,16 @@ jobs:
             --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging admin-app $SHORT_SHA\"]" \
             --region ${{ vars.AWS_REGION || 'ap-south-1' }}
 
-  # ── Deploy: production — gated. Configure a required-reviewer protection rule on the
-  #    'production' Environment in repo Settings → Environments; this job pauses until approved ──
+  # ── Deploy: production (gated) ────────────────────────────────────────────────
   deploy-prod:
-    needs: build-prod
+    needs: build-and-push
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
-
     permissions:
       contents: read
       id-token: write
-
     steps:
       - name: 🔐 Configure AWS Credentials (prod deploy role)
         uses: aws-actions/configure-aws-credentials@v4
