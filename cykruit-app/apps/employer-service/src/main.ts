@@ -116,8 +116,9 @@ async function bootstrap() {
     const port = process.env.EMPLOYER_PORT || 4004;
     const host = process.env.HOST || '0.0.0.0';
 
-    await app.listen(port, host);
-
+    // Registered before app.listen() — Nest finalizes its own routing (including
+    // a catch-all 404 handler) as part of listen(), so a raw Express route added
+    // afterward would never be reached; Nest's own 404 would win first.
     const httpServer = app.getHttpAdapter().getInstance() as import('express').Application;
     const prisma = app.get(PrismaService);
     const redis = app.get<Redis>(getRedisConnectionToken());
@@ -130,6 +131,8 @@ async function bootstrap() {
             res.status(503).json({ status: 'error', error: String(err) });
         }
     });
+
+    await app.listen(port, host);
 
     logger.log(`🚀 Employer Service running on http://${host}:${port}`, 'Bootstrap');
     logger.log(`📝 Environment: ${process.env.NODE_ENV || 'development'}`, 'Bootstrap');
