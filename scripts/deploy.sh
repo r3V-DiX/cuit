@@ -69,6 +69,8 @@ wait_healthy() {
 }
 
 ecr_login() {
+  step "Pruning docker system to free disk space..."
+  docker system prune -af
   step "ECR login..."
   aws ecr get-login-password --region ap-south-1 | \
     docker login --username AWS --password-stdin "$ECR_REGISTRY"
@@ -245,9 +247,7 @@ case "$OPT" in
     export REDIS_PASSWORD
     REDIS_PASSWORD=$(grep '^REDIS_PASSWORD=' "$BACKEND_ENV" | cut -d'=' -f2-)
     ecr_login
-    step "Pruning docker system..."
-    docker system prune -af
-    case "$OPT" in
+case "$OPT" in
       1) do_cykruit_app ;;
       2) do_admin_app   ;;
       3) do_cykruit_ui  ;;
@@ -264,9 +264,7 @@ case "$OPT" in
     export REDIS_PASSWORD
     REDIS_PASSWORD=$(grep '^REDIS_PASSWORD=' "$BACKEND_ENV" | cut -d'=' -f2-)
     ecr_login
-    step "Pruning docker system..."
-    docker system prune -af
-    do_migrate
+do_migrate
     do_cykruit_app
     do_admin_app
     do_cykruit_ui
@@ -285,9 +283,7 @@ case "$OPT" in
     export REDIS_PASSWORD
     REDIS_PASSWORD=$(grep '^REDIS_PASSWORD=' "$BACKEND_ENV" | cut -d'=' -f2-)
     ecr_login
-    step "Pruning docker system..."
-    docker system prune -af
-    do_migrate
+do_migrate
     do_cykruit_app
     do_admin_app
     do_cykruit_ui
