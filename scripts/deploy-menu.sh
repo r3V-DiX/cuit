@@ -59,13 +59,12 @@ echo ""
 read -rp "Tag (short git sha, e.g. 0ce249c): " TAG
 
 if [ "$TAG" = "latest" ]; then
-  error "'latest' is not a valid deploy tag — CI does not push a 'latest' tag."
-  error "Use an actual git SHA from the list above."
-  exit 1
-fi
-
-if [[ ! "$TAG" =~ ^[0-9a-f]{7,40}$ ]]; then
-  warn "Tag '$TAG' doesn't look like a git SHA. Continue anyway? (yes/no)"
+  warn "'latest' deploys the newest image per service independently (e.g. employer-service-prod-latest)."
+  warn "Services may be on different code versions. Continue? (yes/no)"
+  read -rp "" CONFIRM
+  [ "$CONFIRM" = "yes" ] || { info "Aborted. Use a specific SHA to pin all services to one build."; exit 0; }
+elif [[ ! "$TAG" =~ ^[0-9a-f]{7,40}$ ]]; then
+  warn "Tag '$TAG' doesn't look like a git SHA or 'latest'. Continue anyway? (yes/no)"
   read -rp "" CONFIRM
   [ "$CONFIRM" = "yes" ] || exit 1
 fi

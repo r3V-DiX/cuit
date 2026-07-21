@@ -25,10 +25,8 @@ export ENV="$ENV"
 export REDIS_PASSWORD
 REDIS_PASSWORD=$(grep '^REDIS_PASSWORD=' "/opt/cykruit-v2/.env.$ENV" | cut -d'=' -f2-)
 
-# Permanent fix for repeated "no space left on device" mid-pull failures during
-# rapid iterative deploys — a time-filtered prune (e.g. >72h old) is NOT enough,
-# since images pulled and replaced within the same day are exactly what filled
-# the disk. Full prune, every deploy.
+# Full prune before every deploy — time-filtered prune is not enough since
+# images pulled and replaced within the same day fill the disk on rapid redeploys.
 step "Pruning docker system..."
 docker system prune -af
 
@@ -36,6 +34,29 @@ step "ECR login..."
 aws ecr get-login-password --region ap-south-1 | \
   docker login --username AWS --password-stdin "$ECR_REGISTRY"
 info "ECR login OK"
+
+# Pull a single ECR image: try {service}-{env}-{sha} first, fall back to {service}-{env}-latest.
+# CI only builds a SHA tag for services that changed in that commit — unchanged services
+# only have -latest. If falling back, retags locally to the SHA so docker compose up finds it.
+pull_with_fallback() {
+  local repo="$1"    # e.g. cykruit-app
+  local service="$2" # e.g. auth-service
+  local env="$3"
+  local sha="$4"
+  local sha_tag="${service}-${env}-${sha}"
+  local latest_tag="${service}-${env}-latest"
+
+  if [ "$sha" = "latest" ]; then
+    info "  ${service}: ${latest_tag}"
+    docker pull "$ECR_REGISTRY/${repo}:${latest_tag}"
+  elif docker pull "$ECR_REGISTRY/${repo}:${sha_tag}" > /dev/null 2>&1; then
+    info "  ${service}: ${sha_tag}"
+  else
+    warn "  ${service}: ${sha_tag} not in ECR — pulling ${latest_tag} and tagging as ${sha_tag}"
+    docker pull "$ECR_REGISTRY/${repo}:${latest_tag}"
+    docker tag "$ECR_REGISTRY/${repo}:${latest_tag}" "$ECR_REGISTRY/${repo}:${sha_tag}"
+  fi
+}
 
 wait_healthy() {
   local services=("$@")
@@ -60,43 +81,41 @@ wait_healthy() {
 case "$TARGET" in
   migrate)
     step "Running prisma migrate deploy..."
+    pull_with_fallback cykruit-app auth-service "$ENV" "$TAG"
     docker run --rm --env-file "/opt/cykruit-v2/.env.$ENV" \
       "$ECR_REGISTRY/cykruit-app:auth-service-$ENV-$TAG" \
       npx prisma migrate deploy
     info "Migration complete."
     ;;
   cykruit-app)
-    export CYKRUIT_APP_TAG="$TAG"
-    step "Pulling cykruit-app ($TAG)..."
-    docker compose pull \
-      ai-service auth-service user-settings-service seeker-profile-service \
-      employer-service seeker-service public-service notification-service \
-      subscription-service gateway
+    CYKRUIT_SERVICES=(ai-service auth-service user-settings-service seeker-profile-service employer-service seeker-service public-service notification-service subscription-service gateway)
+    step "Pulling cykruit-app (sha=$TAG, fallback=latest per service)..."
+    for svc in "${CYKRUIT_SERVICES[@]}"; do
+      pull_with_fallback cykruit-app "$svc" "$ENV" "$TAG"
+    done
     step "Starting cykruit-app..."
-    docker compose up -d \
-      ai-service auth-service user-settings-service seeker-profile-service \
-      employer-service seeker-service public-service notification-service \
-      subscription-service gateway
+    export CYKRUIT_APP_TAG="$TAG"
+    docker compose up -d "${CYKRUIT_SERVICES[@]}"
     wait_healthy auth-service gateway
     ;;
   admin-app)
     export ADMIN_APP_TAG="$TAG"
     step "Pulling admin-app ($TAG)..."
-    docker compose pull admin-app
+    pull_with_fallback cykruit-app admin-app "$ENV" "$TAG"
     docker compose up -d admin-app
     wait_healthy admin-app
     ;;
   cykruit-ui)
     export CYKRUIT_UI_TAG="$TAG"
     step "Pulling cykruit-ui ($TAG)..."
-    docker compose pull cykruit-ui
+    pull_with_fallback cykruit-ui cykruit-ui "$ENV" "$TAG"
     docker compose up -d cykruit-ui
     wait_healthy cykruit-ui
     ;;
   admin-ui)
     export ADMIN_UI_TAG="$TAG"
     step "Pulling admin-ui ($TAG)..."
-    docker compose pull admin-ui
+    pull_with_fallback admin-ui admin-ui "$ENV" "$TAG"
     docker compose up -d admin-ui
     wait_healthy admin-ui
     ;;
