@@ -101,21 +101,21 @@ case "$TARGET" in
   admin-app)
     export ADMIN_APP_TAG="$TAG"
     step "Pulling admin-app ($TAG)..."
-    pull_with_fallback cykruit-app admin-app "$ENV" "$TAG"
+    docker compose pull admin-app
     docker compose up -d admin-app
     wait_healthy admin-app
     ;;
   cykruit-ui)
     export CYKRUIT_UI_TAG="$TAG"
     step "Pulling cykruit-ui ($TAG)..."
-    pull_with_fallback cykruit-ui cykruit-ui "$ENV" "$TAG"
+    docker compose pull cykruit-ui
     docker compose up -d cykruit-ui
     wait_healthy cykruit-ui
     ;;
   admin-ui)
     export ADMIN_UI_TAG="$TAG"
     step "Pulling admin-ui ($TAG)..."
-    pull_with_fallback admin-ui admin-ui "$ENV" "$TAG"
+    docker compose pull admin-ui
     docker compose up -d admin-ui
     wait_healthy admin-ui
     ;;

@@ -7,13 +7,13 @@ on:
       - main
     paths:
       - "admin-ui/**"
-      - ".github/workflows/admin-ui-prod.yml"
+      - ".github/workflows/admin-ui-ci.yml"
   pull_request:
     branches:
       - main
     paths:
       - "admin-ui/**"
-      - ".github/workflows/admin-ui-prod.yml"
+      - ".github/workflows/admin-ui-ci.yml"
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
@@ -113,19 +113,6 @@ jobs:
             type=raw,value=prod-latest
             type=sha,prefix=prod-
             type=raw,value=prod-${{ github.run_number }}
-
-      - name: 📦 Build Docker image (for testing)
-        uses: docker/build-push-action@v5
-        with:
-          context: ./admin-ui
-          file: ./admin-ui/Dockerfile
-          push: false
-          tags: test-image:latest
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            NEXT_PUBLIC_API_URL=${{ secrets.PROD_ADMIN_NEXT_PUBLIC_API_URL }}
-          load: true
-          no-cache: true
 
       - name: 🚀 Build and Push Docker image — prod
         uses: docker/build-push-action@v5
