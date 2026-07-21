@@ -19,7 +19,7 @@ import {
   Send,
   X,
 } from "lucide-react";
-
+       
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 type AppStatus = "Applied" | "Under Review" | "Shortlisted" | "Rejected" | "Withdrawn";
