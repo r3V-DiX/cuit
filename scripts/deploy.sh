@@ -222,7 +222,44 @@ do_admin_ui() {
   wait_healthy admin-ui
 }
 
-# ── Main menu ──────────────────────────────────────────────────────────────────
+run_deploy() {
+  local target="$1"
+  cd "$DEPLOY_DIR"
+  export ENV="$ENV"
+  export REDIS_PASSWORD
+  REDIS_PASSWORD=$(grep '^REDIS_PASSWORD=' "$BACKEND_ENV" | cut -d'=' -f2-)
+  ecr_login
+  case "$target" in
+    cykruit-app) do_cykruit_app ;;
+    admin-app)   do_admin_app   ;;
+    cykruit-ui)  do_cykruit_ui  ;;
+    admin-ui)    do_admin_ui    ;;
+    migrate)     do_migrate     ;;
+    all)
+      do_migrate
+      do_cykruit_app
+      do_admin_app
+      do_cykruit_ui
+      do_admin_ui
+      ;;
+    *) error "Unknown target: $target"; exit 1 ;;
+  esac
+}
+
+# ── Non-interactive (CI): deploy.sh <env> <target> <tag> ──────────────────────
+if [ $# -ge 2 ]; then
+  # ENV already detected from .env file; $1 is just passed for compatibility
+  TARGET="$2"
+  TAG="${3:-latest}"
+  info "CI mode: target=$TARGET tag=$TAG"
+  run_deploy "$TARGET"
+  echo ""
+  info "Done. Current status:"
+  cd "$DEPLOY_DIR" && ENV="$ENV" docker compose ps
+  exit 0
+fi
+
+# ── Interactive menu ───────────────────────────────────────────────────────────
 echo ""
 echo "=========================================="
 echo "   Cykruit v2 — Deploy ($ENV)"
@@ -242,33 +279,13 @@ read -rp "Select (1-8): " OPT
 case "$OPT" in
   1|2|3|4|5)
     resolve_tag
-    cd "$DEPLOY_DIR"
-    export ENV="$ENV"
-    export REDIS_PASSWORD
-    REDIS_PASSWORD=$(grep '^REDIS_PASSWORD=' "$BACKEND_ENV" | cut -d'=' -f2-)
-    ecr_login
-case "$OPT" in
-      1) do_cykruit_app ;;
-      2) do_admin_app   ;;
-      3) do_cykruit_ui  ;;
-      4) do_admin_ui    ;;
-      5) do_migrate     ;;
-    esac
+    run_deploy "$(case $OPT in 1) echo cykruit-app;; 2) echo admin-app;; 3) echo cykruit-ui;; 4) echo admin-ui;; 5) echo migrate;; esac)"
     ;;
   6)
     resolve_tag
     warn "This will redeploy ALL services + run migrations."
     read -rp "Confirm? (yes/no): " C; [ "$C" = "yes" ] || { info "Aborted."; exit 0; }
-    cd "$DEPLOY_DIR"
-    export ENV="$ENV"
-    export REDIS_PASSWORD
-    REDIS_PASSWORD=$(grep '^REDIS_PASSWORD=' "$BACKEND_ENV" | cut -d'=' -f2-)
-    ecr_login
-do_migrate
-    do_cykruit_app
-    do_admin_app
-    do_cykruit_ui
-    do_admin_ui
+    run_deploy all
     ;;
   7)
     do_build_env
@@ -278,16 +295,7 @@ do_migrate
     resolve_tag
     warn "This will rebuild env + redeploy ALL services + run migrations."
     read -rp "Confirm? (yes/no): " C; [ "$C" = "yes" ] || { info "Aborted."; exit 0; }
-    cd "$DEPLOY_DIR"
-    export ENV="$ENV"
-    export REDIS_PASSWORD
-    REDIS_PASSWORD=$(grep '^REDIS_PASSWORD=' "$BACKEND_ENV" | cut -d'=' -f2-)
-    ecr_login
-do_migrate
-    do_cykruit_app
-    do_admin_app
-    do_cykruit_ui
-    do_admin_ui
+    run_deploy all
     ;;
   *)
     error "Invalid option: $OPT"
