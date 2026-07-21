@@ -57,7 +57,7 @@ wait_healthy() {
     for svc in "$@"; do
       local status
       status=$(docker compose ps --format json "$svc" 2>/dev/null \
-        | jq -r '.Health // .Status' 2>/dev/null || echo "unknown")
+        | jq -r 'if (.Health // "" | length) > 0 then .Health else .Status end' 2>/dev/null || echo "unknown")
       if [ "$status" != "healthy" ] && [ "$status" != "running" ]; then
         all_healthy=false; break
       fi
