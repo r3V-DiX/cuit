@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   XCircle,
   ArrowRight,
-  Briefcase,
+  Briefcase, 
   Activity,
   ChevronRight,
   Send,
