@@ -138,13 +138,24 @@ do_build_env() {
   echo "DATABASE_URL=postgresql://postgres:${db_password_enc}@${db_host}:${db_port}/cykruit?schema=public" \
     >> "$BACKEND_ENV"
 
-  for key in google-oauth razorpay aws-s3-credentials ai-vendor-keys; do
+  for key in google-oauth razorpay ai-vendor-keys; do
     aws secretsmanager get-secret-value --region ap-south-1 \
       --secret-id "/cykruit-v2/${ENV}/backend/${key}" --query SecretString --output text \
     | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> "$BACKEND_ENV"
   done
 
-  # bedrock-credentials is optional
+  # aws-s3-credentials and bedrock-credentials are both optional: EC2's IAM
+  # instance role authenticates S3/Bedrock directly, so these secrets are only
+  # needed at all for local dev (see libs/upload/src/upload.service.ts and
+  # libs/ai/src/providers/bedrock.provider.ts) - don't hard-fail if deleted.
+  if s3_secret=$(aws secretsmanager get-secret-value --region ap-south-1 \
+      --secret-id "/cykruit-v2/${ENV}/backend/aws-s3-credentials" \
+      --query SecretString --output text 2>/dev/null); then
+    echo "$s3_secret" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> "$BACKEND_ENV"
+  else
+    warn "aws-s3-credentials not found — skipping (S3 will use the EC2 instance role)"
+  fi
+
   if local bedrock_secret
      bedrock_secret=$(aws secretsmanager get-secret-value --region ap-south-1 \
        --secret-id "/cykruit-v2/${ENV}/backend/bedrock-credentials" \
