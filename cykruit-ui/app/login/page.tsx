@@ -190,13 +190,13 @@ function LoginForm() {
     if (otp.length !== 6) { toast({ type: "error", message: "Enter the 6-digit OTP" }); return; }
     setLoading(true);
     try {
-      const result = await apiFetch<{ role?: string }>("/api/auth/verify-otp", {
+      const result = await apiFetch<{ user?: { role?: string }; role?: string }>("/api/auth/verify-otp", {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ email: email.trim().toLowerCase(), otp, rememberMe: true }),
         skipLogoutOn401: true,
       });
-      const userRole = result.data?.role;
+      const userRole = result.data?.user?.role ?? result.data?.role;
       broadcastLogin(userRole === "EMPLOYER" ? "EMPLOYER" : "SEEKER");
       const safeNext = nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : null;
       if (userRole === "EMPLOYER") {
