@@ -76,6 +76,7 @@ function proxy(target: string, pathRewrite?: Record<string, string>) {
 // /ws/*                      → notification-service:4007 (WebSocket)
 
 app.use('/auth', proxy(SERVICES.auth, { '^/': '/auth/' }));
+app.use('/api/auth', proxy(SERVICES.auth, { '^/api/auth': '/auth' }));
 app.use('/settings', proxy(SERVICES.settings));
 app.use('/seeker-profile', proxy(SERVICES['seeker-profile']));
 app.use('/employer', proxy(SERVICES.employer));
