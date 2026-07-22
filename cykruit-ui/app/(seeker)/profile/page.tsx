@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
 import {
   User, Briefcase, Award, Terminal, FileText,
   Plus, Pencil, Trash2, Upload, Check, X, ExternalLink, Sparkles, Wand2,
-  GraduationCap, Globe, Camera, Lock, ChevronDown as ChevronDownIcon,
+  GraduationCap, Globe, Camera, ChevronDown as ChevronDownIcon,
 } from "lucide-react";
 import { FaLinkedinIn, FaGithub, FaXTwitter } from "react-icons/fa6";
 import { Country, State, City } from "country-state-city";
@@ -1048,6 +1047,7 @@ export default function ProfilePage() {
             <div className="flex-1 min-w-0">
               <h2 className="text-lg font-bold text-slate-900">{basics.name}</h2>
               <p className="text-sm text-slate-500">{basics.title}{basics.location ? ` · ${basics.location}` : ""}</p>
+              {basics.email && <p className="text-xs text-slate-400 mt-0.5">{basics.email}</p>}
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span className="text-[10px] font-mono text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-md">OPEN TO WORK</span>
                 <span className="text-[10px] font-mono text-slate-400">
@@ -1108,20 +1108,6 @@ export default function ProfilePage() {
               </label>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
-              <Link
-                href={userId ? `/u/${userId}` : "#"}
-                className="flex items-center gap-1.5 text-xs font-medium text-slate-500 border border-slate-200 hover:bg-slate-50 px-3 py-2 rounded-xl transition-colors"
-              >
-                <ExternalLink className="w-3.5 h-3.5" /> View Public Profile
-              </Link>
-              <button
-                onClick={() => setActiveSection("basics")}
-                className="flex items-center gap-1.5 text-xs font-medium text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-xl transition-colors"
-              >
-                <Pencil className="w-3.5 h-3.5" /> Edit
-              </button>
-            </div>
           </div>
 
           <div className="flex flex-col md:flex-row gap-3 sm:gap-5 items-start">
@@ -1165,21 +1151,14 @@ export default function ProfilePage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Full name</label>
-                          <div className="relative">
-                            <input value={basicsBuffer.name} disabled placeholder="Full name" className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 text-sm cursor-not-allowed select-none" />
-                            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-300 pointer-events-none" />
-                          </div>
+                          <input value={basicsBuffer.name} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, name: e.target.value })} placeholder="Full name" maxLength={100} className={field} />
                         </div>
                         <div>
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Job title</label>
                           <input value={basicsBuffer.title} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, title: e.target.value })} placeholder="e.g. Senior Penetration Tester" maxLength={100} className={field} />
                         </div>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Account Email (Login)</label>
-                          <input value={basicsBuffer.email || ""} disabled className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-400 text-sm cursor-not-allowed select-none" />
-                        </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 ml-0.5">Professional Email</label>
                           <input value={basicsBuffer.professionalEmail} onChange={(e) => setBasicsBuffer({ ...basicsBuffer, professionalEmail: e.target.value })} placeholder="you@professional.com" className={field} />
@@ -1266,16 +1245,12 @@ export default function ProfilePage() {
                           { label: "Full name", value: basics.name },
                           { label: "Job title", value: basics.title },
                           { label: "Location", value: basics.location },
-                          { label: "Account Email", value: basics.email, locked: true },
                           { label: "Professional Email", value: basics.professionalEmail },
                           { label: "Phone", value: basics.phone },
-                        ].map(({ label, value, locked }) => (
-                          <div key={label} className={`p-3.5 rounded-xl border ${locked ? "bg-slate-50/50 border-slate-200" : "bg-slate-50 border-slate-200"}`}>
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <p className="text-[10px] font-medium text-slate-400">{label}</p>
-                              {locked && <Lock className="w-2.5 h-2.5 text-slate-300" />}
-                            </div>
-                            <p className={`text-sm font-medium ${locked ? "text-slate-500" : "text-slate-800"}`}>{value || <span className="text-slate-300 italic">Not set</span>}</p>
+                        ].map(({ label, value }) => (
+                          <div key={label} className="p-3.5 rounded-xl border bg-slate-50 border-slate-200">
+                            <p className="text-[10px] font-medium text-slate-400 mb-0.5">{label}</p>
+                            <p className="text-sm font-medium text-slate-800">{value || <span className="text-slate-300 italic">Not set</span>}</p>
                           </div>
                         ))}
                       </div>
