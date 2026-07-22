@@ -39,7 +39,7 @@ export default function SeekerTopbar({ title }: { title: string }) {
   }, []);
 
   return (
-    <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between px-6 shrink-0">
+    <header className="h-16 border-b border-slate-200 bg-white flex items-center justify-between pl-16 pr-6 md:px-6 shrink-0">
       <h1 className="text-base font-semibold text-slate-900">{title}</h1>
 
       <div className="flex items-center gap-3">
