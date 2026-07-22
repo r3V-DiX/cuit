@@ -56,7 +56,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({
     applied: 0,
     shortlisted: 0,
-    views: 14,
+    views: 0,
     saved: 0,
   });
 
