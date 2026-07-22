@@ -68,6 +68,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+button {
+  cursor: pointer;
+}
+
 /* Gradient text utility */
 .gradient-text {
   background: linear-gradient(120deg, #93c5fd 0%, #3b82f6 35%, #60a5fa 55%, #3b82f6 70%, #93c5fd 100%);

@@ -162,7 +162,7 @@ do_build_env() {
        --query SecretString --output text 2>/dev/null); then
     echo "$bedrock_secret" | jq -r 'to_entries[] | "\(.key)=\(.value)"' >> "$BACKEND_ENV"
   else
-    warn "bedrock-credentials not found — skipping (Bedrock features unavailable)"
+    warn "bedrock-credentials not found — skipping (Bedrock will use the EC2 instance role)"
   fi
 
   local admin_jwt admin_resend
