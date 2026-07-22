@@ -1,6 +1,7 @@
 // apps/employer-service/src/employer/validators/kyc-file.validator.ts
 
 import { FileValidator } from '@nestjs/common';
+import { matchesMagicBytes } from '@cykruit/upload';
 
 /**
  * Validates that an uploaded KYC file is a PDF or an image (JPEG/JPG/PNG).
@@ -28,7 +29,7 @@ export class KycFileValidator extends FileValidator {
         const extOk = KycFileValidator.ALLOWED_EXTENSIONS.some((ext) =>
             file.originalname.toLowerCase().endsWith(ext),
         );
-        return mimeOk && extOk;
+        return mimeOk && extOk && matchesMagicBytes(file.buffer, file.mimetype);
     }
 
     buildErrorMessage(): string {

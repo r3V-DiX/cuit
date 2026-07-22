@@ -1,6 +1,7 @@
 // apps/seeker-profile-service/src/profile/validators/file.validators.ts
 
 import { FileValidator } from "@nestjs/common";
+import { matchesMagicBytes } from "@cykruit/upload";
 
 export class DocumentFileValidator extends FileValidator {
   constructor() {
@@ -19,7 +20,8 @@ export class DocumentFileValidator extends FileValidator {
       validMimeTypes.includes(file.mimetype) &&
       validExtensions.some((ext) =>
         file.originalname.toLowerCase().endsWith(ext),
-      )
+      ) &&
+      matchesMagicBytes(file.buffer, file.mimetype)
     );
   }
 
