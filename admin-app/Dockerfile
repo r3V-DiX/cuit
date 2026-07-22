@@ -10,6 +10,7 @@ WORKDIR /app
 COPY admin-app/package*.json ./admin-app/
 COPY admin-app/tsconfig.json admin-app/tsconfig.build.json admin-app/tsconfig-paths-bootstrap.js ./admin-app/
 COPY admin-app/src/ ./admin-app/src/
+COPY admin-app/prisma/ ./admin-app/prisma/
 
 COPY cykruit-app/libs/ ./cykruit-app/libs/
 COPY cykruit-app/prisma/ ./cykruit-app/prisma/
@@ -47,4 +48,6 @@ EXPOSE 4010
 
 # tsc's rootDir spans admin-app + cykruit-app/libs, so main.js lands at
 # dist/admin-app/src/main.js and libs compile to dist/cykruit-app/libs/*.
-CMD ["node", "-r", "./tsconfig-paths-bootstrap.prod.js", "dist/admin-app/src/main.js"]
+# rbac-seed.js runs first on every start — idempotent, syncs the permission
+# catalog/roles and bootstraps the RBAC_BOOTSTRAP_ADMIN_EMAIL super admin.
+CMD ["sh", "-c", "node -r ./tsconfig-paths-bootstrap.prod.js dist/admin-app/prisma/rbac-seed.js && node -r ./tsconfig-paths-bootstrap.prod.js dist/admin-app/src/main.js"]

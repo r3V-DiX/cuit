@@ -35,6 +35,6 @@
       "@cykruit/upload":     ["../cykruit-app/libs/upload/src/index.ts"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "prisma/**/*"],
   "exclude": ["node_modules", "dist"]
 }
