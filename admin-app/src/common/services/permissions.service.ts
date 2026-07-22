@@ -47,7 +47,11 @@ export class PermissionsService {
 
         const now = new Date();
 
-        const [assignments, overrides] = await Promise.all([
+        const [admin, assignments, overrides] = await Promise.all([
+            this.prisma.admin.findUnique({
+                where: { id: adminId },
+                select: { email: true },
+            }),
             this.prisma.adminRoleAssignment.findMany({
                 where: {
                     adminId,
@@ -76,8 +80,14 @@ export class PermissionsService {
             }),
         ]);
 
+        const bootstrapEmail = (process.env.RBAC_BOOTSTRAP_ADMIN_EMAIL || 'admin@cykruit.com').toLowerCase();
+        const isBootstrapAdmin = !!(admin?.email && admin.email.toLowerCase() === bootstrapEmail);
+
         const roles = assignments.map((a) => a.role.name);
-        const isSuperAdmin = roles.includes(SUPER_ADMIN_ROLE);
+        if (isBootstrapAdmin && !roles.includes(SUPER_ADMIN_ROLE)) {
+            roles.push(SUPER_ADMIN_ROLE);
+        }
+        const isSuperAdmin = isBootstrapAdmin || roles.includes(SUPER_ADMIN_ROLE);
 
         const permissions = new Set<string>();
         for (const assignment of assignments) {
