@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+
 import { headers } from "next/headers";
 import { Share_Tech_Mono, IBM_Plex_Serif } from "next/font/google";
 import "./globals.css";
