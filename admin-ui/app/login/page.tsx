@@ -241,7 +241,7 @@ function LoginPageContent() {
                 <input
                   id="admin-email"
                   type="email"
-                  placeholder="admin@cykruit.com"
+                  placeholder=""
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -259,7 +259,7 @@ function LoginPageContent() {
                   <input
                     id="admin-password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••••••"
+                    placeholder=""
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
