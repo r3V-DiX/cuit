@@ -154,10 +154,10 @@ export default function TeamPage() {
       <EmployerTopbar title="Team" />
       <KycGate>
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
 
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               <h1 className="text-xl font-bold text-slate-900">Team Members</h1>
               <p className="text-sm text-slate-500 mt-0.5">
@@ -304,7 +304,7 @@ export default function TeamPage() {
                     : "Invited user";
 
                   return (
-                    <li key={member.id} className="flex items-center gap-4 px-6 py-4 hover:bg-slate-50/50 transition-colors relative">
+                    <li key={member.id} className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 hover:bg-slate-50/50 transition-colors relative flex-wrap sm:flex-nowrap">
                       {/* Avatar */}
                       {member.user?.profileImage ? (
                         <img src={member.user.profileImage} alt={fullName}

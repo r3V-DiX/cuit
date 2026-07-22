@@ -226,7 +226,7 @@ export default function EmployerSettingsPage() {
     return (
       <>
         <EmployerTopbar title="Settings" />
-        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 flex items-center justify-center">
           <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
         </main>
       </>
@@ -236,7 +236,7 @@ export default function EmployerSettingsPage() {
   return (
     <>
       <EmployerTopbar title="Settings" />
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
         <div className="flex flex-col md:flex-row gap-5 items-start">
 
           {/* ── Left tab sidebar ──────────────────────────────────────────── */}
@@ -287,7 +287,7 @@ export default function EmployerSettingsPage() {
 
                 <Section title="Plan & Billing" desc="Your current subscription plan and billing details.">
                   {subSummary ? (
-                    <div className="flex items-start justify-between p-4 rounded-xl border border-violet-200 bg-violet-50/50 mb-4">
+                    <div className="flex items-start justify-between flex-wrap gap-3 p-4 rounded-xl border border-violet-200 bg-violet-50/50 mb-4">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <p className="text-sm font-semibold text-slate-900">

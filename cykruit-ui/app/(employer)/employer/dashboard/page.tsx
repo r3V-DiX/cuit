@@ -169,7 +169,7 @@ export default function EmployerDashboardPage() {
   return (
     <>
       <EmployerTopbar title="Dashboard" />
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
         <div className="flex flex-col gap-5">
 
           {/* Verification banner */}
@@ -284,7 +284,7 @@ export default function EmployerDashboardPage() {
                 ) : recentApplicants.map((a) => {
                   const cfg = STATUS_CFG[a.status];
                   return (
-                    <div key={a.id} className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-slate-50/60 transition-colors group">
+                    <div key={a.id} className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 hover:bg-slate-50/60 transition-colors group">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-xl bg-slate-100 group-hover:bg-blue-50 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0 transition-colors">
                           {a.name[0]}
@@ -294,10 +294,10 @@ export default function EmployerDashboardPage() {
                           <p className="text-xs text-slate-400 mt-0.5 truncate">{a.role}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2.5 shrink-0">
-                        <span className="text-[10px] font-mono text-slate-400">{a.time}</span>
+                      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+                        <span className="hidden sm:block text-[10px] font-mono text-slate-400">{a.time}</span>
                         <span className={`flex items-center gap-1 text-[10px] font-mono font-semibold px-2.5 py-1 rounded-lg border ${cfg.color}`}>
-                          {cfg.icon}{a.status}
+                          {cfg.icon}<span className="hidden sm:inline">{a.status}</span>
                         </span>
                         <Link href={`/employer/applicants/${a.id}`} className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 transition-colors">
                           View <ChevronRight className="w-3 h-3" />
@@ -364,9 +364,9 @@ export default function EmployerDashboardPage() {
                 ) : jobsList.length === 0 ? (
                   <p className="text-xs text-slate-400 text-center py-10">No jobs posted yet</p>
                 ) : jobsList.map((job) => (
-                  <div key={job.id} className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-slate-50/60 transition-colors group">
+                  <div key={job.id} className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 hover:bg-slate-50/60 transition-colors group">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-semibold text-slate-900 truncate">{job.title}</p>
                         <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md border shrink-0 ${
                           job.status === "Active"
@@ -382,9 +382,9 @@ export default function EmployerDashboardPage() {
                       </div>
                       <p className="text-xs text-slate-400 mt-0.5 font-mono">Posted {job.posted}</p>
                     </div>
-                    <div className="flex items-center gap-4 shrink-0 text-xs text-slate-500">
-                      <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5 text-slate-300" />{job.applicants}</span>
-                      <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5 text-slate-300" />{job.views}</span>
+                    <div className="flex items-center gap-2 sm:gap-4 shrink-0 text-xs text-slate-500">
+                      <span className="hidden sm:flex items-center gap-1"><Users className="w-3.5 h-3.5 text-slate-300" />{job.applicants}</span>
+                      <span className="hidden sm:flex items-center gap-1"><Eye className="w-3.5 h-3.5 text-slate-300" />{job.views}</span>
                       <Link href={`/employer/jobs/${job.id}/edit`} className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 transition-colors">
                         Edit <ChevronRight className="w-3 h-3" />
                       </Link>

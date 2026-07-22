@@ -112,7 +112,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
   return (
     <>
       <EmployerTopbar title="Applicant Detail" />
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
 
         <Link href="/employer/applicants" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors mb-5">
           <ArrowLeft className="w-4 h-4" /> Back to Applicants

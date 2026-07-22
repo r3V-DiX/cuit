@@ -299,7 +299,7 @@ export default function EmployerKYCPage() {
                 </div>
               </div>
 
-              <div className="px-6 py-6 space-y-4">
+              <div className="px-4 sm:px-6 py-6 space-y-4">
                 <div>
                   <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
                     Legal Company Name <span className="text-rose-400">*</span>
@@ -388,7 +388,7 @@ export default function EmployerKYCPage() {
                 </div>
               </div>
 
-              <div className="px-6 py-6 space-y-5">
+              <div className="px-4 sm:px-6 py-6 space-y-5">
                 <div>
                   <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
                     Document Type <span className="text-rose-400">*</span>

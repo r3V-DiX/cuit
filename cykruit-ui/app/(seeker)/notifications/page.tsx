@@ -191,11 +191,11 @@ export default function NotificationsPage() {
   return (
     <>
       <SeekerTopbar title="Notifications" />
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
         <div className="space-y-4">
 
           {/* Header bar */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h2 className="text-sm font-semibold text-slate-900">
               {unreadCount > 0
                 ? <><span className="text-blue-600">{unreadCount} unread</span> · {notifs.length} total</>
@@ -283,7 +283,7 @@ export default function NotificationsPage() {
                 return (
                   <div
                     key={notif.id}
-                    className={`group relative flex gap-4 px-5 py-4 transition-colors ${!notif.isRead ? "bg-blue-50/30" : "hover:bg-slate-50/50"}`}
+                    className={`group relative flex gap-3 sm:gap-4 px-4 sm:px-5 py-4 transition-colors ${!notif.isRead ? "bg-blue-50/30" : "hover:bg-slate-50/50"}`}
                   >
                     {!notif.isRead && (
                       <div className="absolute right-3 top-3 w-2 h-2 rounded-full bg-blue-500" />

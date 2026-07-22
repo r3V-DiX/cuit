@@ -216,7 +216,7 @@ export default function SubscriptionPage() {
     return (
       <>
         <EmployerTopbar title="Subscription" />
-        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 flex items-center justify-center">
           <Loader2 className="w-6 h-6 text-slate-400 animate-spin" />
         </main>
       </>
@@ -227,7 +227,7 @@ export default function SubscriptionPage() {
     return (
       <>
         <EmployerTopbar title="Subscription" />
-        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 flex items-center justify-center">
           <div className="text-center">
             <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto mb-3" />
             <p className="text-sm font-semibold text-slate-700">Failed to load subscription data</p>
@@ -247,9 +247,9 @@ export default function SubscriptionPage() {
   return (
     <>
       <EmployerTopbar title="Subscription" />
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
 
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex items-start justify-between flex-wrap gap-3 mb-6">
           <div>
             <h2 className="text-lg font-bold text-slate-900">Subscription & Billing</h2>
             <p className="text-sm text-slate-400 mt-0.5">Manage your plan and payment history.</p>

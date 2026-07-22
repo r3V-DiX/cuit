@@ -267,7 +267,7 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
     return (
       <>
         <EmployerTopbar title="Company Profile" />
-        <main className="flex-1 overflow-y-auto p-6 flex items-center justify-center">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
         </main>
       </>
@@ -333,7 +333,7 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
         );
       })()}
 
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
 
           {/* ── Left: form ──────────────────────────────────────────────────── */}

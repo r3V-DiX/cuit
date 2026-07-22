@@ -81,7 +81,7 @@ export default function ApplicantsPage() {
     <>
       <EmployerTopbar title="Applicants" />
       <KycGate>
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
 
         {/* Summary stats */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">

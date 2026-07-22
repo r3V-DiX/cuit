@@ -85,7 +85,7 @@ export default function ApplicationsPage() {
   return (
     <>
       <SeekerTopbar title="Applications" />
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
         <div className="space-y-4">
 
           {/* Summary stats removed as server-side paginated */}
@@ -158,9 +158,9 @@ export default function ApplicationsPage() {
                     <Link
                       key={app.id}
                       href={`/applications/${app.id}`}
-                      className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-slate-50/60 transition-colors group"
+                      className="flex items-center justify-between gap-3 px-4 sm:px-5 py-4 hover:bg-slate-50/60 transition-colors group"
                     >
-                      <div className="flex items-center gap-4 min-w-0">
+                      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                         <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-blue-50 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0 transition-colors">
                           {app.company[0]}
                         </div>
@@ -171,19 +171,19 @@ export default function ApplicationsPage() {
                             <span>·</span>
                             <MapPin className="w-3 h-3 shrink-0" />
                             <span>{app.location}</span>
-                            <span>·</span>
-                            <span className="font-mono">{app.type}</span>
+                            <span className="hidden sm:inline">·</span>
+                            <span className="font-mono hidden sm:inline">{app.type}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 shrink-0">
-                        <div className="flex items-center gap-1 text-xs text-slate-400">
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-1.5 sm:gap-3 shrink-0">
+                        <div className="hidden sm:flex items-center gap-1 text-xs text-slate-400">
                           <Clock className="w-3 h-3" />
                           {app.applied}
                         </div>
                         <span className={`flex items-center gap-1 text-[10px] font-mono font-semibold px-2.5 py-1 rounded-lg border ${cfg.color}`}>
-                          {cfg.icon}{app.status}
+                          {cfg.icon}<span className="hidden xs:inline">{app.status}</span>
                         </span>
                         <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-400 transition-colors" />
                       </div>

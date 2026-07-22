@@ -215,7 +215,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   return (
     <>
       <EmployerTopbar title="Job Detail" />
-      <main className="flex-1 overflow-y-auto p-6 space-y-5">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-5">
 
         <Link href="/employer/jobs"
           className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors">

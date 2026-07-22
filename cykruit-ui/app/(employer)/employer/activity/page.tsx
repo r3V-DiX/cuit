@@ -232,7 +232,7 @@ export default function ActivityPage() {
       <EmployerTopbar title="Activity" />
 
       <div className="flex-1 overflow-y-auto">
-        <div className="px-6 py-8 space-y-6">
+        <div className="px-4 sm:px-6 py-6 sm:py-8 space-y-6">
 
           <div>
             <h1 className="text-xl font-bold text-slate-900">Organization Activity</h1>

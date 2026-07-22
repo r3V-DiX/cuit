@@ -111,7 +111,7 @@ export default function JobPreviewPage({ params }: { params: Promise<{ id: strin
           <div className="absolute inset-0 pointer-events-none opacity-40 bg-grid-sm" />
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-400/50 to-transparent" />
 
-          <div className="max-w-5xl mx-auto px-6 py-8 relative z-10">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 relative z-10">
             <div className="flex flex-col sm:flex-row sm:items-start gap-5">
               <div className="w-14 h-14 rounded-2xl bg-blue-100 text-blue-800 flex items-center justify-center shrink-0 font-bold text-sm font-mono shadow-sm">
                 {companyName[0]}
@@ -146,7 +146,7 @@ export default function JobPreviewPage({ params }: { params: Promise<{ id: strin
         </div>
 
         {/* Body */}
-        <div className="max-w-5xl mx-auto px-6 py-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {/* Main content */}

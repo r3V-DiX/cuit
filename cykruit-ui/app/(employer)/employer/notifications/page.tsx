@@ -123,7 +123,7 @@ export default function EmployerNotificationsPage() {
   return (
     <>
       <EmployerTopbar title="Notifications" />
-      <main className="flex-1 overflow-y-auto p-6 flex flex-col">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6 flex flex-col">
         <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-3 gap-5 items-start xl:items-stretch">
 
           {/* ── Left: notification list ─────────────────────────────────────── */}
@@ -170,7 +170,7 @@ export default function EmployerNotificationsPage() {
                 {shown.map((n) => {
                   const cfg = TYPE_CFG[n.type as NotifType] || TYPE_CFG.system;
                   const Inner = (
-                    <div className={`flex items-start gap-4 px-5 py-4 transition-colors group ${!n.isRead ? "bg-blue-50/40" : "hover:bg-slate-50/60"}`}>
+                    <div className={`flex items-start gap-3 sm:gap-4 px-4 sm:px-5 py-4 transition-colors group ${!n.isRead ? "bg-blue-50/40" : "hover:bg-slate-50/60"}`}>
                       <div className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 mt-0.5 ${cfg.color}`}>
                         {cfg.icon}
                       </div>

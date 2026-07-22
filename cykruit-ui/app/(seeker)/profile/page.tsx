@@ -1010,11 +1010,11 @@ export default function ProfilePage() {
   return (
     <>
       <SeekerTopbar title="My Profile" />
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
         <div>
 
           {/* Profile header */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-5 flex items-center gap-5 flex-wrap">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 mb-5 flex items-center gap-4 sm:gap-5 flex-wrap">
             {/* Avatar with photo upload */}
             <div className="relative shrink-0 group">
               <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20 overflow-hidden">
@@ -1091,7 +1091,7 @@ export default function ProfilePage() {
               </label>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Link
                 href={userId ? `/u/${userId}` : "#"}
                 className="flex items-center gap-1.5 text-xs font-medium text-slate-500 border border-slate-200 hover:bg-slate-50 px-3 py-2 rounded-xl transition-colors"
@@ -1107,9 +1107,9 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-5 items-start">
+          <div className="flex flex-col md:flex-row gap-3 sm:gap-5 items-start">
             {/* Section tabs */}
-            <div className="w-full md:w-52 md:shrink-0 flex flex-row md:flex-col gap-1 md:sticky md:top-6 overflow-x-auto pb-1 md:pb-0">
+            <div className="w-full md:w-52 md:shrink-0 flex flex-row md:flex-col gap-1 md:sticky md:top-6 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
               {sections.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
@@ -1127,7 +1127,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Section content */}
-            <div className="flex-1 min-w-0 bg-white rounded-2xl border border-slate-200 p-6">
+            <div className="flex-1 min-w-0 bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
 
               {/* BASICS */}
               {activeSection === "basics" && (

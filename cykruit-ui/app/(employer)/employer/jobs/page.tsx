@@ -158,7 +158,7 @@ export default function MyJobsPage() {
     <>
       <EmployerTopbar title="My Jobs" />
       <KycGate>
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
 
         {/* Header */}
         <div className="flex items-center justify-between gap-4 mb-5 flex-wrap">

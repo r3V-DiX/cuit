@@ -414,7 +414,7 @@ export default function PostJobPage() {
     <>
       <EmployerTopbar title="Post a Job" />
       <KycGate>
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
 
         {/* Back */}
         <Link href="/employer/jobs" className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors mb-5">

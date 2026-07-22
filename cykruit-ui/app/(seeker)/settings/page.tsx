@@ -276,7 +276,7 @@ export default function SettingsPage() {
   return (
     <>
       <SeekerTopbar title="Settings" />
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
         <div className="flex flex-col md:flex-row gap-5 items-stretch">
 
           {/* Sidebar tabs */}

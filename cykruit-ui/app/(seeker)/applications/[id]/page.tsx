@@ -135,7 +135,7 @@ export default function ApplicationDetailPage() {
   return (
     <>
       <SeekerTopbar title="Application Detail" />
-      <main className="flex-1 overflow-y-auto p-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
         <div className="space-y-5">
 
           {/* Back */}
