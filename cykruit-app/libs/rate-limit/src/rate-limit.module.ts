@@ -25,7 +25,7 @@ const isDev = process.env.NODE_ENV === "development";
           {
             name: "global",
             ttl: 60_000,
-            limit: 1000, // ✅ raised to 1000 to handle parallel UI section requests
+            limit: 5000,
           },
           {
             name: "login",
