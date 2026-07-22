@@ -211,24 +211,24 @@ do_cykruit_app() {
 
 do_admin_app() {
   step "Pulling admin-app ($TAG)..."
+  pull_with_fallback cykruit-admin-app admin-app "$ENV" "$TAG"
   export ADMIN_APP_TAG="$TAG"
-  docker compose pull admin-app
   docker compose up -d admin-app
   wait_healthy admin-app
 }
 
 do_cykruit_ui() {
   step "Pulling cykruit-ui ($TAG)..."
+  pull_with_fallback cykruit-ui cykruit-ui "$ENV" "$TAG"
   export CYKRUIT_UI_TAG="$TAG"
-  docker compose pull cykruit-ui
   docker compose up -d cykruit-ui
   wait_healthy cykruit-ui
 }
 
 do_admin_ui() {
   step "Pulling admin-ui ($TAG)..."
+  pull_with_fallback cykruit-admin-ui admin-ui "$ENV" "$TAG"
   export ADMIN_UI_TAG="$TAG"
-  docker compose pull admin-ui
   docker compose up -d admin-ui
   wait_healthy admin-ui
 }
