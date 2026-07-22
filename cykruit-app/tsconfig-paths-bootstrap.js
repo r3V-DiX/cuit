@@ -21,5 +21,6 @@ tsConfigPaths.register({
         '@cykruit/permissions': [path.join(root, 'libs/permissions/src/index.ts')],
         '@cykruit/events': [path.join(root, 'libs/events/src/index.ts')],
         '@cykruit/subscription': [path.join(root, 'libs/subscription/src/index.ts')],
+        '@cykruit/policy-config': [path.join(root, 'libs/policy-config/src/index.ts')],
     },
 });
