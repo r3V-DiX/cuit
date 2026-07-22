@@ -261,7 +261,7 @@ export default function SavedPage() {
                   key={job.id}
                   className="group bg-white rounded-2xl border border-slate-200 hover:border-blue-200 hover:shadow-sm transition-all p-5"
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start justify-between gap-3 flex-wrap sm:flex-nowrap">
                     <div className="flex items-start gap-4 min-w-0">
                       <div className="w-11 h-11 rounded-xl bg-slate-100 group-hover:bg-blue-50 flex items-center justify-center text-sm font-bold text-slate-500 shrink-0 transition-colors">
                         {job.company[0]}

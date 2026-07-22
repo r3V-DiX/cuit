@@ -234,7 +234,7 @@ export default function EmployerKYCPage() {
   return (
     <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
 
-      <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
+      <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20">
             <Shield className="w-4 h-4 text-white" strokeWidth={2.5} />

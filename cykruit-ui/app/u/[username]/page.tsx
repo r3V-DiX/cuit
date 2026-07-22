@@ -80,7 +80,7 @@ export default async function PublicProfilePage({
     <div className="min-h-screen bg-slate-50">
       {/* Nav */}
       <nav className="sticky top-0 z-30 w-full bg-white border-b border-slate-200">
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
               <Shield className="w-4 h-4 text-white" />

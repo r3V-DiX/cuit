@@ -147,8 +147,8 @@ export default function ApplicationDetailPage() {
           </Link>
 
           {/* Header card */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
-            <div className="flex items-start justify-between gap-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="flex items-start gap-4">
                 <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-500 shrink-0">
                   {app.company[0]}

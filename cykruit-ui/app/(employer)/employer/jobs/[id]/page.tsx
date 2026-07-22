@@ -460,7 +460,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 )}
               </div>
             ) : (
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-120">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/60">
                     <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 font-mono">APPLICANT</th>
@@ -541,6 +542,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   })}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
 
