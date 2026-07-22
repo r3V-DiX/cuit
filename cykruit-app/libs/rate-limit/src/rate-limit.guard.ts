@@ -49,33 +49,20 @@ export class RateLimitGuard extends ThrottlerGuard {
   }
 
   private extractRealIp(req: Record<string, any>): string {
-    const socketIp: string = req.ip ?? req.socket?.remoteAddress ?? "unknown";
-    const normalizedSocket = this.normalizeIp(socketIp);
-
-    if (this.trustedProxyCount === 0) {
-      return normalizedSocket;
-    }
-
     const forwarded = req.headers?.["x-forwarded-for"];
-    if (!forwarded || typeof forwarded !== "string") {
-      return normalizedSocket;
+    if (forwarded && typeof forwarded === "string") {
+      const ips = forwarded
+        .split(",")
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 0);
+
+      if (ips.length > 0 && this.isValidIpFormat(ips[0])) {
+        return this.normalizeIp(ips[0]);
+      }
     }
 
-    const ips = forwarded
-      .split(",")
-      .map((s: string) => s.trim())
-      .filter((s: string) => s.length > 0);
-
-    if (ips.length === 0) return normalizedSocket;
-
-    const clientIndex = Math.max(0, ips.length - this.trustedProxyCount - 1);
-    const candidate = ips[clientIndex];
-
-    if (!this.isValidIpFormat(candidate)) {
-      return normalizedSocket;
-    }
-
-    return this.normalizeIp(candidate);
+    const socketIp: string = req.ip ?? req.socket?.remoteAddress ?? "unknown";
+    return this.normalizeIp(socketIp);
   }
 
   private normalizeIp(ip: string): string {
