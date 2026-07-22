@@ -26,6 +26,7 @@ import {
   Settings2,
   Flag,
   UserCog,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
@@ -155,6 +156,12 @@ export default function AdminSidebar() {
       href: '/settings',
       icon: <Settings2 className="h-5 w-5" />,
       action: ACTIONS.SETTINGS.MANAGE,
+    },
+    {
+      label: 'Policies',
+      href: '/policies',
+      icon: <SlidersHorizontal className="h-5 w-5" />,
+      action: ACTIONS.POLICIES.MANAGE,
     },
   ];
 

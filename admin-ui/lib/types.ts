@@ -343,6 +343,18 @@ export interface PlatformSetting {
   createdAt: string;
 }
 
+export interface PolicyConfig {
+  id: string;
+  key: string;
+  value: string;
+  type: 'integer' | 'boolean' | 'string';
+  description?: string;
+  unit?: string;
+  updatedBy?: string;
+  updatedAt: string;
+  createdAt: string;
+}
+
 export type FlaggedContentType = 'JOB' | 'EMPLOYER_PROFILE' | 'SEEKER_PROFILE' | 'MESSAGE';
 
 export type FlagReason =

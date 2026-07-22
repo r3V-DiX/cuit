@@ -20,6 +20,7 @@ import { AdminsModule } from './admins';
 import { ContactModule } from './contact';
 import { SettingsModule } from './settings';
 import { ReportsModule } from './reports';
+import { PoliciesModule } from './policies';
 
 @Module({
     imports: [
@@ -38,6 +39,7 @@ import { ReportsModule } from './reports';
         ContactModule,
         SettingsModule,
         ReportsModule,
+        PoliciesModule,
     ],
 })
 export class AdminModule {}

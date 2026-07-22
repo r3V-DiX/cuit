@@ -7,6 +7,7 @@
 
 import { randomBytes, createHash } from "crypto";
 import type { PrismaService } from "@cykruit/prisma";
+import { getPolicyInt } from "@cykruit/policy-config";
 
 /**
  * Generate a cryptographically secure random token.
@@ -27,13 +28,15 @@ export function hashToken(rawToken: string): string {
 
 /**
  * Resolve session expiry date based on rememberMe flag.
- * rememberMe = true  → 30 days
- * rememberMe = false → 24 hours
+ * rememberMe = true  → session_max_lifetime_days (PolicyConfig, default 30 days)
+ * rememberMe = false → 24 hours (fixed — not a "remembered" session, not policy-driven)
  */
-export function resolveSessionExpiry(rememberMe: boolean): Date {
-  return new Date(
-    Date.now() + (rememberMe ? 30 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000),
-  );
+export async function resolveSessionExpiry(rememberMe: boolean): Promise<Date> {
+  if (!rememberMe) {
+    return new Date(Date.now() + 24 * 60 * 60 * 1000);
+  }
+  const maxLifetimeDays = await getPolicyInt("session_max_lifetime_days", 30);
+  return new Date(Date.now() + maxLifetimeDays * 24 * 60 * 60 * 1000);
 }
 
 /** How long a just-rotated-away token still authenticates a request. */

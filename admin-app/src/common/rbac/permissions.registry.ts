@@ -56,6 +56,10 @@ export const ACTIONS = {
         VIEW: 'reports:view',
         MANAGE: 'reports:manage',
     },
+    POLICIES: {
+        VIEW: 'policies:view',
+        MANAGE: 'policies:manage',
+    },
 } as const;
 
 type ValuesOf<T> = T extends Record<string, infer V>
@@ -97,6 +101,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Action, string> = {
     'settings:manage': 'Change platform feature-flag values',
     'reports:view': 'List and view flagged-content reports',
     'reports:manage': 'Resolve or dismiss flagged-content reports',
+    'policies:view': 'View platform rate-limit and policy values',
+    'policies:manage': 'Change platform rate-limit and policy values',
 };
 
 /** `module:action` → { module, action } for the Permission table's split columns. */
@@ -124,14 +130,15 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
     {
         name: 'platform_admin',
         description:
-            'Day-to-day operations staff — everything except managing RBAC, admin accounts, platform settings, and deleting users',
+            'Day-to-day operations staff — everything except managing RBAC, admin accounts, platform settings, policy values, and deleting users',
         grants: ALL_ACTIONS.filter(
             (a) =>
                 a !== ACTIONS.RBAC.MANAGE &&
                 a !== ACTIONS.ADMINS.VIEW &&
                 a !== ACTIONS.ADMINS.MANAGE &&
                 a !== ACTIONS.USERS.DELETE &&
-                a !== ACTIONS.SETTINGS.MANAGE,
+                a !== ACTIONS.SETTINGS.MANAGE &&
+                a !== ACTIONS.POLICIES.MANAGE,
         ),
     },
     {

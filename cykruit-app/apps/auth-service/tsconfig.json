@@ -16,7 +16,8 @@
       "@cykruit/upload": ["libs/upload/src/index.ts"],
       "@cykruit/ai": ["libs/ai/src/index.ts"],
       "@cykruit/rate-limit": ["libs/rate-limit/src/index.ts"],
-      "@cykruit/audit": ["libs/audit/src/index.ts"]
+      "@cykruit/audit": ["libs/audit/src/index.ts"],
+      "@cykruit/policy-config": ["libs/policy-config/src/index.ts"]
     }
   },
   "include": ["src/**/*"],

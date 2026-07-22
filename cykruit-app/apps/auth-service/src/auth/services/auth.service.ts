@@ -13,6 +13,7 @@ import {
   EmployerCompletionService,
 } from "@cykruit/common";
 import { hashToken } from "@cykruit/auth-core";
+import { getPolicyInt } from "@cykruit/policy-config";
 import { MailService } from "@cykruit/mail";
 import { AuditService, AuditAction } from "@cykruit/audit";
 import { AuthRepository } from "../repositories/auth.repository";
@@ -185,7 +186,8 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException(ErrorCodes.USER_NOT_FOUND);
 
-    const deletionScheduledAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const gracePeriodDays = await getPolicyInt("account_deletion_grace_days", 30);
+    const deletionScheduledAt = new Date(Date.now() + gracePeriodDays * 24 * 60 * 60 * 1000);
 
     await this.prisma.user.update({
       where: { id: userId },
@@ -219,7 +221,7 @@ export class AuthService {
       reqCtx,
       {
         deletionScheduledAt: deletionScheduledAt.toISOString(),
-        gracePeriodDays: 30,
+        gracePeriodDays,
       },
     );
 
@@ -239,8 +241,7 @@ export class AuthService {
     }
 
     return {
-      message:
-        "Your account has been scheduled for deletion in 30 days. Use the cancellation link in your email to cancel.",
+      message: `Your account has been scheduled for deletion in ${gracePeriodDays} days. Use the cancellation link in your email to cancel.`,
       deletionScheduledAt: deletionScheduledAt.toISOString(),
     };
   }

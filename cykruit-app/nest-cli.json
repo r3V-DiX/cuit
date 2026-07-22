@@ -73,6 +73,15 @@
         "tsConfigPath": "tsconfig.json"
       }
     },
+    "policy-config": {
+      "type": "library",
+      "root": "libs/policy-config",
+      "entryFile": "index",
+      "sourceRoot": "libs/policy-config/src",
+      "compilerOptions": {
+        "tsConfigPath": "tsconfig.json"
+      }
+    },
     "public-service": {
       "type": "application",
       "root": "apps/public-service",

@@ -50,6 +50,9 @@
       "@cykruit/permissions": [
         "libs/permissions/src/index.ts"
       ],
+      "@cykruit/policy-config": [
+        "libs/policy-config/src/index.ts"
+      ],
       "@cykruit/prisma": [
         "libs/prisma/src/index.ts"
       ],

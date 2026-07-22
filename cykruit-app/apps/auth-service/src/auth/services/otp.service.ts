@@ -18,9 +18,9 @@ import { SessionService } from "./session.service";
 import { AccountStatus, UserRole, EmployerMemberRole } from "@prisma/client";
 import { formatUserResponse } from "../utils/auth.utils";
 import { isBlockedEmailDomain, getEmailDomain } from "@cykruit/common";
+import { getPolicyInt } from "@cykruit/policy-config";
 import type { Request } from "express";
 
-const OTP_TTL_MINUTES = 10;
 const OTP_MAX_ATTEMPTS = 5;
 const OTP_EMAIL_LIMIT = 5;        // max OTP requests per email per window
 const OTP_EMAIL_WINDOW_S = 600;   // 10 minutes
@@ -134,8 +134,9 @@ export class OtpService {
       });
     }
 
+    const otpExpiryMinutes = await getPolicyInt("otp_expiry_minutes", 10);
     const otp = generateOtp();
-    const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60_000);
+    const expiresAt = new Date(Date.now() + otpExpiryMinutes * 60_000);
 
     if (!user) {
       if (!role) {
@@ -226,10 +227,10 @@ export class OtpService {
         await this.mailService.sendOtp(email, {
           firstName: user.firstName || email.split("@")[0],
           otp,
-          expiresInMinutes: OTP_TTL_MINUTES,
+          expiresInMinutes: otpExpiryMinutes,
           purpose: "login",
         });
-        return { message: "OTP sent to your email. It expires in 10 minutes." };
+        return { message: `OTP sent to your email. It expires in ${otpExpiryMinutes} minutes.` };
       }
     }
 
@@ -251,12 +252,12 @@ export class OtpService {
     await this.mailService.sendOtp(email, {
       firstName: user.firstName || email.split("@")[0],
       otp,
-      expiresInMinutes: OTP_TTL_MINUTES,
+      expiresInMinutes: otpExpiryMinutes,
       purpose: "login",
     });
 
     return {
-      message: "OTP sent to your email. It expires in 10 minutes.",
+      message: `OTP sent to your email. It expires in ${otpExpiryMinutes} minutes.`,
     };
   }
 

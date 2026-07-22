@@ -25,11 +25,10 @@ import {
   resolveSessionExpiry,
   generateDeviceFingerprint,
 } from "@cykruit/auth-core";
+import { getPolicyInt } from "@cykruit/policy-config";
 import type { Request } from "express";
 import { UAParser } from "ua-parser-js";
 import * as geoip from "geoip-lite";
-
-const MAX_SESSIONS_PER_DEVICE_TYPE = 10;
 
 @Injectable()
 export class SessionService {
@@ -51,11 +50,11 @@ export class SessionService {
     const hashedToken = hashToken(rawToken);
 
     const deviceType = this.resolveDeviceType(userAgent);
-    const expiresAt = resolveSessionExpiry(rememberMe);
+    const expiresAt = await resolveSessionExpiry(rememberMe);
 
     const fingerprint = req ? generateDeviceFingerprint(req) : null;
 
-    await this.enforceSessionLimit(userId, deviceType);
+    await this.enforceSessionLimit(userId);
 
     await this.prisma.session.create({
       data: {
@@ -249,16 +248,14 @@ export class SessionService {
 
   // ── Private helpers ───────────────────────────────────────────
 
-  private async enforceSessionLimit(
-    userId: string,
-    deviceType: DeviceType,
-  ): Promise<void> {
+  private async enforceSessionLimit(userId: string): Promise<void> {
+    const maxActiveSessions = await getPolicyInt("max_active_sessions_per_user", 5);
     const sessions = await this.prisma.session.findMany({
-      where: { userId, deviceType, isActive: true },
+      where: { userId, isActive: true },
       orderBy: { createdAt: "asc" },
     });
 
-    if (sessions.length >= MAX_SESSIONS_PER_DEVICE_TYPE) {
+    if (sessions.length >= maxActiveSessions) {
       await this.prisma.session.update({
         where: { id: sessions[0].id },
         data: {

@@ -14,4 +14,6 @@ export {
   OAuthRateLimit,
   RequestOtpRateLimit,
   VerifyOtpRateLimit,
+  ContactFormRateLimit,
+  PublicSearchRateLimit,
 } from "./rate-limit.decorator";

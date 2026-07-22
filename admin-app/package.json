@@ -13,7 +13,8 @@
     "prisma:generate": "prisma generate --schema=../cykruit-app/prisma/schema.prisma",
     "format": "prettier --write \"src/**/*.ts\"",
     "lint": "eslint \"src/**/*.ts\" --fix",
-    "rbac:seed": "ts-node -r ./tsconfig-paths-bootstrap.js prisma/rbac-seed.ts"
+    "rbac:seed": "ts-node -r ./tsconfig-paths-bootstrap.js prisma/rbac-seed.ts",
+    "policies:seed": "ts-node -r ./tsconfig-paths-bootstrap.js prisma/policy-seed.ts"
   },
   "engines": {
     "npm": ">=10.0.0",

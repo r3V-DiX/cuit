@@ -91,7 +91,7 @@ export class AdminsService {
 
         const hashedPassword = await hash(dto.password, BCRYPT_SALT_ROUNDS);
         const rawToken = generateRawToken();
-        const expiresAt = resolveSessionExpiry(false);
+        const expiresAt = await resolveSessionExpiry(false);
 
         const admin = await this.repo.acceptInvite(
             invite,

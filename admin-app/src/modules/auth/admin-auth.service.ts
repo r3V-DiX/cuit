@@ -59,7 +59,7 @@ export class AdminAuthService {
 
         const rememberMe = dto.rememberMe ?? false;
         const rawToken = generateRawToken();
-        const expiresAt = resolveSessionExpiry(rememberMe);
+        const expiresAt = await resolveSessionExpiry(rememberMe);
 
         await this.prisma.$transaction([
             this.prisma.adminSession.create({

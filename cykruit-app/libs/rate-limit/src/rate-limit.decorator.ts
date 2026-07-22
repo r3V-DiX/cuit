@@ -1,6 +1,7 @@
 // libs/rate-limit/src/rate-limit.decorator.ts
 
 import { Throttle, SkipThrottle } from "@nestjs/throttler";
+import { getPolicyInt } from "@cykruit/policy-config";
 
 /**
  * Apply a custom rate limit to a specific controller or route.
@@ -52,10 +53,54 @@ export const RefreshTokenRateLimit = () =>
 export const OAuthRateLimit = () =>
   Throttle({ oauth: { ttl: 60_000, limit: isDev ? 10000 : 20 } });
 
-/** 30 OTP requests per 10 minutes per IP */
+/**
+ * OTP requests per window per IP — live-editable via the admin Policies page
+ * (PolicyConfig keys: otp_request_limit, otp_request_window_minutes).
+ * Falls back to 30 req / 10 min if the row is missing (e.g. before seeding).
+ */
 export const RequestOtpRateLimit = () =>
-  Throttle({ request_otp: { ttl: 10 * 60_000, limit: isDev ? 10000 : 30 } });
+  Throttle({
+    request_otp: {
+      ttl: async () =>
+        isDev ? 10 * 60_000 : (await getPolicyInt("otp_request_window_minutes", 10)) * 60_000,
+      limit: async () => (isDev ? 10000 : getPolicyInt("otp_request_limit", 30)),
+    },
+  });
 
-/** 50 OTP verify attempts per 10 minutes per IP */
+/**
+ * OTP verify attempts per window per IP — live-editable via the admin Policies
+ * page (PolicyConfig key: otp_verify_limit, same window as request_otp).
+ * Falls back to 50 req / 10 min if the row is missing.
+ */
 export const VerifyOtpRateLimit = () =>
-  Throttle({ verify_otp: { ttl: 10 * 60_000, limit: isDev ? 10000 : 50 } });
+  Throttle({
+    verify_otp: {
+      ttl: async () =>
+        isDev ? 10 * 60_000 : (await getPolicyInt("otp_request_window_minutes", 10)) * 60_000,
+      limit: async () => (isDev ? 10000 : getPolicyInt("otp_verify_limit", 50)),
+    },
+  });
+
+/**
+ * Contact form submissions per hour per IP — live-editable via the admin
+ * Policies page (PolicyConfig key: contact_form_rate_limit). Falls back to 3/hour.
+ */
+export const ContactFormRateLimit = () =>
+  Throttle({
+    global: {
+      ttl: 60 * 60_000,
+      limit: async () => (isDev ? 10000 : getPolicyInt("contact_form_rate_limit", 3)),
+    },
+  });
+
+/**
+ * Public job search requests per minute per IP — live-editable via the admin
+ * Policies page (PolicyConfig key: public_search_rate_limit). Falls back to 60/min.
+ */
+export const PublicSearchRateLimit = () =>
+  Throttle({
+    public_search: {
+      ttl: 60_000,
+      limit: async () => (isDev ? 10000 : getPolicyInt("public_search_rate_limit", 60)),
+    },
+  });

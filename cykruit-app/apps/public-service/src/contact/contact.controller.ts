@@ -8,7 +8,7 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
 import { Public } from "@cykruit/auth-core";
-import { RateLimit } from "@cykruit/rate-limit";
+import { ContactFormRateLimit } from "@cykruit/rate-limit";
 import { Request } from "express";
 import { ContactService } from "./contact.service";
 import { CreateContactDto } from "./dto/create-contact.dto";
@@ -21,7 +21,7 @@ export class ContactController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @RateLimit({ global: { ttl: 60 * 60_000, limit: 3 } }) // 3 submissions per IP per hour
+  @ContactFormRateLimit()
   @ApiOperation({ summary: "Submit contact form" })
   @ApiResponse({
     status: 201,
