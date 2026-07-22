@@ -60,6 +60,7 @@ export class ProfileService {
         linkedin: transformed.linkedin,
         github: transformed.github,
         portfolio: transformed.portfolio,
+        twitter: transformed.twitter,
         availability: transformed.availability,
         professionalEmail: transformed.professionalEmail,
       },
@@ -149,6 +150,7 @@ export class ProfileService {
           ...(dto.linkedin !== undefined && { linkedin: dto.linkedin }),
           ...(dto.github !== undefined && { github: dto.github }),
           ...(dto.portfolio !== undefined && { portfolio: dto.portfolio }),
+          ...(dto.twitter !== undefined && { twitter: dto.twitter }),
           ...(dto.availability !== undefined && {
             availability: dto.availability,
           }),

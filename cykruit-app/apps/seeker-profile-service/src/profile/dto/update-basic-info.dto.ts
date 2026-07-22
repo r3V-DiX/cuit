@@ -31,6 +31,7 @@ export class UpdateBasicInfoDto {
   @IsOptional() @IsUrl() linkedin?: string;
   @IsOptional() @IsUrl() github?: string;
   @IsOptional() @IsUrl() portfolio?: string;
+  @IsOptional() @IsUrl() twitter?: string;
   @IsOptional() @IsString() @MaxLength(100) availability?: string;
   @IsOptional() @IsString() @MaxLength(254) professionalEmail?: string;
 }

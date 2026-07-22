@@ -351,6 +351,7 @@ export default function ProfilePage() {
       if (basicsBuffer.linkedin) body.linkedin = basicsBuffer.linkedin.startsWith("http") ? basicsBuffer.linkedin : `https://${basicsBuffer.linkedin}`;
       if (basicsBuffer.github) body.github = basicsBuffer.github.startsWith("http") ? basicsBuffer.github : `https://${basicsBuffer.github}`;
       if (basicsBuffer.portfolio) body.portfolio = basicsBuffer.portfolio.startsWith("http") ? basicsBuffer.portfolio : `https://${basicsBuffer.portfolio}`;
+      if (basicsBuffer.twitter) body.twitter = basicsBuffer.twitter.startsWith("http") ? basicsBuffer.twitter : `https://${basicsBuffer.twitter}`;
 
       const response = await fetch("/api/profile/basic-info", {
         method: "PATCH",
@@ -926,7 +927,7 @@ export default function ProfilePage() {
             linkedin: b.linkedin || "",
             github: b.github || "",
             portfolio: b.portfolio || "",
-            twitter: "",
+            twitter: b.twitter || "",
           };
           setBasics(initialBasics);
           setBasicsBuffer(initialBasics);
