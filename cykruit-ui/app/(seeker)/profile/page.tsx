@@ -1030,67 +1030,68 @@ export default function ProfilePage() {
         <div>
 
           {/* Profile header */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 mb-5 flex items-center gap-4 sm:gap-5 flex-wrap">
-            {/* Avatar with photo upload */}
-            <div className="relative shrink-0 group">
-              <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20 overflow-hidden">
-                {photoUrl
-                  ? <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
-                  : <span className="text-xl font-bold text-white">{basics.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}</span>
-                }
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 mb-5">
+            {/* Top row: avatar + info */}
+            <div className="flex items-start gap-4">
+              {/* Avatar with photo upload */}
+              <div className="relative shrink-0 group">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20 overflow-hidden">
+                  {photoUrl
+                    ? <img src={photoUrl} alt="Profile" className="w-full h-full object-cover" />
+                    : <span className="text-lg sm:text-xl font-bold text-white">{basics.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}</span>
+                  }
+                </div>
+                <label className="absolute inset-0 rounded-2xl bg-slate-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  <Camera className="w-5 h-5 text-white" />
+                  <input type="file" accept="image/*" className="sr-only" onChange={handlePhotoChange} />
+                </label>
               </div>
-              <label className="absolute inset-0 rounded-2xl bg-slate-900/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                <Camera className="w-5 h-5 text-white" />
-                <input type="file" accept="image/*" className="sr-only" onChange={handlePhotoChange} />
-              </label>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold text-slate-900">{basics.name}</h2>
-              <p className="text-sm text-slate-500">{basics.title}{basics.location ? ` · ${basics.location}` : ""}</p>
-              {basics.email && <p className="text-xs text-slate-400 mt-0.5">{basics.email}</p>}
-              <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <span className="text-[10px] font-mono text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-md">OPEN TO WORK</span>
-                <span className="text-[10px] font-mono text-slate-400">
-                  Profile {profilePct}% complete
-                </span>
-                {profilePct < 100 && (
-                  <div className="relative ml-2">
-                    <button
-                      onClick={fetchTips}
-                      className="flex items-center gap-1 text-[10px] font-mono font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-md hover:bg-violet-100 transition-colors"
-                    >
-                      <Sparkles className="w-3 h-3" />
-                      {isLoadingTips ? "Analyzing..." : "Get AI Tips"}
-                    </button>
-                    {showTips && profileTips.length > 0 && (
-                      <div className="absolute top-full left-0 mt-2 w-72 bg-white border border-slate-200 shadow-xl rounded-xl p-4 z-50">
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-violet-600" /> AI Suggestions</p>
-                          <button onClick={() => setShowTips(false)} className="text-slate-400 hover:text-slate-600">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 truncate">{basics.name}</h2>
+                <p className="text-xs sm:text-sm text-slate-500 mt-0.5 truncate">{basics.title}{basics.location ? ` · ${basics.location}` : ""}</p>
+                {basics.email && <p className="text-xs text-slate-400 mt-0.5 truncate">{basics.email}</p>}
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <span className="text-[10px] font-mono text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-md">OPEN TO WORK</span>
+                  <span className="text-[10px] font-mono text-slate-400">Profile {profilePct}% complete</span>
+                  {profilePct < 100 && (
+                    <div className="relative">
+                      <button
+                        onClick={fetchTips}
+                        className="flex items-center gap-1 text-[10px] font-mono font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-md hover:bg-violet-100 transition-colors"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        {isLoadingTips ? "Analyzing..." : "Get AI Tips"}
+                      </button>
+                      {showTips && profileTips.length > 0 && (
+                        <div className="absolute top-full left-0 mt-2 w-[min(18rem,calc(100vw-2rem))] bg-white border border-slate-200 shadow-xl rounded-xl p-4 z-50">
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-violet-600" /> AI Suggestions</p>
+                            <button onClick={() => setShowTips(false)} className="text-slate-400 hover:text-slate-600">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <ul className="space-y-2.5">
+                            {profileTips.map((tip, i) => (
+                              <li key={i} className="text-xs text-slate-600 flex items-start gap-2 leading-relaxed">
+                                <span className="text-violet-500 mt-0.5">•</span>
+                                {tip}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                        <ul className="space-y-2.5">
-                          {profileTips.map((tip, i) => (
-                            <li key={i} className="text-xs text-slate-600 flex items-start gap-2 leading-relaxed">
-                              <span className="text-violet-500 mt-0.5">•</span>
-                              {tip}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* AI autofill */}
-            <div className="relative rounded-xl overflow-hidden border border-violet-200 bg-linear-to-r from-violet-50 to-purple-50 px-4 py-3 flex items-center gap-3">
+            {/* AI autofill — full width below on mobile, inline on sm+ */}
+            <div className="mt-4 relative rounded-xl overflow-hidden border border-violet-200 bg-linear-to-r from-violet-50 to-purple-50 px-4 py-3 flex items-center justify-between gap-3">
               <div className="absolute inset-0 pointer-events-none opacity-20 bg-grid-purple-dense" />
-              <div className="relative z-10 flex items-center gap-2">
+              <div className="relative z-10 flex items-center gap-2 min-w-0">
                 <Sparkles className="w-4 h-4 text-violet-500 shrink-0" />
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-semibold text-violet-900 leading-tight">Auto-fill from resume</p>
                   <p className="text-[10px] text-violet-400 mt-0.5">We&apos;ll fill your entire profile for you</p>
                 </div>
@@ -1107,7 +1108,6 @@ export default function ProfilePage() {
                 />
               </label>
             </div>
-
           </div>
 
           <div className="flex flex-col md:flex-row gap-3 sm:gap-5 items-start">
@@ -1432,7 +1432,7 @@ export default function ProfilePage() {
                           <p className="text-xs text-slate-500 mt-0.5">{exp.company} · {exp.period}</p>
                           <p className="text-sm text-slate-600 mt-2 leading-relaxed">{exp.desc}</p>
                         </div>
-                        <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <div className="flex gap-1.5 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                           <button onClick={() => openEditExp(exp)} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-colors">
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
@@ -1517,7 +1517,7 @@ export default function ProfilePage() {
                             {edu.desc && <p className="text-sm text-slate-600 mt-2 leading-relaxed">{edu.desc}</p>}
                           </div>
                         </div>
-                        <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <div className="flex gap-1.5 shrink-0 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                           <button onClick={() => openEditEdu(edu)} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-200 transition-colors">
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
@@ -1636,14 +1636,14 @@ export default function ProfilePage() {
                           <p className="text-xs font-mono text-slate-400">{ctf.handle}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         {ctf.rank && <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${ctf.rankColor}`}>{ctf.rank}</span>}
                         {ctf.url && (
-                          <a href={ctf.url} target="_blank" rel="noopener noreferrer" className="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-200">
+                          <a href={ctf.url} target="_blank" rel="noopener noreferrer" className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-200">
                             <ExternalLink className="w-3.5 h-3.5" />
                           </a>
                         )}
-                        <button onClick={() => deleteCtf(ctf.id, ctf.platform)} className="opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-200">
+                        <button onClick={() => deleteCtf(ctf.id, ctf.platform)} className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-slate-400 hover:text-red-500 hover:border-red-200">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -1681,7 +1681,7 @@ export default function ProfilePage() {
                       </div>
                       <button
                         onClick={() => removeResume(r.id, r.label)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-xs font-medium text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 px-2.5 py-1.5 rounded-lg ml-3"
+                        className="sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0 text-xs font-medium text-red-500 hover:text-red-700 border border-red-200 hover:bg-red-50 px-2.5 py-1.5 rounded-lg ml-3"
                       >
                         Remove
                       </button>
