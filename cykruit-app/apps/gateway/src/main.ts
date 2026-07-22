@@ -79,6 +79,7 @@ app.use('/auth', proxy(SERVICES.auth, { '^/': '/auth/' }));
 app.use('/api/auth', proxy(SERVICES.auth, { '^/api/auth': '/auth' }));
 app.use('/settings', proxy(SERVICES.settings));
 app.use('/seeker-profile', proxy(SERVICES['seeker-profile']));
+app.use('/resumes', proxy(SERVICES['seeker-profile']));
 app.use('/employer', proxy(SERVICES.employer));
 app.use('/seeker', proxy(SERVICES.seeker));
 app.use('/public', proxy(SERVICES.public));
