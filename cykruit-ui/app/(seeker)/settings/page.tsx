@@ -93,9 +93,9 @@ export default function SettingsPage() {
     noticePeriod: string;
     openToWork: boolean;
   }>({
-    location: { city: "Mumbai", state: "Maharashtra", country: "India" },
-    phone: "+91 98765 43210",
-    desiredRole: "Penetration Tester",
+    location: { city: "", state: "", country: "" },
+    phone: "",
+    desiredRole: "Security Engineer",
     workMode: "Remote",
     noticePeriod: "Immediate",
     openToWork: true,

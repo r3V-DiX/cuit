@@ -341,11 +341,10 @@ export default function ProfilePage() {
       };
       if (basicsBuffer.phone !== undefined) body.phone = basicsBuffer.phone;
       if (selectedCountry) {
-        body.location = {
-          country: selectedCountry.name,
-          state: selectedState?.name,
-          city: cityName || undefined,
-        };
+        const locObj: any = { country: selectedCountry.name };
+        if (selectedState?.name) locObj.state = selectedState.name;
+        if (cityName?.trim()) locObj.city = cityName.trim();
+        body.location = locObj;
       }
       if (basicsBuffer.linkedin) body.linkedin = basicsBuffer.linkedin.startsWith("http") ? basicsBuffer.linkedin : `https://${basicsBuffer.linkedin}`;
       if (basicsBuffer.github) body.github = basicsBuffer.github.startsWith("http") ? basicsBuffer.github : `https://${basicsBuffer.github}`;
@@ -883,13 +882,15 @@ export default function ProfilePage() {
   async function loadProfile() {
     try {
       let userEmail = "";
+      let userName = "";
       try {
         const meRes = await fetch("/api/auth/me");
         if (meRes.ok) {
           const meData = await meRes.json();
-          const email = meData.data?.email || meData.email;
-          const id = meData.data?.id || meData.id;
-          if (email) userEmail = email;
+          const userObj = meData.data?.user || meData.data || meData.user || meData;
+          userEmail = userObj.email || "";
+          userName = [userObj.firstName, userObj.lastName].filter(Boolean).join(" ") || userObj.name || "";
+          const id = userObj.id;
           if (id) setUserId(id);
         }
       } catch (e) {}
@@ -900,8 +901,8 @@ export default function ProfilePage() {
           const data = result.data;
           const b = data.basicInfo || {};
           const initialBasics = {
-            name: [b.firstName, b.lastName].filter(Boolean).join(" ") || "User",
-            email: b.email || "",
+            name: [b.firstName, b.lastName].filter(Boolean).join(" ") || userName || (userEmail ? userEmail.split("@")[0] : "User"),
+            email: b.email || userEmail || "",
             professionalEmail: b.professionalEmail || "",
             title: b.title || "",
             location: b.location?.displayName || b.location?.city || "",
