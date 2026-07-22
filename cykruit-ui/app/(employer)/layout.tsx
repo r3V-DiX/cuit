@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 import EmployerSidebar from "@/components/employer/EmployerSidebar";
 import { KycProvider, type KycStatus } from "@/lib/employer-context";
 import { SubscriptionBanner } from "@/components/employer/SubscriptionBanner";
+import { AnnouncementBanner, type AnnouncementItem } from "@/components/ui/AnnouncementBanner";
 
 const AUTH_URL         = process.env.AUTH_SERVICE_URL         || "http://127.0.0.1:4001";
 const EMPLOYER_URL     = process.env.EMPLOYER_SERVICE_URL     || "http://127.0.0.1:4004";
 const SUBSCRIPTION_URL = process.env.SUBSCRIPTION_SERVICE_URL || "http://127.0.0.1:4007";
+const PUBLIC_URL       = process.env.PUBLIC_SERVICE_URL       || "http://127.0.0.1:4006";
 
 async function buildForwardHeaders(): Promise<Record<string, string>> {
   const cookieStore = await cookies();
@@ -69,6 +71,19 @@ async function getSubscriptionStatus(fwdHeaders: Record<string, string>): Promis
   return null;
 }
 
+async function getAnnouncements(): Promise<AnnouncementItem[]> {
+  try {
+    const res = await fetch(`${PUBLIC_URL}/public/announcements?target=EMPLOYER`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return [];
+    const body = await res.json();
+    return body?.data ?? body ?? [];
+  } catch {
+    return [];
+  }
+}
+
 async function getKycData(fwdHeaders: Record<string, string>): Promise<{ status: KycStatus; rejectionReason?: string }> {
   if (!fwdHeaders.Cookie) return { status: "not_submitted" };
   const urls = Array.from(new Set([EMPLOYER_URL, "http://employer-service:4004", "http://gateway:5000", "http://127.0.0.1:4004"]));
@@ -103,10 +118,11 @@ export default async function EmployerLayout({
 }) {
   const fwdHeaders = await buildForwardHeaders();
 
-  const [user, kycData, subscriptionStatus] = await Promise.all([
+  const [user, kycData, subscriptionStatus, announcements] = await Promise.all([
     getSessionUser(fwdHeaders),
     getKycData(fwdHeaders),
     getSubscriptionStatus(fwdHeaders),
+    getAnnouncements(),
   ]);
 
   if (!user || user.role !== "EMPLOYER") {
@@ -120,6 +136,7 @@ export default async function EmployerLayout({
       <div className="flex h-screen bg-slate-50 overflow-hidden">
         <EmployerSidebar />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <AnnouncementBanner announcements={announcements} />
           {isExpired && <SubscriptionBanner status={subscriptionStatus!} />}
           {children}
         </div>

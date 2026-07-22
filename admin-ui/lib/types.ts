@@ -355,6 +355,21 @@ export interface PolicyConfig {
   createdAt: string;
 }
 
+export type AnnouncementTarget = 'ALL' | 'SEEKER' | 'EMPLOYER';
+
+export interface Announcement {
+  id: string;
+  message: string;
+  type: 'info' | 'warning' | 'critical';
+  target: AnnouncementTarget;
+  isActive: boolean;
+  startsAt?: string;
+  expiresAt?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type FlaggedContentType = 'JOB' | 'EMPLOYER_PROFILE' | 'SEEKER_PROFILE' | 'MESSAGE';
 
 export type FlagReason =

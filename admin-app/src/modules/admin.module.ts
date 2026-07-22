@@ -21,6 +21,7 @@ import { ContactModule } from './contact';
 import { SettingsModule } from './settings';
 import { ReportsModule } from './reports';
 import { PoliciesModule } from './policies';
+import { AnnouncementsModule } from './announcements';
 
 @Module({
     imports: [
@@ -40,6 +41,7 @@ import { PoliciesModule } from './policies';
         SettingsModule,
         ReportsModule,
         PoliciesModule,
+        AnnouncementsModule,
     ],
 })
 export class AdminModule {}

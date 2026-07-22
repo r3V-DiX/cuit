@@ -27,6 +27,7 @@ import {
   Flag,
   UserCog,
   SlidersHorizontal,
+  Megaphone,
 } from 'lucide-react';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
@@ -162,6 +163,12 @@ export default function AdminSidebar() {
       href: '/policies',
       icon: <SlidersHorizontal className="h-5 w-5" />,
       action: ACTIONS.POLICIES.MANAGE,
+    },
+    {
+      label: 'Announcements',
+      href: '/announcements',
+      icon: <Megaphone className="h-5 w-5" />,
+      action: ACTIONS.ANNOUNCEMENTS.MANAGE,
     },
   ];
 

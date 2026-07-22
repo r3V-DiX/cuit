@@ -60,6 +60,10 @@ export const ACTIONS = {
         VIEW: 'policies:view',
         MANAGE: 'policies:manage',
     },
+    ANNOUNCEMENTS: {
+        VIEW: 'announcements:view',
+        MANAGE: 'announcements:manage',
+    },
 } as const;
 
 type ValuesOf<T> = T extends Record<string, infer V>
@@ -103,6 +107,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Action, string> = {
     'reports:manage': 'Resolve or dismiss flagged-content reports',
     'policies:view': 'View platform rate-limit and policy values',
     'policies:manage': 'Change platform rate-limit and policy values',
+    'announcements:view': 'List and view site-wide announcements',
+    'announcements:manage': 'Create/edit/delete and activate/deactivate announcements',
 };
 
 /** `module:action` → { module, action } for the Permission table's split columns. */

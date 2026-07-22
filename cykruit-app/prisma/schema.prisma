@@ -1816,6 +1816,7 @@ model Admin {
     roleAssignments     AdminRoleAssignment[]
     permissionOverrides AdminPermissionOverride[]
     sentInvites         AdminInvite[]              @relation("AdminInviter")
+    announcements       Announcement[]
 
     @@index([email])
     @@map("admins")
@@ -2502,6 +2503,29 @@ model PolicyConfig {
 
     @@index([key])
     @@map("policy_configs")
+}
+
+enum AnnouncementTarget {
+    ALL
+    SEEKER
+    EMPLOYER
+}
+
+model Announcement {
+    id        String             @id @default(uuid()) @db.Uuid
+    message   String             @db.Text
+    type      String // "info" | "warning" | "critical"
+    target    AnnouncementTarget @default(ALL)
+    isActive  Boolean            @default(true)
+    startsAt  DateTime?
+    expiresAt DateTime?
+    createdBy String             @db.Uuid
+    creator   Admin              @relation(fields: [createdBy], references: [id])
+    createdAt DateTime           @default(now())
+    updatedAt DateTime           @updatedAt
+
+    @@index([isActive, target])
+    @@map("announcements")
 }
 
 enum FlaggedContentType {
