@@ -58,6 +58,7 @@ export default function ProfilePage() {
     try {
       const res = await fetch("/api/profile/image", {
         method: "PATCH",
+        credentials: "include",
         headers: {
           "x-csrf-token": getCsrfToken(),
         },
@@ -80,6 +81,7 @@ export default function ProfilePage() {
     try {
       const res = await fetch("/api/profile/image", {
         method: "DELETE",
+        credentials: "include",
         headers: {
           "x-csrf-token": getCsrfToken(),
         },
@@ -117,6 +119,7 @@ export default function ProfilePage() {
     try {
       const res = await fetch("/api/profile/ai/parse-resume", {
         method: "POST",
+        credentials: "include",
         headers: {
           "x-csrf-token": getCsrfToken(),
         },
@@ -143,7 +146,7 @@ export default function ProfilePage() {
   async function handleAiGenerateBio() {
     setIsGeneratingBio(true);
     try {
-      const res = await fetch("/api/profile/ai/generate-bio", { method: "GET" });
+      const res = await fetch("/api/profile/ai/generate-bio", { method: "GET", credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         setBioBuffer(data.data.bio);
@@ -172,7 +175,7 @@ export default function ProfilePage() {
   async function handleAiSuggestSkills() {
     setIsGeneratingSkills(true);
     try {
-      const res = await fetch("/api/profile/ai/suggest-skills", { method: "GET" });
+      const res = await fetch("/api/profile/ai/suggest-skills", { method: "GET", credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         // The backend automatically saves matching skills to the database
@@ -216,7 +219,7 @@ export default function ProfilePage() {
     }
     setIsLoadingTips(true);
     try {
-      const res = await fetch("/api/profile/ai/profile-tips", { method: "GET" });
+      const res = await fetch("/api/profile/ai/profile-tips", { method: "GET", credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         setProfileTips(data.data.tips);
@@ -352,6 +355,7 @@ export default function ProfilePage() {
 
       const response = await fetch("/api/profile/basic-info", {
         method: "PATCH",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           "x-csrf-token": getCsrfToken(),
@@ -380,6 +384,7 @@ export default function ProfilePage() {
     try {
       const response = await fetch("/api/profile/summary", {
         method: "PATCH",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           "x-csrf-token": getCsrfToken(),
@@ -413,7 +418,7 @@ export default function ProfilePage() {
     }
 
     try {
-      const searchRes = await fetch(`/api/profile/skills/search?query=${encodeURIComponent(trimmed)}`);
+      const searchRes = await fetch(`/api/profile/skills/search?query=${encodeURIComponent(trimmed)}`, { credentials: "include" });
       if (searchRes.ok) {
         const searchData = await searchRes.json();
         const found = searchData.data?.skills?.[0];
@@ -424,6 +429,7 @@ export default function ProfilePage() {
 
         const addRes = await fetch("/api/profile/skills", {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
             "x-csrf-token": getCsrfToken(),
@@ -453,6 +459,7 @@ export default function ProfilePage() {
     try {
       const res = await fetch(`/api/profile/skills/${id}`, {
         method: "DELETE",
+        credentials: "include",
         headers: {
           "x-csrf-token": getCsrfToken(),
         },
@@ -526,6 +533,7 @@ export default function ProfilePage() {
       const method = editingExp ? "PATCH" : "POST";
       const res = await fetch(url, {
         method,
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           "x-csrf-token": getCsrfToken(),
@@ -556,6 +564,7 @@ export default function ProfilePage() {
         try {
           const res = await fetch(`/api/profile/experiences/${id}`, {
             method: "DELETE",
+            credentials: "include",
             headers: {
               "x-csrf-token": getCsrfToken(),
             },
@@ -609,6 +618,7 @@ export default function ProfilePage() {
       const method = editingEdu ? "PATCH" : "POST";
       const res = await fetch(url, {
         method,
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           "x-csrf-token": getCsrfToken(),
@@ -639,6 +649,7 @@ export default function ProfilePage() {
         try {
           const res = await fetch(`/api/profile/education/${id}`, {
             method: "DELETE",
+            credentials: "include",
             headers: {
               "x-csrf-token": getCsrfToken(),
             },
@@ -669,7 +680,7 @@ export default function ProfilePage() {
     }
     
     try {
-      const searchRes = await fetch(`/api/profile/certifications/search?query=${encodeURIComponent(certForm.name)}`);
+      const searchRes = await fetch(`/api/profile/certifications/search?query=${encodeURIComponent(certForm.name)}`, { credentials: "include" });
       if (searchRes.ok) {
         const searchData = await searchRes.json();
         const found = searchData.data?.certifications?.[0];
@@ -681,6 +692,7 @@ export default function ProfilePage() {
         const issueDate = certForm.year ? `${certForm.year}-01` : `${new Date().getFullYear()}-01`;
         const addRes = await fetch("/api/profile/certifications", {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
             "x-csrf-token": getCsrfToken(),
@@ -715,6 +727,7 @@ export default function ProfilePage() {
         try {
           const res = await fetch(`/api/profile/certifications/${id}`, {
             method: "DELETE",
+            credentials: "include",
             headers: {
               "x-csrf-token": getCsrfToken(),
             },
@@ -754,6 +767,7 @@ export default function ProfilePage() {
     try {
       const res = await fetch("/api/profile/ctf-profiles", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           "x-csrf-token": getCsrfToken(),
@@ -784,6 +798,7 @@ export default function ProfilePage() {
         try {
           const res = await fetch(`/api/profile/ctf-profiles/${id}`, {
             method: "DELETE",
+            credentials: "include",
             headers: {
               "x-csrf-token": getCsrfToken(),
             },
@@ -831,6 +846,7 @@ export default function ProfilePage() {
     try {
       const res = await fetch("/api/profile/resumes", {
         method: "POST",
+        credentials: "include",
         headers: {
           "x-csrf-token": getCsrfToken(),
         },
@@ -862,6 +878,7 @@ export default function ProfilePage() {
         try {
           const res = await fetch(`/api/profile/resumes/${id}`, {
             method: "DELETE",
+            credentials: "include",
             headers: {
               "x-csrf-token": getCsrfToken(),
             },
@@ -884,7 +901,7 @@ export default function ProfilePage() {
       let userEmail = "";
       let userName = "";
       try {
-        const meRes = await fetch("/api/auth/me");
+        const meRes = await fetch("/api/auth/me", { credentials: "include" });
         if (meRes.ok) {
           const meData = await meRes.json();
           const userObj = meData.data?.user || meData.data || meData.user || meData;
@@ -894,7 +911,7 @@ export default function ProfilePage() {
           if (id) setUserId(id);
         }
       } catch (e) {}
-      const response = await fetch("/api/profile");
+      const response = await fetch("/api/profile", { credentials: "include" });
       if (response.ok) {
         const result = await response.json();
         if (result.data) {
@@ -972,7 +989,7 @@ export default function ProfilePage() {
         }
       }
 
-      const resumeRes = await fetch("/api/profile/resumes");
+      const resumeRes = await fetch("/api/profile/resumes", { credentials: "include" });
       if (resumeRes.ok) {
         const resumeData = await resumeRes.json();
         if (resumeData.data) {

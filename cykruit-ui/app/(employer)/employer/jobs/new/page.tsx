@@ -447,7 +447,7 @@ export default function PostJobPage() {
                         setIsInferring(true);
                         try {
                           const res = await fetch("/api/ai/jobs/infer-domain", {
-                            method: "POST", headers: { "Content-Type": "application/json" },
+                            method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ title }),
                           });
                           if (res.ok) {
@@ -504,7 +504,7 @@ export default function PostJobPage() {
                     try {
                       const prompt = `Job Title: ${title}\nDomain: ${domain}\nExperience Level: ${level}\nJob Type: ${type}\nWork Mode: ${remote}`;
                       const res = await fetch("/api/ai/job-description/generate", {
-                        method: "POST", headers: { "Content-Type": "application/json" },
+                        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ prompt }),
                       });
                       if (res.ok) {
