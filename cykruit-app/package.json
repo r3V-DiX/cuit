@@ -2,7 +2,7 @@
   "name": "cykruit-backend",
   "private": true,
   "version": "1.0.0",
-  "description": "Cykruit Backend - Monorepo",
+  "description": "Cykruit Backend - NestJS Monorepo",
   "license": "MIT",
   "overrides": {
     "lodash": "^4.17.21",
