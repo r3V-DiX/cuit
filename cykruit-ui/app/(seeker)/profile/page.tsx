@@ -408,50 +408,58 @@ export default function ProfilePage() {
   // Skills
   const [skills, setSkills] = useState<{ id: string; name: string }[]>([]);
   const [newSkill, setNewSkill] = useState("");
+  const [skillSuggestions, setSkillSuggestions] = useState<{ id: string; name: string }[]>([]);
+  const [showSkillDropdown, setShowSkillDropdown] = useState(false);
+  const skillSearchTimer = useCallback(() => {}, []);
 
-  async function addSkill() {
-    const trimmed = newSkill.trim();
-    if (!trimmed) return;
-    if (skills.some((s) => s.name.toLowerCase() === trimmed.toLowerCase())) {
-      toast({ type: "warning", message: "Already added", description: `"${trimmed}" is already in your skills.` });
+  async function searchSkillSuggestions(query: string) {
+    if (!query.trim()) { setSkillSuggestions([]); setShowSkillDropdown(false); return; }
+    try {
+      const res = await fetch(`/api/profile/skills/search?query=${encodeURIComponent(query)}&limit=8`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        const results = (data.data?.skills || []).filter((s: { id: string; name: string }) => !skills.some(existing => existing.id === s.id));
+        setSkillSuggestions(results);
+        setShowSkillDropdown(results.length > 0);
+      }
+    } catch { /* silent */ }
+  }
+
+  const skillDebounceRef = useCallback(
+    (() => {
+      let timer: ReturnType<typeof setTimeout>;
+      return (query: string) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => searchSkillSuggestions(query), 300);
+      };
+    })(),
+    [skills]
+  );
+
+  async function addSkillById(skillId: string, skillName: string) {
+    if (skills.some((s) => s.id === skillId)) {
+      toast({ type: "warning", message: "Already added" });
       return;
     }
-
     try {
-      const searchRes = await fetch(`/api/profile/skills/search?query=${encodeURIComponent(trimmed)}`, { credentials: "include" });
-      if (searchRes.ok) {
-        const searchData = await searchRes.json();
-        const found = searchData.data?.skills?.[0];
-        if (!found) {
-          toast({ type: "warning", message: "Skill not found", description: `"${trimmed}" is not a recognized skill. Try "Pentesting" or "Python".` });
-          return;
-        }
-
-        const addRes = await fetch("/api/profile/skills", {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "x-csrf-token": getCsrfToken(),
-          },
-          body: JSON.stringify({
-            skillId: found.id,
-            proficiency: "Intermediate",
-            yearsOfExperience: 2,
-          }),
-        });
-
-        if (addRes.ok) {
-          toast({ type: "success", message: "Skill added", description: `"${found.name}" added to your profile.` });
-          setNewSkill("");
-          loadProfile();
-        } else {
-          const err = await addRes.json();
-          toast({ type: "error", message: "Failed to add skill", description: err.message });
-        }
+      const addRes = await fetch("/api/profile/skills", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "x-csrf-token": getCsrfToken() },
+        body: JSON.stringify({ skillId, proficiency: "Intermediate", yearsOfExperience: 2 }),
+      });
+      if (addRes.ok) {
+        toast({ type: "success", message: "Skill added", description: `"${skillName}" added to your profile.` });
+        setNewSkill("");
+        setSkillSuggestions([]);
+        setShowSkillDropdown(false);
+        loadProfile();
+      } else {
+        const err = await addRes.json();
+        toast({ type: "error", message: "Failed to add skill", description: err.message });
       }
-    } catch (err) {
-      toast({ type: "error", message: "Error searching skill catalog" });
+    } catch {
+      toast({ type: "error", message: "Error adding skill" });
     }
   }
 
@@ -481,7 +489,8 @@ export default function ProfilePage() {
   const [editingExp, setEditingExp] = useState<Exp | null>(null);
   const [addingExp, setAddingExp] = useState(false);
   const currentYear = new Date().getFullYear();
-  const yearOptions = Array.from({ length: 40 }, (_, i) => String(currentYear - i));
+  const startYearOptions = Array.from({ length: 41 }, (_, i) => String(currentYear - i));
+  const endYearOptions = Array.from({ length: 46 }, (_, i) => String(currentYear + 5 - i));
 
   const [expForm, setExpForm] = useState({ role: "", company: "", startYear: "", endYear: "Present", desc: "" });
 
@@ -671,50 +680,56 @@ export default function ProfilePage() {
   type Cert = { id: string; name: string; issuer: string; year: string; badge: string };
   const [certs, setCerts] = useState<Cert[]>([]);
   const [addingCert, setAddingCert] = useState(false);
-  const [certForm, setCertForm] = useState({ name: "", issuer: "", year: "" });
+  const [certForm, setCertForm] = useState({ certId: "", name: "", issuer: "", year: "" });
+  const [certSuggestions, setCertSuggestions] = useState<{ id: string; name: string; organization: string }[]>([]);
+  const [showCertDropdown, setShowCertDropdown] = useState(false);
+
+  const certDebounceRef = useCallback(
+    (() => {
+      let timer: ReturnType<typeof setTimeout>;
+      return (query: string) => {
+        clearTimeout(timer);
+        if (!query.trim()) { setCertSuggestions([]); setShowCertDropdown(false); return; }
+        timer = setTimeout(async () => {
+          try {
+            const res = await fetch(`/api/profile/certifications/search?query=${encodeURIComponent(query)}&limit=8`, { credentials: "include" });
+            if (res.ok) {
+              const data = await res.json();
+              const results = data.data?.certifications || [];
+              setCertSuggestions(results);
+              setShowCertDropdown(results.length > 0);
+            }
+          } catch { /* silent */ }
+        }, 300);
+      };
+    })(),
+    []
+  );
 
   async function saveCert() {
-    if (!certForm.name.trim() || !certForm.issuer.trim()) {
-      toast({ type: "error", message: "Missing fields", description: "Name and issuer are required." });
+    if (!certForm.certId) {
+      toast({ type: "warning", message: "Select a certification", description: "Type to search and pick from the dropdown." });
       return;
     }
-    
+    const issueDate = certForm.year ? `${certForm.year}-01` : `${new Date().getFullYear()}-01`;
     try {
-      const searchRes = await fetch(`/api/profile/certifications/search?query=${encodeURIComponent(certForm.name)}`, { credentials: "include" });
-      if (searchRes.ok) {
-        const searchData = await searchRes.json();
-        const found = searchData.data?.certifications?.[0];
-        if (!found) {
-          toast({ type: "warning", message: "Certification not found", description: "Please use a standard certification like OSCP, CEH, or CISSP." });
-          return;
-        }
-        
-        const issueDate = certForm.year ? `${certForm.year}-01` : `${new Date().getFullYear()}-01`;
-        const addRes = await fetch("/api/profile/certifications", {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "x-csrf-token": getCsrfToken(),
-          },
-          body: JSON.stringify({
-            certificationId: found.id,
-            issueDate,
-          }),
-        });
-        
-        if (addRes.ok) {
-          toast({ type: "success", message: "Certification added" });
-          loadProfile();
-          setAddingCert(false);
-          setCertForm({ name: "", issuer: "", year: "" });
-        } else {
-          const err = await addRes.json();
-          toast({ type: "error", message: "Failed to add certification", description: err.message });
-        }
+      const addRes = await fetch("/api/profile/certifications", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json", "x-csrf-token": getCsrfToken() },
+        body: JSON.stringify({ certificationId: certForm.certId, issueDate }),
+      });
+      if (addRes.ok) {
+        toast({ type: "success", message: "Certification added" });
+        loadProfile();
+        setAddingCert(false);
+        setCertForm({ certId: "", name: "", issuer: "", year: "" });
+      } else {
+        const err = await addRes.json();
+        toast({ type: "error", message: "Failed to add certification", description: err.message });
       }
-    } catch (err) {
-      toast({ type: "error", message: "Error searching certification catalog" });
+    } catch {
+      toast({ type: "error", message: "Error adding certification" });
     }
   }
   async function deleteCert(id: string, name: string) {
@@ -1357,18 +1372,29 @@ export default function ProfilePage() {
                         </span>
                       ))}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="relative">
                       <input
                         value={newSkill}
-                        onChange={(e) => setNewSkill(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && addSkill()}
-                        placeholder="Add a skill..."
+                        onChange={(e) => { setNewSkill(e.target.value); skillDebounceRef(e.target.value); }}
+                        onBlur={() => setTimeout(() => setShowSkillDropdown(false), 150)}
+                        onFocus={() => { if (skillSuggestions.length > 0) setShowSkillDropdown(true); }}
+                        placeholder="Search skills (e.g. Penetration Testing, Python)..."
                         maxLength={50}
-                        className={`${field} h-9`}
+                        className={`${field} h-9 pr-10`}
                       />
-                      <button onClick={addSkill} className="w-9 h-9 rounded-xl bg-blue-600 hover:bg-blue-700 flex items-center justify-center text-white transition-colors shrink-0">
-                        <Plus className="w-4 h-4" />
-                      </button>
+                      {showSkillDropdown && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                          {skillSuggestions.map((s) => (
+                            <button
+                              key={s.id}
+                              onMouseDown={() => addSkillById(s.id, s.name)}
+                              className="w-full text-left px-3.5 py-2.5 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                            >
+                              {s.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1397,7 +1423,7 @@ export default function ProfilePage() {
                           <div className="relative">
                             <select value={expForm.startYear} onChange={(e) => setExpForm({ ...expForm, startYear: e.target.value })} className={selectField}>
                               <option value="">Select year</option>
-                              {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+                              {startYearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
                             </select>
                             <ChevronDown />
                           </div>
@@ -1407,7 +1433,7 @@ export default function ProfilePage() {
                           <div className="relative">
                             <select value={expForm.endYear} onChange={(e) => setExpForm({ ...expForm, endYear: e.target.value })} className={selectField}>
                               <option value="Present">Present</option>
-                              {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+                              {endYearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
                             </select>
                             <ChevronDown />
                           </div>
@@ -1477,7 +1503,7 @@ export default function ProfilePage() {
                           <div className="relative">
                             <select value={eduForm.startYear} onChange={(e) => setEduForm({ ...eduForm, startYear: e.target.value })} className={selectField}>
                               <option value="">Select year</option>
-                              {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+                              {startYearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
                             </select>
                             <ChevronDown />
                           </div>
@@ -1487,7 +1513,7 @@ export default function ProfilePage() {
                           <div className="relative">
                             <select value={eduForm.endYear} onChange={(e) => setEduForm({ ...eduForm, endYear: e.target.value })} className={selectField}>
                               <option value="">Present / Ongoing</option>
-                              {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+                              {endYearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
                             </select>
                             <ChevronDown />
                           </div>
@@ -1544,7 +1570,7 @@ export default function ProfilePage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="text-sm font-semibold text-slate-900">Certifications</h3>
-                    <button onClick={() => { setCertForm({ name: "", issuer: "", year: "" }); setAddingCert(true); }} className="flex items-center gap-1.5 text-xs font-medium text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors">
+                    <button onClick={() => { setCertForm({ certId: "", name: "", issuer: "", year: "" }); setAddingCert(true); }} className="flex items-center gap-1.5 text-xs font-medium text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition-colors">
                       <Plus className="w-3.5 h-3.5" /> Add
                     </button>
                   </div>
@@ -1552,16 +1578,38 @@ export default function ProfilePage() {
                   {addingCert && (
                     <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/30 space-y-3">
                       <p className="text-xs font-semibold text-blue-700">New certification</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <input value={certForm.name} onChange={(e) => setCertForm({ ...certForm, name: e.target.value })} placeholder="Certification name *" maxLength={150} className={field} />
-                        <input value={certForm.issuer} onChange={(e) => setCertForm({ ...certForm, issuer: e.target.value })} placeholder="Issuing body *" maxLength={100} className={field} />
+                      <div className="relative">
+                        <input
+                          value={certForm.name}
+                          onChange={(e) => { setCertForm({ ...certForm, name: e.target.value, certId: "", issuer: "" }); certDebounceRef(e.target.value); }}
+                          onBlur={() => setTimeout(() => setShowCertDropdown(false), 150)}
+                          onFocus={() => { if (certSuggestions.length > 0) setShowCertDropdown(true); }}
+                          placeholder="Search certification (e.g. OSCP, CEH, CISSP)..."
+                          maxLength={150}
+                          className={`${field} ${certForm.certId ? "border-green-400 bg-green-50" : ""}`}
+                        />
+                        {certForm.certId && <p className="text-[10px] text-green-600 mt-1 ml-0.5">✓ {certForm.issuer}</p>}
+                        {showCertDropdown && (
+                          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                            {certSuggestions.map((c) => (
+                              <button
+                                key={c.id}
+                                onMouseDown={() => { setCertForm(f => ({ ...f, certId: c.id, name: c.name, issuer: c.organization })); setShowCertDropdown(false); }}
+                                className="w-full text-left px-3.5 py-2.5 hover:bg-blue-50 transition-colors"
+                              >
+                                <p className="text-sm font-semibold text-slate-800">{c.name}</p>
+                                <p className="text-[11px] text-slate-400">{c.organization}</p>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <input value={certForm.year} onChange={(e) => setCertForm({ ...certForm, year: e.target.value })} placeholder="Year (e.g. 2023)" maxLength={4} className={field} />
+                      <input value={certForm.year} onChange={(e) => setCertForm({ ...certForm, year: e.target.value })} placeholder="Year obtained (e.g. 2023)" maxLength={4} className={field} />
                       <div className="flex gap-2">
                         <button onClick={saveCert} className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors">
                           <Check className="w-3 h-3" /> Save
                         </button>
-                        <button onClick={() => setAddingCert(false)} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-colors">
+                        <button onClick={() => { setAddingCert(false); setCertForm({ certId: "", name: "", issuer: "", year: "" }); }} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-colors">
                           <X className="w-3 h-3" /> Cancel
                         </button>
                       </div>
