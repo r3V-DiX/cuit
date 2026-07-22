@@ -200,10 +200,10 @@ function LoginForm() {
       broadcastLogin(userRole === "EMPLOYER" ? "EMPLOYER" : "SEEKER");
       const safeNext = nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : null;
       if (userRole === "EMPLOYER") {
-        router.push(safeNext && safeNext.startsWith("/employer") ? safeNext : "/employer/dashboard");
+        window.location.href = safeNext && safeNext.startsWith("/employer") ? safeNext : "/employer/dashboard";
         return;
       }
-      router.push(safeNext && !safeNext.startsWith("/employer") ? safeNext : "/dashboard");
+      window.location.href = safeNext && !safeNext.startsWith("/employer") ? safeNext : "/dashboard";
     } catch (err: any) {
       toast({ type: "error", message: err.message || "Invalid OTP" });
       if (err.code === "OTP_MAX_ATTEMPTS") {
