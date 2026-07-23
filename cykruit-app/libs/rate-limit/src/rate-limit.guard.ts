@@ -37,36 +37,20 @@ export class RateLimitGuard extends ThrottlerGuard {
     )
       return true;
 
+    // Skip rate limiting for admin-app requests: admin_session_token cookie
+    // is present, meaning AdminAuthGuard will authenticate and enforce access.
+    // APP_GUARD fires before AdminAuthGuard so req.admin is always null here —
+    // all admin requests would otherwise share one IP bucket and hit 429 fast.
+    const req = context.switchToHttp().getRequest<Record<string, any>>();
+    const cookies = req.cookies as Record<string, string | undefined> | undefined;
+    if (cookies?.admin_session_token) return true;
+
     return false;
   }
 
   protected async getTracker(req: Record<string, any>): Promise<string> {
-    // req.user is set by AuthGuard (cykruit-app); req.admin by AdminAuthGuard (admin-app).
-    // Both run AFTER APP_GUARD, so check cookies directly as fallback.
     const userId = req.user?.id ?? req.admin?.id;
     if (userId) return `u:${userId}`;
-
-    // Decode (not verify) any session JWT cookie to get a stable per-user key.
-    // Covers admin-app where APP_GUARD fires before AdminAuthGuard sets req.admin.
-    const sessionToken =
-      req.cookies?.session_token ??
-      req.cookies?.admin_session_token;
-    if (sessionToken) {
-      try {
-        const parts = (sessionToken as string).split(".");
-        if (parts.length === 3) {
-          const raw = Buffer.from(parts[1], "base64url").toString("utf8");
-          const payload = JSON.parse(raw) as Record<string, unknown>;
-          const sub = payload.sub ?? payload.id;
-          if (typeof sub === "string" && sub.length > 0) {
-            return `u:${sub}`;
-          }
-        }
-      } catch {
-        // malformed token — fall through to IP
-      }
-    }
-
     const ip = this.extractRealIp(req);
     return `ip:${ip}`;
   }
