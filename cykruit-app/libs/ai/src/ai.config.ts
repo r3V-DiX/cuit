@@ -2,7 +2,7 @@
 import { registerAs } from "@nestjs/config";
 
 export default registerAs("ai", () => ({
-  provider: process.env.AI_PROVIDER || "gemini",
+  provider: process.env.AI_PROVIDER || (process.env.NODE_ENV === "production" ? "bedrock" : "ollama"),
   gemini: {
     apiKey: process.env.GEMINI_API_KEY,
     model: process.env.GEMINI_MODEL || "gemini-2.5-flash",

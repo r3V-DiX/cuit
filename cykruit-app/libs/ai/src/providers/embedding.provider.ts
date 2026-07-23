@@ -17,7 +17,7 @@ export class EmbeddingProvider implements IEmbeddingProvider {
   constructor(private configService: ConfigService) {
     const providerStr = this.configService.get<string>("ai.provider");
 
-    if (providerStr === "bedrock") {
+    if (providerStr !== "ollama") {
       const region = this.configService.get<string>("ai.bedrock.region") || "us-east-1";
       const accessKeyId = this.configService.get<string>("ai.bedrock.accessKeyId");
       const secretAccessKey = this.configService.get<string>("ai.bedrock.secretAccessKey");
