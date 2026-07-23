@@ -272,7 +272,7 @@ export class JobsService {
           select: {
             id: true,
             name: true,
-            category: true,
+            domain: { select: { id: true, name: true, slug: true } },
           },
         },
         location: {

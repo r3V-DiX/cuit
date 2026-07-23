@@ -75,6 +75,10 @@ export const ACTIONS = {
     EXPORT: {
         RUN: 'export:run',
     },
+    DOMAINS: {
+        VIEW: 'domains:view',
+        MANAGE: 'domains:manage',
+    },
 } as const;
 
 type ValuesOf<T> = T extends Record<string, infer V>
@@ -125,6 +129,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Action, string> = {
     'suggestions:view': 'List and view search-box autocomplete suggestions',
     'suggestions:manage': 'Create/edit/delete and activate/deactivate search suggestions',
     'export:run': 'Export users, jobs, applications and subscriptions as CSV',
+    'domains:view': 'List and view job domains (role category groupings)',
+    'domains:manage': 'Create/edit/delete and activate/deactivate job domains',
 };
 
 /** `module:action` → { module, action } for the Permission table's split columns. */

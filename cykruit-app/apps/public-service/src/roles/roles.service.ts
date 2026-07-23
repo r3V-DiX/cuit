@@ -17,7 +17,7 @@ export class RolesService {
       select: {
         id: true,
         name: true,
-        category: true,
+        domain: { select: { id: true, name: true, slug: true } },
       },
       take: 20,
     });

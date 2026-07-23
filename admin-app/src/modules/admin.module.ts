@@ -26,6 +26,7 @@ import { BlacklistModule } from './blacklist';
 import { SuggestionsModule } from './suggestions';
 import { ExportModule } from './export';
 import { AnalyticsModule } from './analytics';
+import { DomainsModule } from './domains';
 
 @Module({
     imports: [
@@ -50,6 +51,7 @@ import { AnalyticsModule } from './analytics';
         SuggestionsModule,
         ExportModule,
         AnalyticsModule,
+        DomainsModule,
     ],
 })
 export class AdminModule {}

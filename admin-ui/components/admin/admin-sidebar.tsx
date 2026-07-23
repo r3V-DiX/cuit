@@ -31,6 +31,7 @@ import {
   ShieldBan,
   SearchCode,
   Download,
+  Layers,
 } from 'lucide-react';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
@@ -190,6 +191,12 @@ export default function AdminSidebar() {
       href: '/export',
       icon: <Download className="h-5 w-5" />,
       action: ACTIONS.EXPORT.RUN,
+    },
+    {
+      label: 'Job Domains',
+      href: '/domains',
+      icon: <Layers className="h-5 w-5" />,
+      action: ACTIONS.DOMAINS.MANAGE,
     },
   ];
 

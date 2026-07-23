@@ -523,3 +523,14 @@ export interface ApplicationAnalytics {
   totalCount: number;
   conversionRate: number;
 }
+
+export interface JobDomain {
+  id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

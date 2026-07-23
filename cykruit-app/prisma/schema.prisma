@@ -1329,7 +1329,8 @@ model Role {
     id          String   @id @default(uuid())
     name        String   @unique // e.g., "Security Analyst", "Penetration Tester"
     description String?  @db.Text
-    category    String? // e.g., "Offensive Security", "Defensive Security"
+    domainId    String?    @db.Uuid
+    domain      JobDomain? @relation(fields: [domainId], references: [id])
     isActive    Boolean  @default(true)
     createdAt   DateTime @default(now())
     updatedAt   DateTime @updatedAt
@@ -1338,8 +1339,26 @@ model Role {
     jobs Job[]
 
     @@index([name])
-    @@index([category])
+    @@index([domainId])
     @@map("roles")
+}
+
+// JobDomain — admin-managed grouping for Roles (formalizes the old Role.category string, TASK B12)
+model JobDomain {
+    id        String   @id @default(uuid()) @db.Uuid
+    name      String   @unique // e.g., "Offensive Security", "Cloud Security"
+    slug      String   @unique
+    isActive  Boolean  @default(true)
+    sortOrder Int      @default(0)
+    createdBy String?  @db.Uuid // null = system-seeded (roles.seed.ts runs before any Admin exists); set for admin-created domains
+    creator   Admin?   @relation(fields: [createdBy], references: [id])
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    roles Role[]
+
+    @@index([isActive, sortOrder])
+    @@map("job_domains")
 }
 
 // 2. MAIN JOB MODEL
@@ -1819,6 +1838,7 @@ model Admin {
     announcements       Announcement[]
     blacklistEntries    Blacklist[]
     searchSuggestions   SearchSuggestion[]
+    jobDomains          JobDomain[]
 
     @@index([email])
     @@map("admins")
