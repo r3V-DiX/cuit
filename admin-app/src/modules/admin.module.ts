@@ -24,6 +24,7 @@ import { PoliciesModule } from './policies';
 import { AnnouncementsModule } from './announcements';
 import { BlacklistModule } from './blacklist';
 import { SuggestionsModule } from './suggestions';
+import { ExportModule } from './export';
 
 @Module({
     imports: [
@@ -46,6 +47,7 @@ import { SuggestionsModule } from './suggestions';
         AnnouncementsModule,
         BlacklistModule,
         SuggestionsModule,
+        ExportModule,
     ],
 })
 export class AdminModule {}

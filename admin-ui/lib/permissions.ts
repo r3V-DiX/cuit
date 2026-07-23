@@ -20,6 +20,7 @@ export const ACTIONS = {
   ANNOUNCEMENTS: { VIEW: 'announcements:view', MANAGE: 'announcements:manage' },
   BLACKLIST: { VIEW: 'blacklist:view', MANAGE: 'blacklist:manage' },
   SUGGESTIONS: { VIEW: 'suggestions:view', MANAGE: 'suggestions:manage' },
+  EXPORT: { RUN: 'export:run' },
 } as const;
 
 type ValuesOf<T> = T extends Record<string, infer V>

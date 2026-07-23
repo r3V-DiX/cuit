@@ -30,6 +30,7 @@ import {
   Megaphone,
   ShieldBan,
   SearchCode,
+  Download,
 } from 'lucide-react';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
@@ -183,6 +184,12 @@ export default function AdminSidebar() {
       href: '/suggestions',
       icon: <SearchCode className="h-5 w-5" />,
       action: ACTIONS.SUGGESTIONS.MANAGE,
+    },
+    {
+      label: 'Export',
+      href: '/export',
+      icon: <Download className="h-5 w-5" />,
+      action: ACTIONS.EXPORT.RUN,
     },
   ];
 
