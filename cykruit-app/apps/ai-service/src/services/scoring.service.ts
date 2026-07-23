@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OllamaProvider } from '@cykruit/ai';
+import { AIService } from '@cykruit/ai';
 import { z } from 'zod';
 
 const ScoringSchema = z.object({
@@ -13,7 +13,7 @@ export type ScoringResult = z.infer<typeof ScoringSchema>;
 export class ScoringService {
   private readonly logger = new Logger(ScoringService.name);
 
-  constructor(private readonly llmProvider: OllamaProvider) {}
+  constructor(private readonly aiService: AIService) {}
 
   async scoreResume(resumeText: string, jobDescription: string): Promise<ScoringResult> {
     const prompt = `
@@ -29,7 +29,7 @@ ${resumeText}
 `;
     try {
       this.logger.debug("Calling LLM for scoring...");
-      const result = await this.llmProvider.generateStructured<ScoringResult>(prompt, ScoringSchema);
+      const result = await this.aiService.generateStructured<ScoringResult>(prompt, ScoringSchema);
       return result;
     } catch (error) {
       this.logger.error("Failed to score resume", error);

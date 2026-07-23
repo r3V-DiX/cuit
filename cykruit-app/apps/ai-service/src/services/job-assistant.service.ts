@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { OllamaProvider } from '@cykruit/ai';
+import { AIService } from '@cykruit/ai';
 import { z } from 'zod';
 
 const JobDescriptionSchema = z.object({
@@ -33,11 +33,12 @@ const InferDomainSchema = z.object({
 });
 
 export type SuggestedSkills = z.infer<typeof SuggestedSkillsSchema>;
+
 @Injectable()
 export class JobAssistantService {
   private readonly logger = new Logger(JobAssistantService.name);
 
-  constructor(private readonly llmProvider: OllamaProvider) {}
+  constructor(private readonly aiService: AIService) {}
 
   async generateJobDescription(promptText: string): Promise<GeneratedJob> {
     const prompt = `
@@ -50,7 +51,7 @@ ${promptText}
 
     try {
       this.logger.debug("Generating job description with LLM...");
-      const result = await this.llmProvider.generateStructured<GeneratedJob>(prompt, JobDescriptionSchema);
+      const result = await this.aiService.generateStructured<GeneratedJob>(prompt, JobDescriptionSchema);
       return result;
     } catch (error) {
       this.logger.error("Failed to generate job description", error);
@@ -71,7 +72,7 @@ ${description}
 
     try {
       this.logger.debug("Improving job description with LLM...");
-      return await this.llmProvider.generateStructured<ImprovedJobDescription>(prompt, ImproveDescriptionSchema);
+      return await this.aiService.generateStructured<ImprovedJobDescription>(prompt, ImproveDescriptionSchema);
     } catch (error) {
       this.logger.error("Failed to improve job description", error);
       throw error;
@@ -89,7 +90,7 @@ ${description}
 
     try {
       this.logger.debug("Suggesting job skills with LLM...");
-      return await this.llmProvider.generateStructured<SuggestedSkills>(prompt, SuggestedSkillsSchema);
+      return await this.aiService.generateStructured<SuggestedSkills>(prompt, SuggestedSkillsSchema);
     } catch (error) {
       this.logger.error("Failed to suggest job skills", error);
       throw error;
@@ -100,7 +101,7 @@ ${description}
     const prompt = `Based on the job title "${title}", infer the cybersecurity domain it belongs to. Choose the most appropriate domain.`;
     try {
       this.logger.debug("Inferring domain with LLM...");
-      return await this.llmProvider.generateStructured(prompt, InferDomainSchema);
+      return await this.aiService.generateStructured(prompt, InferDomainSchema);
     } catch (error) {
       this.logger.error("Failed to infer domain", error);
       throw error;

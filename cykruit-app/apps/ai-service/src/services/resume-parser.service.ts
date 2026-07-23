@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { AWSBedrockProvider } from '@cykruit/ai';
+import { AIService } from '@cykruit/ai';
 import { z } from 'zod';
 
 const ParsedResumeSchema = z.object({
@@ -52,7 +52,7 @@ export type ParsedResume = z.infer<typeof ParsedResumeSchema>;
 @Injectable()
 export class ResumeParserService {
   private readonly logger = new Logger(ResumeParserService.name);
-  constructor(private readonly llmProvider: AWSBedrockProvider) {}
+  constructor(private readonly aiService: AIService) {}
 
   async parseResume(resumeText: string): Promise<ParsedResume> {
     const prompt = `
@@ -66,7 +66,7 @@ ${resumeText}
 
     try {
       this.logger.debug("Parsing resume with LLM...");
-      const result = await this.llmProvider.generateStructured<ParsedResume>(prompt, ParsedResumeSchema);
+      const result = await this.aiService.generateStructured<ParsedResume>(prompt, ParsedResumeSchema);
       return result;
     } catch (error) {
       this.logger.error("Failed to parse resume", error);
