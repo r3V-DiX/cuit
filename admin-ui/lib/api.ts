@@ -33,7 +33,7 @@ const MUTATION_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
 
 function getCsrfToken(): string | undefined {
   if (typeof document === 'undefined') return undefined;
-  const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+  const match = document.cookie.match(/(?:^|;\s*)admin_csrf_token=([^;]+)/);
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 

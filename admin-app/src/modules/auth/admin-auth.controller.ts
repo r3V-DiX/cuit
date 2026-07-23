@@ -22,7 +22,7 @@ import { AdminAuthService } from './admin-auth.service';
 import { AdminAuthGuard, ADMIN_SESSION_COOKIE } from './admin-auth.guard';
 import { AdminLoginDto } from './dto/admin-login.dto';
 
-export const CSRF_COOKIE = 'csrf_token';
+export const CSRF_COOKIE = 'admin_csrf_token';
 
 @Controller('admin/auth')
 export class AdminAuthController {

@@ -16,7 +16,7 @@ import { CsrfGuard } from '@cykruit/auth-core';
 import { AdminAuthService } from './admin-auth.service';
 
 export const ADMIN_SESSION_COOKIE = 'admin_session_token';
-export const CSRF_COOKIE = 'csrf_token';
+export const CSRF_COOKIE = 'admin_csrf_token';
 
 export type AdminRequest = Request & { admin?: Admin };
 
