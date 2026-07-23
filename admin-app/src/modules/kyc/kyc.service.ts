@@ -57,7 +57,11 @@ export class KycService {
     }
 
     async list(query: KycListQueryDto) {
-        return this.kycRepository.findAll(query);
+        const result = await this.kycRepository.findAll(query);
+        const enrichedItems = await Promise.all(
+            result.items.map((item) => this.enrichForClient(item)),
+        );
+        return { ...result, items: enrichedItems };
     }
 
     async getById(id: string) {
