@@ -489,3 +489,37 @@ export interface DashboardStats {
     active: number;
   };
 }
+
+export type AnalyticsPeriod = '7d' | '30d' | '90d';
+
+export interface RevenueAnalytics {
+  period: AnalyticsPeriod;
+  mrr: number;
+  totalRevenuePaise: number;
+  byPlan: { package: string; revenuePaise: number }[];
+  daily: { date: string; revenuePaise: number }[];
+}
+
+export interface SubscriptionAnalytics {
+  period: AnalyticsPeriod;
+  newCount: number;
+  churnedCount: number;
+  netChange: number;
+  byPlan: { package: string; count: number }[];
+}
+
+export interface UserAnalytics {
+  period: AnalyticsPeriod;
+  daily: { date: string; seekers: number; employers: number }[];
+}
+
+export interface JobAnalytics {
+  period: AnalyticsPeriod;
+  daily: { date: string; pending: number; approved: number; rejected: number; expired: number }[];
+}
+
+export interface ApplicationAnalytics {
+  period: AnalyticsPeriod;
+  totalCount: number;
+  conversionRate: number;
+}
