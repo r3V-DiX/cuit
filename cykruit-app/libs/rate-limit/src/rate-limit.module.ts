@@ -77,6 +77,16 @@ const isDev = process.env.NODE_ENV === "development";
             ttl: 60_000,
             limit: isDev ? 10000 : 60,
           },
+          {
+            name: "request_otp",
+            ttl: 10 * 60_000,
+            limit: isDev ? 10000 : 30,
+          },
+          {
+            name: "verify_otp",
+            ttl: 10 * 60_000,
+            limit: isDev ? 10000 : 50,
+          },
         ],
       }),
     }),
