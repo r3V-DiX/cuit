@@ -23,8 +23,8 @@ import { isBlacklisted } from "@cykruit/blacklist";
 import type { Request } from "express";
 
 const OTP_MAX_ATTEMPTS = 5;
-const OTP_EMAIL_LIMIT = 5;        // max OTP requests per email per window
-const OTP_EMAIL_WINDOW_S = 600;   // 10 minutes
+const OTP_EMAIL_LIMIT_DEFAULT = 5;           // max OTP requests per email per window
+const OTP_EMAIL_WINDOW_MINUTES_DEFAULT = 10;
 
 function generateOtp(): string {
   return String(randomInt(100000, 1000000));
@@ -47,15 +47,18 @@ export class OtpService {
   ) {}
 
   private async enforceEmailRateLimit(email: string): Promise<void> {
+    const windowMinutes = await getPolicyInt("otp_email_request_window_minutes", OTP_EMAIL_WINDOW_MINUTES_DEFAULT);
+    const limit = await getPolicyInt("otp_email_request_limit", OTP_EMAIL_LIMIT_DEFAULT);
+
     const key = `otp:email:${email.toLowerCase()}`;
     const count = await this.redis.incr(key);
     if (count === 1) {
       // First request in window — set expiry
-      await this.redis.expire(key, OTP_EMAIL_WINDOW_S);
+      await this.redis.expire(key, windowMinutes * 60);
     }
-    if (count > OTP_EMAIL_LIMIT) {
+    if (count > limit) {
       throw new HttpException(
-        { code: "OTP_EMAIL_RATE_LIMITED", message: "Too many OTP requests for this email. Try again in 10 minutes." },
+        { code: "OTP_EMAIL_RATE_LIMITED", message: `Too many OTP requests for this email. Try again in ${windowMinutes} minutes.` },
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }

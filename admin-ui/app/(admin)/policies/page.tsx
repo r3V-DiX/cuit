@@ -19,7 +19,14 @@ import { SlidersHorizontal, Save, RotateCcw } from 'lucide-react';
 const GROUPS: { label: string; keys: string[] }[] = [
   {
     label: 'Authentication',
-    keys: ['otp_request_limit', 'otp_request_window_minutes', 'otp_verify_limit', 'otp_expiry_minutes'],
+    keys: [
+      'otp_request_limit',
+      'otp_request_window_minutes',
+      'otp_verify_limit',
+      'otp_expiry_minutes',
+      'otp_email_request_limit',
+      'otp_email_request_window_minutes',
+    ],
   },
   {
     label: 'Account Lifecycle',

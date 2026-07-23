@@ -40,6 +40,20 @@ export const POLICY_DEFAULTS: readonly PolicyDefault[] = [
         description: 'OTP validity duration',
     },
     {
+        key: 'otp_email_request_limit',
+        value: '5',
+        type: 'integer',
+        unit: 'requests',
+        description: 'Max OTP requests per email per window (separate from the per-IP throttle)',
+    },
+    {
+        key: 'otp_email_request_window_minutes',
+        value: '10',
+        type: 'integer',
+        unit: 'minutes',
+        description: 'Sliding window for the per-email OTP request limit',
+    },
+    {
         key: 'account_deletion_grace_days',
         value: '30',
         type: 'integer',
