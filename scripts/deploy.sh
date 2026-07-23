@@ -176,7 +176,7 @@ do_build_env() {
     | jq -r '.[keys[0]]')
   echo "RESEND_API_KEY=${admin_resend}" >> "$ADMIN_ENV"
 
-  grep -E "^(DATABASE_URL|REDIS_HOST|REDIS_PORT|REDIS_PASSWORD|EMAIL_FROM)=" "$BACKEND_ENV" >> "$ADMIN_ENV"
+  grep -E "^(DATABASE_URL|REDIS_HOST|REDIS_PORT|REDIS_PASSWORD|EMAIL_FROM|AWS_REGION|S3_PROFILE_IMAGES|S3_RESUMES|S3_CERTIFICATIONS|S3_KYC_DOCUMENTS|S3_COMPANY_LOGOS)=" "$BACKEND_ENV" >> "$ADMIN_ENV"
 
   # Sync Docker Compose interpolation env (resolves ${REDIS_PASSWORD} in docker-compose.yml)
   local compose_env="${DEPLOY_DIR}/.env"
