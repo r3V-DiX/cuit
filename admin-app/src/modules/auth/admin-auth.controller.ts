@@ -1,4 +1,5 @@
 // admin-app/src/admin/auth/admin-auth.controller.ts
+
 // POST /admin/auth/login — @Public (throttled): no session exists yet, so it is
 // exempt from the app-wide CsrfGuard; it sets the HttpOnly session cookie plus a
 // readable csrf_token cookie that the UI echoes back as x-csrf-token on mutations.

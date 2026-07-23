@@ -1,6 +1,7 @@
 'use client';
 
 // admin-ui/app/login/page.tsx
+
 // Admin-only login page. Adapted from cykruit-ui's light-theme login.
 // NO registration, NO OAuth, NO role toggle.
 //
