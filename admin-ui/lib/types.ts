@@ -157,6 +157,52 @@ export type BillingCycle = 'MONTHLY' | 'YEARLY';
 export type PaymentOrderStatus = 'CREATED' | 'PAID' | 'FAILED' | 'EXPIRED';
 export type PaymentStatus = 'CAPTURED' | 'FAILED' | 'REFUNDED';
 
+export type DiscountTrigger = 'COUPON_CODE' | 'AUTOMATIC';
+export type DiscountType = 'PERCENTAGE' | 'FLAT';
+export type DiscountStatus = 'ACTIVE' | 'INACTIVE' | 'EXPIRED';
+export type DiscountApplicability = 'ALL_PACKAGES' | 'SPECIFIC_PACKAGES';
+
+// value arrives as a string (Prisma Decimal serialization, same as SubscriptionPackage prices)
+export interface Discount {
+  id: string;
+  name: string;
+  code?: string | null;
+  trigger: DiscountTrigger;
+  discountType: DiscountType;
+  value: string;
+  maxDiscountCap?: number | null;
+  minOrderAmountPaise?: number | null;
+  applicability: DiscountApplicability;
+  billingCycles: BillingCycle[];
+  maxTotalUses?: number | null;
+  maxUsesPerUser: number;
+  startsAt: string;
+  expiresAt?: string | null;
+  status: DiscountStatus;
+  description?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  _count?: { usages: number };
+  // detail-only
+  conditions?: Record<string, unknown> | null;
+  createdBy?: string;
+  updatedBy?: string | null;
+  packages?: { packageId: string; package: { id: string; name: string } }[];
+}
+
+export interface DiscountUsage {
+  id: string;
+  employerId: string;
+  orderId: string;
+  amountSavedPaise: number;
+  createdAt: string;
+  employer?: {
+    id: string;
+    companyName: string;
+    user?: { email: string; firstName: string; lastName: string };
+  };
+}
+
 export interface EmployerSubscription {
   id: string;
   employerId: string;

@@ -23,6 +23,8 @@ export interface ModalOptions {
   /** Custom body content — overrides description */
   content?: ReactNode;
   variant?: ModalVariant;
+  /** Panel width — 'md' (default, max-w-md) or 'lg' (max-w-2xl) for content-heavy forms */
+  size?: 'md' | 'lg';
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm?: () => void | Promise<void>;
@@ -111,7 +113,11 @@ function ModalDialog({
       />
 
       {/* panel */}
-      <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20">
+      <div
+        className={`relative w-full max-h-[85vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 ${
+          state.size === 'lg' ? 'max-w-2xl' : 'max-w-md'
+        }`}
+      >
         {/* close */}
         <button
           onClick={onClose}

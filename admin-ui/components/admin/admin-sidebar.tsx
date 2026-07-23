@@ -33,6 +33,7 @@ import {
   Download,
   Layers,
   Server,
+  Percent,
 } from 'lucide-react';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
@@ -120,6 +121,12 @@ export default function AdminSidebar() {
       href: '/subscriptions',
       icon: <CreditCard className="h-5 w-5" />,
       action: ACTIONS.SUBSCRIPTIONS.VIEW,
+    },
+    {
+      label: 'Discounts',
+      href: '/discounts',
+      icon: <Percent className="h-5 w-5" />,
+      action: ACTIONS.DISCOUNTS.VIEW,
     },
     {
       label: 'RBAC',
