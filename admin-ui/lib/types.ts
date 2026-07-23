@@ -40,6 +40,10 @@ export interface User {
   lastLoginIp?: string;
   failedLoginAttempts: number;
   lockedUntil?: string;
+  isFlagged: boolean;
+  flaggedReason?: string;
+  flaggedAt?: string;
+  flaggedBy?: string;
   createdAt: string;
   updatedAt: string;
   employer?: Employer;

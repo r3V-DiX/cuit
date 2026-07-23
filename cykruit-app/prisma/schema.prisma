@@ -285,6 +285,12 @@ model User {
     lastFailedLoginAt   DateTime?
     lastFailedLoginIp   String?
 
+    // Fraud / suspicious-account flags (TASK B13) — manual flag only, no auto-flag rules yet
+    isFlagged     Boolean   @default(false)
+    flaggedReason String?
+    flaggedAt     DateTime?
+    flaggedBy     String?   @db.Uuid // Admin.id
+
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 

@@ -45,3 +45,9 @@ export class UnsuspendUserDto {
     @MaxLength(1000)
     reason?: string;
 }
+
+export class FlagUserDto {
+    @IsString()
+    @MaxLength(1000)
+    reason: string;
+}

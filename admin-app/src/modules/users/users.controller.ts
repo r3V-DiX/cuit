@@ -20,7 +20,7 @@ import { RequirePermission } from '../../common';
 import { ACTIONS } from '../../common';
 import type { Admin } from '@prisma/client';
 import { UsersService } from './users.service';
-import { AdminUserListQueryDto, SuspendUserDto, UnsuspendUserDto } from './dto/users.dto';
+import { AdminUserListQueryDto, FlagUserDto, SuspendUserDto, UnsuspendUserDto } from './dto/users.dto';
 
 @Controller('admin/users')
 @UseGuards(AdminAuthGuard, PermissionsGuard)
@@ -87,5 +87,21 @@ export class UsersController {
     @RequirePermission(ACTIONS.USERS.UNLOCK)
     unlock(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string) {
         return this.usersService.unlock(id, admin.id);
+    }
+
+    // PATCH /admin/users/:id/flag
+    @Patch(':id/flag')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.USERS.SUSPEND)
+    flag(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string, @Body() dto: FlagUserDto) {
+        return this.usersService.flag(id, admin.id, dto);
+    }
+
+    // PATCH /admin/users/:id/unflag
+    @Patch(':id/unflag')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.USERS.SUSPEND)
+    unflag(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string) {
+        return this.usersService.unflag(id, admin.id);
     }
 }

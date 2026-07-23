@@ -14,7 +14,7 @@ import { FilterBar } from '@/components/ui';
 import { StatusBadge } from '@/components/ui';
 import { SkeletonTable } from '@/components/ui';
 import { EmptyState } from '@/components/ui';
-import { Users as UsersIcon } from 'lucide-react';
+import { Users as UsersIcon, Flag } from 'lucide-react';
 import { format } from 'date-fns';
 
 function UsersPageContent() {
@@ -120,8 +120,9 @@ function UsersPageContent() {
                   header: 'Name',
                   render: (u) => (
                     <div>
-                      <p className="font-medium text-slate-900">
+                      <p className="flex items-center gap-1.5 font-medium text-slate-900">
                         {u.firstName} {u.lastName}
+                        {u.isFlagged && <Flag className="h-3.5 w-3.5 text-red-500" />}
                       </p>
                       <p className="text-xs text-slate-500">{u.email}</p>
                     </div>

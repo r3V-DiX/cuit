@@ -2,7 +2,7 @@
 
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
-import { AdminUserListQueryDto, SuspendUserDto, UnsuspendUserDto } from './dto/users.dto';
+import { AdminUserListQueryDto, FlagUserDto, SuspendUserDto, UnsuspendUserDto } from './dto/users.dto';
 import { AdminAuditLogger } from '../../common';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { AccountStatus } from '@prisma/client';
@@ -151,6 +151,49 @@ export class UsersService {
             resource: 'User',
             resourceId: id,
             riskLevel: 'MEDIUM',
+            result: 'SUCCESS',
+        });
+
+        return updated;
+    }
+
+    async flag(id: string, adminId: string, dto: FlagUserDto) {
+        const user = await this.getById(id);
+        if (user.isFlagged) {
+            throw new BadRequestException('User is already flagged');
+        }
+
+        const updated = await this.usersRepository.flag(id, adminId, dto.reason);
+
+        this.auditLogger.log({
+            adminId,
+            action: 'users:flag',
+            module: 'users',
+            resource: 'User',
+            resourceId: id,
+            newData: { reason: dto.reason },
+            riskLevel: 'MEDIUM',
+            result: 'SUCCESS',
+        });
+
+        return updated;
+    }
+
+    async unflag(id: string, adminId: string) {
+        const user = await this.getById(id);
+        if (!user.isFlagged) {
+            throw new BadRequestException('User is not flagged');
+        }
+
+        const updated = await this.usersRepository.unflag(id);
+
+        this.auditLogger.log({
+            adminId,
+            action: 'users:unflag',
+            module: 'users',
+            resource: 'User',
+            resourceId: id,
+            riskLevel: 'LOW',
             result: 'SUCCESS',
         });
 

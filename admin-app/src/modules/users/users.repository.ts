@@ -16,6 +16,7 @@ const USER_LIST_SELECT = {
     lastLogin: true,
     createdAt: true,
     profileImage: true,
+    isFlagged: true,
 } satisfies Prisma.UserSelect;
 
 type UserListItem = Prisma.UserGetPayload<{ select: typeof USER_LIST_SELECT }>;
@@ -87,6 +88,10 @@ export class UsersRepository {
         profileImage: true,
         failedLoginAttempts: true,
         lockedUntil: true,
+        isFlagged: true,
+        flaggedReason: true,
+        flaggedAt: true,
+        flaggedBy: true,
         employer: {
             select: {
                 id: true,
@@ -134,6 +139,22 @@ export class UsersRepository {
         return this.prisma.user.update({
             where: { id },
             data: { failedLoginAttempts: 0, lockedUntil: null, lastFailedLoginAt: null },
+            select: this.detailSelect,
+        });
+    }
+
+    async flag(id: string, adminId: string, reason: string) {
+        return this.prisma.user.update({
+            where: { id },
+            data: { isFlagged: true, flaggedReason: reason, flaggedAt: new Date(), flaggedBy: adminId },
+            select: this.detailSelect,
+        });
+    }
+
+    async unflag(id: string) {
+        return this.prisma.user.update({
+            where: { id },
+            data: { isFlagged: false, flaggedReason: null, flaggedAt: null, flaggedBy: null },
             select: this.detailSelect,
         });
     }

@@ -13,14 +13,15 @@ import { StatusBadge } from '@/components/ui';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
 import { Skeleton } from '@/components/ui';
-import { ArrowLeft, User as UserIcon, ShieldAlert, Mail, Calendar, LogIn, Activity, Trash2, BadgeCheck, LockKeyholeOpen } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, ShieldAlert, Mail, Calendar, LogIn, Activity, Trash2, BadgeCheck, LockKeyholeOpen, Flag, FlagOff } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import FlagUserForm from '../_components/flag-user-form';
 
 export default function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const { openModal } = useModal();
+  const { openModal, closeModal } = useModal();
   const { toast } = useToast();
 
   const [user, setUser] = useState<User | null>(null);
@@ -115,6 +116,45 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     }
   };
 
+  const handleFlag = () => {
+    openModal({
+      title: 'Flag user',
+      content: (
+        <FlagUserForm
+          userId={id}
+          onSaved={(updated) => {
+            setUser(updated);
+            closeModal();
+            toast({ type: 'success', message: 'User flagged.' });
+          }}
+          onCancel={closeModal}
+        />
+      ),
+    });
+  };
+
+  const handleUnflag = () => {
+    if (!user) return;
+    openModal({
+      title: 'Unflag user?',
+      description: `"${user.firstName} ${user.lastName}" will no longer be marked as flagged.`,
+      variant: 'default',
+      confirmLabel: 'Unflag',
+      onConfirm: async () => {
+        setActionLoading(true);
+        try {
+          const updated = await api.patch<User>(`/api/admin/users/${id}/unflag`);
+          setUser(updated);
+          toast({ type: 'success', message: 'User unflagged.' });
+        } catch (err) {
+          toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to unflag user' });
+        } finally {
+          setActionLoading(false);
+        }
+      },
+    });
+  };
+
   if (!loading && error) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -149,6 +189,21 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
             </div>
           </div>
         ) : (
+          <>
+            {user.isFlagged && (
+              <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+                <Flag className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                <div>
+                  <p className="text-sm font-semibold text-red-700">Flagged account</p>
+                  <p className="text-sm text-red-700">{user.flaggedReason}</p>
+                  {user.flaggedAt && (
+                    <p className="mt-1 text-xs text-red-500">
+                      Flagged on {format(new Date(user.flaggedAt), 'MMM d, yyyy')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
             {/* Main Info */}
             <div className="col-span-1 space-y-6 lg:col-span-2">
@@ -200,6 +255,18 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                             icon={<LockKeyholeOpen className="h-4 w-4" />}
                           >
                             Unlock
+                          </Button>
+                        </RequirePermission>
+                      )}
+                      {user.status !== 'DELETED' && (
+                        <RequirePermission action={ACTIONS.USERS.SUSPEND}>
+                          <Button
+                            variant={user.isFlagged ? 'secondary' : 'danger'}
+                            onClick={user.isFlagged ? handleUnflag : handleFlag}
+                            loading={actionLoading}
+                            icon={user.isFlagged ? <FlagOff className="h-4 w-4" /> : <Flag className="h-4 w-4" />}
+                          >
+                            {user.isFlagged ? 'Unflag' : 'Flag'}
                           </Button>
                         </RequirePermission>
                       )}
@@ -320,6 +387,7 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
               </div>
             </div>
           </div>
+          </>
         )}
       </div>
     </RequirePermission>
