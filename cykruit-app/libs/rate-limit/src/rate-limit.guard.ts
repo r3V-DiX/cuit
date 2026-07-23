@@ -86,14 +86,14 @@ export class RateLimitGuard extends ThrottlerGuard {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Skip rate limiting for authenticated admin-app requests.
-    // APP_GUARD fires before AdminAuthGuard sets req.admin, so all admin
-    // requests share one IP bucket. Since admin_session_token is opaque
-    // (not a JWT) we can't extract a user ID here. Skip entirely — every
-    // admin route is already protected by AdminAuthGuard.
+    // Session tokens are opaque (not JWTs) so we can't extract a user ID
+    // before AuthGuard/AdminAuthGuard run. APP_GUARD fires first, meaning
+    // all authenticated SSR requests share one server IP bucket and hit 429.
+    // Skip rate limiting when any valid session cookie is present — auth guards
+    // still validate the token on every request.
     const req = context.switchToHttp().getRequest<Record<string, any>>();
     const cookies = req.cookies as Record<string, string | undefined> | undefined;
-    if (cookies?.admin_session_token) return true;
+    if (cookies?.session_token || cookies?.admin_session_token) return true;
 
     try {
       return await super.canActivate(context);
