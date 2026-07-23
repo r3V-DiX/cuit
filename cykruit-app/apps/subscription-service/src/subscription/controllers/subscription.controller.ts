@@ -9,6 +9,7 @@ import {
     HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard, CsrfGuard, CurrentUser } from '@cykruit/auth-core';
+import { SkipRateLimit } from '@cykruit/rate-limit';
 import type { User } from '@prisma/client';
 import { SubscriptionService } from '../services/subscription.service';
 
@@ -21,6 +22,7 @@ export class EmployerSubscriptionController {
 
     /** GET /subscriptions/my — employer's current plan + limits */
     @Get('my')
+    @SkipRateLimit({ global: true })
     getMySubscription(@CurrentUser() user: User) {
         return this.subscriptionService.getMySubscription(user.id);
     }

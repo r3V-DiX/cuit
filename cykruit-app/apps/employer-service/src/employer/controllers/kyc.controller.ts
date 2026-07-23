@@ -19,6 +19,7 @@ import type { User } from '@prisma/client';
 import { UserRole } from '@prisma/client';
 import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
+import { SkipRateLimit } from '@cykruit/rate-limit';
 import { KycService } from '../services/kyc.service';
 import { KycFileValidator } from '../validators/kyc-file.validator';
 
@@ -34,6 +35,7 @@ export class KycController {
     // ─── GET /employer/kyc/status ─────────────────────────────────────────────
 
     @Get('status')
+    @SkipRateLimit({ global: true })
     getStatus(@CurrentUser() user: User) {
         return this.kycService.getStatus(user.id);
     }

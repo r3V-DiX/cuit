@@ -5,6 +5,7 @@
 
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import type { Admin } from '@prisma/client';
+import { SkipRateLimit } from '@cykruit/rate-limit';
 import { AdminAuthGuard } from './admin-auth.guard';
 import { CurrentAdmin } from './current-admin.decorator';
 import { PermissionsService } from '../../common';
@@ -15,6 +16,7 @@ export class MeController {
     constructor(private readonly permissionsService: PermissionsService) {}
 
     @Get()
+    @SkipRateLimit({ global: true })
     async me(@CurrentAdmin() admin: Admin) {
         const resolved = await this.permissionsService.resolveUserPermissions(admin.id);
 
