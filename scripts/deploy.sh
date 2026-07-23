@@ -35,15 +35,23 @@ CYKRUIT_SERVICES=(ai-service auth-service user-settings-service seeker-profile-s
 # ── Helpers ────────────────────────────────────────────────────────────────────
 pull_with_fallback() {
   local repo="$1" service="$2" env="$3" sha="$4"
-  local sha_tag="${service}-${env}-${sha}"
-  local latest_tag="${service}-${env}-latest"
+  local sha_tag latest_tag label
+  if [ -n "$service" ]; then
+    sha_tag="${service}-${env}-${sha}"
+    latest_tag="${service}-${env}-latest"
+    label="$service"
+  else
+    sha_tag="${env}-${sha}"
+    latest_tag="${env}-latest"
+    label="$repo"
+  fi
   if [ "$sha" = "latest" ]; then
-    info "  ${service}: ${latest_tag}"
+    info "  ${label}: ${latest_tag}"
     docker pull "$ECR_REGISTRY/${repo}:${latest_tag}"
   elif docker pull "$ECR_REGISTRY/${repo}:${sha_tag}" > /dev/null 2>&1; then
-    info "  ${service}: ${sha_tag}"
+    info "  ${label}: ${sha_tag}"
   else
-    warn "  ${service}: ${sha_tag} not in ECR — falling back to ${latest_tag}"
+    warn "  ${label}: ${sha_tag} not in ECR — falling back to ${latest_tag}"
     docker pull "$ECR_REGISTRY/${repo}:${latest_tag}"
     docker tag "$ECR_REGISTRY/${repo}:${latest_tag}" "$ECR_REGISTRY/${repo}:${sha_tag}"
   fi
@@ -211,7 +219,7 @@ do_cykruit_app() {
 
 do_admin_app() {
   step "Pulling admin-app ($TAG)..."
-  pull_with_fallback cykruit-admin-app admin-app "$ENV" "$TAG"
+  pull_with_fallback cykruit-admin-app "" "$ENV" "$TAG"
   export ADMIN_APP_TAG="$TAG"
   docker compose up -d admin-app
   wait_healthy admin-app
@@ -219,7 +227,7 @@ do_admin_app() {
 
 do_cykruit_ui() {
   step "Pulling cykruit-ui ($TAG)..."
-  pull_with_fallback cykruit-ui cykruit-ui "$ENV" "$TAG"
+  pull_with_fallback cykruit-ui "" "$ENV" "$TAG"
   export CYKRUIT_UI_TAG="$TAG"
   docker compose up -d cykruit-ui
   wait_healthy cykruit-ui
@@ -227,7 +235,7 @@ do_cykruit_ui() {
 
 do_admin_ui() {
   step "Pulling admin-ui ($TAG)..."
-  pull_with_fallback cykruit-admin-ui admin-ui "$ENV" "$TAG"
+  pull_with_fallback cykruit-admin-ui "" "$ENV" "$TAG"
   export ADMIN_UI_TAG="$TAG"
   docker compose up -d admin-ui
   wait_healthy admin-ui
