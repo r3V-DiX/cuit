@@ -8,13 +8,20 @@ import type { CookieOptions } from "express";
 export class CookieConfig {
   // ── Session cookie (httpOnly — JS cannot read, CSRF-safe via double-submit) ──
 
+  private static getSameSite(): "lax" | "strict" | "none" {
+    const raw = (process.env.COOKIE_SAME_SITE || "lax").toLowerCase();
+    if (raw === "none") return "none";
+    if (raw === "strict") return "strict";
+    return "lax";
+  }
+
   static getSessionCookieOptions(rememberMe: boolean = false): CookieOptions {
     const isSecure = process.env.COOKIE_SECURE !== "false";
 
     return {
       httpOnly: true,
       secure: isSecure,
-      sameSite: "strict",
+      sameSite: this.getSameSite(),
       maxAge: rememberMe
         ? 30 * 24 * 60 * 60 * 1000 // 30 days
         : 24 * 60 * 60 * 1000, // 24 hours
@@ -29,7 +36,7 @@ export class CookieConfig {
     return {
       httpOnly: true,
       secure: isSecure,
-      sameSite: "strict",
+      sameSite: this.getSameSite(),
       path: "/",
       domain: process.env.COOKIE_DOMAIN || undefined,
     };
@@ -46,7 +53,7 @@ export class CookieConfig {
     return {
       httpOnly: false, // ← intentionally readable by JS for double-submit CSRF pattern
       secure: isSecure,
-      sameSite: "strict",
+      sameSite: this.getSameSite(),
       maxAge: 24 * 60 * 60 * 1000, // 24 hours, matches session
       path: "/",
       domain: process.env.COOKIE_DOMAIN || undefined,
@@ -59,7 +66,7 @@ export class CookieConfig {
     return {
       httpOnly: false,
       secure: isSecure,
-      sameSite: "strict",
+      sameSite: this.getSameSite(),
       path: "/",
       domain: process.env.COOKIE_DOMAIN || undefined,
     };
@@ -70,7 +77,7 @@ export class CookieConfig {
     return {
       httpOnly: false, // readable by proxy — not sensitive, just EMPLOYER|SEEKER string
       secure: isSecure,
-      sameSite: "strict",
+      sameSite: this.getSameSite(),
       maxAge: rememberMe
         ? 30 * 24 * 60 * 60 * 1000
         : 24 * 60 * 60 * 1000,
@@ -84,7 +91,7 @@ export class CookieConfig {
     return {
       httpOnly: false,
       secure: isSecure,
-      sameSite: "strict",
+      sameSite: this.getSameSite(),
       path: "/",
       domain: process.env.COOKIE_DOMAIN || undefined,
     };

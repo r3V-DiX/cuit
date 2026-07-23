@@ -40,6 +40,7 @@ function getCsrfToken(): string | undefined {
 async function request<T>(
   url: string,
   init: RequestInit = {},
+  isRetry: boolean = false,
 ): Promise<T> {
   const csrfToken =
     init.method && MUTATION_METHODS.has(init.method) ? getCsrfToken() : undefined;
@@ -74,6 +75,15 @@ async function request<T>(
       err?.message ??
       (body as EnvelopeError).message ??
       'An unexpected error occurred';
+
+    // Auto-refresh CSRF token once on 403 / CSRF errors and retry mutation
+    if (!isRetry && init.method && MUTATION_METHODS.has(init.method) && (res.status === 403 || msg.toLowerCase().includes('csrf'))) {
+      try {
+        await fetch('/api/admin/auth/me', { method: 'GET' });
+        return await request<T>(url, init, true);
+      } catch {}
+    }
+
     throw new ApiError(msg, res.status, err);
   }
 
