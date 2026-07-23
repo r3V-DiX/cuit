@@ -19,6 +19,7 @@ import { AccountStatus, UserRole, EmployerMemberRole } from "@prisma/client";
 import { formatUserResponse } from "../utils/auth.utils";
 import { isBlockedEmailDomain, getEmailDomain } from "@cykruit/common";
 import { getPolicyInt } from "@cykruit/policy-config";
+import { isBlacklisted } from "@cykruit/blacklist";
 import type { Request } from "express";
 
 const OTP_MAX_ATTEMPTS = 5;
@@ -70,6 +71,14 @@ export class OtpService {
     const reqCtx = { ip, userAgent: ua };
 
     await this.enforceEmailRateLimit(email);
+
+    if (await isBlacklisted(email)) {
+      // Deliberately generic — never reveal that this email/domain is blocked.
+      throw new BadRequestException({
+        code: "OTP_REQUEST_FAILED",
+        message: "Unable to process this request. Please contact support if you believe this is an error.",
+      });
+    }
 
     if (role !== undefined && role !== UserRole.SEEKER && role !== UserRole.EMPLOYER) {
       throw new BadRequestException({

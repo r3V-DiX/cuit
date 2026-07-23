@@ -53,6 +53,9 @@
       "@cykruit/policy-config": [
         "libs/policy-config/src/index.ts"
       ],
+      "@cykruit/blacklist": [
+        "libs/blacklist/src/index.ts"
+      ],
       "@cykruit/prisma": [
         "libs/prisma/src/index.ts"
       ],

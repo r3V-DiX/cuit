@@ -82,6 +82,15 @@
         "tsConfigPath": "tsconfig.json"
       }
     },
+    "blacklist": {
+      "type": "library",
+      "root": "libs/blacklist",
+      "entryFile": "index",
+      "sourceRoot": "libs/blacklist/src",
+      "compilerOptions": {
+        "tsConfigPath": "tsconfig.json"
+      }
+    },
     "public-service": {
       "type": "application",
       "root": "apps/public-service",

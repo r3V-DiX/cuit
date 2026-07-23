@@ -1817,6 +1817,7 @@ model Admin {
     permissionOverrides AdminPermissionOverride[]
     sentInvites         AdminInvite[]              @relation("AdminInviter")
     announcements       Announcement[]
+    blacklistEntries    Blacklist[]
 
     @@index([email])
     @@map("admins")
@@ -2549,6 +2550,24 @@ enum FlagStatus {
     UNDER_REVIEW
     RESOLVED_REMOVED
     RESOLVED_DISMISSED
+}
+
+enum BlacklistType {
+    EMAIL
+    DOMAIN
+}
+
+model Blacklist {
+    id        String        @id @default(uuid()) @db.Uuid
+    value     String        @unique
+    type      BlacklistType
+    reason    String?
+    addedBy   String        @db.Uuid
+    adder     Admin         @relation(fields: [addedBy], references: [id])
+    createdAt DateTime      @default(now())
+
+    @@index([type, value])
+    @@map("blacklist")
 }
 
 model ContentReport {

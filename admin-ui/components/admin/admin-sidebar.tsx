@@ -28,6 +28,7 @@ import {
   UserCog,
   SlidersHorizontal,
   Megaphone,
+  ShieldBan,
 } from 'lucide-react';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
@@ -169,6 +170,12 @@ export default function AdminSidebar() {
       href: '/announcements',
       icon: <Megaphone className="h-5 w-5" />,
       action: ACTIONS.ANNOUNCEMENTS.MANAGE,
+    },
+    {
+      label: 'Blacklist',
+      href: '/blacklist',
+      icon: <ShieldBan className="h-5 w-5" />,
+      action: ACTIONS.BLACKLIST.MANAGE,
     },
   ];
 

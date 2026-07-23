@@ -22,6 +22,7 @@ import { SettingsModule } from './settings';
 import { ReportsModule } from './reports';
 import { PoliciesModule } from './policies';
 import { AnnouncementsModule } from './announcements';
+import { BlacklistModule } from './blacklist';
 
 @Module({
     imports: [
@@ -42,6 +43,7 @@ import { AnnouncementsModule } from './announcements';
         ReportsModule,
         PoliciesModule,
         AnnouncementsModule,
+        BlacklistModule,
     ],
 })
 export class AdminModule {}

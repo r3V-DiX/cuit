@@ -355,6 +355,17 @@ export interface PolicyConfig {
   createdAt: string;
 }
 
+export type BlacklistType = 'EMAIL' | 'DOMAIN';
+
+export interface BlacklistEntry {
+  id: string;
+  value: string;
+  type: BlacklistType;
+  reason?: string;
+  addedBy: string;
+  createdAt: string;
+}
+
 export type AnnouncementTarget = 'ALL' | 'SEEKER' | 'EMPLOYER';
 
 export interface Announcement {
