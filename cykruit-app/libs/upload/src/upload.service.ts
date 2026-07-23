@@ -225,34 +225,43 @@ export class UploadService {
 
   extractKeyFromUrlSafe(fileUrl: string): string | null {
     try {
-      return new URL(fileUrl).pathname.substring(1);
+      const url = new URL(fileUrl);
+      const hostParts = url.hostname.split(".");
+      if (hostParts[0] === "s3" || hostParts[0].startsWith("s3-")) {
+        const pathParts = url.pathname.split("/").filter(Boolean);
+        pathParts.shift();
+        return decodeURIComponent(pathParts.join("/"));
+      }
+      return decodeURIComponent(url.pathname.substring(1));
     } catch {
       return null;
     }
   }
 
   extractKeyFromUrl(fileUrl: string): string {
-    try {
-      return new URL(fileUrl).pathname.substring(1);
-    } catch {
-      throw new BadRequestException("Invalid file URL");
-    }
+    const key = this.extractKeyFromUrlSafe(fileUrl);
+    if (!key) throw new BadRequestException("Invalid file URL");
+    return key;
   }
 
   private extractBucketFromUrlSafe(fileUrl: string): string | null {
     try {
-      return new URL(fileUrl).hostname.split(".")[0];
+      const url = new URL(fileUrl);
+      const hostParts = url.hostname.split(".");
+      if (hostParts[0] === "s3" || hostParts[0].startsWith("s3-")) {
+        const pathParts = url.pathname.split("/").filter(Boolean);
+        return pathParts[0] || null;
+      }
+      return hostParts[0];
     } catch {
       return null;
     }
   }
 
   extractBucketFromUrl(fileUrl: string): string {
-    try {
-      return new URL(fileUrl).hostname.split(".")[0];
-    } catch {
-      throw new BadRequestException("Invalid file URL");
-    }
+    const bucket = this.extractBucketFromUrlSafe(fileUrl);
+    if (!bucket) throw new BadRequestException("Invalid file URL");
+    return bucket;
   }
 
   private getBucketTypeFromUrlSafe(fileUrl: string): BucketType | null {
