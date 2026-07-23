@@ -47,6 +47,7 @@ async function request<T>(
 
   const res = await fetch(url, {
     ...init,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
@@ -79,7 +80,7 @@ async function request<T>(
     // Auto-refresh CSRF token once on 403 / CSRF errors and retry mutation
     if (!isRetry && init.method && MUTATION_METHODS.has(init.method) && (res.status === 403 || msg.toLowerCase().includes('csrf'))) {
       try {
-        await fetch('/api/admin/auth/me', { method: 'GET' });
+        await fetch('/api/admin/me', { method: 'GET', credentials: 'include' });
         return await request<T>(url, init, true);
       } catch {}
     }
