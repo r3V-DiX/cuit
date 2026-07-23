@@ -528,6 +528,21 @@ export interface ApplicationAnalytics {
   conversionRate: number;
 }
 
+export type ServiceStatus = 'up' | 'down' | 'degraded';
+
+export interface ServiceHealth {
+  name: string;
+  url?: string;
+  status: ServiceStatus;
+  latencyMs: number | null;
+}
+
+export interface SystemHealth {
+  services: ServiceHealth[];
+  redis: { status: 'up' | 'down' };
+  db: { status: 'up' | 'down' };
+}
+
 export interface JobDomain {
   id: string;
   name: string;

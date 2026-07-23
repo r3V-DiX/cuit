@@ -32,6 +32,7 @@ import {
   SearchCode,
   Download,
   Layers,
+  Server,
 } from 'lucide-react';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
@@ -197,6 +198,12 @@ export default function AdminSidebar() {
       href: '/domains',
       icon: <Layers className="h-5 w-5" />,
       action: ACTIONS.DOMAINS.MANAGE,
+    },
+    {
+      label: 'System Health',
+      href: '/system',
+      icon: <Server className="h-5 w-5" />,
+      action: ACTIONS.DASHBOARD.VIEW,
     },
   ];
 
