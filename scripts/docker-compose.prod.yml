@@ -1,0 +1,204 @@
+# /opt/cykruit-v2/docker-compose.yml
+# Tracked mirror of the live prod/staging box's compose file — keep in sync per
+# docs/SESSION_MEMORY.md's 2026-07-20 entry (box-only edits to deploy configs
+# must be mirrored into this repo in the same session they're made).
+# This copy is NOT deployed automatically — apply changes to the box manually
+# (SSM/SSH) and update this file to match, or vice versa.
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: cykruit-v2-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  ai-service:
+    image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-app:ai-service-${ENV}-${CYKRUIT_APP_TAG:-latest}
+    restart: unless-stopped
+    ports: ["3005:3005"]
+    env_file: /opt/cykruit-v2/.env.${ENV}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3005/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+  auth-service:
+    image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-app:auth-service-${ENV}-${CYKRUIT_APP_TAG:-latest}
+    restart: unless-stopped
+    ports: ["4001:4001"]
+    env_file: /opt/cykruit-v2/.env.${ENV}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4001/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+  user-settings-service:
+    image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-app:user-settings-service-${ENV}-${CYKRUIT_APP_TAG:-latest}
+    restart: unless-stopped
+    ports: ["4002:4002"]
+    env_file: /opt/cykruit-v2/.env.${ENV}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4002/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+  seeker-profile-service:
+    image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-app:seeker-profile-service-${ENV}-${CYKRUIT_APP_TAG:-latest}
+    restart: unless-stopped
+    ports: ["4003:4003"]
+    env_file: /opt/cykruit-v2/.env.${ENV}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4003/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+  employer-service:
+    image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-app:employer-service-${ENV}-${CYKRUIT_APP_TAG:-latest}
+    restart: unless-stopped
+    ports: ["4004:4004"]
+    env_file: /opt/cykruit-v2/.env.${ENV}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4004/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+  seeker-service:
+    image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-app:seeker-service-${ENV}-${CYKRUIT_APP_TAG:-latest}
+    restart: unless-stopped
+    ports: ["4005:4005"]
+    env_file: /opt/cykruit-v2/.env.${ENV}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4005/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+  public-service:
+    image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-app:public-service-${ENV}-${CYKRUIT_APP_TAG:-latest}
+    restart: unless-stopped
+    ports: ["4006:4006"]
+    env_file: /opt/cykruit-v2/.env.${ENV}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4006/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+  notification-service:
+    image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-app:notification-service-${ENV}-${CYKRUIT_APP_TAG:-latest}
+    restart: unless-stopped
+    ports: ["4007:4007"]
+    env_file: /opt/cykruit-v2/.env.${ENV}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4007/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+  subscription-service:
+    image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-app:subscription-service-${ENV}-${CYKRUIT_APP_TAG:-latest}
+    restart: unless-stopped
+    ports: ["4008:4008"]
+    env_file: /opt/cykruit-v2/.env.${ENV}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4008/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+  gateway:
+    image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-app:gateway-${ENV}-${CYKRUIT_APP_TAG:-latest}
+    restart: unless-stopped
+    ports: ["5000:5000"]
+    env_file: /opt/cykruit-v2/.env.${ENV}
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:4001
+      SETTINGS_SERVICE_URL: http://user-settings-service:4002
+      SEEKER_PROFILE_SERVICE_URL: http://seeker-profile-service:4003
+      EMPLOYER_SERVICE_URL: http://employer-service:4004
+      SEEKER_SERVICE_URL: http://seeker-service:4005
+      PUBLIC_SERVICE_URL: http://public-service:4006
+      NOTIFICATION_SERVICE_URL: http://notification-service:4007
+      SUBSCRIPTION_SERVICE_URL: http://subscription-service:4008
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5000/gateway/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on: [auth-service, user-settings-service, seeker-profile-service, employer-service, seeker-service, public-service, notification-service, subscription-service]
+  admin-app:
+    image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-admin-app:${ENV}-${ADMIN_APP_TAG:-latest}
+    restart: unless-stopped
+    ports: ["4010:4010"]
+    env_file: /opt/cykruit-v2/.env.${ENV}.admin
+    environment:
+      # TASK B14 — System Health panel needs all 9, not just SUBSCRIPTION.
+      AI_SERVICE_URL: http://ai-service:3005
+      AUTH_SERVICE_URL: http://auth-service:4001
+      SETTINGS_SERVICE_URL: http://user-settings-service:4002
+      SEEKER_PROFILE_SERVICE_URL: http://seeker-profile-service:4003
+      EMPLOYER_SERVICE_URL: http://employer-service:4004
+      SEEKER_SERVICE_URL: http://seeker-service:4005
+      PUBLIC_SERVICE_URL: http://public-service:4006
+      NOTIFICATION_SERVICE_URL: http://notification-service:4007
+      SUBSCRIPTION_SERVICE_URL: http://subscription-service:4008
+      GATEWAY_URL: http://gateway:5000
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4010/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      redis:
+        condition: service_healthy
+  cykruit-ui:
+    image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-ui:${ENV}-${CYKRUIT_UI_TAG:-latest}
+    restart: unless-stopped
+    ports: ["3000:3000"]
+  admin-ui:
+    image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-admin-ui:${ENV}-${ADMIN_UI_TAG:-latest}
+    restart: unless-stopped
+    ports: ["3100:3100"]
+
+volumes:
+  redis_data:
+    driver: local
