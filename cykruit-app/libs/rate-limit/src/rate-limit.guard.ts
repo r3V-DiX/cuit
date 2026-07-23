@@ -41,8 +41,9 @@ export class RateLimitGuard extends ThrottlerGuard {
   }
 
   protected async getTracker(req: Record<string, any>): Promise<string> {
-    if (req.user?.id) {
-      return `u:${req.user.id}`;
+    const userId = req.user?.id ?? req.admin?.id;
+    if (userId) {
+      return `u:${userId}`;
     }
     const ip = this.extractRealIp(req);
     return `ip:${ip}`;
