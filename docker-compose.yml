@@ -90,6 +90,32 @@ services:
       redis:
         condition: service_healthy
 
+  ai-service:
+    build:
+      context: ./cykruit-app
+      dockerfile: apps/ai-service/Dockerfile
+    container_name: cykruit_ai
+    restart: unless-stopped
+    env_file: ./cykruit-app/.env
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/cykruit_db
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    ports:
+      - '3005:3005'
+    healthcheck:
+      test: ['CMD-SHELL', 'bash -c "cat < /dev/null > /dev/tcp/localhost/3005"']
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   seeker-profile-service:
     build:
       context: ./cykruit-app
@@ -103,6 +129,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: '6379'
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      AI_SERVICE_URL: http://ai-service:3005
     ports:
       - '4003:4003'
     healthcheck:
@@ -130,6 +157,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: '6379'
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      AI_SERVICE_URL: http://ai-service:3005
     ports:
       - '4004:4004'
     healthcheck:
@@ -157,6 +185,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: '6379'
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      AI_SERVICE_URL: http://ai-service:3005
     ports:
       - '4005:4005'
     healthcheck:
@@ -184,6 +213,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: '6379'
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      AI_SERVICE_URL: http://ai-service:3005
     ports:
       - '4006:4006'
     healthcheck:
@@ -311,6 +341,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: '6379'
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      AI_SERVICE_URL: http://ai-service:3005
       AUTH_SERVICE_URL: http://auth-service:4001
       SETTINGS_SERVICE_URL: http://user-settings-service:4002
       SEEKER_PROFILE_SERVICE_URL: http://seeker-profile-service:4003
