@@ -60,7 +60,7 @@ export class ProfileService {
         linkedin: transformed.linkedin,
         github: transformed.github,
         portfolio: transformed.portfolio,
-        twitter: transformed.twitter,
+        twitter: (transformed as any).twitter,
         availability: transformed.availability,
         professionalEmail: transformed.professionalEmail,
       },

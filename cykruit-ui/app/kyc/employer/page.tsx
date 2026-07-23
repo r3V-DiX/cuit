@@ -10,6 +10,7 @@ import { useModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { useRouter } from "next/navigation";
 import { apiFetch, authHeaders, getCsrf, ApiError } from "@/lib/api";
+import { LocationSelect, LocationValue } from "@/components/ui/LocationSelect";
 
 type Step = 1 | 2 | 3;
 
@@ -78,8 +79,7 @@ export default function EmployerKYCPage() {
         if (vs === "PENDING" || vs === "UNDER_REVIEW") {
           setStep(3);
         } else if (data?.companyId) {
-          // Company already set up — fetch real data to populate step-1 fields
-          // so the user sees their saved details if they navigate back.
+          // Company already created — check if Step 1 fields are complete
           try {
             const { data: co } = await apiFetch<{ companyName?: string; location?: string; companyType?: string; industry?: string; companySize?: string; companyWebsite?: string; contactEmail?: string }>("/api/employer/company/me");
             if (co) {
@@ -90,9 +90,19 @@ export default function EmployerKYCPage() {
               setCompanySize(co.companySize ?? "");
               setWebsite(co.companyWebsite ?? "");
               setContactEmail(co.contactEmail ?? "");
+
+              const isComplete = !!(co.companyName?.trim() && co.location?.trim() && co.companyType && co.industry && co.companySize);
+              if (isComplete) {
+                setStep(2);
+              } else {
+                setStep(1);
+              }
+            } else {
+              setStep(1);
             }
-          } catch {}
-          setStep(2);
+          } catch {
+            setStep(1);
+          }
         }
       } catch (err: any) {
         if (err?.code === "COMPANY_NOT_FOUND") {
@@ -139,6 +149,25 @@ export default function EmployerKYCPage() {
   // Step 1 state — lazy init from draft (runs once on mount, not every render)
   const [legalName,    setLegalName]    = useState(() => { const d = loadDraft(); return d.legalName    ?? ""; });
   const [location,     setLocation]     = useState(() => { const d = loadDraft(); return d.location     ?? ""; });
+  const [locValue,     setLocValue]     = useState<LocationValue>(() => {
+    const d = loadDraft();
+    if (d.locCity || d.locCountry) {
+      return { city: d.locCity || "", state: d.locState || "", country: d.locCountry || "" };
+    }
+    const parts = (d.location || "").split(",").map((s: string) => s.trim());
+    if (parts.length >= 3) return { city: parts[0], state: parts[1], country: parts[2] };
+    if (parts.length === 2) return { city: parts[0], state: "", country: parts[1] };
+    return { city: d.location || "", state: "", country: "" };
+  });
+
+  function updateLocationValue(val: LocationValue) {
+    setLocValue(val);
+    const parts = [val.city, val.state, val.country].filter(Boolean);
+    const locStr = parts.join(", ");
+    setLocation(locStr);
+    saveDraft({ location: locStr, locCity: val.city, locState: val.state || "", locCountry: val.country });
+  }
+
   const [companyType,  setCompanyType]  = useState(() => { const d = loadDraft(); return d.companyType  ?? ""; });
   const [industry,     setIndustry]     = useState(() => { const d = loadDraft(); return d.industry     ?? ""; });
   const [companySize,  setCompanySize]  = useState(() => { const d = loadDraft(); return d.companySize  ?? ""; });
@@ -308,14 +337,18 @@ export default function EmployerKYCPage() {
                     placeholder="e.g. CyberShield Technologies Pvt. Ltd." className={inputCls} />
                 </div>
 
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
+                    Headquarters Location <span className="text-rose-400">*</span>
+                  </label>
+                  <LocationSelect
+                    value={locValue}
+                    onChange={updateLocationValue}
+                    required
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
-                      Headquarters <span className="text-rose-400">*</span>
-                    </label>
-                    <input value={location} onChange={(e) => { setLocation(e.target.value); saveDraft({ location: e.target.value }); }}
-                      placeholder="e.g. Mumbai, India" className={inputCls} />
-                  </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5">
                       Company Type <span className="text-rose-400">*</span>

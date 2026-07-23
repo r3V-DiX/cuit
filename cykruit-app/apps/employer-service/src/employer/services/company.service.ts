@@ -42,9 +42,10 @@ export class CompanyService {
     }
 
     async setupCompany(userId: string, dto: CreateCompanyDto, ipAddress?: string, userAgent?: string) {
-        const existing = await this.companyRepository.findByMemberId(userId);
-        if (existing) {
-            throw new ConflictException(CompanyErrorCodes.INVALID_COMPANY_DATA);
+        let existingCompany = await this.companyRepository.findByMemberId(userId);
+        if (!existingCompany) {
+            const stub = await this.prisma.employer.findFirst({ where: { userId } });
+            if (stub) existingCompany = await this.companyRepository.findById(stub.id);
         }
 
         const slug = await this.generateUniqueSlug(dto.companyName);
@@ -60,14 +61,26 @@ export class CompanyService {
             ...(dto.contactEmail ? { contactEmail: dto.contactEmail } : {}),
         };
 
-        // OTP stub creates an Employer row with userId but no EmployerMember.
-        // If that stub exists, update it with real data instead of creating a duplicate.
-        const stub = await this.prisma.employer.findFirst({ where: { userId } });
-        const employer = stub
-            ? await this.companyRepository.update(stub.id, companyData)
-            : await this.companyRepository.create(userId, companyData);
+        const companyId = existingCompany
+            ? (await this.companyRepository.update(existingCompany.id, companyData)).id
+            : (await this.companyRepository.create(userId, companyData)).id;
 
-        await this.companyRepository.addMember(employer.id, userId, EmployerMemberRole.OWNER);
+        const member = await this.prisma.employerMember.findUnique({
+            where: {
+                employerId_userId: {
+                    employerId: companyId,
+                    userId,
+                },
+            },
+        });
+        if (!member) {
+            await this.companyRepository.addMember(companyId, userId, EmployerMemberRole.OWNER);
+        }
+
+        const employer = await this.companyRepository.findById(companyId);
+        if (!employer) {
+            throw new NotFoundException('Company not found after setup');
+        }
 
         const completion = await this.completionService.calculateCompletion(employer.id);
         await this.companyRepository.updateCompletion(employer.id, completion.percentage);
