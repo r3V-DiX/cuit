@@ -355,6 +355,18 @@ export interface PolicyConfig {
   createdAt: string;
 }
 
+export type SuggestionType = 'ROLE' | 'SKILL' | 'COMPANY';
+
+export interface SearchSuggestion {
+  id: string;
+  text: string;
+  type: SuggestionType;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type BlacklistType = 'EMAIL' | 'DOMAIN';
 
 export interface BlacklistEntry {

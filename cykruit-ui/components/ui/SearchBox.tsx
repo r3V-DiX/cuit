@@ -3,16 +3,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Search, ArrowRight, X } from "lucide-react";
-import { jobs } from "@/lib/jobs-data";
 
-// ── Suggestion index ───────────────────────────────────────────────────────
+// ── Suggestion index (admin-managed, docs/ADMIN_TASKS.md TASK B6) ──────────
 type Suggestion = { text: string; type: "Role" | "Company" | "Skill" };
 
-const ALL_SUGGESTIONS: Suggestion[] = [
-  ...[...new Set(jobs.map((j) => j.title))].map((t)  => ({ text: t, type: "Role"    as const })),
-  ...[...new Set(jobs.map((j) => j.company))].map((c) => ({ text: c, type: "Company" as const })),
-  ...[...new Set(jobs.flatMap((j) => j.tags))].map((s) => ({ text: s, type: "Skill"  as const })),
-];
+const API_TYPE_TO_LABEL: Record<string, Suggestion["type"]> = {
+  ROLE: "Role",
+  COMPANY: "Company",
+  SKILL: "Skill",
+};
 
 const TYPE_STYLE: Record<Suggestion["type"], string> = {
   Role:    "bg-blue-50 text-blue-600 border-blue-200",
@@ -20,10 +19,17 @@ const TYPE_STYLE: Record<Suggestion["type"], string> = {
   Skill:   "bg-slate-100 text-slate-500 border-slate-200",
 };
 
-function getSuggestions(query: string): Suggestion[] {
+async function fetchSuggestions(query: string): Promise<Suggestion[]> {
   if (!query.trim()) return [];
-  const q = query.toLowerCase();
-  return ALL_SUGGESTIONS.filter((s) => s.text.toLowerCase().includes(q)).slice(0, 6);
+  try {
+    const res = await fetch(`/api/public/suggestions?q=${encodeURIComponent(query)}&limit=6`);
+    if (!res.ok) return [];
+    const body = await res.json();
+    const items: { text: string; type: string }[] = body?.data ?? body ?? [];
+    return items.map((s) => ({ text: s.text, type: API_TYPE_TO_LABEL[s.type] ?? "Role" }));
+  } catch {
+    return [];
+  }
 }
 
 // ── Portal dropdown ────────────────────────────────────────────────────────
@@ -84,11 +90,27 @@ export default function SearchBox({
   const [value, setValue]   = useState(defaultValue);
   const [open, setOpen]     = useState(false);
   const [active, setActive] = useState(-1);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const boxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setValue(defaultValue); }, [defaultValue]);
 
-  const suggestions = getSuggestions(value);
+  // Debounced (~300ms) fetch against the admin-managed suggestion list.
+  useEffect(() => {
+    if (!value.trim()) {
+      setSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      const results = await fetchSuggestions(value);
+      if (!cancelled) setSuggestions(results);
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [value]);
 
   const commit = useCallback((v: string) => {
     setValue(v);

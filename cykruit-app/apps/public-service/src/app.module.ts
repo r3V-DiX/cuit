@@ -22,6 +22,7 @@ import { JobsModule } from "./jobs/jobs.module";
 import { ProfilesModule } from "./profiles/profiles.module";
 import { TestimonialsModule } from "./testimonials/testimonials.module";
 import { AnnouncementsModule } from "./announcements/announcements.module";
+import { SuggestionsModule } from "./suggestions/suggestions.module";
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { AnnouncementsModule } from "./announcements/announcements.module";
     ProfilesModule,
     TestimonialsModule,
     AnnouncementsModule,
+    SuggestionsModule,
   ],
 })
 export class AppModule implements NestModule {

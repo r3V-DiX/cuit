@@ -68,6 +68,10 @@ export const ACTIONS = {
         VIEW: 'blacklist:view',
         MANAGE: 'blacklist:manage',
     },
+    SUGGESTIONS: {
+        VIEW: 'suggestions:view',
+        MANAGE: 'suggestions:manage',
+    },
 } as const;
 
 type ValuesOf<T> = T extends Record<string, infer V>
@@ -115,6 +119,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Action, string> = {
     'announcements:manage': 'Create/edit/delete and activate/deactivate announcements',
     'blacklist:view': 'List and view blocked emails/domains',
     'blacklist:manage': 'Add and remove blocked emails/domains',
+    'suggestions:view': 'List and view search-box autocomplete suggestions',
+    'suggestions:manage': 'Create/edit/delete and activate/deactivate search suggestions',
 };
 
 /** `module:action` → { module, action } for the Permission table's split columns. */

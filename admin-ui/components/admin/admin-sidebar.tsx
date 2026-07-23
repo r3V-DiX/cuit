@@ -29,6 +29,7 @@ import {
   SlidersHorizontal,
   Megaphone,
   ShieldBan,
+  SearchCode,
 } from 'lucide-react';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
@@ -176,6 +177,12 @@ export default function AdminSidebar() {
       href: '/blacklist',
       icon: <ShieldBan className="h-5 w-5" />,
       action: ACTIONS.BLACKLIST.MANAGE,
+    },
+    {
+      label: 'Suggestions',
+      href: '/suggestions',
+      icon: <SearchCode className="h-5 w-5" />,
+      action: ACTIONS.SUGGESTIONS.MANAGE,
     },
   ];
 
