@@ -41,10 +41,32 @@ export class RateLimitGuard extends ThrottlerGuard {
   }
 
   protected async getTracker(req: Record<string, any>): Promise<string> {
+    // req.user is set by AuthGuard (cykruit-app); req.admin by AdminAuthGuard (admin-app).
+    // Both run AFTER APP_GUARD, so check cookies directly as fallback.
     const userId = req.user?.id ?? req.admin?.id;
-    if (userId) {
-      return `u:${userId}`;
+    if (userId) return `u:${userId}`;
+
+    // Decode (not verify) any session JWT cookie to get a stable per-user key.
+    // Covers admin-app where APP_GUARD fires before AdminAuthGuard sets req.admin.
+    const sessionToken =
+      req.cookies?.session_token ??
+      req.cookies?.admin_session_token;
+    if (sessionToken) {
+      try {
+        const parts = (sessionToken as string).split(".");
+        if (parts.length === 3) {
+          const raw = Buffer.from(parts[1], "base64url").toString("utf8");
+          const payload = JSON.parse(raw) as Record<string, unknown>;
+          const sub = payload.sub ?? payload.id;
+          if (typeof sub === "string" && sub.length > 0) {
+            return `u:${sub}`;
+          }
+        }
+      } catch {
+        // malformed token — fall through to IP
+      }
     }
+
     const ip = this.extractRealIp(req);
     return `ip:${ip}`;
   }
