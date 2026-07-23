@@ -92,7 +92,10 @@ export class SharedSessionValidator implements ISessionValidator {
 
     // Device fingerprint — blocks only on low-confidence mismatch (a
     // medium-confidence mismatch, e.g. a minor browser update, passes through).
-    if (session.deviceFingerprint && req) {
+    // Skip entirely for server-to-server requests (no accept-language header) —
+    // SSR layouts call /auth/me directly and don't carry browser fingerprint headers.
+    const hasAcceptLanguage = !!req?.headers?.["accept-language"];
+    if (session.deviceFingerprint && req && hasAcceptLanguage) {
       const currentFp = generateDeviceFingerprint(req);
       const comparison = compareFingerprints(session.deviceFingerprint, currentFp.hash);
 
