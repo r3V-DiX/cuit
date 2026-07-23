@@ -705,6 +705,7 @@ model JobSeekerProfile {
     linkedin  String?
     github    String?
     portfolio String?
+    twitter   String?
     professionalEmail String?
 
     availability String @default("Open to offers")
