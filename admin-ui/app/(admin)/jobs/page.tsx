@@ -16,6 +16,7 @@ import { SkeletonTable } from '@/components/ui';
 import { EmptyState } from '@/components/ui';
 import { Briefcase } from 'lucide-react';
 import { format } from 'date-fns';
+import { ExportButton } from '@/components/admin';
 
 function JobsPageContent() {
   const searchParams = useSearchParams();
@@ -63,9 +64,15 @@ function JobsPageContent() {
   return (
     <RequirePermission action={ACTIONS.JOBS.VIEW} fallback={<NoAccess />}>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Job Moderation</h2>
-          <p className="text-sm text-slate-500">Review, approve, and manage job postings.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Job Moderation</h2>
+            <p className="text-sm text-slate-500">Review, approve, and manage job postings.</p>
+          </div>
+          <div className="flex gap-2.5">
+            <ExportButton entity="jobs" />
+            <ExportButton entity="applications" />
+          </div>
         </div>
 
         <FilterBar

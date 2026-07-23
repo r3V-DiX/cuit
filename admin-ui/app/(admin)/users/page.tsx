@@ -16,6 +16,7 @@ import { SkeletonTable } from '@/components/ui';
 import { EmptyState } from '@/components/ui';
 import { Users as UsersIcon, Flag } from 'lucide-react';
 import { format } from 'date-fns';
+import { ExportButton } from '@/components/admin';
 
 function UsersPageContent() {
   const searchParams = useSearchParams();
@@ -65,9 +66,12 @@ function UsersPageContent() {
   return (
     <RequirePermission action={ACTIONS.USERS.VIEW} fallback={<NoAccess />}>
       <div className="space-y-6">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-900">Users</h2>
-          <p className="text-sm text-slate-500">Manage seekers, employers, and admins.</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Users</h2>
+            <p className="text-sm text-slate-500">Manage seekers, employers, and admins.</p>
+          </div>
+          <ExportButton entity="users" />
         </div>
 
         <FilterBar

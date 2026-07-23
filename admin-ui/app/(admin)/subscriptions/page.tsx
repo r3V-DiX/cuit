@@ -21,6 +21,7 @@ import { useToast } from '@/components/ui';
 import { CreditCard, Package, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import AssignSubscriptionForm from './_components/assign-subscription-form';
+import { ExportButton } from '@/components/admin';
 
 function SubscriptionsPageContent() {
   const searchParams = useSearchParams();
@@ -102,6 +103,7 @@ function SubscriptionsPageContent() {
             <p className="text-sm text-slate-500">Monitor employer subscription plans and usage.</p>
           </div>
           <div className="flex gap-2.5">
+            <ExportButton entity="subscriptions" />
             <Link
               href="/subscriptions/packages"
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
