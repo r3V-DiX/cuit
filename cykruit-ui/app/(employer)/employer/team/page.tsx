@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Users, UserPlus, Crown, Briefcase, Eye, Trash2,
-  MoreVertical, Mail, Shield, ChevronDown, AlertTriangle,
+  MoreVertical, Mail, Loader2, Shield, ChevronDown, AlertTriangle,
 } from "lucide-react";
 import { TeamMemberListSkeleton } from "@/components/ui/skeletons/TeamMemberSkeleton";
 import Link from "next/link";
