@@ -48,6 +48,8 @@ EXPOSE 4010
 
 # tsc's rootDir spans admin-app + cykruit-app/libs, so main.js lands at
 # dist/admin-app/src/main.js and libs compile to dist/cykruit-app/libs/*.
-# rbac-seed.js runs first on every start — idempotent, syncs the permission
-# catalog/roles and bootstraps the RBAC_BOOTSTRAP_ADMIN_EMAIL super admin.
-CMD ["sh", "-c", "node -r ./tsconfig-paths-bootstrap.prod.js dist/admin-app/prisma/rbac-seed.js && node -r ./tsconfig-paths-bootstrap.prod.js dist/admin-app/src/main.js"]
+# rbac-seed.js and policy-seed.js run first on every start — both idempotent
+# (upsert-if-missing): rbac-seed syncs the permission catalog/roles and
+# bootstraps the RBAC_BOOTSTRAP_ADMIN_EMAIL super admin; policy-seed inserts
+# any PolicyConfig defaults (policies.constants.ts) not yet in the DB.
+CMD ["sh", "-c", "node -r ./tsconfig-paths-bootstrap.prod.js dist/admin-app/prisma/rbac-seed.js && node -r ./tsconfig-paths-bootstrap.prod.js dist/admin-app/prisma/policy-seed.js && node -r ./tsconfig-paths-bootstrap.prod.js dist/admin-app/src/main.js"]
