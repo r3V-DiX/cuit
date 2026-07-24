@@ -1,14 +1,12 @@
 // prisma/seed.js
 
 const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcryptjs');
 
 const { skillCategories } = require('./data/skill-categories.data');
 const { skills } = require('./data/skills.data');
 const { certifications } = require('./data/certifications.data');
 const { institutes } = require('./data/institutes.data');
 const { locations } = require('./data/locations.data');
-const { admins } = require('./data/admin.data');
 
 const prisma = new PrismaClient();
 
@@ -174,31 +172,6 @@ async function seedLocations() {
     success(`Locations seeded: ${locations.length} records`);
 }
 
-async function seedAdmins() {
-    log('Seeding admin users...');
-
-    for (const admin of admins) {
-        const hashedPassword = await bcrypt.hash(admin.password, 10);
-
-        await prisma.admin.upsert({
-            where: { email: admin.email },
-            update: {
-                firstName: admin.firstName,
-                lastName: admin.lastName,
-            },
-            create: {
-                email: admin.email,
-                password: hashedPassword,
-                firstName: admin.firstName,
-                lastName: admin.lastName,
-            },
-        });
-    }
-
-    success(`Admins seeded: ${admins.length} records`);
-    info('Admin credentials → email: admin@cykruit.com | password: Admin@123');
-}
-
 async function seedSubscriptionPackages() {
     log('Seeding subscription packages...');
 
@@ -268,7 +241,6 @@ async function main() {
     await seedCertifications();
     await seedInstitutes();
     await seedLocations();
-    await seedAdmins();
     await seedSubscriptionPackages();
 
     console.log('\n================================================');
