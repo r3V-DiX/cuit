@@ -29,14 +29,14 @@ run_sql() {
   docker run --rm \
     --network cykruit-v2_default \
     postgres:15-alpine \
-    psql "$PSQL_URL" -t -c "$1" 2>&1 | tr -d '[:space:]'
+    psql "$PSQL_URL" -t -A -X -c "$1" 2>/dev/null | tr -d '[:space:]'
 }
 
 run_sql_multi() {
   docker run --rm \
     --network cykruit-v2_default \
     postgres:15-alpine \
-    psql "$PSQL_URL" <<SQL
+    psql "$PSQL_URL" -X 2>/dev/null <<SQL
 $1
 SQL
 }
