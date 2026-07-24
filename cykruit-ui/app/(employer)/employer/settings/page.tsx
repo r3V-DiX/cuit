@@ -150,9 +150,10 @@ export default function EmployerSettingsPage() {
         if (u) {
           const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ");
           setLocked({ name: fullName || u.name || u.fullName || "", email: u.email ?? "" });
-          if (teamRes?.data?.items && u.id) {
-            const me2 = teamRes.data.items.find((m) => m.userId === u.id);
-            if (me2) setMyRole(me2.role);
+          if (u.id) {
+            const items = teamRes?.data?.items ?? [];
+            const me2 = items.find((m) => m.userId === u.id);
+            setMyRole(me2?.role ?? "OWNER");
           }
         }
         const d = s?.data;
