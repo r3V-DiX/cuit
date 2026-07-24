@@ -27,6 +27,7 @@ import { SuggestionsModule } from './suggestions';
 import { ExportModule } from './export';
 import { AnalyticsModule } from './analytics';
 import { DomainsModule } from './domains';
+import { RolesModule } from './roles';
 import { SystemHealthModule } from './system-health';
 
 @Module({
@@ -53,6 +54,7 @@ import { SystemHealthModule } from './system-health';
         ExportModule,
         AnalyticsModule,
         DomainsModule,
+        RolesModule,
         SystemHealthModule,
     ],
 })
