@@ -29,7 +29,7 @@ run_sql() {
   docker run --rm \
     --network cykruit-v2_default \
     postgres:15-alpine \
-    psql "$PSQL_URL" -t -c "$1" 2>/dev/null | tr -d '[:space:]'
+    psql "$PSQL_URL" -t -c "$1" 2>&1 | tr -d '[:space:]'
 }
 
 run_sql_multi() {
@@ -76,6 +76,9 @@ SKILL_SQL=$(run_sql "SELECT id FROM skills WHERE name='PostgreSQL' LIMIT 1;")
 
 # ── 4. Get free subscription package ──────────────────────────────────────────
 FREE_PKG_ID=$(run_sql "SELECT id FROM subscription_packages WHERE name='Free' LIMIT 1;")
+if [ -z "$FREE_PKG_ID" ]; then
+  FREE_PKG_ID=$(run_sql "SELECT id FROM subscription_packages LIMIT 1;")
+fi
 info "Free package: $FREE_PKG_ID"
 
 # ── 5. Create employer 1 ──────────────────────────────────────────────────────
@@ -84,7 +87,7 @@ EMPLOYER1_USER_ID=$(run_sql "SELECT id FROM users WHERE email='yograj.hukumdar@r
 
 if [ -z "$EMPLOYER1_USER_ID" ]; then
   EMPLOYER1_USER_ID=$(run_sql "
-    INSERT INTO users (id, email, password, first_name, last_name, role, status, is_email_verified, email_verified_at, created_at, updated_at)
+    INSERT INTO users (id, email, password, \"firstName\", \"lastName\", role, status, \"isEmailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\")
     VALUES (gen_random_uuid(), 'yograj.hukumdar@rivedix.com', '$EMPLOYER1_HASH', 'Yograj', 'Hukumdar', 'EMPLOYER', 'ACTIVE', true, now(), now(), now())
     RETURNING id;")
   info "Created user: $EMPLOYER1_USER_ID"
@@ -92,10 +95,10 @@ else
   info "Employer 1 user already exists: $EMPLOYER1_USER_ID"
 fi
 
-EMPLOYER1_ID=$(run_sql "SELECT id FROM employers WHERE user_id='$EMPLOYER1_USER_ID' LIMIT 1;")
+EMPLOYER1_ID=$(run_sql "SELECT id FROM employers WHERE \"userId\"='$EMPLOYER1_USER_ID' LIMIT 1;")
 if [ -z "$EMPLOYER1_ID" ]; then
   EMPLOYER1_ID=$(run_sql "
-    INSERT INTO employers (id, user_id, company_name, company_type, industry, company_size, location, slug, about, is_verified, is_active, profile_completion, created_at, updated_at)
+    INSERT INTO employers (id, \"userId\", \"companyName\", \"companyType\", industry, \"companySize\", location, slug, about, \"isVerified\", \"isActive\", \"profileCompletion\", \"createdAt\", \"updatedAt\")
     VALUES (gen_random_uuid(), '$EMPLOYER1_USER_ID', 'TechCorp Solutions', 'PRIVATE_LIMITED_COMPANY', 'TECHNOLOGY', 'SIZE_51_200', 'Bengaluru, Karnataka', 'techcorp-solutions', 'We build great software products.', true, true, 80, now(), now())
     RETURNING id;")
   info "Created employer: $EMPLOYER1_ID"
@@ -103,7 +106,7 @@ if [ -z "$EMPLOYER1_ID" ]; then
   # Free subscription
   if [ -n "$FREE_PKG_ID" ]; then
     run_sql_multi "
-      INSERT INTO employer_subscriptions (id, employer_id, package_id, status, started_at, expires_at, created_at, updated_at)
+      INSERT INTO employer_subscriptions (id, \"employerId\", \"packageId\", status, \"startedAt\", \"expiresAt\", \"createdAt\", \"updatedAt\")
       VALUES (gen_random_uuid(), '$EMPLOYER1_ID', '$FREE_PKG_ID', 'ACTIVE', now(), now() + interval '1 year', now(), now())
       ON CONFLICT DO NOTHING;"
     info "Assigned Free subscription"
@@ -116,7 +119,7 @@ EMPLOYER2_USER_ID=$(run_sql "SELECT id FROM users WHERE email='employer2@test.co
 
 if [ -z "$EMPLOYER2_USER_ID" ]; then
   EMPLOYER2_USER_ID=$(run_sql "
-    INSERT INTO users (id, email, password, first_name, last_name, role, status, is_email_verified, email_verified_at, created_at, updated_at)
+    INSERT INTO users (id, email, password, \"firstName\", \"lastName\", role, status, \"isEmailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\")
     VALUES (gen_random_uuid(), 'employer2@test.com', '$EMPLOYER2_HASH', 'Priya', 'Patel', 'EMPLOYER', 'ACTIVE', true, now(), now(), now())
     RETURNING id;")
   info "Created user: $EMPLOYER2_USER_ID"
@@ -124,24 +127,24 @@ else
   info "Employer 2 user already exists: $EMPLOYER2_USER_ID"
 fi
 
-EMPLOYER2_ID=$(run_sql "SELECT id FROM employers WHERE user_id='$EMPLOYER2_USER_ID' LIMIT 1;")
+EMPLOYER2_ID=$(run_sql "SELECT id FROM employers WHERE \"userId\"='$EMPLOYER2_USER_ID' LIMIT 1;")
 if [ -z "$EMPLOYER2_ID" ]; then
   EMPLOYER2_ID=$(run_sql "
-    INSERT INTO employers (id, user_id, company_name, company_type, industry, company_size, location, slug, about, is_verified, is_active, profile_completion, created_at, updated_at)
+    INSERT INTO employers (id, \"userId\", \"companyName\", \"companyType\", industry, \"companySize\", location, slug, about, \"isVerified\", \"isActive\", \"profileCompletion\", \"createdAt\", \"updatedAt\")
     VALUES (gen_random_uuid(), '$EMPLOYER2_USER_ID', 'StartupHub Ventures', 'PRIVATE_LIMITED_COMPANY', 'TECHNOLOGY', 'SIZE_11_50', 'Mumbai, Maharashtra', 'startuphub-ventures', 'Early-stage startup building the future.', true, true, 70, now(), now())
     RETURNING id;")
   info "Created employer: $EMPLOYER2_ID"
 
   if [ -n "$FREE_PKG_ID" ]; then
     run_sql_multi "
-      INSERT INTO employer_subscriptions (id, employer_id, package_id, status, started_at, expires_at, created_at, updated_at)
+      INSERT INTO employer_subscriptions (id, \"employerId\", \"packageId\", status, \"startedAt\", \"expiresAt\", \"createdAt\", \"updatedAt\")
       VALUES (gen_random_uuid(), '$EMPLOYER2_ID', '$FREE_PKG_ID', 'ACTIVE', now(), now() + interval '1 year', now(), now())
       ON CONFLICT DO NOTHING;"
   fi
 fi
 
-# ── 7. Create jobs for employer 1 ─────────────────────────────────────────────
-step "Creating jobs for TechCorp..."
+# ── 7. Create jobs ─────────────────────────────────────────────────────────────
+step "Creating jobs..."
 
 create_job() {
   local emp_id="$1" title="$2" slug="$3" jtype="$4" wmode="$5" level="$6" desc="$7"
@@ -150,7 +153,7 @@ create_job() {
   if [ -z "$existing" ]; then
     local jid
     jid=$(run_sql "
-      INSERT INTO jobs (id, employer_id, job_title, slug, job_type, work_mode, experience_level, description, application_type, status, location_id, published_at, expires_at, created_at, updated_at)
+      INSERT INTO jobs (id, \"employerId\", \"jobTitle\", slug, \"jobType\", \"workMode\", \"experienceLevel\", description, \"applicationType\", status, \"locationId\", \"publishedAt\", \"expiresAt\", \"createdAt\", \"updatedAt\")
       VALUES (gen_random_uuid(), '$emp_id', '$title', '$slug', '$jtype', '$wmode', '$level', '$desc', 'DIRECT', 'APPROVED', $([ -n "$LOCATION_ID" ] && echo "'$LOCATION_ID'" || echo "NULL"), now(), now() + interval '45 days', now(), now())
       RETURNING id;")
     echo "$jid"
@@ -170,26 +173,26 @@ info "Jobs: $JOB1_ID | $JOB2_ID | $JOB3_ID | $JOB4_ID"
 for jid in "$JOB1_ID" "$JOB2_ID" "$JOB3_ID" "$JOB4_ID"; do
   for sid in "$SKILL_REACT" "$SKILL_NODE" "$SKILL_PYTHON" "$SKILL_SQL"; do
     [ -z "$sid" ] && continue
-    run_sql_multi "INSERT INTO job_skills (id, job_id, skill_id) VALUES (gen_random_uuid(), '$jid', '$sid') ON CONFLICT DO NOTHING;" 2>/dev/null || true
+    run_sql_multi "INSERT INTO job_skills (id, \"jobId\", \"skillId\") VALUES (gen_random_uuid(), '$jid', '$sid') ON CONFLICT DO NOTHING;" 2>/dev/null || true
   done
 done
 
 # ── 8. Create seeker ──────────────────────────────────────────────────────────
-step "Creating Seeker (Arjun Dev)..."
+step "Creating Seeker (Yograj Dev)..."
 SEEKER_USER_ID=$(run_sql "SELECT id FROM users WHERE email='yograjhukumdar0@gmail.com' LIMIT 1;")
 
 if [ -z "$SEEKER_USER_ID" ]; then
   SEEKER_USER_ID=$(run_sql "
-    INSERT INTO users (id, email, password, first_name, last_name, role, status, is_email_verified, email_verified_at, created_at, updated_at)
+    INSERT INTO users (id, email, password, \"firstName\", \"lastName\", role, status, \"isEmailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\")
     VALUES (gen_random_uuid(), 'yograjhukumdar0@gmail.com', '$SEEKER_HASH', 'Yograj', 'Dev', 'SEEKER', 'ACTIVE', true, now(), now(), now())
     RETURNING id;")
   info "Created seeker user: $SEEKER_USER_ID"
 fi
 
-SEEKER_PROFILE_ID=$(run_sql "SELECT id FROM job_seeker_profiles WHERE user_id='$SEEKER_USER_ID' LIMIT 1;")
+SEEKER_PROFILE_ID=$(run_sql "SELECT id FROM job_seeker_profiles WHERE \"userId\"='$SEEKER_USER_ID' LIMIT 1;")
 if [ -z "$SEEKER_PROFILE_ID" ]; then
   SEEKER_PROFILE_ID=$(run_sql "
-    INSERT INTO job_seeker_profiles (id, user_id, first_name, last_name, title, professional_summary, profile_completion, created_at, updated_at)
+    INSERT INTO job_seeker_profiles (id, \"userId\", \"firstName\", \"lastName\", title, \"professionalSummary\", \"profileCompletion\", \"createdAt\", \"updatedAt\")
     VALUES (gen_random_uuid(), '$SEEKER_USER_ID', 'Yograj', 'Dev', 'Full Stack Developer', 'Passionate developer with 3 years experience in React and Node.js.', 60, now(), now())
     RETURNING id;")
   info "Created seeker profile: $SEEKER_PROFILE_ID"
@@ -197,11 +200,34 @@ if [ -z "$SEEKER_PROFILE_ID" ]; then
   # Add skills to seeker
   for sid in "$SKILL_REACT" "$SKILL_NODE"; do
     [ -z "$sid" ] && continue
-    run_sql_multi "INSERT INTO job_seeker_skills (id, profile_id, skill_id, proficiency) VALUES (gen_random_uuid(), '$SEEKER_PROFILE_ID', '$sid', 'Expert') ON CONFLICT DO NOTHING;" 2>/dev/null || true
+    run_sql_multi "INSERT INTO job_seeker_skills (id, \"profileId\", \"skillId\", proficiency) VALUES (gen_random_uuid(), '$SEEKER_PROFILE_ID', '$sid', 'Expert') ON CONFLICT DO NOTHING;" 2>/dev/null || true
   done
 fi
 
-# ── 9. Summary ────────────────────────────────────────────────────────────────
+# ── 9. Create applications ────────────────────────────────────────────────────
+step "Creating applications for seeker..."
+
+create_application() {
+  local seeker_id="$1" job_id="$2" app_status="$3"
+  [ -z "$job_id" ] && return
+  local existing
+  existing=$(run_sql "SELECT id FROM applications WHERE \"seekerId\"='$seeker_id' AND \"jobId\"='$job_id' LIMIT 1;")
+  if [ -z "$existing" ]; then
+    run_sql_multi "
+      INSERT INTO applications (id, \"jobId\", \"seekerId\", status, \"appliedAt\", \"updatedAt\")
+      VALUES (gen_random_uuid(), '$job_id', '$seeker_id', '$app_status', now(), now())
+      ON CONFLICT DO NOTHING;"
+    info "Applied to job $job_id with status $app_status"
+  else
+    info "Application to $job_id already exists"
+  fi
+}
+
+create_application "$SEEKER_USER_ID" "$JOB1_ID" "APPLIED"
+create_application "$SEEKER_USER_ID" "$JOB2_ID" "SHORTLISTED"
+create_application "$SEEKER_USER_ID" "$JOB3_ID" "APPLIED"
+
+# ── 10. Summary ───────────────────────────────────────────────────────────────
 echo ""
 echo "================================================"
 echo "   Test Data Seeded"
@@ -220,6 +246,7 @@ echo "    Email:    yograjhukumdar0@gmail.com"
 echo "    Password: Test@1234"
 echo ""
 echo "  JOBS: 4 approved jobs (2 per employer)"
+echo "  APPLICATIONS: seeker applied to 3 jobs (APPLIED, SHORTLISTED, APPLIED)"
 echo ""
 echo "  NOTE: Login uses OTP. Trigger OTP via login page,"
 echo "  or bypass by setting session directly in DB."

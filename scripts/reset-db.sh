@@ -22,7 +22,7 @@ fi
 PSQL_URL=$(echo "$DATABASE_URL" | sed 's/?.*$//')
 
 echo -e "${YELLOW}WARNING: This will DELETE all users, employers, seekers, jobs, sessions, applications, and subscriptions.${NC}"
-echo -e "${YELLOW}Reference data (skills, locations, certifications, institutes, packages, admins) is preserved.${NC}"
+echo -e "${YELLOW}Reference data (skills, locations, certifications, institutes, packages) is preserved.${NC}"
 echo ""
 read -rp "Type 'yes' to confirm: " CONFIRM
 [ "$CONFIRM" = "yes" ] || { echo "Aborted."; exit 0; }
@@ -33,47 +33,58 @@ docker run --rm \
   --network cykruit-v2_default \
   postgres:15-alpine \
   psql "$PSQL_URL" <<'SQL'
--- Disable FK checks via deferred or truncate cascade
-TRUNCATE TABLE
-  admin_sessions,
-  audit_logs,
-  admin_audit_logs,
-  auth_audit_logs,
-  admin_auth_audit_logs,
-  conversations,
-  messages,
-  notifications,
-  payment_orders,
-  payments,
-  employer_subscriptions,
-  saved_jobs,
-  profile_views,
-  job_views,
-  company_profile_views,
-  seeker_job_matches,
-  applications,
-  job_skills,
-  job_certifications,
-  jobs,
-  employer_members,
-  employer_verifications,
-  company_benefits,
-  company_media,
-  employer_settings,
-  employers,
-  job_seeker_skills,
-  job_seeker_certifications,
-  job_seeker_profiles,
-  seeker_job_preferences,
-  job_seeker_settings,
-  user_oauth_providers,
-  user_role_assignments,
-  user_permission_overrides,
-  tokens,
-  sessions,
-  users
-CASCADE;
+DO $$
+DECLARE
+  -- Tables to PRESERVE (reference / seed data + migrations)
+  preserve TEXT[] := ARRAY[
+    -- Reference / lookup data
+    'skills',
+    'skill_categories',
+    'locations',
+    'certifications',
+    'institutes',
+    'roles',
+    'job_domains',
+    'subscription_packages',
+    'discounts',
+    'discount_packages',
+    -- Admin accounts and their RBAC
+    'admins',
+    'admin_invites',
+    'admin_rbac_roles',
+    'admin_role_permissions',
+    'admin_permissions',
+    'admin_role_assignments',
+    'admin_permission_overrides',
+    -- User RBAC definitions (not assignments)
+    'permissions',
+    'rbac_roles',
+    'role_permissions',
+    -- Platform config
+    'platform_settings',
+    'policy_configs',
+    -- Migrations
+    '_prisma_migrations'
+  ];
+  tbl TEXT;
+  tables_to_truncate TEXT[];
+BEGIN
+  -- Collect all non-reference user tables
+  SELECT array_agg(quote_ident(tablename))
+  INTO tables_to_truncate
+  FROM pg_tables
+  WHERE schemaname = 'public'
+    AND tablename NOT IN (SELECT unnest(preserve));
+
+  IF tables_to_truncate IS NULL OR array_length(tables_to_truncate, 1) = 0 THEN
+    RAISE NOTICE 'No tables to truncate.';
+    RETURN;
+  END IF;
+
+  EXECUTE 'TRUNCATE TABLE ' || array_to_string(tables_to_truncate, ', ') || ' CASCADE';
+  RAISE NOTICE 'Truncated % tables.', array_length(tables_to_truncate, 1);
+END $$;
 SQL
 
 echo -e "${GREEN}[INFO]${NC} Done. Reference data preserved. Re-run seed if needed:"
-echo "  docker compose exec auth-service npx prisma db seed"
+echo "  sudo bash scripts/seed-test-data.sh"
