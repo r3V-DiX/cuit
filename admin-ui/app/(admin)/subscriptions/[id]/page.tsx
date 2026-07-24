@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, use } from 'react';
 import { api } from '@/lib';
 import { ACTIONS } from '@/lib';
 import { usePermissions } from '@/lib/permissions-context';
-import type { EmployerSubscription, PaymentOrder, PaginatedResponse } from '@/lib';
+import type { EmployerSubscription, PaymentOrder, PaginatedResponse, SubscriptionPackage } from '@/lib';
 import { RequirePermission } from '@/components/ui';
 import { NoAccess } from '@/components/ui';
 import { Skeleton } from '@/components/ui';
@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui';
 import { ArrowLeft, CreditCard, RefreshCw, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
+import AssignSubscriptionForm from '../_components/assign-subscription-form';
 
 const STATUSES = ['ACTIVE', 'EXPIRED', 'CANCELLED'] as const;
 
@@ -25,7 +26,7 @@ function paise(n: number) {
 export default function SubscriptionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { has } = usePermissions();
-  const { openModal } = useModal();
+  const { openModal, closeModal } = useModal();
   const { toast } = useToast();
 
   const [sub, setSub] = useState<EmployerSubscription | null>(null);
@@ -85,6 +86,34 @@ export default function SubscriptionDetailPage({ params }: { params: Promise<{ i
     });
   };
 
+  const openChangePlan = async () => {
+    if (!sub) return;
+    try {
+      const packages = await api.get<SubscriptionPackage[]>('/api/admin/subscriptions/packages');
+      openModal({
+        title: 'Change Plan',
+        content: (
+          <AssignSubscriptionForm
+            packages={packages}
+            employerId={sub.employerId}
+            employerLabel={sub.employer?.companyName}
+            onSaved={() => {
+              closeModal();
+              toast({ type: 'success', message: 'Subscription updated.' });
+              refresh();
+            }}
+            onCancel={closeModal}
+          />
+        ),
+      });
+    } catch (err) {
+      toast({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to load packages',
+      });
+    }
+  };
+
   const handleRefreshUsage = async () => {
     if (!sub?.employerId) return;
     setRefreshingUsage(true);
@@ -110,7 +139,7 @@ export default function SubscriptionDetailPage({ params }: { params: Promise<{ i
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Link
-            href="/subscriptions"
+            href="/subscriptions/employers"
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -148,6 +177,14 @@ export default function SubscriptionDetailPage({ params }: { params: Promise<{ i
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {canManage && (
+                      <button
+                        onClick={openChangePlan}
+                        className="rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
+                      >
+                        Change Plan
+                      </button>
+                    )}
                     {canManage && (
                       <button
                         onClick={handleRefreshUsage}

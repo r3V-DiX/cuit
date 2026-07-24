@@ -1,40 +1,29 @@
 'use client';
 
 // admin-ui/app/(admin)/subscriptions/page.tsx
-import { Suspense, useState, useEffect, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { api } from '@/lib';
 import { ACTIONS } from '@/lib';
 import { usePermissions } from '@/lib/permissions-context';
-import type { EmployerSubscription, SubscriptionPackage, PaginatedResponse } from '@/lib';
+import type { SubscriptionPackage } from '@/lib';
 import { RequirePermission } from '@/components/ui';
 import { NoAccess } from '@/components/ui';
 import { Table } from '@/components/ui';
-import { PaginationBar } from '@/components/ui';
-import { FilterBar } from '@/components/ui';
-import { StatusBadge } from '@/components/ui';
 import { SkeletonTable } from '@/components/ui';
 import { EmptyState } from '@/components/ui';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
-import { CreditCard, Package, Plus } from 'lucide-react';
-import { format } from 'date-fns';
-import AssignSubscriptionForm from './_components/assign-subscription-form';
-import { ExportButton } from '@/components/admin';
+import { Package, Plus, Pencil, Trash2, Users, Sparkles } from 'lucide-react';
+import { StatusBadge } from '@/components/ui';
+import PackageForm from './_components/package-form';
 
-function SubscriptionsPageContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
+export default function PackagesPage() {
   const { has } = usePermissions();
   const { openModal, closeModal } = useModal();
   const { toast } = useToast();
 
-  const page = parseInt(searchParams.get('page') ?? '1', 10);
-  const q = searchParams.get('q') ?? '';
-  const status = searchParams.get('status') ?? '';
-
-  const [data, setData] = useState<PaginatedResponse<EmployerSubscription> | null>(null);
+  const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -43,55 +32,60 @@ function SubscriptionsPageContent() {
   const refresh = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
-    async function loadSubscriptions() {
+    async function loadPackages() {
       setLoading(true);
       setError(null);
       try {
-        const params = new URLSearchParams();
-        params.set('page', page.toString());
-        if (q) params.set('q', q);
-        if (status) params.set('status', status);
-
-        const res = await api.get<PaginatedResponse<EmployerSubscription>>(`/api/admin/subscriptions?${params.toString()}`);
-        setData(res);
+        const data = await api.get<SubscriptionPackage[]>('/api/admin/subscriptions/packages');
+        setPackages(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load subscriptions');
+        setError(err instanceof Error ? err.message : 'Failed to load packages');
       } finally {
         setLoading(false);
       }
     }
-    loadSubscriptions();
-  }, [page, q, status, reloadKey]);
+    loadPackages();
+  }, [reloadKey]);
 
-  const handlePageChange = (newPage: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('page', newPage.toString());
-    router.push(`?${params.toString()}`);
+  const openForm = (initial?: SubscriptionPackage) => {
+    openModal({
+      title: initial ? 'Edit Package' : 'New Package',
+      content: (
+        <PackageForm
+          initial={initial}
+          onSaved={() => {
+            closeModal();
+            toast({
+              type: 'success',
+              message: initial ? 'Package updated.' : 'Package created.',
+            });
+            refresh();
+          }}
+          onCancel={closeModal}
+        />
+      ),
+    });
   };
 
-  const openAssign = async () => {
-    try {
-      const packages = await api.get<SubscriptionPackage[]>('/api/admin/subscriptions/packages');
-      openModal({
-        title: 'Assign Subscription',
-        content: (
-          <AssignSubscriptionForm
-            packages={packages}
-            onSaved={() => {
-              closeModal();
-              toast({ type: 'success', message: 'Subscription assigned.' });
-              refresh();
-            }}
-            onCancel={closeModal}
-          />
-        ),
-      });
-    } catch (err) {
-      toast({
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Failed to load packages',
-      });
-    }
+  const handleDelete = (pkg: SubscriptionPackage) => {
+    openModal({
+      title: 'Delete package?',
+      description: `"${pkg.name}" will be permanently deleted. Employers currently on this package are not migrated automatically.`,
+      variant: 'danger',
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        try {
+          await api.del(`/api/admin/subscriptions/packages/${pkg.id}`);
+          toast({ type: 'success', message: 'Package deleted.' });
+          refresh();
+        } catch (err) {
+          toast({
+            type: 'error',
+            message: err instanceof Error ? err.message : 'Failed to delete package',
+          });
+        }
+      },
+    });
   };
 
   return (
@@ -99,125 +93,115 @@ function SubscriptionsPageContent() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Subscriptions</h2>
-            <p className="text-sm text-slate-500">Monitor employer subscription plans and usage.</p>
+            <h2 className="text-lg font-semibold text-slate-900">Subscription Packages</h2>
+            <p className="text-sm text-slate-500">Manage available subscription plans.</p>
           </div>
           <div className="flex gap-2.5">
-            <ExportButton entity="subscriptions" />
             <Link
-              href="/subscriptions/packages"
+              href="/subscriptions/employers"
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
             >
-              <Package className="h-4 w-4" />
-              Packages
+              <Users className="h-4 w-4" />
+              Employer Subscriptions
             </Link>
             {canManage && (
               <button
-                onClick={openAssign}
+                onClick={() => openForm()}
                 className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
               >
                 <Plus className="h-4 w-4" />
-                Assign Subscription
+                New Package
               </button>
             )}
           </div>
         </div>
 
-        <FilterBar
-          searchKey="q"
-          searchPlaceholder="Search employer ID..."
-          filters={[
-            {
-              key: 'status',
-              label: 'All Statuses',
-              options: [
-                { label: 'Active', value: 'ACTIVE' },
-                { label: 'Expired', value: 'EXPIRED' },
-                { label: 'Cancelled', value: 'CANCELLED' },
-              ],
-            },
-          ]}
-        />
-
         {error ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {error}
-          </div>
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
         ) : loading ? (
-          <SkeletonTable rows={10} />
-        ) : !data || data.items.length === 0 ? (
+          <SkeletonTable rows={5} />
+        ) : packages.length === 0 ? (
           <EmptyState
-            icon={<CreditCard className="h-6 w-6" />}
-            title="No subscriptions found"
-            description="Adjust your search or filters to find what you're looking for."
+            icon={<Package className="h-6 w-6" />}
+            title="No packages found"
+            description={canManage ? 'Create your first subscription package.' : undefined}
           />
         ) : (
-          <div className="space-y-4">
-            <Table
-              data={data.items}
-              getRowKey={(s) => s.id}
-              columns={[
-                {
-                  key: 'employer',
-                  header: 'Employer',
-                  render: (s) => (
-                    <Link href={`/subscriptions/${s.id}`} className="group block">
-                      <p className="font-medium text-slate-900 group-hover:text-blue-600">
-                        {s.employer?.companyName || s.employerId}
-                      </p>
-                    </Link>
-                  ),
-                },
-                {
-                  key: 'package',
-                  header: 'Package',
-                  render: (s) => (
-                    <span className="font-medium text-slate-700">
-                      {s.package?.name || s.packageId}
-                    </span>
-                  ),
-                },
-                {
-                  key: 'usage',
-                  header: 'Jobs Usage',
-                  render: (s) => (
-                    <span className="text-sm text-slate-600">
-                      {s.currentActiveJobs} / {s.package?.maxActiveJobs || '∞'}
-                    </span>
-                  ),
-                },
-                {
-                  key: 'status',
-                  header: 'Status',
-                  render: (s) => <StatusBadge status={s.status} />,
-                },
-                {
-                  key: 'period',
-                  header: 'Period',
-                  render: (s) => (
-                    <div className="text-xs text-slate-500">
-                      <p>Start: {format(new Date(s.startedAt), 'MMM d, yyyy')}</p>
-                      {s.expiresAt && <p>End: {format(new Date(s.expiresAt), 'MMM d, yyyy')}</p>}
-                    </div>
-                  ),
-                },
-              ]}
-            />
-            <PaginationBar
-              pagination={data.pagination}
-              onPageChange={handlePageChange}
-            />
-          </div>
+          <Table
+            data={packages}
+            getRowKey={(p) => p.id}
+            columns={[
+              {
+                key: 'name',
+                header: 'Name',
+                render: (p) => (
+                  <div>
+                    <p className="flex items-center gap-1.5 font-medium text-slate-900">
+                      {p.name}
+                      {p.aiScoringEnabled && (
+                        <Sparkles className="h-3.5 w-3.5 text-amber-400" aria-label="AI scoring enabled" />
+                      )}
+                    </p>
+                    <p className="text-xs text-slate-500">{p.description}</p>
+                  </div>
+                ),
+              },
+              {
+                key: 'limits',
+                header: 'Limits',
+                render: (p) => (
+                  <div className="font-mono text-xs text-slate-600">
+                    <p>{p.maxActiveJobs} jobs · {p.maxTeamMembers} members</p>
+                    <p>{p.featuredJobSlots} featured slots</p>
+                  </div>
+                ),
+              },
+              {
+                key: 'price',
+                header: 'Price',
+                render: (p) => (
+                  <div className="font-mono text-xs text-slate-600">
+                    <p>{p.priceMonthly ?? '0'} /mo</p>
+                    <p>{p.priceYearly ?? '0'} /yr</p>
+                  </div>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'Status',
+                render: (p) => <StatusBadge status={p.isActive ? 'ACTIVE' : 'INACTIVE'} />,
+              },
+              ...(canManage
+                ? [
+                    {
+                      key: 'actions',
+                      header: '',
+                      className: 'text-right',
+                      render: (p: SubscriptionPackage) => (
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => openForm(p)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                            title="Edit"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(p)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
+          />
         )}
       </div>
     </RequirePermission>
-  );
-}
-
-export default function SubscriptionsPage() {
-  return (
-    <Suspense fallback={<SkeletonTable rows={10} />}>
-      <SubscriptionsPageContent />
-    </Suspense>
   );
 }
