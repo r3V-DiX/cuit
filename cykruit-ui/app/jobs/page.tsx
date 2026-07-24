@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
@@ -481,13 +481,24 @@ function FilterDropdown({
   onChange: (v: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [rect, setRect] = useState<{ top: number; left: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
   const active = value !== "All";
+
+  const handleOpen = () => {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setRect({ top: r.bottom + 6, left: r.left });
+    }
+    setOpen((o) => !o);
+  };
 
   return (
     <div className="relative">
       <button
-        onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+        ref={btnRef}
+        onClick={handleOpen}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
           active
             ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/20"
             : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
@@ -497,15 +508,18 @@ function FilterDropdown({
         <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
-      {open && (
+      {open && rect && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-0 mt-1.5 z-20 bg-white border border-slate-200 rounded-xl shadow-lg shadow-slate-900/8 py-1 min-w-45">
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-50 bg-white border border-slate-200 rounded-xl shadow-lg shadow-slate-900/8 py-1 min-w-44"
+            style={{ top: rect.top, left: rect.left }}
+          >
             {options.map((opt) => (
               <button
                 key={opt}
                 onClick={() => { onChange(opt); setOpen(false); }}
-                className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${
+                className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors cursor-pointer ${
                   value === opt
                     ? "text-blue-700 bg-blue-50 font-semibold"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
