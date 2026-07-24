@@ -9,8 +9,9 @@ import { apiFetch, authHeaders } from "@/lib/api";
 import {
   Bell, BellOff, CheckCheck, Trash2, X,
   Briefcase, Sparkles, Eye, Shield, ChevronRight,
-  Clock, Inbox, Loader2,
+  Clock, Inbox,
 } from "lucide-react";
+import { NotificationListSkeleton } from "@/components/ui/skeletons/NotificationSkeleton";
 
 type NotifType = "APPLICATION" | "JOB_MATCH" | "PROFILE_VIEW" | "SYSTEM" | string;
 
@@ -260,9 +261,8 @@ export default function NotificationsPage() {
 
           {/* List */}
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-slate-400">
-              <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              <span className="text-sm">Loading notifications…</span>
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <NotificationListSkeleton count={5} />
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-slate-400 bg-white rounded-2xl border border-slate-200">

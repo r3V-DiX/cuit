@@ -8,6 +8,7 @@ import {
   Loader2, RefreshCw, LogIn, LogOut, Key, AlertTriangle,
   CheckCircle2, XCircle, Clock, User, Monitor,
 } from "lucide-react";
+import { ActivityLogSkeleton, AuthLogSkeleton } from "@/components/ui/skeletons/ActivityLogSkeleton";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 
@@ -280,7 +281,23 @@ export default function ActivityPage() {
               </div>
 
               {sysLoading ? (
-                <div className="flex items-center justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/50">
+                        <th className="px-6 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Actor</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Action</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Module</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Risk</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Result</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Time</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      <ActivityLogSkeleton count={8} />
+                    </tbody>
+                  </table>
+                </div>
               ) : sysLogs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3">
                   <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
@@ -367,7 +384,23 @@ export default function ActivityPage() {
               </div>
 
               {authLoading ? (
-                <div className="flex items-center justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-slate-400" /></div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50/50">
+                        <th className="px-6 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Member</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Action</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Status</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Device</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">IP</th>
+                        <th className="px-4 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Time</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      <AuthLogSkeleton count={8} />
+                    </tbody>
+                  </table>
+                </div>
               ) : authLogs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 gap-3">
                   <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">

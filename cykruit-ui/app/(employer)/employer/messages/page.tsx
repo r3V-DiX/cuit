@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { Send, Search, Briefcase, ChevronRight, Loader2 } from "lucide-react";
+import { ConversationListSkeleton } from "@/components/ui/skeletons/ConversationSkeleton";
 import { useToast } from "@/components/ui/Toast";
 import { useMessaging } from "@/hooks/useMessaging";
 import { apiFetch, authHeaders } from "@/lib/api";
@@ -293,9 +294,7 @@ export default function EmployerMessagesPage() {
           {/* List */}
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
             {loading ? (
-              <div className="p-6 flex justify-center">
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-              </div>
+              <ConversationListSkeleton count={5} />
             ) : filtered.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-400">No conversations found</div>
             ) : filtered.map((conv) => {

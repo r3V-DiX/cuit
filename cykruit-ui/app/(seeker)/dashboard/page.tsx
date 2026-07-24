@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
-import { ApplicationListSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
+import { ApplicationListSkeleton, DashboardListSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 import {
   FileText,
   Bookmark,
@@ -409,7 +409,9 @@ export default function DashboardPage() {
               </div>
 
               <div className="divide-y divide-slate-100">
-                {recommendedJobs.length === 0 ? (
+                {loadingDashboard ? (
+                  <DashboardListSkeleton count={3} />
+                ) : recommendedJobs.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
                     <Sparkles className="w-8 h-8 text-slate-200 mb-2" />
                     <p className="text-sm font-medium text-slate-500">No recommendations available</p>

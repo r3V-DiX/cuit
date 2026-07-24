@@ -132,3 +132,36 @@ export function ApplicantTableSkeleton({ count = 5 }: ApplicantTableSkeletonProp
     </>
   );
 }
+
+/** One row for dashboard recommended jobs / recent apps compact list */
+export function DashboardListRowSkeleton() {
+  return (
+    <div className="flex items-center justify-between gap-4 px-5 py-3.5">
+      <div className="flex items-center gap-3 min-w-0">
+        <Skeleton className="w-9 h-9 rounded-xl shrink-0" />
+        <div className="space-y-1.5 min-w-0">
+          <Skeleton className="h-3.5 w-36" />
+          <Skeleton className="h-3 w-24" />
+        </div>
+      </div>
+      <div className="flex items-center gap-2.5 shrink-0">
+        <Skeleton className="h-6 w-16 rounded-lg" />
+        <Skeleton className="h-3 w-10" />
+      </div>
+    </div>
+  );
+}
+
+interface DashboardListSkeletonProps {
+  count?: number;
+}
+
+export function DashboardListSkeleton({ count = 3 }: DashboardListSkeletonProps) {
+  return (
+    <div className="divide-y divide-slate-100">
+      {Array.from({ length: count }).map((_, i) => (
+        <DashboardListRowSkeleton key={i} />
+      ))}
+    </div>
+  );
+}

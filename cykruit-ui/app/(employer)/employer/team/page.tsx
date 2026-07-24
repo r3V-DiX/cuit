@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Users, UserPlus, Crown, Briefcase, Eye, Trash2,
-  MoreVertical, Mail, Loader2, Shield, ChevronDown, AlertTriangle,
+  MoreVertical, Mail, Shield, ChevronDown, AlertTriangle,
 } from "lucide-react";
+import { TeamMemberListSkeleton } from "@/components/ui/skeletons/TeamMemberSkeleton";
 import Link from "next/link";
 import { apiFetch, authHeaders, ApiError } from "@/lib/api";
 import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
@@ -281,9 +282,7 @@ export default function TeamPage() {
             </div>
 
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-              </div>
+              <TeamMemberListSkeleton count={3} />
             ) : members.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
                 <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
