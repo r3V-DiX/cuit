@@ -18,7 +18,8 @@
       "@cykruit/rate-limit": ["libs/rate-limit/src/index.ts"],
       "@cykruit/audit": ["libs/audit/src/index.ts"],
       "@cykruit/permissions": ["libs/permissions/src/index.ts"],
-      "@cykruit/events": ["libs/events/src/index.ts"]
+      "@cykruit/events": ["libs/events/src/index.ts"],
+      "@cykruit/policy-config": ["libs/policy-config/src/index.ts"]
     }
   },
   "include": ["src/**/*"],
