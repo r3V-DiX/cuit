@@ -229,42 +229,34 @@ function JobsContent() {
 
         {/* ── Search + filters bar ────────────────────────────────────────── */}
         <div className="bg-white border-b border-slate-200 sticky top-16 z-30 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-            {/* Search — full width on mobile */}
-            <SearchBox
-              defaultValue={search}
-              placeholder="Search roles, skills, companies…"
-              onSearch={(q) => setParams({ q })}
-              className="w-full sm:flex-1 sm:min-w-0 sm:max-w-sm"
-            />
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              {/* Search */}
+              <SearchBox
+                defaultValue={search}
+                placeholder="Search roles, skills, companies…"
+                onSearch={(q) => setParams({ q })}
+                className="w-full sm:w-72 shrink-0"
+              />
 
-            {/* Divider */}
-            <div className="w-px h-6 bg-slate-200 hidden sm:block shrink-0" />
+              {/* Divider */}
+              <div className="w-px h-6 bg-slate-200 hidden sm:block shrink-0" />
 
-            {/* Filter row — horizontally scrollable on mobile */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-0.5 sm:pb-0 sm:flex-wrap scrollbar-hide">
-              <FilterDropdown label="Domain"    options={domainOptions} value={specFilter} onChange={(v) => setParams({ spec: v })} />
-              <FilterDropdown label="Job Type"  options={jobTypes}     value={typeFilter} onChange={(v) => setParams({ type: v })} />
-              <FilterDropdown label="Work Mode" options={remoteTypes}  value={modeFilter} onChange={(v) => setParams({ mode: v })} />
+              {/* Filters */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <FilterDropdown label="Domain"    options={domainOptions} value={specFilter} onChange={(v) => setParams({ spec: v })} />
+                <FilterDropdown label="Job Type"  options={jobTypes}      value={typeFilter} onChange={(v) => setParams({ type: v })} />
+                <FilterDropdown label="Work Mode" options={remoteTypes}   value={modeFilter} onChange={(v) => setParams({ mode: v })} />
 
-              {activeFilters.map((f) => (
-                <span key={f} className="flex items-center gap-1 text-[11px] font-mono font-semibold px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
-                  {f}
-                  <button onClick={() => {
-                    if (specFilter === f) setParams({ spec: "All" });
-                    else if (typeFilter === f) setParams({ type: "All" });
-                    else setParams({ mode: "All" });
-                  }}>
-                    <X className="w-3 h-3" />
+                {hasAnyFilter && (
+                  <button
+                    onClick={clearAll}
+                    className="flex items-center gap-1.5 h-9 px-3 text-sm text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" /> Clear
                   </button>
-                </span>
-              ))}
-
-              {hasAnyFilter && (
-                <button onClick={clearAll} className="text-[11px] font-mono text-slate-400 hover:text-blue-600 transition-colors cursor-pointer shrink-0">
-                  Clear all
-                </button>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -481,55 +473,50 @@ function FilterDropdown({
   onChange: (v: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [rect, setRect] = useState<{ top: number; left: number } | null>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const active = value !== "All";
 
-  const handleOpen = () => {
-    if (!open && btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      setRect({ top: r.bottom + 6, left: r.left });
-    }
-    setOpen((o) => !o);
-  };
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
 
   return (
-    <div className="relative">
+    <div ref={wrapRef} className="relative shrink-0">
       <button
-        ref={btnRef}
-        onClick={handleOpen}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+        onClick={() => setOpen((o) => !o)}
+        className={`flex items-center gap-2 h-9 px-3.5 rounded-lg text-sm font-medium border transition-all cursor-pointer whitespace-nowrap ${
           active
-            ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-500/20"
-            : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+            ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+            : "bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50"
         }`}
       >
         {active ? value : label}
-        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
-      {open && rect && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div
-            className="fixed z-50 bg-white border border-slate-200 rounded-xl shadow-lg shadow-slate-900/8 py-1 min-w-44"
-            style={{ top: rect.top, left: rect.left }}
-          >
-            {options.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => { onChange(opt); setOpen(false); }}
-                className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors cursor-pointer ${
-                  value === opt
-                    ? "text-blue-700 bg-blue-50 font-semibold"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        </>
+      {open && (
+        <div className="absolute top-full left-0 mt-1.5 z-50 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-900/10 py-1.5 min-w-44 max-h-64 overflow-y-auto">
+          {options.map((opt) => (
+            <button
+              key={opt}
+              onClick={() => { onChange(opt); setOpen(false); }}
+              className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer ${
+                value === opt
+                  ? "text-blue-700 bg-blue-50 font-semibold"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              }`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
