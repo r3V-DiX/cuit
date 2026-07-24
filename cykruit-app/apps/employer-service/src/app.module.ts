@@ -29,8 +29,9 @@ import { EmployerModule } from './employer/employer.module';
             inject: [ConfigService],
             useFactory: (config: ConfigService) => ({
                 type: 'single',
-                url: `redis://${config.get('REDIS_HOST', 'localhost')}:${config.get('REDIS_PORT', 6379)}`,
                 options: {
+                    host: config.get<string>('REDIS_HOST', 'localhost'),
+                    port: config.get<number>('REDIS_PORT', 6379),
                     password: config.get('REDIS_PASSWORD') || undefined,
                     db: config.get<number>('REDIS_DB', 0),
                 },
