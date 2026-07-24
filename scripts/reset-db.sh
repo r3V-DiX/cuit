@@ -1,5 +1,5 @@
 #!/bin/bash
-# reset-db.sh — wipe all user/employer/job data, keep reference data (skills, locations, etc.)
+# reset-db.sh — full DB wipe + re-run all migrations (like prisma migrate reset)
 # Run: sudo bash scripts/reset-db.sh
 set -euo pipefail
 
@@ -18,40 +18,29 @@ if [ -z "$DATABASE_URL" ]; then
   echo -e "${RED}[ERROR]${NC} DATABASE_URL not found in $ENV_FILE"
   exit 1
 fi
-# Strip Prisma-only query params (?schema=...) — invalid for psql
 PSQL_URL=$(echo "$DATABASE_URL" | sed 's/?.*$//')
 
-echo -e "${YELLOW}WARNING: This will DELETE all users, employers, seekers, jobs, sessions, applications, subscriptions, and messages.${NC}"
-echo -e "${YELLOW}Reference data (skills, locations, certifications, institutes, packages, admins) is preserved.${NC}"
+echo -e "${RED}WARNING: This will DROP the entire database schema and re-run all migrations.${NC}"
+echo -e "${RED}ALL data will be lost — users, admins, jobs, skills, locations, everything.${NC}"
 echo ""
 read -rp "Type 'yes' to confirm: " CONFIRM
 [ "$CONFIRM" = "yes" ] || { echo "Aborted."; exit 0; }
 
-echo -e "${GREEN}[INFO]${NC} Resetting..."
-
-# Truncate users CASCADE — all FK-dependent tables (employers, jobs, applications,
-# sessions, profiles, messages, notifications, etc.) are wiped via cascade.
-# Jobs table has no FK to users directly but FK to employers → cascades from there.
-# Anything not cascading from users is listed explicitly below.
+echo -e "${GREEN}[INFO]${NC} Dropping public schema..."
 docker run --rm \
   --network cykruit-v2_default \
   postgres:15-alpine \
-  psql "$PSQL_URL" -v ON_ERROR_STOP=1 <<'SQL'
--- Wipe all user-owned data via cascade from root tables
--- admins table is NOT included — preserve admin accounts
-TRUNCATE TABLE
-  users,
-  employers
-CASCADE;
+  psql "$PSQL_URL" -v ON_ERROR_STOP=1 -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 
--- Wipe any orphaned tables not reached by above cascade
-TRUNCATE TABLE
-  search_suggestions,
-  blacklist,
-  content_reports,
-  announcements
-CASCADE;
-SQL
+echo -e "${GREEN}[INFO]${NC} Re-running all migrations..."
+docker exec cykruit-v2-auth-service-1 npx prisma migrate deploy
 
-echo -e "${GREEN}[INFO]${NC} Done. Reference data and admin accounts preserved."
-echo "  Re-seed: sudo bash scripts/seed-test-data.sh"
+echo -e "${GREEN}[INFO]${NC} Running prisma seed (skills, locations, packages)..."
+docker exec cykruit-v2-auth-service-1 npx prisma db seed
+
+echo ""
+echo -e "${GREEN}================================================${NC}"
+echo -e "${GREEN}  DB fully reset and migrated.${NC}"
+echo -e "${GREEN}  Run seed-test-data.sh to create test accounts.${NC}"
+echo -e "${GREEN}================================================${NC}"
+echo "  sudo bash ${DEPLOY_DIR}/scripts/seed-test-data.sh"
