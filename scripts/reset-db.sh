@@ -21,70 +21,37 @@ fi
 # Strip Prisma-only query params (?schema=...) — invalid for psql
 PSQL_URL=$(echo "$DATABASE_URL" | sed 's/?.*$//')
 
-echo -e "${YELLOW}WARNING: This will DELETE all users, employers, seekers, jobs, sessions, applications, and subscriptions.${NC}"
-echo -e "${YELLOW}Reference data (skills, locations, certifications, institutes, packages) is preserved.${NC}"
+echo -e "${YELLOW}WARNING: This will DELETE all users, employers, seekers, jobs, sessions, applications, subscriptions, and messages.${NC}"
+echo -e "${YELLOW}Reference data (skills, locations, certifications, institutes, packages, admins) is preserved.${NC}"
 echo ""
 read -rp "Type 'yes' to confirm: " CONFIRM
 [ "$CONFIRM" = "yes" ] || { echo "Aborted."; exit 0; }
 
-echo -e "${GREEN}[INFO]${NC} Resetting user/employer/job data..."
+echo -e "${GREEN}[INFO]${NC} Resetting..."
 
+# Truncate users CASCADE — all FK-dependent tables (employers, jobs, applications,
+# sessions, profiles, messages, notifications, etc.) are wiped via cascade.
+# Jobs table has no FK to users directly but FK to employers → cascades from there.
+# Anything not cascading from users is listed explicitly below.
 docker run --rm \
   --network cykruit-v2_default \
   postgres:15-alpine \
-  psql "$PSQL_URL" <<'SQL'
-DO $$
-DECLARE
-  -- Tables to PRESERVE (reference / seed data + migrations)
-  preserve TEXT[] := ARRAY[
-    -- Reference / lookup data
-    'skills',
-    'skill_categories',
-    'locations',
-    'certifications',
-    'institutes',
-    'roles',
-    'job_domains',
-    'subscription_packages',
-    'discounts',
-    'discount_packages',
-    -- Admin accounts and their RBAC
-    'admins',
-    'admin_invites',
-    'admin_rbac_roles',
-    'admin_role_permissions',
-    'admin_permissions',
-    'admin_role_assignments',
-    'admin_permission_overrides',
-    -- User RBAC definitions (not assignments)
-    'permissions',
-    'rbac_roles',
-    'role_permissions',
-    -- Platform config
-    'platform_settings',
-    'policy_configs',
-    -- Migrations
-    '_prisma_migrations'
-  ];
-  tbl TEXT;
-  tables_to_truncate TEXT[];
-BEGIN
-  -- Collect all non-reference user tables
-  SELECT array_agg(quote_ident(tablename))
-  INTO tables_to_truncate
-  FROM pg_tables
-  WHERE schemaname = 'public'
-    AND tablename NOT IN (SELECT unnest(preserve));
+  psql "$PSQL_URL" -v ON_ERROR_STOP=1 <<'SQL'
+-- Wipe all user-owned data via cascade from root tables
+-- admins table is NOT included — preserve admin accounts
+TRUNCATE TABLE
+  users,
+  employers
+CASCADE;
 
-  IF tables_to_truncate IS NULL OR array_length(tables_to_truncate, 1) = 0 THEN
-    RAISE NOTICE 'No tables to truncate.';
-    RETURN;
-  END IF;
-
-  EXECUTE 'TRUNCATE TABLE ' || array_to_string(tables_to_truncate, ', ') || ' CASCADE';
-  RAISE NOTICE 'Truncated % tables.', array_length(tables_to_truncate, 1);
-END $$;
+-- Wipe any orphaned tables not reached by above cascade
+TRUNCATE TABLE
+  search_suggestions,
+  blacklist,
+  content_reports,
+  announcements
+CASCADE;
 SQL
 
-echo -e "${GREEN}[INFO]${NC} Done. Reference data preserved. Re-run seed if needed:"
-echo "  sudo bash scripts/seed-test-data.sh"
+echo -e "${GREEN}[INFO]${NC} Done. Reference data and admin accounts preserved."
+echo "  Re-seed: sudo bash scripts/seed-test-data.sh"
