@@ -159,7 +159,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     setResumesLoading(true);
     setSelectedResumeId(null);
     try {
-      const res = await apiFetch<any>("/api/resumes", { credentials: "include" });
+      const res = await apiFetch<any>("/api/profile/resumes", { credentials: "include" });
       const items: any[] = res?.data?.items ?? res?.data ?? [];
       setResumes(Array.isArray(items) ? items : []);
     } catch {

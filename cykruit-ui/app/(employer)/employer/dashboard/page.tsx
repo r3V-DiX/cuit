@@ -48,6 +48,7 @@ const QUICK_LINKS = [
   { label: "View Applicants", href: "/employer/applicants", icon: <Users       className="w-4 h-4" />, requiresKyc: false },
   { label: "My Jobs",         href: "/employer/jobs",       icon: <Briefcase   className="w-4 h-4" />, requiresKyc: false },
   { label: "Company Profile", href: "/employer/company",    icon: <Building2   className="w-4 h-4" />, requiresKyc: false },
+  { label: "Team",            href: "/employer/team",       icon: <Users       className="w-4 h-4" />, requiresKyc: false },
 ];
 
 interface ApiJob {

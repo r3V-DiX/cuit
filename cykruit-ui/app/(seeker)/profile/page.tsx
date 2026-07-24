@@ -126,6 +126,15 @@ export default function ProfilePage() {
       });
 
       if (res.ok) {
+        // Also save the uploaded file as a seeker resume
+        const resumeForm = new FormData();
+        resumeForm.append("file", file);
+        await fetch("/api/profile/resumes", {
+          method: "POST",
+          credentials: "include",
+          headers: { "x-csrf-token": getCsrfToken() },
+          body: resumeForm,
+        });
         toast({ type: "success", message: "Profile Auto-filled!", description: "Your details have been extracted and saved." });
         loadProfile();
       } else {
@@ -1014,7 +1023,7 @@ export default function ProfilePage() {
             id: r.id,
             label: r.fileName.replace(/\.pdf$/i, ""),
             fileName: r.fileName,
-            size: `${Math.round(r.size / 1024)} KB`,
+            size: r.fileSize ? `${Math.round(r.fileSize / 1024)} KB` : "—",
             date: r.updatedAt ? new Date(r.updatedAt).toLocaleDateString() : "Just now",
           })));
         }

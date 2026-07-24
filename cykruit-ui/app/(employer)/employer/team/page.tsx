@@ -151,11 +151,11 @@ export default function TeamPage() {
   const canChangeRole = myRole === "OWNER";
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
+    <>
       <EmployerTopbar title="Team" />
       <KycGate>
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      <main className="flex-1 overflow-y-auto p-3 sm:p-6">
+        <div className="flex flex-col gap-5">
 
           {/* Header */}
           <div className="flex items-center justify-between flex-wrap gap-3">
@@ -368,13 +368,13 @@ export default function TeamPage() {
           </div>
 
         </div>
-      </div>
+      </main>
       </KycGate>
 
       {/* Close menu on outside click */}
       {openMenu && (
         <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
       )}
-    </div>
+    </>
   );
 }
