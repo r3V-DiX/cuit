@@ -9,7 +9,7 @@ import { useModal } from "@/components/ui/Modal";
 import {
   ChevronLeft, MapPin, Briefcase, Calendar, FileText,
   CheckCircle2, Eye, XCircle, Send, X, AlertCircle,
-  Clock, MessageSquare,
+  Clock, MessageSquare, Loader2,
 } from "lucide-react";
 import type { AppStatus, Application } from "../data";
 import { SEED } from "../data";
@@ -81,7 +81,9 @@ export default function ApplicationDetailPage() {
     return (
       <>
         <SeekerTopbar title="Application" />
-        <main className="flex-1 flex items-center justify-center p-6 text-slate-400">Loading...</main>
+        <main className="flex-1 flex items-center justify-center p-6">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+        </main>
       </>
     );
   }
