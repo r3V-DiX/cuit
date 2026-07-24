@@ -80,12 +80,12 @@ info "Free package: $FREE_PKG_ID"
 
 # ── 5. Create employer 1 ──────────────────────────────────────────────────────
 step "Creating Employer 1 (TechCorp)..."
-EMPLOYER1_USER_ID=$(run_sql "SELECT id FROM users WHERE email='employer1@test.com' LIMIT 1;")
+EMPLOYER1_USER_ID=$(run_sql "SELECT id FROM users WHERE email='yograj.hukumdar@rivedix.com' LIMIT 1;")
 
 if [ -z "$EMPLOYER1_USER_ID" ]; then
   EMPLOYER1_USER_ID=$(run_sql "
     INSERT INTO users (id, email, password, first_name, last_name, role, status, is_email_verified, email_verified_at, created_at, updated_at)
-    VALUES (gen_random_uuid(), 'employer1@test.com', '$EMPLOYER1_HASH', 'Raj', 'Sharma', 'EMPLOYER', 'ACTIVE', true, now(), now(), now())
+    VALUES (gen_random_uuid(), 'yograj.hukumdar@rivedix.com', '$EMPLOYER1_HASH', 'Yograj', 'Hukumdar', 'EMPLOYER', 'ACTIVE', true, now(), now(), now())
     RETURNING id;")
   info "Created user: $EMPLOYER1_USER_ID"
 else
@@ -120,6 +120,8 @@ if [ -z "$EMPLOYER2_USER_ID" ]; then
     VALUES (gen_random_uuid(), 'employer2@test.com', '$EMPLOYER2_HASH', 'Priya', 'Patel', 'EMPLOYER', 'ACTIVE', true, now(), now(), now())
     RETURNING id;")
   info "Created user: $EMPLOYER2_USER_ID"
+else
+  info "Employer 2 user already exists: $EMPLOYER2_USER_ID"
 fi
 
 EMPLOYER2_ID=$(run_sql "SELECT id FROM employers WHERE user_id='$EMPLOYER2_USER_ID' LIMIT 1;")
@@ -174,12 +176,12 @@ done
 
 # ── 8. Create seeker ──────────────────────────────────────────────────────────
 step "Creating Seeker (Arjun Dev)..."
-SEEKER_USER_ID=$(run_sql "SELECT id FROM users WHERE email='seeker1@test.com' LIMIT 1;")
+SEEKER_USER_ID=$(run_sql "SELECT id FROM users WHERE email='yograjhukumdar0@gmail.com' LIMIT 1;")
 
 if [ -z "$SEEKER_USER_ID" ]; then
   SEEKER_USER_ID=$(run_sql "
     INSERT INTO users (id, email, password, first_name, last_name, role, status, is_email_verified, email_verified_at, created_at, updated_at)
-    VALUES (gen_random_uuid(), 'seeker1@test.com', '$SEEKER_HASH', 'Arjun', 'Dev', 'SEEKER', 'ACTIVE', true, now(), now(), now())
+    VALUES (gen_random_uuid(), 'yograjhukumdar0@gmail.com', '$SEEKER_HASH', 'Yograj', 'Dev', 'SEEKER', 'ACTIVE', true, now(), now(), now())
     RETURNING id;")
   info "Created seeker user: $SEEKER_USER_ID"
 fi
@@ -188,7 +190,7 @@ SEEKER_PROFILE_ID=$(run_sql "SELECT id FROM job_seeker_profiles WHERE user_id='$
 if [ -z "$SEEKER_PROFILE_ID" ]; then
   SEEKER_PROFILE_ID=$(run_sql "
     INSERT INTO job_seeker_profiles (id, user_id, first_name, last_name, title, professional_summary, profile_completion, created_at, updated_at)
-    VALUES (gen_random_uuid(), '$SEEKER_USER_ID', 'Arjun', 'Dev', 'Full Stack Developer', 'Passionate developer with 3 years experience in React and Node.js.', 60, now(), now())
+    VALUES (gen_random_uuid(), '$SEEKER_USER_ID', 'Yograj', 'Dev', 'Full Stack Developer', 'Passionate developer with 3 years experience in React and Node.js.', 60, now(), now())
     RETURNING id;")
   info "Created seeker profile: $SEEKER_PROFILE_ID"
 
@@ -206,15 +208,15 @@ echo "   Test Data Seeded"
 echo "================================================"
 echo ""
 echo "  EMPLOYER 1 (TechCorp Solutions)"
-echo "    Email:    employer1@test.com"
+echo "    Email:    yograj.hukumdar@rivedix.com"
 echo "    Password: Test@1234"
 echo ""
 echo "  EMPLOYER 2 (StartupHub Ventures)"
 echo "    Email:    employer2@test.com"
 echo "    Password: Test@1234"
 echo ""
-echo "  SEEKER (Arjun Dev)"
-echo "    Email:    seeker1@test.com"
+echo "  SEEKER"
+echo "    Email:    yograjhukumdar0@gmail.com"
 echo "    Password: Test@1234"
 echo ""
 echo "  JOBS: 4 approved jobs (2 per employer)"
