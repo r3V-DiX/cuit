@@ -36,9 +36,23 @@ echo -e "${GREEN}[INFO]${NC} Re-running all migrations..."
 docker exec cykruit-v2-auth-service-1 npx prisma migrate deploy
 
 echo -e "${GREEN}[INFO]${NC} Running prisma seed (skills, locations, packages)..."
-docker exec cykruit-v2-auth-service-1 \
-  node_modules/.bin/ts-node --transpile-only --compiler-options '{"module":"CommonJS"}' \
-  prisma/seed/index.ts
+if docker exec cykruit-v2-auth-service-1 \
+  node -r ts-node/register/transpile-only prisma/seed/index.ts; then
+  echo -e "${GREEN}[INFO]${NC} Prisma seed completed."
+else
+  echo -e "${YELLOW}[WARN]${NC} Prisma seed failed — seeding admin manually..."
+  ADMIN_HASH=$(docker exec cykruit-v2-auth-service-1 node -e \
+    "const b=require('bcryptjs');b.hash('Admin@123',10).then(h=>process.stdout.write(h))")
+  docker run --rm \
+    --network cykruit-v2_default \
+    postgres:15-alpine \
+    psql "$PSQL_URL" -v ON_ERROR_STOP=1 -c "
+      INSERT INTO admins (id, email, password, \"firstName\", \"lastName\", \"createdAt\", \"updatedAt\")
+      VALUES (gen_random_uuid(), 'admin@cykruit.com', '$ADMIN_HASH', 'Super', 'Admin', now(), now())
+      ON CONFLICT (email) DO NOTHING;"
+  echo -e "${GREEN}[INFO]${NC} Admin created: admin@cykruit.com / Admin@123"
+  echo -e "${YELLOW}[WARN]${NC} Skills/locations/packages NOT seeded — run prisma db seed manually after fixing ts-node."
+fi
 
 echo ""
 echo -e "${GREEN}================================================${NC}"
