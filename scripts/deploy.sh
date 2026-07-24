@@ -206,6 +206,15 @@ do_migrate() {
   info "Migration complete."
 }
 
+do_seed() {
+  step "Running prisma seed (skills, locations, packages, admins)..."
+  pull_with_fallback cykruit-app auth-service "$ENV" "$TAG"
+  docker run --rm --env-file "$BACKEND_ENV" \
+    "$ECR_REGISTRY/cykruit-app:auth-service-$ENV-$TAG" \
+    npx --yes tsx prisma/seed/index.ts
+  info "Seed complete."
+}
+
 do_cykruit_app() {
   step "Pulling cykruit-app (sha=$TAG, fallback=latest per service)..."
   for svc in "${CYKRUIT_SERVICES[@]}"; do
@@ -254,8 +263,10 @@ run_deploy() {
     cykruit-ui)  do_cykruit_ui  ;;
     admin-ui)    do_admin_ui    ;;
     migrate)     do_migrate     ;;
+    seed)        do_seed        ;;
     all)
       do_migrate
+      do_seed
       do_cykruit_app
       do_admin_app
       do_cykruit_ui
@@ -289,30 +300,31 @@ echo "  2) admin-app"
 echo "  3) cykruit-ui"
 echo "  4) admin-ui"
 echo "  5) migrate      (prisma migrate deploy)"
-echo "  6) All services (migrate + all 4 apps)"
-echo "  7) Build env    (pull secrets from SSM)"
-echo "  8) Build env + Full deploy"
+echo "  6) seed         (prisma db seed — skills, locations, admins)"
+echo "  7) All services (migrate + seed + all 4 apps)"
+echo "  8) Build env    (pull secrets from SSM)"
+echo "  9) Build env + Full deploy"
 echo ""
-read -rp "Select (1-8): " OPT
+read -rp "Select (1-9): " OPT
 
 case "$OPT" in
-  1|2|3|4|5)
+  1|2|3|4|5|6)
     resolve_tag
-    run_deploy "$(case $OPT in 1) echo cykruit-app;; 2) echo admin-app;; 3) echo cykruit-ui;; 4) echo admin-ui;; 5) echo migrate;; esac)"
+    run_deploy "$(case $OPT in 1) echo cykruit-app;; 2) echo admin-app;; 3) echo cykruit-ui;; 4) echo admin-ui;; 5) echo migrate;; 6) echo seed;; esac)"
     ;;
-  6)
+  7)
     resolve_tag
-    warn "This will redeploy ALL services + run migrations."
+    warn "This will redeploy ALL services + run migrations + seed."
     read -rp "Confirm? (yes/no): " C; [ "$C" = "yes" ] || { info "Aborted."; exit 0; }
     run_deploy all
     ;;
-  7)
-    do_build_env
-    ;;
   8)
     do_build_env
+    ;;
+  9)
+    do_build_env
     resolve_tag
-    warn "This will rebuild env + redeploy ALL services + run migrations."
+    warn "This will rebuild env + redeploy ALL services + run migrations + seed."
     read -rp "Confirm? (yes/no): " C; [ "$C" = "yes" ] || { info "Aborted."; exit 0; }
     run_deploy all
     ;;

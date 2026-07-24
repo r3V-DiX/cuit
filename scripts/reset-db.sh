@@ -36,9 +36,8 @@ echo -e "${GREEN}[INFO]${NC} Re-running all migrations..."
 docker exec cykruit-v2-auth-service-1 npx prisma migrate deploy
 
 echo -e "${GREEN}[INFO]${NC} Running prisma seed (skills, locations, packages)..."
-docker exec cykruit-v2-auth-service-1 npm install tsx --no-save --silent 2>/dev/null || true
 if docker exec cykruit-v2-auth-service-1 \
-  node_modules/.bin/tsx prisma/seed/index.ts; then
+  npx --yes tsx prisma/seed/index.ts; then
   echo -e "${GREEN}[INFO]${NC} Prisma seed completed."
 else
   echo -e "${YELLOW}[WARN]${NC} Prisma seed failed — seeding admin manually..."
