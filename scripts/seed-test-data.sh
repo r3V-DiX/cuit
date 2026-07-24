@@ -147,14 +147,14 @@ fi
 step "Creating jobs..."
 
 create_job() {
-  local emp_id="$1" title="$2" slug="$3" jtype="$4" wmode="$5" level="$6" desc="$7"
+  local emp_id="$1" title="$2" slug="$3" jtype="$4" wmode="$5" level="$6" desc="$7" reqs="$8" resps="$9"
   local existing
   existing=$(run_sql "SELECT id FROM jobs WHERE slug='$slug' LIMIT 1;")
   if [ -z "$existing" ]; then
     local jid
     jid=$(run_sql "
-      INSERT INTO jobs (id, \"employerId\", \"jobTitle\", slug, \"jobType\", \"workMode\", \"experienceLevel\", description, \"applicationType\", status, \"locationId\", \"publishedAt\", \"expiresAt\", \"createdAt\", \"updatedAt\")
-      VALUES (gen_random_uuid(), '$emp_id', '$title', '$slug', '$jtype', '$wmode', '$level', '$desc', 'DIRECT', 'APPROVED', $([ -n "$LOCATION_ID" ] && echo "'$LOCATION_ID'" || echo "NULL"), now(), now() + interval '45 days', now(), now())
+      INSERT INTO jobs (id, \"employerId\", \"jobTitle\", slug, \"jobType\", \"workMode\", \"experienceLevel\", description, requirements, responsibilities, \"applicationType\", status, \"locationId\", \"publishedAt\", \"expiresAt\", \"createdAt\", \"updatedAt\")
+      VALUES (gen_random_uuid(), '$emp_id', '$title', '$slug', '$jtype', '$wmode', '$level', '$desc', '$reqs'::jsonb, '$resps'::jsonb, 'DIRECT', 'APPROVED', $([ -n "$LOCATION_ID" ] && echo "'$LOCATION_ID'" || echo "NULL"), now(), now() + interval '45 days', now(), now())
       RETURNING id;")
     echo "$jid"
   else
@@ -162,10 +162,29 @@ create_job() {
   fi
 }
 
-JOB1_ID=$(create_job "$EMPLOYER1_ID" "Senior React Developer" "senior-react-dev-techcorp" "FULL_TIME" "HYBRID" "SENIOR" "Build modern web applications using React and TypeScript.")
-JOB2_ID=$(create_job "$EMPLOYER1_ID" "Backend Node.js Engineer" "backend-nodejs-techcorp" "FULL_TIME" "REMOTE" "MID" "Design and build scalable REST APIs using Node.js and PostgreSQL.")
-JOB3_ID=$(create_job "$EMPLOYER2_ID" "Python Data Engineer" "python-data-engineer-startuphub" "FULL_TIME" "ONSITE" "MID" "Build data pipelines and analytics systems using Python.")
-JOB4_ID=$(create_job "$EMPLOYER2_ID" "Full Stack Intern" "fullstack-intern-startuphub" "INTERNSHIP" "HYBRID" "ENTRY" "Work across the stack with React and Node.js. Great for freshers.")
+JOB1_ID=$(create_job "$EMPLOYER1_ID" \
+  "Senior React Developer" "senior-react-dev-techcorp" "FULL_TIME" "HYBRID" "SENIOR" \
+  "Build modern web applications using React and TypeScript in a fast-paced product team." \
+  '["3+ years of experience with React and TypeScript","Strong understanding of component lifecycle and hooks","Experience with state management (Redux or Zustand)","Familiarity with REST APIs and GraphQL","Good communication skills"]' \
+  '["Design and implement reusable UI components","Collaborate with backend engineers on API contracts","Write unit and integration tests","Participate in code reviews","Contribute to technical documentation"]')
+
+JOB2_ID=$(create_job "$EMPLOYER1_ID" \
+  "Backend Node.js Engineer" "backend-nodejs-techcorp" "FULL_TIME" "REMOTE" "MID" \
+  "Design and build scalable REST APIs using Node.js and PostgreSQL for our core platform." \
+  '["2+ years of Node.js backend development","Experience with PostgreSQL and ORMs","Knowledge of RESTful API design principles","Understanding of authentication (JWT, OAuth)","Experience with Docker"]' \
+  '["Build and maintain REST APIs","Design database schemas and write efficient queries","Write automated tests","Monitor service performance and reliability","Collaborate with frontend engineers"]')
+
+JOB3_ID=$(create_job "$EMPLOYER2_ID" \
+  "Python Data Engineer" "python-data-engineer-startuphub" "FULL_TIME" "ONSITE" "MID" \
+  "Build data pipelines and analytics systems using Python to power our data-driven product." \
+  '["2+ years of Python development","Experience with data pipeline tools (Airflow, Luigi)","Strong SQL skills","Familiarity with cloud data warehouses (BigQuery, Redshift)","Knowledge of data modeling concepts"]' \
+  '["Design and implement ETL pipelines","Maintain and optimize data warehouse","Build dashboards and reports","Collaborate with product and analytics teams","Ensure data quality and integrity"]')
+
+JOB4_ID=$(create_job "$EMPLOYER2_ID" \
+  "Full Stack Intern" "fullstack-intern-startuphub" "INTERNSHIP" "HYBRID" "ENTRY" \
+  "Work across the stack with React and Node.js in a high-growth startup environment. Great for freshers." \
+  '["Basic knowledge of HTML, CSS, JavaScript","Familiarity with React or any frontend framework","Willingness to learn Node.js and databases","Good problem-solving attitude","Currently pursuing or recently completed CS/IT degree"]' \
+  '["Build and ship features across frontend and backend","Fix bugs and write tests","Participate in daily standups","Learn from senior engineers","Contribute to product discussions"]')
 
 info "Jobs: $JOB1_ID | $JOB2_ID | $JOB3_ID | $JOB4_ID"
 
