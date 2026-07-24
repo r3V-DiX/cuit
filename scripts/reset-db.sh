@@ -36,7 +36,9 @@ echo -e "${GREEN}[INFO]${NC} Re-running all migrations..."
 docker exec cykruit-v2-auth-service-1 npx prisma migrate deploy
 
 echo -e "${GREEN}[INFO]${NC} Running prisma seed (skills, locations, packages)..."
-docker exec cykruit-v2-auth-service-1 npx prisma db seed
+docker exec cykruit-v2-auth-service-1 \
+  node_modules/.bin/ts-node --transpile-only --compiler-options '{"module":"CommonJS"}' \
+  prisma/seed/index.ts
 
 echo ""
 echo -e "${GREEN}================================================${NC}"
