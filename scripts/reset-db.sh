@@ -37,7 +37,7 @@ docker exec cykruit-v2-auth-service-1 npx prisma migrate deploy
 
 echo -e "${GREEN}[INFO]${NC} Running prisma seed (skills, locations, packages)..."
 if docker exec cykruit-v2-auth-service-1 \
-  node -r ts-node/register/transpile-only prisma/seed/index.ts; then
+  node_modules/.bin/tsx prisma/seed/index.ts; then
   echo -e "${GREEN}[INFO]${NC} Prisma seed completed."
 else
   echo -e "${YELLOW}[WARN]${NC} Prisma seed failed — seeding admin manually..."
