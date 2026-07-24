@@ -7,6 +7,7 @@ import { ExperienceService } from "./experience.service";
 import { EducationService } from "./education.service";
 import { SkillsService } from "./skills.service";
 import { CertificationsService } from "./certifications.service";
+import { ResumeService } from "./resume.service";
 import { InjectQueue } from "@nestjs/bull";
 import { Queue } from "bull";
 import { AI_QUEUES, AI_JOB_NAMES } from "@cykruit/ai";
@@ -39,13 +40,14 @@ export class AIProfileService {
     private readonly educationService: EducationService,
     private readonly skillsService: SkillsService,
     private readonly certsService: CertificationsService,
+    private readonly resumeService: ResumeService,
     private readonly prisma: PrismaService,
     @InjectQueue(AI_QUEUES.AI_JOBS) private readonly aiQueue: Queue,
   ) {}
 
-  async parseResumeAndApply(userId: string, pdfBuffer: Buffer) {
+  async parseResumeAndApply(userId: string, file: Express.Multer.File) {
     this.logger.log(`Extracting text from PDF for user ${userId}`);
-    const text = await this.aiService.extractTextFromPDF(pdfBuffer);
+    const text = await this.aiService.extractTextFromPDF(file.buffer);
     
     this.logger.log(`Parsing extracted text via ai-service`);
     const aiUrl = this.configService.get<string>('AI_SERVICE_URL') || 'http://localhost:3005';
@@ -108,15 +110,27 @@ export class AIProfileService {
     if (parsedExperiences && parsedExperiences.length > 0) {
       for (const exp of parsedExperiences) {
         if (!exp.title || !exp.company) continue;
-        const validStartDate = exp.startDate?.match(/^\d{4}-(0[1-9]|1[0-2])$/) ? exp.startDate : "2020-01";
-        const validEndDate = exp.endDate?.match(/^\d{4}-(0[1-9]|1[0-2])$/) ? exp.endDate : undefined;
+
+        let validStartDate = exp.startDate?.match(/^\d{4}-(0[1-9]|1[0-2])$/)
+          ? exp.startDate
+          : (exp.startDate?.match(/^\d{4}$/) ? `${exp.startDate}-01` : "2020-01");
+
+        let validEndDate = exp.endDate?.match(/^\d{4}-(0[1-9]|1[0-2])$/)
+          ? exp.endDate
+          : (exp.endDate?.match(/^\d{4}$/) ? `${exp.endDate}-12` : undefined);
+
+        const isCurrent = exp.isCurrent ?? (!validEndDate);
+        if (!isCurrent && !validEndDate) {
+          validEndDate = validStartDate;
+        }
+
         await this.experienceService.createExperience(userId, {
           title: exp.title.substring(0, 100),
           company: exp.company.substring(0, 100),
           location: exp.location?.substring(0, 200) || "Remote",
           startDate: validStartDate,
-          endDate: validEndDate,
-          current: exp.isCurrent,
+          endDate: isCurrent ? undefined : validEndDate,
+          current: isCurrent,
           description: (exp.description || "Parsed from resume.").substring(0, 2000),
           tools: ["General"],
         }).catch(e => this.logger.warn("Failed saving experience", e.message));
@@ -205,7 +219,12 @@ export class AIProfileService {
       this.logger.warn("Failed updating profile completion after AI import", e.message),
     );
 
-    return { message: "Resume parsed and profile updated successfully.", parsedData };
+    this.logger.log(`Saving resume to DB and S3 for user ${userId} following successful AI parse`);
+    await this.resumeService.uploadResume(userId, file).catch(e =>
+      this.logger.warn("Failed saving resume to DB/S3 after AI parse", e.message),
+    );
+
+    return { message: "Resume parsed, saved, and profile updated successfully.", parsedData };
   }
 
   async generateBio(userId: string) {

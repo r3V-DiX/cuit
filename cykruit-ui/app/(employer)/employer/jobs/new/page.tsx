@@ -223,12 +223,75 @@ export default function PostJobPage() {
     setQuestions((prev) => prev.map((q) => q.id === qid ? { ...q, options: q.options.filter((_, i) => i !== idx) } : q));
   }
 
-  function generateAITags() {
-    toast({ type: "error", message: "AI tag suggestions coming soon" });
+  async function generateAITags() {
+    if (!title.trim()) {
+      toast({ type: "error", message: "Please enter a job title first" });
+      return;
+    }
+    setTagsGenerating(true);
+    try {
+      const res = await fetch("/api/ai/jobs/suggest-skills", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title.trim(), description: description.trim() || title.trim() }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const suggested: string[] = data.skills || [];
+        if (suggested.length > 0) {
+          setTags(Array.from(new Set([...tags, ...suggested])));
+          toast({ type: "success", message: `Added ${suggested.length} AI skill suggestions!` });
+        } else {
+          toast({ type: "info", message: "No skills generated" });
+        }
+      } else {
+        toast({ type: "error", message: "Failed to generate skill tags" });
+      }
+    } catch (e) {
+      toast({ type: "error", message: "Error generating skill tags" });
+    } finally {
+      setTagsGenerating(false);
+    }
   }
 
-  function generateAIQuestions() {
-    toast({ type: "error", message: "AI question generation coming soon" });
+  async function generateAIQuestions() {
+    if (!title.trim()) {
+      toast({ type: "error", message: "Please enter a job title first" });
+      return;
+    }
+    setSqGenerating(true);
+    try {
+      const res = await fetch("/api/ai/jobs/generate-questions", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title.trim(), description: description.trim() || undefined }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const generatedQuestions = data.questions || [];
+        if (generatedQuestions.length > 0) {
+          const formatted: Question[] = generatedQuestions.map((q: any, idx: number) => ({
+            id: Date.now() + idx,
+            type: (q.type === "single" || q.type === "boolean" || q.type === "text") ? q.type : "text",
+            question: q.question,
+            options: q.type === "boolean" ? ["Yes", "No"] : (q.options || ["Option 1", "Option 2"]),
+            required: !!q.required,
+          }));
+          setQuestions((prev) => [...prev, ...formatted]);
+          toast({ type: "success", message: `Generated ${formatted.length} screening questions!` });
+        } else {
+          toast({ type: "info", message: "No questions generated" });
+        }
+      } else {
+        toast({ type: "error", message: "Failed to generate screening questions" });
+      }
+    } catch (e) {
+      toast({ type: "error", message: "Error generating screening questions" });
+    } finally {
+      setSqGenerating(false);
+    }
   }
 
   const TYPE_CFG: Record<QuestionType, { label: string; icon: React.ReactNode; color: string }> = {

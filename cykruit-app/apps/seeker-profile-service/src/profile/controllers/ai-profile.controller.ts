@@ -38,7 +38,7 @@ export class AIProfileController {
     if (file.mimetype !== "application/pdf") {
       throw new BadRequestException("Only PDF files are supported");
     }
-    return this.aiProfileService.parseResumeAndApply(user.id, file.buffer);
+    return this.aiProfileService.parseResumeAndApply(user.id, file);
   }
 
   @Get("generate-bio")

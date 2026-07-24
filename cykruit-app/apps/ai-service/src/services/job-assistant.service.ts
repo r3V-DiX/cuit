@@ -32,6 +32,17 @@ const InferDomainSchema = z.object({
   ]).describe("The most likely cybersecurity domain for this job title. If unsure, guess the closest match.")
 });
 
+const ScreeningQuestionSchema = z.object({
+  type: z.enum(["text", "single", "boolean"]).describe("The question type"),
+  question: z.string().describe("The screening question text"),
+  options: z.array(z.string()).optional().describe("Options if type is single choice"),
+  required: z.boolean().describe("Whether this screening question is required"),
+});
+
+const ScreeningQuestionsSchema = z.object({
+  questions: z.array(ScreeningQuestionSchema).describe("List of 3 to 5 relevant screening questions for this job post"),
+});
+
 export type SuggestedSkills = z.infer<typeof SuggestedSkillsSchema>;
 
 @Injectable()
@@ -104,6 +115,24 @@ ${description}
       return await this.aiService.generateStructured(prompt, InferDomainSchema);
     } catch (error) {
       this.logger.error("Failed to infer domain", error);
+      throw error;
+    }
+  }
+
+  async generateScreeningQuestions(title: string, description?: string) {
+    const prompt = `
+You are an expert recruiter. Generate 3 to 5 relevant candidate screening questions for the following job position.
+Job Title: ${title}
+${description ? `Job Description:\n${description}` : ''}
+
+Include a mix of text, single choice, and boolean (yes/no) question types where appropriate.
+`;
+
+    try {
+      this.logger.debug("Generating screening questions with LLM...");
+      return await this.aiService.generateStructured(prompt, ScreeningQuestionsSchema);
+    } catch (error) {
+      this.logger.error("Failed to generate screening questions", error);
       throw error;
     }
   }

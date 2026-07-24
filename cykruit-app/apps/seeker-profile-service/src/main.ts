@@ -98,6 +98,9 @@ async function bootstrap() {
   app.use(cookieParser());
   app.use(compression());
 
+  const path = await import("path");
+  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
   // Sanitize first, then validate
   app.useGlobalPipes(
     new SanitizationPipe(),

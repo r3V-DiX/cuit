@@ -9,6 +9,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
+import * as fs from "fs";
 import * as path from "path";
 import {
   UploadOptions,
@@ -23,6 +24,7 @@ export class UploadService {
   private s3Client: S3Client;
   private buckets: Record<BucketType, string>;
   private defaultMaxSizeInMB: number;
+  private driver: "local" | "s3";
 
   private privateBuckets: Set<BucketType> = new Set([
     BucketType.RESUMES,
@@ -31,17 +33,15 @@ export class UploadService {
   ]);
 
   constructor(private configService: ConfigService) {
+    this.driver = this.configService.get("upload.driver") || "local";
     const awsConfig = this.configService.get("upload.aws");
 
-    // Explicit credentials override the SDK default chain, so only pass them
-    // when both keys are configured (local dev); on EC2 the instance role
-    // authenticates. Matches libs/ai/src/providers/bedrock.provider.ts.
     const credentials = awsConfig.accessKeyId && awsConfig.secretAccessKey
       ? { accessKeyId: awsConfig.accessKeyId, secretAccessKey: awsConfig.secretAccessKey }
       : undefined;
 
     this.s3Client = new S3Client({
-      region: awsConfig.region,
+      region: awsConfig.region || "us-east-1",
       ...(credentials ? { credentials } : {}),
     });
 
@@ -59,10 +59,37 @@ export class UploadService {
     this.validateFile(file, options);
 
     const bucketName = this.buckets[options.bucket];
+    const fileExtension = path.extname(file.originalname);
+    const safeFileName = file.originalname
+      .replace(/[^a-zA-Z0-9._\-]/g, '_')
+      .slice(0, 255);
+
+    if (this.driver === "local") {
+      try {
+        const uniqueName = `${uuidv4()}${fileExtension}`;
+        const relativeKey = `${options.folder}/${uniqueName}`;
+        const targetDir = path.join(process.cwd(), "uploads", options.folder);
+        fs.mkdirSync(targetDir, { recursive: true });
+        const filePath = path.join(targetDir, uniqueName);
+        fs.writeFileSync(filePath, file.buffer);
+
+        const fileUrl = `/uploads/${relativeKey}`;
+        return {
+          fileUrl,
+          fileName: safeFileName,
+          fileSize: file.size,
+          fileType: file.mimetype,
+          key: relativeKey,
+          bucket: bucketName || "local",
+        };
+      } catch (error) {
+        throw new BadRequestException(`Failed to upload locally: ${error.message}`);
+      }
+    }
+
     if (!bucketName)
       throw new BadRequestException(`Bucket config missing: ${options.bucket}`);
 
-    const fileExtension = path.extname(file.originalname);
     const key = `${options.folder}/${uuidv4()}${fileExtension}`;
 
     try {
@@ -78,10 +105,6 @@ export class UploadService {
       const region = this.configService.get("upload.aws.region");
       const fileUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${key}`;
 
-      const safeFileName = file.originalname
-        .replace(/[^a-zA-Z0-9._\-]/g, '_')
-        .slice(0, 255);
-
       return {
         fileUrl,
         fileName: safeFileName,
@@ -96,6 +119,16 @@ export class UploadService {
   }
 
   async deleteFile(options: DeleteFileOptions): Promise<void> {
+    if (this.driver === "local") {
+      const localPath = path.join(process.cwd(), "uploads", options.key);
+      if (fs.existsSync(localPath)) {
+        try {
+          fs.unlinkSync(localPath);
+        } catch { /* silent */ }
+      }
+      return;
+    }
+
     const bucketName = this.buckets[options.bucket];
     if (!bucketName)
       throw new BadRequestException(`Bucket config missing: ${options.bucket}`);
@@ -114,6 +147,10 @@ export class UploadService {
     bucketType: BucketType,
     expiresIn: number = 3600,
   ): Promise<string> {
+    if (this.driver === "local") {
+      return key.startsWith("/") ? key : `/uploads/${key}`;
+    }
+
     const bucketName = this.buckets[bucketType];
     if (!bucketName)
       throw new BadRequestException(`Bucket config missing: ${bucketType}`);

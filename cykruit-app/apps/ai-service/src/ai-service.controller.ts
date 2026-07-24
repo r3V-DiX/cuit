@@ -64,6 +64,14 @@ export class AiServiceController {
     return this.jobAssistantService.suggestJobSkills(body.title, body.description);
   }
 
+  @Post('jobs/generate-questions')
+  async generateScreeningQuestions(@Body() body: { title: string, description?: string }) {
+    if (!body.title) {
+      throw new BadRequestException('Title is required');
+    }
+    return this.jobAssistantService.generateScreeningQuestions(body.title, body.description);
+  }
+
   @Post('profile/generate-bio')
   async generateBio(@Body() body: { title: string, skills: string[], experienceTitles: string[] }) {
     return this.seekerAssistantService.generateBio(body.title, body.skills, body.experienceTitles);

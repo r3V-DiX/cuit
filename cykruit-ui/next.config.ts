@@ -116,6 +116,10 @@ const nextConfig: NextConfig = {
         source: "/api/ai/:path*",
         destination: `${AI_URL}/ai/:path*`,
       },
+      {
+        source: "/uploads/:path*",
+        destination: `${PROFILE_URL}/uploads/:path*`,
+      },
     ];
   },
 };

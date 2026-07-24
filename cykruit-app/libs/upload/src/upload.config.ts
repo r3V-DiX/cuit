@@ -19,5 +19,6 @@ export default registerAs("upload", () => ({
       companyMediaImages: process.env.S3_COMPANY_MEDIA || process.env.AWS_S3_BUCKET_COMPANY_MEDIA || "cykruit-company-banner-prod",
     },
   },
+  driver: process.env.UPLOAD_DRIVER || (process.env.NODE_ENV === "development" ? "local" : "s3"),
   defaultMaxSizeInMB: 5,
 }));
