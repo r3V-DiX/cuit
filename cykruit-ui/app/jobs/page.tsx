@@ -10,7 +10,7 @@ import {
   Shield, Terminal, Lock, Bug, Wifi, Eye, Cpu, Crosshair,
   Network, Binary, ChevronLeft, ChevronRight, Sparkles,
 } from "lucide-react";
-import { domains, jobTypes, remoteTypes, type Job } from "@/lib/jobs-data";
+import { jobTypes, remoteTypes, type Job } from "@/lib/jobs-data";
 import SearchBox from "@/components/ui/SearchBox";
 import { apiFetch } from "@/lib/api";
 import { JobCardSkeletonGrid } from "@/components/ui/skeletons/JobCardSkeleton";
@@ -32,14 +32,27 @@ function formatEnum(value: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+async function fetchDomains(): Promise<{ id: string; name: string; slug: string }[]> {
+  try {
+    const base = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    const result = await apiFetch<any>(`${base}/api/public/domains`);
+    if (Array.isArray(result?.data)) return result.data;
+    if (Array.isArray(result)) return result;
+    return [];
+  } catch {
+    return [];
+  }
+}
+
 async function fetchJobs(params: {
-  q: string; spec: string; type: string; mode: string; page: number; limit: number;
+  q: string; domainId: string; type: string; mode: string; page: number; limit: number;
 }): Promise<{ data: Job[]; total: number; totalPages: number }> {
   try {
-    const { q, spec, type, mode, page, limit } = params;
+    const { q, domainId, type, mode, page, limit } = params;
     const base = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
     const url = new URL("/api/public/jobs", base);
     if (q) url.searchParams.set("search", q);
+    if (domainId) url.searchParams.set("domainId", domainId);
     if (type && type !== "All") {
       url.searchParams.set("jobType", type.toUpperCase().replace(/-/g, "_"));
     }
@@ -116,13 +129,21 @@ function JobsContent() {
     data: [], total: 0, totalPages: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [domainList, setDomainList] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetchDomains().then(setDomainList);
+  }, []);
+
+  const domainOptions = ["All", ...domainList.map((d) => d.name)];
+  const domainIdForFilter = domainList.find((d) => d.name === specFilter)?.id ?? "";
 
   useEffect(() => {
     setLoading(true);
-    fetchJobs({ q: search, spec: specFilter, type: typeFilter, mode: modeFilter, page, limit: JOBS_PER_PAGE })
+    fetchJobs({ q: search, domainId: domainIdForFilter, type: typeFilter, mode: modeFilter, page, limit: JOBS_PER_PAGE })
       .then(setResult)
       .finally(() => setLoading(false));
-  }, [search, specFilter, typeFilter, modeFilter, page]);
+  }, [search, domainIdForFilter, typeFilter, modeFilter, page]);
 
   const setParams = useCallback((updates: Record<string, string>) => {
     const next = new URLSearchParams(params.toString());
@@ -222,7 +243,7 @@ function JobsContent() {
 
             {/* Filter row — horizontally scrollable on mobile */}
             <div className="flex items-center gap-2 overflow-x-auto pb-0.5 sm:pb-0 sm:flex-wrap scrollbar-hide">
-              <FilterDropdown label="Domain"    options={domains}      value={specFilter} onChange={(v) => setParams({ spec: v })} />
+              <FilterDropdown label="Domain"    options={domainOptions} value={specFilter} onChange={(v) => setParams({ spec: v })} />
               <FilterDropdown label="Job Type"  options={jobTypes}     value={typeFilter} onChange={(v) => setParams({ type: v })} />
               <FilterDropdown label="Work Mode" options={remoteTypes}  value={modeFilter} onChange={(v) => setParams({ mode: v })} />
 

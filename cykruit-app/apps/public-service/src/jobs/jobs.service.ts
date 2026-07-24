@@ -178,6 +178,7 @@ export class JobsService {
     if (dto.workMode) where.workMode = dto.workMode;
     if (dto.locationId) where.locationId = dto.locationId;
     if (dto.experienceLevel) where.experienceLevel = dto.experienceLevel;
+    if (dto.domainId) where.role = { domainId: dto.domainId };
 
     const [jobs, total] = await this.prisma.$transaction([
       this.prisma.job.findMany({

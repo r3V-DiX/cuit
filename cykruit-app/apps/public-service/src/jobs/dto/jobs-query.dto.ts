@@ -57,6 +57,14 @@ export class JobsQueryDto {
   experienceLevel?: ExperienceLevel;
 
   @ApiPropertyOptional({
+    description: "Filter by job domain ID",
+    example: "some-uuid",
+  })
+  @IsOptional()
+  @IsString()
+  domainId?: string;
+
+  @ApiPropertyOptional({
     description: "Page number for pagination",
     default: 1,
     example: 1,
