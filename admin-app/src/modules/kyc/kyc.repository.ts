@@ -67,6 +67,7 @@ export class KycRepository {
                 employer: {
                     select: {
                         id: true,
+                        userId: true,
                         companyName: true,
                         slug: true,
                         companyLogo: true,

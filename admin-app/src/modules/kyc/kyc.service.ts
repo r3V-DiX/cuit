@@ -93,18 +93,16 @@ export class KycService {
             where: { employerId: record.employerId, role: 'OWNER' },
             select: { userId: true },
         });
-        if (owner) {
-            this.eventPublisher.publish(
-                DomainEventType.KYC_APPROVED,
-                {
-                    verificationId: id,
-                    employerId: record.employerId,
-                    employerUserId: owner.userId,
-                    companyName: record.employer.companyName,
-                },
-                'admin-app',
-            );
-        }
+        this.eventPublisher.publish(
+            DomainEventType.KYC_APPROVED,
+            {
+                verificationId: id,
+                employerId: record.employerId,
+                employerUserId: owner?.userId ?? record.employer.userId,
+                companyName: record.employer.companyName,
+            },
+            'admin-app',
+        );
 
         return this.enrichForClient(updated);
     }
@@ -139,19 +137,17 @@ export class KycService {
             where: { employerId: record.employerId, role: 'OWNER' },
             select: { userId: true },
         });
-        if (owner) {
-            this.eventPublisher.publish(
-                DomainEventType.KYC_REJECTED,
-                {
-                    verificationId: id,
-                    employerId: record.employerId,
-                    employerUserId: owner.userId,
-                    companyName: record.employer.companyName,
-                    rejectionReason: dto.rejectionReason,
-                },
-                'admin-app',
-            );
-        }
+        this.eventPublisher.publish(
+            DomainEventType.KYC_REJECTED,
+            {
+                verificationId: id,
+                employerId: record.employerId,
+                employerUserId: owner?.userId ?? record.employer.userId,
+                companyName: record.employer.companyName,
+                rejectionReason: dto.rejectionReason,
+            },
+            'admin-app',
+        );
 
         return this.enrichForClient(updated);
     }
