@@ -210,40 +210,33 @@ function JobsContent() {
             <circle cx="40" cy="50" r="3" fill="#06B6D4"/>
           </svg>
 
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
-            <div className="flex items-center gap-1.5 text-xs font-mono text-blue-600 mb-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 relative z-10">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-xs font-mono font-semibold text-blue-600 mb-5">
               <Shield className="w-3.5 h-3.5" />
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
               CYBERSECURITY JOBS
             </div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 mb-3">Browse Open Roles</h1>
 
-            <div className="max-w-2xl bg-slate-50 border border-slate-200 rounded-2xl px-4 sm:px-5 py-4">
-              <p className="text-slate-600 text-sm leading-relaxed mb-2">
-                Every role on Cykruit is hand-verified and specific to cybersecurity — no generic IT noise, no
-                recruiter spam. From red team operators to cloud security architects, find the role that actually
-                matches your skillset.
-              </p>
-            </div>
-          </div>
-        </div>
+            {/* Headline */}
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900 tracking-tight mb-3">
+              Browse Open Roles
+            </h1>
+            <p className="text-slate-500 text-sm sm:text-base max-w-xl mb-8">
+              Hand-verified cybersecurity roles only — no IT noise, no recruiter spam.
+            </p>
 
-        {/* ── Search + filters bar ────────────────────────────────────────── */}
-        <div className="bg-white border-b border-slate-200 sticky top-16 z-30 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-            <div className="flex flex-col md:flex-row md:items-center gap-3">
-              {/* Search */}
+            {/* ── Inline search + filters ───────────────────────────────── */}
+            <div className="flex flex-col lg:flex-row lg:items-center gap-3">
               <SearchBox
                 defaultValue={search}
                 placeholder="Search roles, skills, companies…"
                 onSearch={(q) => setParams({ q })}
-                className="w-full md:w-72 shrink-0"
+                className="w-full lg:w-96 shrink-0"
               />
 
-              {/* Divider */}
-              <div className="w-px h-6 bg-slate-200 hidden md:block shrink-0" />
+              <div className="w-px h-6 bg-slate-200 hidden lg:block shrink-0" />
 
-              {/* Filters */}
               <div className="flex items-center gap-2 flex-wrap">
                 <FilterDropdown label="Domain"    options={domainOptions} value={specFilter} onChange={(v) => setParams({ spec: v })} />
                 <FilterDropdown label="Job Type"  options={jobTypes}      value={typeFilter} onChange={(v) => setParams({ type: v })} />
