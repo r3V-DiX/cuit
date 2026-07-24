@@ -227,7 +227,32 @@ create_application "$SEEKER_USER_ID" "$JOB1_ID" "APPLIED"
 create_application "$SEEKER_USER_ID" "$JOB2_ID" "SHORTLISTED"
 create_application "$SEEKER_USER_ID" "$JOB3_ID" "APPLIED"
 
-# ── 10. Summary ───────────────────────────────────────────────────────────────
+# ── 10. Seed search suggestions from roles + skills ───────────────────────────
+step "Seeding search suggestions..."
+ADMIN_ID=$(run_sql "SELECT id FROM admins WHERE email='admin@cykruit.com' LIMIT 1;")
+if [ -n "$ADMIN_ID" ]; then
+  # Insert all role names as ROLE suggestions
+  run_sql_multi "
+    INSERT INTO search_suggestions (id, text, type, \"isActive\", \"createdBy\", \"createdAt\", \"updatedAt\")
+    SELECT gen_random_uuid(), name, 'ROLE', true, '$ADMIN_ID', now(), now()
+    FROM roles
+    WHERE name IS NOT NULL
+    ON CONFLICT (text, type) DO NOTHING;"
+  info "Seeded role suggestions"
+
+  # Insert top skills as SKILL suggestions
+  run_sql_multi "
+    INSERT INTO search_suggestions (id, text, type, \"isActive\", \"createdBy\", \"createdAt\", \"updatedAt\")
+    SELECT gen_random_uuid(), name, 'SKILL', true, '$ADMIN_ID', now(), now()
+    FROM skills
+    WHERE name IS NOT NULL
+    ON CONFLICT (text, type) DO NOTHING;"
+  info "Seeded skill suggestions"
+else
+  warn "No admin found — skipping search suggestions (run reset-db.sh first to seed admin)"
+fi
+
+# ── 11. Summary ───────────────────────────────────────────────────────────────
 echo ""
 echo "================================================"
 echo "   Test Data Seeded"
