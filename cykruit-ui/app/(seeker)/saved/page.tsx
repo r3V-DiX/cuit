@@ -7,8 +7,9 @@ import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
 import {
   MapPin, Bookmark, ArrowRight, Clock, Search, X,
-  Briefcase, SlidersHorizontal, Inbox, ArrowUpDown, Loader2,
+  Briefcase, SlidersHorizontal, Inbox, ArrowUpDown,
 } from "lucide-react";
+import { SavedJobSkeletonList } from "@/components/ui/skeletons/SavedJobSkeleton";
 import { apiFetch, authHeaders } from "@/lib/api";
 
 type SavedJob = {
@@ -232,12 +233,8 @@ export default function SavedPage() {
             )}
           </div>
 
-          {/* Loading */}
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-slate-400">
-              <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              <span className="text-sm">Loading saved jobs…</span>
-            </div>
+            <SavedJobSkeletonList count={4} />
           ) : filtered.length === 0 ? (
             <div className="text-center py-16 text-slate-400 bg-white rounded-2xl border border-slate-200">
               <Inbox className="w-8 h-8 mx-auto mb-3 opacity-30" />

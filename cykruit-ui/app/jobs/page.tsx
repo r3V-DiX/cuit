@@ -13,6 +13,7 @@ import {
 import { domains, jobTypes, remoteTypes, type Job } from "@/lib/jobs-data";
 import SearchBox from "@/components/ui/SearchBox";
 import { apiFetch } from "@/lib/api";
+import { JobCardSkeletonGrid } from "@/components/ui/skeletons/JobCardSkeleton";
 
 const JOBS_PER_PAGE = 9;
 
@@ -311,26 +312,7 @@ function JobsContent() {
           </p>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {Array.from({ length: JOBS_PER_PAGE }).map((_, i) => (
-                <div key={i} className="rounded-2xl bg-white border border-slate-200 p-5 space-y-3 animate-pulse">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 shrink-0" />
-                    <div className="flex-1 space-y-1.5">
-                      <div className="h-3 bg-slate-100 rounded w-1/3" />
-                      <div className="h-4 bg-slate-100 rounded w-2/3" />
-                    </div>
-                  </div>
-                  <div className="h-3 bg-slate-100 rounded w-1/2" />
-                  <div className="h-8 bg-slate-100 rounded" />
-                  <div className="flex gap-1.5">
-                    <div className="h-6 w-16 bg-slate-100 rounded-lg" />
-                    <div className="h-6 w-20 bg-slate-100 rounded-lg" />
-                    <div className="h-6 w-14 bg-slate-100 rounded-lg" />
-                  </div>
-                </div>
-              ))}
-            </div>
+            <JobCardSkeletonGrid count={JOBS_PER_PAGE} />
           ) : paginated.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <Shield className="w-10 h-10 text-slate-200 mb-3" />

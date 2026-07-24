@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
+import { ApplicationListSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 import {
   FileText,
   Bookmark,
@@ -52,6 +53,7 @@ export default function DashboardPage() {
   const [profilePct, setProfilePct] = useState(0);
   const [profileChecks, setProfileChecks] = useState<{label: string, done: boolean}[]>([]);
   const [recentApps, setRecentApps] = useState<any[]>([]);
+  const [loadingDashboard, setLoadingDashboard] = useState(true);
   const [recommendedJobs, setRecommendedJobs] = useState<any[]>([]);
   const [stats, setStats] = useState({
     applied: 0,
@@ -168,6 +170,8 @@ export default function DashboardPage() {
         }
       } catch (error) {
         // Silent catch for guest fallback
+      } finally {
+        setLoadingDashboard(false);
       }
     }
     fetchUserAndProfile();
@@ -289,7 +293,9 @@ export default function DashboardPage() {
               </div>
 
               <div className="divide-y divide-slate-100">
-                {recentApps.length === 0 ? (
+                {loadingDashboard ? (
+                  <ApplicationListSkeleton count={3} />
+                ) : recentApps.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
                     <FileText className="w-8 h-8 text-slate-200 mb-2" />
                     <p className="text-sm font-medium text-slate-500">No applications yet</p>

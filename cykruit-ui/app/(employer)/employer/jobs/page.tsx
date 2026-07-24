@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
 import { useKycStatus } from "@/lib/employer-context";
 import { KycGate } from "@/components/employer/KycGate";
+import { JobTableSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 
 const JOBS_PER_PAGE = 10;
 
@@ -209,9 +210,24 @@ export default function MyJobsPage() {
         {/* Table */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <span className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-3" />
-              <p className="text-slate-500 font-medium text-sm">Loading jobs…</p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-120">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/60">
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 font-mono">JOB TITLE</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 font-mono hidden md:table-cell">TYPE</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 font-mono hidden lg:table-cell">LOCATION</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 font-mono">APPLICANTS</th>
+                    <th className="text-center px-4 py-3 text-xs font-semibold text-slate-500 font-mono hidden sm:table-cell">VIEWS</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 font-mono">STATUS</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 font-mono hidden sm:table-cell">POSTED</th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  <JobTableSkeleton count={5} />
+                </tbody>
+              </table>
             </div>
           ) : jobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">

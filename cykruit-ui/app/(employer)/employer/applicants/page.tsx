@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 import { apiFetch } from "@/lib/api";
 import { KycGate } from "@/components/employer/KycGate";
 import { useKycStatus } from "@/lib/employer-context";
+import { ApplicantTableSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 
 type AppStatus = "APPLIED" | "UNDER_REVIEW" | "SHORTLISTED" | "INTERVIEW" | "OFFERED" | "REJECTED" | "HIRED" | "WITHDRAWN" | "New" | "Shortlisted" | "Interview" | "Rejected";
 
@@ -168,8 +169,23 @@ export default function ApplicantsPage() {
         {/* Table */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
           {loading ? (
-            <div className="flex justify-center items-center py-16">
-              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-120">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/60">
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-slate-500 font-mono">APPLICANT</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 font-mono hidden md:table-cell">APPLIED FOR</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 font-mono hidden lg:table-cell">SKILLS</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 font-mono hidden sm:table-cell">EXP</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 font-mono">STATUS</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-slate-500 font-mono hidden sm:table-cell">APPLIED</th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  <ApplicantTableSkeleton count={5} />
+                </tbody>
+              </table>
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">

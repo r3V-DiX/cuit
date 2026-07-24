@@ -5,8 +5,9 @@ import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import {
   MapPin, Clock, Search, X, ChevronRight,
-  ArrowUpDown, CheckCircle2, Eye, XCircle, Send, Inbox, Loader2,
+  ArrowUpDown, CheckCircle2, Eye, XCircle, Send, Inbox,
 } from "lucide-react";
+import { ApplicationListSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 import type { AppStatus } from "./data";
 import { apiFetch } from "@/lib/api";
 
@@ -145,9 +146,7 @@ export default function ApplicationsPage() {
           {/* Application rows */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
             {loading ? (
-              <div className="flex items-center justify-center py-14">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-              </div>
+              <ApplicationListSkeleton count={5} />
             ) : apps.length === 0 ? (
               <div className="text-center py-14 text-slate-400">
                 <Inbox className="w-8 h-8 mx-auto mb-2 opacity-40" />
