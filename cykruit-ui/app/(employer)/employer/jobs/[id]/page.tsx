@@ -141,7 +141,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           })));
         }
       } catch (e) {
-        console.error("Error polling applications", e);
+        if (process.env.NODE_ENV === "development") console.error("Error polling applications", e);
       }
     }, 3000);
     return () => clearInterval(interval);

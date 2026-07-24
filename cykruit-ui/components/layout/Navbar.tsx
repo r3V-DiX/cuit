@@ -11,20 +11,20 @@ const navLinks = [
   { label: "About", href: "/about" },
 ];
 
+function hasSessionCookie(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split(";").some((c) => c.trim().startsWith("csrf_token="));
+}
+
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  // Start as true only if a session cookie exists — avoids flash for logged-out visitors
+  const [loading, setLoading] = useState(() => hasSessionCookie());
 
   useEffect(() => {
-    // Only fetch if a session cookie is present — avoids skeleton flash for visitors
-    const hasSession = document.cookie.split(";").some((c) =>
-      c.trim().startsWith("csrf_token=")
-    );
-    if (!hasSession) return;
-
-    setLoading(true);
-    fetch("/api/auth/me")
+    if (!hasSessionCookie()) return;
+    fetch("/api/auth/me", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
       .then((result) => {
         if (result?.success && result?.data) setUser(result.data);
@@ -33,9 +33,12 @@ export default function Navbar() {
       .finally(() => setLoading(false));
   }, []);
 
+  const dashboardHref = user?.userType === "EMPLOYER" ? "/employer/dashboard" : "/dashboard";
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-bg-darkest border-b border-white/8 shadow-sm shadow-black/20">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
           <div className="w-8 h-8 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-shadow">
@@ -57,12 +60,19 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Desktop CTA */}
-        <div className="hidden md:flex items-center gap-3">
+        {/* Desktop CTA — fixed min-width so layout never shifts */}
+        <div className="hidden md:flex items-center gap-3 min-w-52 justify-end">
           {loading ? (
-            <div className="w-28 h-8 animate-pulse bg-white/10 rounded-lg"></div>
+            // Same dimensions as the buttons so layout is stable
+            <div className="flex items-center gap-3">
+              <div className="w-18 h-8 rounded-lg bg-white/10" />
+              <div className="w-26 h-8 rounded-lg bg-white/10" />
+            </div>
           ) : user ? (
-            <Link href={user.userType === "EMPLOYER" ? "/employer/dashboard" : "/dashboard"} className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors border border-white/10 group">
+            <Link
+              href={dashboardHref}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 transition-colors border border-white/10 group"
+            >
               <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
                 <User className="w-4 h-4" />
               </div>
@@ -70,12 +80,8 @@ export default function Navbar() {
             </Link>
           ) : (
             <>
-              <Button href="/login" variant="ghost" size="sm">
-                Sign In
-              </Button>
-              <Button href="/register" variant="primary" size="sm">
-                Get Started
-              </Button>
+              <Button href="/login" variant="ghost" size="sm">Sign In</Button>
+              <Button href="/register" variant="primary" size="sm">Get Started</Button>
             </>
           )}
         </div>
@@ -106,9 +112,9 @@ export default function Navbar() {
             ))}
             <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-white/8">
               {loading ? (
-                <div className="w-full h-10 animate-pulse bg-white/10 rounded-xl"></div>
+                <div className="w-full h-10 rounded-xl bg-white/10" />
               ) : user ? (
-                <Button href={user.userType === "EMPLOYER" ? "/employer/dashboard" : "/dashboard"} variant="primary" size="md" fullWidth>Dashboard</Button>
+                <Button href={dashboardHref} variant="primary" size="md" fullWidth>Dashboard</Button>
               ) : (
                 <>
                   <Button href="/login" variant="secondary" size="md" fullWidth>Sign In</Button>

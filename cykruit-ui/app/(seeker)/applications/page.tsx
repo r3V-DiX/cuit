@@ -5,7 +5,7 @@ import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import {
   MapPin, Clock, Search, X, ChevronRight,
-  ArrowUpDown, CheckCircle2, Eye, XCircle, Send, Inbox,
+  ArrowUpDown, CheckCircle2, Eye, XCircle, Send, Inbox, Loader2,
 } from "lucide-react";
 import type { AppStatus } from "./data";
 import { apiFetch } from "@/lib/api";
@@ -28,6 +28,7 @@ type AppListItem = { id: string; role: string; company: string; location: string
 
 export default function ApplicationsPage() {
   const [apps, setApps] = useState<AppListItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState<AppStatus | "All">("All");
   const [search, setSearch] = useState("");
@@ -38,6 +39,7 @@ export default function ApplicationsPage() {
 
   useEffect(() => {
     async function fetchApps() {
+      setLoading(true);
       try {
         const params = new URLSearchParams();
         params.append("page", page.toString());
@@ -72,6 +74,8 @@ export default function ApplicationsPage() {
         setTotalCount(data?.meta?.total || 0);
       } catch (err) {
         if (process.env.NODE_ENV === 'development') console.error("Failed to fetch apps", err);
+      } finally {
+        setLoading(false);
       }
     }
     fetchApps();
@@ -140,7 +144,11 @@ export default function ApplicationsPage() {
 
           {/* Application rows */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            {apps.length === 0 ? (
+            {loading ? (
+              <div className="flex items-center justify-center py-14">
+                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+              </div>
+            ) : apps.length === 0 ? (
               <div className="text-center py-14 text-slate-400">
                 <Inbox className="w-8 h-8 mx-auto mb-2 opacity-40" />
                 <p className="text-sm font-medium">No applications found</p>

@@ -925,7 +925,9 @@ export default function ProfilePage() {
           const id = userObj.id;
           if (id) setUserId(id);
         }
-      } catch (e) {}
+      } catch (e) {
+        if (process.env.NODE_ENV === "development") console.error(e);
+      }
       const response = await fetch("/api/profile", { credentials: "include" });
       if (response.ok) {
         const result = await response.json();
