@@ -4,7 +4,6 @@ import { seedSkills } from './skills.seed';
 import { seedCertifications } from './certifications.seed';
 import { seedInstitutes } from './institutes.seed';
 import { seedRoles } from './roles.seed';
-import { seedAdmins } from './admins.seed';
 import { seedSubscriptionPackages } from './subscriptions.seed';
 import { seedTestimonials } from './testimonials.seed';
 import { seedJobs } from './jobs.seed';
@@ -45,12 +44,6 @@ async function main() {
         await seedRoles(prisma);
     } catch (e) {
         console.error('❌ Roles seeding failed:', e);
-    }
-
-    try {
-        await seedAdmins(prisma);
-    } catch (e) {
-        console.error('❌ Admins seeding failed:', e);
     }
 
     try {
