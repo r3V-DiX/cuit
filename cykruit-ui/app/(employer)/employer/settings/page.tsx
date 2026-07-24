@@ -8,6 +8,7 @@ import {
   User, Bell, Shield, Check,
   Mail, Smartphone, Info, Trash2, Lock,
   Building2, ChevronDown, Loader2,
+  Crown, Briefcase, Users, Eye,
 } from "lucide-react";
 import { apiFetch, authHeaders } from "@/lib/api";
 import { SessionsPanel } from "@/components/settings/SessionsPanel";
@@ -73,6 +74,15 @@ const SIZES: { value: string; label: string }[] = [
   { value: "SIZE_1000_PLUS", label: "1000+ employees"     },
 ];
 
+type MemberRole = "OWNER" | "HIRING_MANAGER" | "RECRUITER" | "VIEWER";
+
+const ROLE_META: Record<MemberRole, { label: string; color: string; icon: React.ReactNode }> = {
+  OWNER:          { label: "Owner",          color: "text-yellow-700 bg-yellow-50 border-yellow-200",  icon: <Crown className="w-3 h-3" />    },
+  HIRING_MANAGER: { label: "Hiring Manager", color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Briefcase className="w-3 h-3" /> },
+  RECRUITER:      { label: "Recruiter",      color: "text-violet-700 bg-violet-50 border-violet-200", icon: <Users className="w-3 h-3" />    },
+  VIEWER:         { label: "Viewer",         color: "text-slate-600 bg-slate-50 border-slate-200",    icon: <Eye className="w-3 h-3" />      },
+};
+
 interface SubSummary {
   hasSubscription: boolean;
   effectiveStatus?: string;
@@ -109,6 +119,9 @@ export default function EmployerSettingsPage() {
   // Subscription summary
   const [subSummary, setSubSummary] = useState<SubSummary | null>(null);
 
+  // Team role
+  const [myRole, setMyRole] = useState<MemberRole | null>(null);
+
   // Notifications — keys match UpdateEmployerNotificationsDto
   const [notifs, setNotifs] = useState({
     enableEmail:              true,
@@ -126,16 +139,21 @@ export default function EmployerSettingsPage() {
   useEffect(() => {
     async function loadSettings() {
       try {
-        const [me, s, companyRes, subRes] = await Promise.all([
-          apiFetch<{ firstName?: string; lastName?: string; name?: string; fullName?: string; email?: string }>("/api/auth/me"),
+        const [me, s, companyRes, subRes, teamRes] = await Promise.all([
+          apiFetch<{ id?: string; firstName?: string; lastName?: string; name?: string; fullName?: string; email?: string }>("/api/auth/me"),
           apiFetch<{ notifications?: Record<string, unknown>; profileVisibility?: "PUBLIC" | "PRIVATE"; showCompanyDetailsBeforeApply?: boolean }>("/api/settings/employer"),
           apiFetch<{ companySize?: string; contactEmail?: string }>("/api/employer/company/me").catch(() => null),
           apiFetch<SubSummary>("/api/subscriptions/usage").catch(() => null),
+          apiFetch<{ items?: { userId: string; role: MemberRole }[] }>("/api/employer/team").catch(() => null),
         ]);
         const u = me?.data;
         if (u) {
           const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ");
           setLocked({ name: fullName || u.name || u.fullName || "", email: u.email ?? "" });
+          if (teamRes?.data?.items && u.id) {
+            const me2 = teamRes.data.items.find((m) => m.userId === u.id);
+            if (me2) setMyRole(me2.role);
+          }
         }
         const d = s?.data;
         if (d) {
@@ -282,6 +300,19 @@ export default function EmployerSettingsPage() {
                       <p className="text-[10px] text-slate-400 mt-1 flex items-center gap-1"><Info className="w-3 h-3" /> Managed by your account</p>
                     </div>
                   </div>
+                  {myRole && (() => {
+                    const meta = ROLE_META[myRole];
+                    return (
+                      <div className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-100 bg-slate-50">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Your Role</span>
+                          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg border w-fit ${meta.color}`}>
+                            {meta.icon}{meta.label}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </Section>
 
 
