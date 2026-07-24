@@ -231,17 +231,17 @@ function JobsContent() {
         {/* ── Search + filters bar ────────────────────────────────────────── */}
         <div className="bg-white border-b border-slate-200 sticky top-16 z-30 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex flex-col md:flex-row md:items-center gap-3">
               {/* Search */}
               <SearchBox
                 defaultValue={search}
                 placeholder="Search roles, skills, companies…"
                 onSearch={(q) => setParams({ q })}
-                className="w-full sm:w-72 shrink-0"
+                className="w-full md:w-72 shrink-0"
               />
 
               {/* Divider */}
-              <div className="w-px h-6 bg-slate-200 hidden sm:block shrink-0" />
+              <div className="w-px h-6 bg-slate-200 hidden md:block shrink-0" />
 
               {/* Filters */}
               <div className="flex items-center gap-2 flex-wrap">
@@ -484,7 +484,7 @@ function FilterDropdown({
   const updatePos = () => {
     if (!btnRef.current) return;
     const r = btnRef.current.getBoundingClientRect();
-    setPos({ top: r.bottom + window.scrollY + 6, left: r.left + window.scrollX, width: r.width });
+    setPos({ top: r.bottom + 6, left: r.left, width: r.width });
   };
 
   const handleToggle = () => {
