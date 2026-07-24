@@ -22,21 +22,21 @@ if [ -z "$DATABASE_URL" ]; then
   echo "ERROR: DATABASE_URL not found in $ENV_FILE"
   exit 1
 fi
+# Strip Prisma-only query params (?schema=...) — invalid for psql
+PSQL_URL=$(echo "$DATABASE_URL" | sed 's/?.*$//')
 
 run_sql() {
   docker run --rm \
-    -e DATABASE_URL="$DATABASE_URL" \
     --network cykruit-v2_default \
     postgres:15-alpine \
-    psql "$DATABASE_URL" -t -c "$1" 2>/dev/null | tr -d '[:space:]'
+    psql "$PSQL_URL" -t -c "$1" 2>/dev/null | tr -d '[:space:]'
 }
 
 run_sql_multi() {
   docker run --rm \
-    -e DATABASE_URL="$DATABASE_URL" \
     --network cykruit-v2_default \
     postgres:15-alpine \
-    psql "$DATABASE_URL" <<SQL
+    psql "$PSQL_URL" <<SQL
 $1
 SQL
 }

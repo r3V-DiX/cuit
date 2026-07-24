@@ -18,6 +18,8 @@ if [ -z "$DATABASE_URL" ]; then
   echo -e "${RED}[ERROR]${NC} DATABASE_URL not found in $ENV_FILE"
   exit 1
 fi
+# Strip Prisma-only query params (?schema=...) — invalid for psql
+PSQL_URL=$(echo "$DATABASE_URL" | sed 's/?.*$//')
 
 echo -e "${YELLOW}WARNING: This will DELETE all users, employers, seekers, jobs, sessions, applications, and subscriptions.${NC}"
 echo -e "${YELLOW}Reference data (skills, locations, certifications, institutes, packages, admins) is preserved.${NC}"
@@ -28,10 +30,9 @@ read -rp "Type 'yes' to confirm: " CONFIRM
 echo -e "${GREEN}[INFO]${NC} Resetting user/employer/job data..."
 
 docker run --rm \
-  -e DATABASE_URL="$DATABASE_URL" \
   --network cykruit-v2_default \
   postgres:15-alpine \
-  psql "$DATABASE_URL" <<'SQL'
+  psql "$PSQL_URL" <<'SQL'
 -- Disable FK checks via deferred or truncate cascade
 TRUNCATE TABLE
   admin_sessions,
