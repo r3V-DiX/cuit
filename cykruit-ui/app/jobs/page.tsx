@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
@@ -473,24 +474,64 @@ function FilterDropdown({
   onChange: (v: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
   const active = value !== "All";
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  const updatePos = () => {
+    if (!btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom + window.scrollY + 6, left: r.left + window.scrollX, width: r.width });
+  };
+
+  const handleToggle = () => {
+    if (!open) updatePos();
+    setOpen((o) => !o);
+  };
 
   useEffect(() => {
     if (!open) return;
     const close = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+      if (btnRef.current && !btnRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     };
     document.addEventListener("mousedown", close);
+    window.addEventListener("scroll", () => setOpen(false), { once: true });
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
 
+  const dropdown = open && mounted ? createPortal(
+    <div
+      className="fixed bg-white border border-slate-200 rounded-xl shadow-2xl py-1.5 overflow-y-auto"
+      style={{ top: pos.top, left: pos.left, minWidth: Math.max(pos.width, 176), maxHeight: 280, zIndex: 9999 }}
+    >
+      {options.map((opt) => (
+        <button
+          key={opt}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => { onChange(opt); setOpen(false); }}
+          className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer ${
+            value === opt
+              ? "text-blue-700 bg-blue-50 font-semibold"
+              : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+          }`}
+        >
+          {opt}
+        </button>
+      ))}
+    </div>,
+    document.body
+  ) : null;
+
   return (
-    <div ref={wrapRef} className="relative shrink-0">
+    <div className="relative shrink-0">
       <button
-        onClick={() => setOpen((o) => !o)}
+        ref={btnRef}
+        onClick={handleToggle}
         className={`flex items-center gap-2 h-9 px-3.5 rounded-lg text-sm font-medium border transition-all cursor-pointer whitespace-nowrap ${
           active
             ? "bg-blue-600 text-white border-blue-600 shadow-sm"
@@ -500,24 +541,7 @@ function FilterDropdown({
         {active ? value : label}
         <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
-
-      {open && (
-        <div className="absolute top-full left-0 mt-1.5 z-50 bg-white border border-slate-200 rounded-xl shadow-xl shadow-slate-900/10 py-1.5 min-w-44 max-h-64 overflow-y-auto">
-          {options.map((opt) => (
-            <button
-              key={opt}
-              onClick={() => { onChange(opt); setOpen(false); }}
-              className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer ${
-                value === opt
-                  ? "text-blue-700 bg-blue-50 font-semibold"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-              }`}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 }
