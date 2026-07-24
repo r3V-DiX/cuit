@@ -1,12 +1,13 @@
 'use client';
 
-// admin-ui/app/(admin)/domains/page.tsx
+// admin-ui/app/(admin)/roles/page.tsx
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/lib';
 import { ACTIONS } from '@/lib';
 import { usePermissions } from '@/lib/permissions-context';
-import type { JobDomain, PaginatedResponse } from '@/lib';
+import type { Role, PaginatedResponse } from '@/lib';
 import { RequirePermission } from '@/components/ui';
 import { NoAccess } from '@/components/ui';
 import { Table } from '@/components/ui';
@@ -17,10 +18,10 @@ import { SkeletonTable } from '@/components/ui';
 import { EmptyState } from '@/components/ui';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
-import { Layers, Plus, Pencil, Eye, EyeOff, Trash2 } from 'lucide-react';
-import DomainForm from './_components/domain-form';
+import { Tag, Layers, Plus, Pencil, Eye, EyeOff, Trash2 } from 'lucide-react';
+import RoleForm from './_components/role-form';
 
-function DomainsPageContent() {
+function RolesPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { has } = usePermissions();
@@ -31,16 +32,16 @@ function DomainsPageContent() {
   const q = searchParams.get('q') ?? '';
   const isActive = searchParams.get('isActive') ?? '';
 
-  const [data, setData] = useState<PaginatedResponse<JobDomain> | null>(null);
+  const [data, setData] = useState<PaginatedResponse<Role> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
-  const canManage = has(ACTIONS.DOMAINS.MANAGE);
+  const canManage = has(ACTIONS.ROLES.MANAGE);
   const refresh = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
-    async function loadDomains() {
+    async function loadRoles() {
       setLoading(true);
       setError(null);
       try {
@@ -49,17 +50,15 @@ function DomainsPageContent() {
         if (q) params.set('q', q);
         if (isActive) params.set('isActive', isActive);
 
-        const res = await api.get<PaginatedResponse<JobDomain>>(
-          `/api/admin/domains?${params.toString()}`,
-        );
+        const res = await api.get<PaginatedResponse<Role>>(`/api/admin/roles?${params.toString()}`);
         setData(res);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load job domains');
+        setError(err instanceof Error ? err.message : 'Failed to load roles');
       } finally {
         setLoading(false);
       }
     }
-    loadDomains();
+    loadRoles();
   }, [page, q, isActive, reloadKey]);
 
   const handlePageChange = (newPage: number) => {
@@ -68,15 +67,15 @@ function DomainsPageContent() {
     router.push(`?${params.toString()}`);
   };
 
-  const openForm = (initial?: JobDomain) => {
+  const openForm = (initial?: Role) => {
     openModal({
-      title: initial ? 'Edit Job Domain' : 'New Job Domain',
+      title: initial ? 'Edit Role' : 'New Role',
       content: (
-        <DomainForm
+        <RoleForm
           initial={initial}
           onSaved={() => {
             closeModal();
-            toast({ type: 'success', message: initial ? 'Domain updated.' : 'Domain added.' });
+            toast({ type: 'success', message: initial ? 'Role updated.' : 'Role added.' });
             refresh();
           }}
           onCancel={closeModal}
@@ -85,66 +84,75 @@ function DomainsPageContent() {
     });
   };
 
-  const handleToggle = (d: JobDomain) => {
+  const handleToggle = (r: Role) => {
     openModal({
-      title: `${d.isActive ? 'Deactivate' : 'Activate'} domain?`,
-      description: `"${d.name}" will ${d.isActive ? 'stop' : 'start'} appearing in public domain listings.`,
-      variant: d.isActive ? 'default' : 'success',
-      confirmLabel: d.isActive ? 'Deactivate' : 'Activate',
+      title: `${r.isActive ? 'Deactivate' : 'Activate'} role?`,
+      description: `"${r.name}" will ${r.isActive ? 'stop' : 'start'} appearing as a selectable job role.`,
+      variant: r.isActive ? 'default' : 'success',
+      confirmLabel: r.isActive ? 'Deactivate' : 'Activate',
       onConfirm: async () => {
         try {
-          await api.patch<JobDomain>(`/api/admin/domains/${d.id}/toggle`);
-          toast({ type: 'success', message: `Domain ${d.isActive ? 'deactivated' : 'activated'}.` });
+          await api.patch<Role>(`/api/admin/roles/${r.id}/toggle`);
+          toast({ type: 'success', message: `Role ${r.isActive ? 'deactivated' : 'activated'}.` });
           refresh();
         } catch (err) {
-          toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to toggle domain' });
+          toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to toggle role' });
         }
       },
     });
   };
 
-  const handleDelete = (d: JobDomain) => {
+  const handleDelete = (r: Role) => {
     openModal({
-      title: 'Delete domain?',
-      description: `"${d.name}" will be permanently deleted. This is blocked if any role still references it.`,
+      title: 'Delete role?',
+      description: `"${r.name}" will be permanently deleted. This is blocked if any job still references it.`,
       variant: 'danger',
       confirmLabel: 'Delete',
       onConfirm: async () => {
         try {
-          await api.del(`/api/admin/domains/${d.id}`);
-          toast({ type: 'success', message: 'Domain deleted.' });
+          await api.del(`/api/admin/roles/${r.id}`);
+          toast({ type: 'success', message: 'Role deleted.' });
           refresh();
         } catch (err) {
-          toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to delete domain' });
+          toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to delete role' });
         }
       },
     });
   };
 
   return (
-    <RequirePermission action={ACTIONS.DOMAINS.VIEW} fallback={<NoAccess />}>
+    <RequirePermission action={ACTIONS.ROLES.VIEW} fallback={<NoAccess />}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Job Domains</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Job Roles</h2>
             <p className="text-sm text-slate-500">
-              Manage the domain groupings (Offensive Security, Cloud Security, …) that job roles belong to.
+              Manage the roles (Security Analyst, Penetration Tester, …) employers assign jobs to.
             </p>
           </div>
-          {canManage && (
-            <button
-              onClick={() => openForm()}
-              className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+          <div className="flex gap-2.5">
+            <Link
+              href="/roles/domains"
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
             >
-              <Plus className="h-4 w-4" />
-              Add Domain
-            </button>
-          )}
+              <Layers className="h-4 w-4" />
+              Job Domains
+            </Link>
+            {canManage && (
+              <button
+                onClick={() => openForm()}
+                className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4" />
+                Add Role
+              </button>
+            )}
+          </div>
         </div>
 
         <FilterBar
           searchKey="q"
-          searchPlaceholder="Search domains..."
+          searchPlaceholder="Search roles..."
           filters={[
             {
               key: 'isActive',
@@ -165,24 +173,29 @@ function DomainsPageContent() {
           <SkeletonTable rows={10} />
         ) : !data || data.items.length === 0 ? (
           <EmptyState
-            icon={<Layers className="h-6 w-6" />}
-            title="No job domains found"
-            description={canManage ? 'Add a domain to start grouping job roles.' : 'Adjust your filters to find what you are looking for.'}
+            icon={<Tag className="h-6 w-6" />}
+            title="No roles found"
+            description={canManage ? 'Add a role to start assigning it to jobs.' : 'Adjust your filters to find what you are looking for.'}
           />
         ) : (
           <div className="space-y-4">
             <Table
               data={data.items}
-              getRowKey={(d) => d.id}
+              getRowKey={(r) => r.id}
               columns={[
-                { key: 'name', header: 'Name', render: (d) => <span className="text-slate-900">{d.name}</span> },
-                { key: 'slug', header: 'Slug', render: (d) => <span className="font-mono text-xs text-slate-500">{d.slug}</span> },
-                { key: 'sortOrder', header: 'Sort', render: (d) => <span className="text-slate-500">{d.sortOrder}</span> },
-                { key: 'status', header: 'Status', render: (d) => <StatusBadge status={d.isActive ? 'ACTIVE' : 'INACTIVE'} /> },
+                { key: 'name', header: 'Name', render: (r) => <span className="text-slate-900">{r.name}</span> },
+                {
+                  key: 'domain',
+                  header: 'Domain',
+                  render: (r) => (
+                    <span className="text-slate-500">{r.domain?.name ?? '—'}</span>
+                  ),
+                },
+                { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.isActive ? 'ACTIVE' : 'INACTIVE'} /> },
                 {
                   key: 'createdAt',
                   header: 'Date',
-                  render: (d) => <span className="text-xs text-slate-500">{new Date(d.createdAt).toLocaleDateString()}</span>,
+                  render: (r) => <span className="text-xs text-slate-500">{new Date(r.createdAt).toLocaleDateString()}</span>,
                 },
                 ...(canManage
                   ? [
@@ -190,24 +203,24 @@ function DomainsPageContent() {
                         key: 'actions',
                         header: '',
                         className: 'text-right',
-                        render: (d: JobDomain) => (
+                        render: (r: Role) => (
                           <div className="flex items-center justify-end gap-1">
                             <button
-                              onClick={() => handleToggle(d)}
+                              onClick={() => handleToggle(r)}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-                              title={d.isActive ? 'Deactivate' : 'Activate'}
+                              title={r.isActive ? 'Deactivate' : 'Activate'}
                             >
-                              {d.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                              {r.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
                             <button
-                              onClick={() => openForm(d)}
+                              onClick={() => openForm(r)}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
                               title="Edit"
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(d)}
+                              onClick={() => handleDelete(r)}
                               className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
                               title="Delete"
                             >
@@ -228,10 +241,10 @@ function DomainsPageContent() {
   );
 }
 
-export default function DomainsPage() {
+export default function RolesPage() {
   return (
     <Suspense fallback={<SkeletonTable rows={10} />}>
-      <DomainsPageContent />
+      <RolesPageContent />
     </Suspense>
   );
 }

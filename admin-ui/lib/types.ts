@@ -599,3 +599,14 @@ export interface JobDomain {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Role {
+  id: string;
+  name: string;
+  description: string | null;
+  domainId: string | null;
+  domain: { id: string; name: string } | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

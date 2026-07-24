@@ -1,13 +1,13 @@
 'use client';
 
-// admin-ui/app/(admin)/domains/_components/domain-form.tsx
+// admin-ui/app/(admin)/roles/_components/role-form.tsx
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '@/lib';
-import type { JobDomain } from '@/lib';
+import type { Role, JobDomain, PaginatedResponse } from '@/lib';
 
 interface Props {
-  initial?: JobDomain;
+  initial?: Role;
   onSaved: () => void;
   onCancel: () => void;
 }
@@ -16,36 +16,41 @@ const inputCls =
   'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100';
 const labelCls = 'mb-1 block text-xs font-medium text-slate-600';
 
-function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-}
-
-export default function DomainForm({ initial, onSaved, onCancel }: Props) {
+export default function RoleForm({ initial, onSaved, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? '');
-  const [slug, setSlug] = useState(initial?.slug ?? '');
-  const [slugTouched, setSlugTouched] = useState(!!initial);
-  const [sortOrder, setSortOrder] = useState(initial?.sortOrder ?? 0);
+  const [description, setDescription] = useState(initial?.description ?? '');
+  const [domainId, setDomainId] = useState(initial?.domainId ?? '');
+  const [domains, setDomains] = useState<JobDomain[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    api
+      .get<PaginatedResponse<JobDomain>>('/api/admin/domains?isActive=true&limit=100')
+      .then((res) => setDomains(res.items))
+      .catch(() => setDomains([]));
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     setError(null);
 
+    const payload = {
+      name,
+      description: description || undefined,
+      domainId: domainId || null,
+    };
+
     try {
       if (initial) {
-        await api.patch(`/api/admin/domains/${initial.id}`, { name, slug, sortOrder });
+        await api.patch(`/api/admin/roles/${initial.id}`, payload);
       } else {
-        await api.post('/api/admin/domains', { name, slug, sortOrder });
+        await api.post('/api/admin/roles', payload);
       }
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save domain');
+      setError(err instanceof Error ? err.message : 'Failed to save role');
     } finally {
       setSaving(false);
     }
@@ -64,37 +69,37 @@ export default function DomainForm({ initial, onSaved, onCancel }: Props) {
         <input
           required
           value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            if (!slugTouched) setSlug(slugify(e.target.value));
-          }}
+          onChange={(e) => setName(e.target.value)}
           className={inputCls}
-          placeholder="Offensive Security"
+          placeholder="Security Analyst"
         />
       </div>
 
       <div>
-        <label className={labelCls}>Slug</label>
-        <input
-          required
-          value={slug}
-          onChange={(e) => {
-            setSlug(e.target.value);
-            setSlugTouched(true);
-          }}
+        <label className={labelCls}>Description</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
           className={inputCls}
-          placeholder="offensive-security"
+          rows={3}
+          placeholder="Optional description of this role"
         />
       </div>
 
       <div>
-        <label className={labelCls}>Sort order</label>
-        <input
-          type="number"
-          value={sortOrder}
-          onChange={(e) => setSortOrder(Number(e.target.value))}
+        <label className={labelCls}>Domain</label>
+        <select
+          value={domainId}
+          onChange={(e) => setDomainId(e.target.value)}
           className={inputCls}
-        />
+        >
+          <option value="">No domain</option>
+          {domains.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="flex justify-end gap-2.5 pt-2">
@@ -110,7 +115,7 @@ export default function DomainForm({ initial, onSaved, onCancel }: Props) {
           disabled={saving}
           className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
         >
-          {saving ? 'Saving…' : initial ? 'Save changes' : 'Add domain'}
+          {saving ? 'Saving…' : initial ? 'Save changes' : 'Add role'}
         </button>
       </div>
     </form>

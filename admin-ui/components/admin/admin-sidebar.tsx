@@ -30,7 +30,7 @@ import {
   Megaphone,
   ShieldBan,
   SearchCode,
-  Layers,
+  Tag,
   Server,
   Percent,
 } from 'lucide-react';
@@ -194,10 +194,10 @@ export default function AdminSidebar() {
       action: ACTIONS.SUGGESTIONS.MANAGE,
     },
     {
-      label: 'Job Domains',
-      href: '/domains',
-      icon: <Layers className="h-5 w-5" />,
-      action: ACTIONS.DOMAINS.MANAGE,
+      label: 'Job Roles',
+      href: '/roles',
+      icon: <Tag className="h-5 w-5" />,
+      action: ACTIONS.ROLES.MANAGE,
     },
     {
       label: 'System Health',
