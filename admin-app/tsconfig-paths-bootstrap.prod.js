@@ -25,6 +25,8 @@ tsConfigPaths.register({
         '@cykruit/events':      [path.join(distLibs, 'events/src/index.js')],
         '@cykruit/rate-limit':  [path.join(distLibs, 'rate-limit/src/index.js')],
         '@cykruit/permissions': [path.join(distLibs, 'permissions/src/index.js')],
+        '@cykruit/policy-config': [path.join(distLibs, 'policy-config/src/index.js')],
+        '@cykruit/blacklist':   [path.join(distLibs, 'blacklist/src/index.js')],
         '@cykruit/upload':      [path.join(distLibs, 'upload/src/index.js')],
         'bcryptjs':             [path.join(cykruitAppModules, 'bcryptjs/index.js')],
         '@prisma/client':       [path.join(cykruitAppModules, '@prisma/client/index.js')],

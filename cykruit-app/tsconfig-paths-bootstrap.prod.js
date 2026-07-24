@@ -27,5 +27,7 @@ tsConfigPaths.register({
         '@cykruit/permissions': [path.join(distLibs, 'permissions/src/index.js')],
         '@cykruit/events': [path.join(distLibs, 'events/src/index.js')],
         '@cykruit/subscription': [path.join(distLibs, 'subscription/src/index.js')],
+        '@cykruit/policy-config': [path.join(distLibs, 'policy-config/src/index.js')],
+        '@cykruit/blacklist': [path.join(distLibs, 'blacklist/src/index.js')],
     },
 });
