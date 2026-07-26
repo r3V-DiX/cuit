@@ -227,17 +227,15 @@ function JobsContent() {
             </p>
 
             {/* ── Inline search + filters ───────────────────────────────── */}
-            <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            <div className="flex flex-col gap-3 max-w-3xl">
               <SearchBox
                 defaultValue={search}
                 placeholder="Search roles, skills, companies…"
                 onSearch={(q) => setParams({ q })}
-                className="w-full lg:w-96 shrink-0"
+                className="w-full"
               />
 
-              <div className="w-px h-6 bg-slate-200 hidden lg:block shrink-0" />
-
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
                 <FilterDropdown label="Domain"    options={domainOptions} value={specFilter} onChange={(v) => setParams({ spec: v })} />
                 <FilterDropdown label="Job Type"  options={jobTypes}      value={typeFilter} onChange={(v) => setParams({ type: v })} />
                 <FilterDropdown label="Work Mode" options={remoteTypes}   value={modeFilter} onChange={(v) => setParams({ mode: v })} />
@@ -245,7 +243,7 @@ function JobsContent() {
                 {hasAnyFilter && (
                   <button
                     onClick={clearAll}
-                    className="flex items-center gap-1.5 h-9 px-3 text-sm text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 h-9 px-3 text-sm text-slate-400 hover:text-red-500 transition-colors cursor-pointer shrink-0"
                   >
                     <X className="w-3.5 h-3.5" /> Clear
                   </button>
@@ -525,14 +523,14 @@ function FilterDropdown({
       <button
         ref={btnRef}
         onClick={handleToggle}
-        className={`flex items-center gap-2 h-9 px-3.5 rounded-lg text-sm font-medium border transition-all cursor-pointer whitespace-nowrap ${
+        className={`flex items-center gap-2 h-9 px-3.5 rounded-lg text-sm font-medium border transition-all cursor-pointer shrink-0 ${
           active
             ? "bg-blue-600 text-white border-blue-600 shadow-sm"
             : "bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50"
         }`}
       >
-        {active ? value : label}
-        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        <span className="max-w-[120px] truncate">{active ? value : label}</span>
+        <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
       {dropdown}
     </div>
