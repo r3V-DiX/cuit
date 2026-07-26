@@ -108,6 +108,42 @@ All 11 backend services + `admin-app` now have real `wget`-based `/health`
 healthchecks in `docker-compose.yml` (using `127.0.0.1`, not `localhost` —
 see Gotchas). `cykruit-ui`/`admin-ui` have none.
 
+## Nginx rate limiting (`/etc/nginx/sites-enabled/cykruit-v2`)
+
+Add these zones at the **top of the http block** (or in `/etc/nginx/conf.d/rate-limit.conf`):
+
+```nginx
+# In /etc/nginx/conf.d/rate-limit.conf (create if missing)
+limit_req_zone $binary_remote_addr zone=global:10m    rate=100r/s;
+limit_req_zone $binary_remote_addr zone=auth_strict:10m rate=5r/m;
+```
+
+In each `server {}` block (all 4 domains), add inside the block:
+
+```nginx
+    # Global burst — allows short spikes, queues the rest
+    limit_req zone=global burst=200 nodelay;
+    limit_req_status 429;
+
+    # Tight limit on auth mutation endpoints
+    location ~* ^/(auth|api/auth)/(login|register|forgot-password|request-otp) {
+        limit_req zone=auth_strict burst=3 nodelay;
+        proxy_pass http://127.0.0.1:PORT;  # replace PORT per vhost
+    }
+```
+
+Also ensure Nginx forwards real client IP to upstream containers:
+
+```nginx
+    # In every proxy_pass location
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Real-IP       $remote_addr;
+```
+
+After editing: `sudo nginx -t && sudo systemctl reload nginx`
+
+---
+
 ## Domains (Nginx + Certbot, `/etc/nginx/sites-enabled/cykruit-v2`)
 
 - `cykruit-v2-app.rkavach.com` -> 3000

@@ -19,12 +19,12 @@ export class RateLimitGuard extends ThrottlerGuard {
     @Inject(Reflector) reflector: Reflector,
   ) {
     super(options, storageService, reflector);
-    const raw = process.env.TRUSTED_PROXY_COUNT ?? "0";
+    // Default 1: Nginx sits in front of all services in prod.
+    const raw = process.env.TRUSTED_PROXY_COUNT ?? "1";
     const parsed = parseInt(raw, 10);
-    this.trustedProxyCount = isNaN(parsed) || parsed < 0 ? 0 : parsed;
+    this.trustedProxyCount = isNaN(parsed) || parsed < 0 ? 1 : parsed;
   }
 
-  // ✅ Override shouldSkip — reads SkipThrottle metadata correctly for named throttlers
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
     const skipMetadata = this.reflector.getAllAndOverride<
       Record<string, boolean> | boolean
@@ -36,14 +36,6 @@ export class RateLimitGuard extends ThrottlerGuard {
       Object.values(skipMetadata).some((v) => v === true)
     )
       return true;
-
-    // Skip rate limiting for admin-app requests: admin_session_token cookie
-    // is present, meaning AdminAuthGuard will authenticate and enforce access.
-    // APP_GUARD fires before AdminAuthGuard so req.admin is always null here —
-    // all admin requests would otherwise share one IP bucket and hit 429 fast.
-    const req = context.switchToHttp().getRequest<Record<string, any>>();
-    const cookies = req.cookies as Record<string, string | undefined> | undefined;
-    if (cookies?.admin_session_token) return true;
 
     return false;
   }
@@ -63,8 +55,14 @@ export class RateLimitGuard extends ThrottlerGuard {
         .map((s: string) => s.trim())
         .filter((s: string) => s.length > 0);
 
-      if (ips.length > 0 && this.isValidIpFormat(ips[0])) {
-        return this.normalizeIp(ips[0]);
+      // XFF builds left→right: [client, proxy1, proxy2, ...].
+      // Strip trustedProxyCount rightmost entries (trusted infrastructure).
+      // The leftmost remaining entry is the real client IP.
+      const untrustedCount = ips.length - this.trustedProxyCount;
+      const clientIndex = Math.max(0, untrustedCount - 1);
+      const candidate = ips[clientIndex];
+      if (candidate && this.isValidIpFormat(candidate)) {
+        return this.normalizeIp(candidate);
       }
     }
 
@@ -86,15 +84,6 @@ export class RateLimitGuard extends ThrottlerGuard {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // Session tokens are opaque (not JWTs) so we can't extract a user ID
-    // before AuthGuard/AdminAuthGuard run. APP_GUARD fires first, meaning
-    // all authenticated SSR requests share one server IP bucket and hit 429.
-    // Skip rate limiting when any valid session cookie is present — auth guards
-    // still validate the token on every request.
-    const req = context.switchToHttp().getRequest<Record<string, any>>();
-    const cookies = req.cookies as Record<string, string | undefined> | undefined;
-    if (cookies?.session_token || cookies?.admin_session_token) return true;
-
     try {
       return await super.canActivate(context);
     } catch (err) {

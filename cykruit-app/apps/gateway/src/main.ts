@@ -8,6 +8,9 @@ import cors from 'cors';
 
 const app = express();
 
+// Trust 1 proxy hop (Nginx). Makes req.ip = real client IP from X-Forwarded-For.
+app.set('trust proxy', 1);
+
 const GATEWAY_PORT = parseInt(process.env.GATEWAY_PORT || '5000', 10);
 
 const SERVICES = {
@@ -46,6 +49,7 @@ function proxy(target: string, pathRewrite?: Record<string, string>) {
     return createProxyMiddleware({
         target,
         changeOrigin: true,
+        xfwd: true,
         pathRewrite,
         on: {
             proxyReq: fixRequestBody,
