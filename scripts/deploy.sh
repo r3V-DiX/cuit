@@ -223,7 +223,7 @@ do_cykruit_app() {
   done
   step "Starting cykruit-app..."
   export CYKRUIT_APP_TAG="$TAG"
-  docker compose up -d "${CYKRUIT_SERVICES[@]}"
+  docker compose up -d --force-recreate "${CYKRUIT_SERVICES[@]}"
   wait_healthy auth-service gateway
 }
 
@@ -231,7 +231,7 @@ do_admin_app() {
   step "Pulling admin-app ($TAG)..."
   pull_with_fallback cykruit-admin-app "" "$ENV" "$TAG"
   export ADMIN_APP_TAG="$TAG"
-  docker compose up -d admin-app
+  docker compose up -d --force-recreate admin-app
   wait_healthy admin-app
 }
 
@@ -239,7 +239,7 @@ do_cykruit_ui() {
   step "Pulling cykruit-ui ($TAG)..."
   pull_with_fallback cykruit-ui "" "$ENV" "$TAG"
   export CYKRUIT_UI_TAG="$TAG"
-  docker compose up -d cykruit-ui
+  docker compose up -d --force-recreate cykruit-ui
   wait_healthy cykruit-ui
 }
 
@@ -247,7 +247,7 @@ do_admin_ui() {
   step "Pulling admin-ui ($TAG)..."
   pull_with_fallback cykruit-admin-ui "" "$ENV" "$TAG"
   export ADMIN_UI_TAG="$TAG"
-  docker compose up -d admin-ui
+  docker compose up -d --force-recreate admin-ui
   wait_healthy admin-ui
 }
 
