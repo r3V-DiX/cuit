@@ -9,10 +9,10 @@ import { useToast } from "@/components/ui/Toast";
 import {
   MapPin, Clock, Briefcase, ArrowLeft, ArrowRight,
   CheckCircle2, Shield, ChevronRight, Bookmark, Send,
-  Building2, Users, Globe, Sparkles, X, FileText, ChevronDown,
+  Building2, Users, Globe, Sparkles, X, FileText, ChevronDown, Upload,
 } from "lucide-react";
 import { use } from "react";
-import { apiFetch, authHeaders } from "@/lib/api";
+import { apiFetch, authHeaders, getCsrf, describeError } from "@/lib/api";
 
 function formatEnum(value: string): string {
   if (!value) return value;
@@ -44,6 +44,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [resumes, setResumes] = useState<any[]>([]);
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
   const [resumesLoading, setResumesLoading] = useState(false);
+  const [uploadingResume, setUploadingResume] = useState(false);
 
   useEffect(() => {
     apiFetch<any>("/api/auth/me", { skipAuthRedirect: true })
@@ -122,8 +123,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
         setIsSaved(true);
         toast({ type: "success", message: "Job saved" });
       }
-    } catch {
-      toast({ type: "error", message: "Failed to update saved jobs" });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Failed to update saved jobs") });
     }
   }
 
@@ -160,12 +161,40 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     setSelectedResumeId(null);
     try {
       const res = await apiFetch<any>("/api/profile/resumes", { credentials: "include" });
-      const items: any[] = res?.data?.items ?? res?.data ?? [];
+      const items: any[] = res?.data?.resumes ?? [];
       setResumes(Array.isArray(items) ? items : []);
     } catch {
       setResumes([]);
     } finally {
       setResumesLoading(false);
+    }
+  }
+
+  // ── Apply — upload a new resume from inside the resume modal ─────────────
+  async function handleResumeUpload(file: File) {
+    if (file.type !== "application/pdf") {
+      toast({ type: "error", message: "Invalid file type", description: "Only PDF files are accepted." });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ type: "error", message: "File too large", description: "Please upload a PDF under 5 MB." });
+      return;
+    }
+    setUploadingResume(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      await apiFetch("/api/profile/resumes", {
+        method: "POST",
+        headers: { "x-csrf-token": getCsrf() },
+        body: formData,
+      });
+      toast({ type: "success", message: "Resume uploaded" });
+      await openResumeStep();
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Failed to upload resume") });
+    } finally {
+      setUploadingResume(false);
     }
   }
 
@@ -200,9 +229,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       setIsApplied(true);
       setApplyStep("idle");
       toast({ type: "success", message: "Application submitted!", description: `Applied to "${job.title}" at ${job.company}.` });
-    } catch (err: any) {
+    } catch (err) {
       setApplyStep("resume");
-      toast({ type: "error", message: "Application failed", description: err.message || "An unexpected error occurred." });
+      toast({ type: "error", ...describeError(err, "Application failed") });
     }
   }
 
@@ -382,13 +411,29 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               </button>
             </div>
             <div className="px-6 py-4">
+              <label className={`flex items-center justify-center gap-2 w-full py-2.5 mb-3 rounded-xl border border-dashed text-xs font-semibold cursor-pointer transition-colors ${
+                uploadingResume ? "border-slate-200 text-slate-300 cursor-not-allowed" : "border-blue-200 text-blue-600 hover:bg-blue-50"
+              }`}>
+                {uploadingResume ? (
+                  <><span className="w-3.5 h-3.5 border-2 border-blue-300/40 border-t-blue-500 rounded-full animate-spin" /> Uploading…</>
+                ) : (
+                  <><Upload className="w-3.5 h-3.5" /> Upload a new resume (PDF, max 5MB)</>
+                )}
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  disabled={uploadingResume}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleResumeUpload(f); e.target.value = ""; }}
+                />
+              </label>
               {resumesLoading ? (
                 <p className="text-sm text-slate-400 text-center py-4">Loading resumes…</p>
               ) : resumes.length === 0 ? (
                 <div className="text-center py-6">
                   <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                   <p className="text-sm text-slate-500 mb-1">No resumes uploaded yet</p>
-                  <p className="text-xs text-slate-400">You can still apply without a resume, or upload one from your profile.</p>
+                  <p className="text-xs text-slate-400">You can still apply without a resume, or upload one above.</p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-60 overflow-y-auto">
