@@ -236,12 +236,13 @@ export class OtpService {
         this.auditService.log(AuditAction.LOGIN_SUCCESS, "SUCCESS", user.id, reqCtx, {
           action: "OTP_REQUESTED",
         });
-        await this.mailService.sendOtp(email, {
+        // Don't block the response on the outbound email API call — send it in the background.
+        this.mailService.sendOtp(email, {
           firstName: user.firstName || email.split("@")[0],
           otp,
           expiresInMinutes: otpExpiryMinutes,
           purpose: "login",
-        });
+        }).catch((err) => this.logger.error(`Failed to send OTP email to ${email}: ${err?.message}`, err?.stack, "OtpService"));
         return { message: `OTP sent to your email. It expires in ${otpExpiryMinutes} minutes.` };
       }
     }
@@ -261,12 +262,13 @@ export class OtpService {
       action: "OTP_REQUESTED",
     });
 
-    await this.mailService.sendOtp(email, {
+    // Don't block the response on the outbound email API call — send it in the background.
+    this.mailService.sendOtp(email, {
       firstName: user.firstName || email.split("@")[0],
       otp,
       expiresInMinutes: otpExpiryMinutes,
       purpose: "login",
-    });
+    }).catch((err) => this.logger.error(`Failed to send OTP email to ${email}: ${err?.message}`, err?.stack, "OtpService"));
 
     return {
       message: `OTP sent to your email. It expires in ${otpExpiryMinutes} minutes.`,
