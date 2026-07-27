@@ -256,22 +256,32 @@ fi
 
 # ── 8. Search suggestions ──────────────────────────────────────────────────────
 step "Seeding search suggestions..."
-ADMIN_ID=$(run_sql "SELECT id FROM admins WHERE email='admin@cykruit.com' LIMIT 1;")
+ADMIN_ID=$(run_sql "SELECT id FROM admins ORDER BY \"createdAt\" ASC LIMIT 1;")
 if [ -n "$ADMIN_ID" ]; then
   run_sql_multi "
     INSERT INTO search_suggestions (id, text, type, \"isActive\", \"createdBy\", \"createdAt\", \"updatedAt\")
     SELECT gen_random_uuid(), name, 'ROLE', true, '$ADMIN_ID', now(), now()
-    FROM roles WHERE name IS NOT NULL
+    FROM roles WHERE name IS NOT NULL AND \"isActive\" = true
     ON CONFLICT (text, type) DO NOTHING;"
 
   run_sql_multi "
     INSERT INTO search_suggestions (id, text, type, \"isActive\", \"createdBy\", \"createdAt\", \"updatedAt\")
     SELECT gen_random_uuid(), name, 'SKILL', true, '$ADMIN_ID', now(), now()
-    FROM skills WHERE name IS NOT NULL
+    FROM skills WHERE name IS NOT NULL AND \"isActive\" = true
     ON CONFLICT (text, type) DO NOTHING;"
-  info "Seeded search suggestions"
+
+  run_sql_multi "
+    INSERT INTO search_suggestions (id, text, type, \"isActive\", \"createdBy\", \"createdAt\", \"updatedAt\")
+    SELECT gen_random_uuid(), \"companyName\", 'COMPANY', true, '$ADMIN_ID', now(), now()
+    FROM employers WHERE \"companyName\" IS NOT NULL AND \"isVerified\" = true
+    ON CONFLICT (text, type) DO NOTHING;"
+
+  ROLE_COUNT=$(run_sql "SELECT COUNT(*) FROM search_suggestions WHERE type='ROLE';")
+  SKILL_COUNT=$(run_sql "SELECT COUNT(*) FROM search_suggestions WHERE type='SKILL';")
+  COMPANY_COUNT=$(run_sql "SELECT COUNT(*) FROM search_suggestions WHERE type='COMPANY';")
+  info "Suggestions: $ROLE_COUNT roles, $SKILL_COUNT skills, $COMPANY_COUNT companies"
 else
-  warn "No admin found — skipping search suggestions"
+  warn "No admin found — skipping search suggestions (run reset-db.sh first)"
 fi
 
 # ── 9. Summary ─────────────────────────────────────────────────────────────────
