@@ -9,7 +9,7 @@ import {
   ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
-import { apiFetch, authHeaders } from "@/lib/api";
+import { apiFetch, authHeaders, describeError } from "@/lib/api";
 import { useKycStatus } from "@/lib/employer-context";
 import { KycGate } from "@/components/employer/KycGate";
 import { JobTableSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
@@ -102,9 +102,9 @@ export default function MyJobsPage() {
 
       setJobs(mapped);
       setTotalJobs(result.data?.meta?.total || (result as any).meta?.total || mapped.length);
-    } catch (err: any) {
+    } catch (err) {
       if (process.env.NODE_ENV === 'development') console.error(err);
-      toast({ type: "error", message: "Failed to load jobs" });
+      toast({ type: "error", ...describeError(err, "Failed to load jobs") });
     } finally {
       setLoading(false);
     }
@@ -112,19 +112,8 @@ export default function MyJobsPage() {
 
   useEffect(() => {
     if (!isVerified) return;
-    // Fetch all jobs (high limit, no filter) to get accurate status counts
-    apiFetch<{ items?: { status: string }[] }>("/api/employer/jobs?limit=200")
-      .then((res) => {
-        const all = res.data?.items ?? [];
-        const countMap = { active: 0, pending: 0, draft: 0, closed: 0 };
-        all.forEach((j) => {
-          if (j.status === "APPROVED") countMap.active++;
-          else if (j.status === "PENDING") countMap.pending++;
-          else if (j.status === "DRAFT") countMap.draft++;
-          else if (j.status === "CLOSED") countMap.closed++;
-        });
-        setCounts(countMap);
-      })
+    apiFetch<{ active: number; pending: number; draft: number; closed: number }>("/api/employer/jobs/counts")
+      .then((res) => { if (res.data) setCounts(res.data); })
       .catch(() => null);
   }, [kycStatus]);
 
@@ -144,8 +133,8 @@ export default function MyJobsPage() {
       toast({ type: "success", message: "Job draft deleted successfully" });
       fetchJobs();
       setCounts((prev) => ({ ...prev, draft: Math.max(0, prev.draft - 1) }));
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Could not delete job. Note: Only draft jobs can be deleted." });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Could not delete job. Note: Only draft jobs can be deleted.") });
     }
   };
 

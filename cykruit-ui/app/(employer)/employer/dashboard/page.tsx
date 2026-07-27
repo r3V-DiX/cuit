@@ -98,6 +98,8 @@ export default function EmployerDashboardPage() {
     fetchUser();
   }, []);
 
+  const [activeJobsCount, setActiveJobsCount] = useState(0);
+
   useEffect(() => {
     async function fetchDashboardData() {
       setLoading(true);
@@ -120,10 +122,12 @@ export default function EmployerDashboardPage() {
       }
     }
     fetchDashboardData();
+    // "Active Jobs" is a true total, not just among the recent jobs fetched above —
+    // needs the real aggregate, not a tally over whatever page size /employer/jobs returns.
+    apiFetch<{ active: number }>("/api/employer/jobs/counts")
+      .then((res) => { if (res.data) setActiveJobsCount(res.data.active); })
+      .catch(() => null);
   }, []);
-
-  // Derived stats
-  const activeJobsCount = jobs.filter(j => j.status === "APPROVED").length;
   const totalApplicants = applications.length;
   const newThisWeek = applications.filter(a => {
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;

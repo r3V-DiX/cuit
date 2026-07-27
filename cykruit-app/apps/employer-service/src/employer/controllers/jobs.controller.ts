@@ -39,6 +39,16 @@ export class JobsController {
         return this.jobsService.list(user.id, query);
     }
 
+    // ── GET /employer/jobs/counts ───────────────────────────────────────────
+    // Must be registered before the :id route below, or "counts" would be
+    // parsed as a job id and rejected by ParseUUIDPipe.
+
+    @Get('counts')
+    @RequirePermission(ACTIONS.JOBS.READ)
+    getStatusCounts(@CurrentUser() user: User) {
+        return this.jobsService.getStatusCounts(user.id);
+    }
+
     // ── GET /employer/jobs/:id ──────────────────────────────────────────────
 
     @Get(':id')

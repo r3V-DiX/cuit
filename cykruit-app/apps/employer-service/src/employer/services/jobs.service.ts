@@ -191,6 +191,24 @@ export class JobsService {
         };
     }
 
+    /** Real aggregate counts by status — not a client-side tally of a capped page. */
+    async getStatusCounts(userId: string) {
+        const employer = await this.resolveEmployer(userId);
+        const grouped = await this.prisma.job.groupBy({
+            by: ['status'],
+            where: { employerId: employer.id },
+            _count: true,
+        });
+        const counts = { active: 0, pending: 0, draft: 0, closed: 0 };
+        for (const g of grouped) {
+            if (g.status === JobStatus.APPROVED) counts.active = g._count;
+            else if (g.status === JobStatus.PENDING) counts.pending = g._count;
+            else if (g.status === JobStatus.DRAFT) counts.draft = g._count;
+            else if (g.status === JobStatus.CLOSED) counts.closed = g._count;
+        }
+        return counts;
+    }
+
     async getOne(userId: string, jobId: string) {
         const employer = await this.resolveEmployer(userId);
         const job = await this.jobsRepository.findByIdAndEmployer(jobId, employer.id);
