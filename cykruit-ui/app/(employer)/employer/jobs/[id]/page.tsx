@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
-import { authHeaders } from "@/lib/api";
+import { authHeaders, describeError } from "@/lib/api";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { useToast } from "@/components/ui/Toast";
 import {
@@ -157,12 +157,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error((body as { message?: string }).message ?? "Failed to resubmit");
+        throw new Error((body as { error?: { message?: string } })?.error?.message ?? "Failed to resubmit");
       }
       setJob((prev: any) => prev ? { ...prev, status: "Pending", rawStatus: "PENDING", rejectionReason: null } : prev);
       toast({ type: "success", message: "Job resubmitted for review" });
-    } catch (err: unknown) {
-      toast({ type: "error", message: "Resubmit failed", description: err instanceof Error ? err.message : "Unknown error" });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Resubmit failed") });
     } finally {
       setSubmitting(false);
     }
@@ -221,6 +221,16 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors">
           <ChevronLeft className="w-3.5 h-3.5" /> Back to My Jobs
         </Link>
+
+        {job.rawStatus === "PENDING" && (
+          <div className="flex items-start gap-3 px-5 py-4 bg-amber-50 border border-amber-200 rounded-2xl">
+            <Clock className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Awaiting admin approval</p>
+              <p className="text-xs text-amber-700 mt-0.5">This job won't be visible to seekers until an admin reviews and approves it. You'll be notified once a decision is made.</p>
+            </div>
+          </div>
+        )}
 
         {job.rawStatus === "REJECTED" && (
           <div className="flex items-start gap-3 px-5 py-4 bg-rose-50 border border-rose-200 rounded-2xl">
