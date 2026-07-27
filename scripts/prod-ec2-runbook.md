@@ -115,7 +115,7 @@ Add these zones at the **top of the http block** (or in `/etc/nginx/conf.d/rate-
 ```nginx
 # In /etc/nginx/conf.d/rate-limit.conf (create if missing)
 limit_req_zone $binary_remote_addr zone=global:10m    rate=100r/s;
-limit_req_zone $binary_remote_addr zone=auth_strict:10m rate=5r/m;
+limit_req_zone $binary_remote_addr zone=auth_strict:10m rate=25r/m;
 ```
 
 In each `server {}` block (all 4 domains), add inside the block:
@@ -127,7 +127,7 @@ In each `server {}` block (all 4 domains), add inside the block:
 
     # Tight limit on auth mutation endpoints
     location ~* ^/(auth|api/auth)/(login|register|forgot-password|request-otp) {
-        limit_req zone=auth_strict burst=3 nodelay;
+        limit_req zone=auth_strict burst=15 nodelay;
         proxy_pass http://127.0.0.1:PORT;  # replace PORT per vhost
     }
 ```
