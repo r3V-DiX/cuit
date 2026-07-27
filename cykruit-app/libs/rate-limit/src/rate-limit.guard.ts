@@ -26,16 +26,30 @@ export class RateLimitGuard extends ThrottlerGuard {
   }
 
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
+    // Explicit skip decorator always wins.
     const skipMetadata = this.reflector.getAllAndOverride<
       Record<string, boolean> | boolean
     >("THROTTLER:SKIP", [context.getHandler(), context.getClass()]);
-
     if (skipMetadata === true) return true;
     if (
       typeof skipMetadata === "object" &&
       Object.values(skipMetadata).some((v) => v === true)
     )
       return true;
+
+    // Opt-in throttling: skip unless the handler/class has a @Throttle decorator
+    // with at least one named (non-global) throttler. Checked by looking for any
+    // THROTTLER:TTL<name> metadata key where name !== "global".
+    const SENSITIVE_THROTTLERS = [
+      "login", "register", "forgot_password", "resend_verification",
+      "verify_email", "refresh_token", "oauth", "reset_password",
+      "check_verification", "public_search", "request_otp", "verify_otp",
+    ];
+    const targets = [context.getHandler(), context.getClass()];
+    const hasExplicitThrottle = SENSITIVE_THROTTLERS.some((name) =>
+      targets.some((t) => Reflect.getMetadata("THROTTLER:TTL" + name, t) !== undefined),
+    );
+    if (!hasExplicitThrottle) return true;
 
     return false;
   }
