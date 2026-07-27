@@ -86,9 +86,39 @@ const EMPLOYERS = [
     companyWebsite: 'https://rivedix.com',
     about: 'Rivedix is a practitioner-grade cybersecurity consultancy delivering offensive security, defensive security, cyber GRC, data privacy, AI governance, and vCISO advisory. Outcome-first approach — not checklist compliance.',
   },
+  {
+    email: 'support@rkavach.com',
+    password: 'RKavach@2025!',
+    firstName: 'Support',
+    lastName: 'Team',
+    companyName: 'RKavach',
+    slug: 'rkavach',
+    companyType: 'PRIVATE_LIMITED_COMPANY' as const,
+    industry: 'TECHNOLOGY' as const,
+    companySize: 'SIZE_11_50' as const,
+    location: 'Pune, IN',
+    companyWebsite: 'https://rkavach.com',
+    about: 'RKavach is a cybersecurity product and services company building intelligent security solutions for modern enterprises — from managed detection to GRC automation.',
+    subscriptionPackage: 'Growth',
+  },
 ];
 
-const JOB_TEMPLATES = [
+const JOB_TEMPLATES: {
+  employerSlug: string;
+  roleName: string;
+  jobTitle: string;
+  slug: string;
+  jobType: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERNSHIP';
+  workMode: 'REMOTE' | 'ONSITE' | 'HYBRID';
+  experienceLevel: 'ENTRY' | 'MID' | 'SENIOR' | 'LEAD';
+  applicationType: 'DIRECT' | 'EXTERNAL';
+  description: string;
+  responsibilities: string[];
+  requirements: string[];
+  skillNames: string[];
+  certNames: string[];
+  isFeatured?: boolean;
+}[] = [
   {
     employerSlug: 'offsec',
     roleName: 'Penetration Tester',
@@ -252,6 +282,33 @@ const JOB_TEMPLATES = [
     certNames: ['OSCP', 'eWPT'],
   },
   {
+    employerSlug: 'rivedix',
+    roleName: 'GRC Consultant',
+    jobTitle: 'Cyber GRC Analyst',
+    slug: 'cyber-grc-analyst-rivedix',
+    jobType: 'FULL_TIME' as const,
+    workMode: 'HYBRID' as const,
+    experienceLevel: 'MID' as const,
+    applicationType: 'DIRECT' as const,
+    description: `Rivedix is hiring a Cyber GRC Analyst to support our growing governance, risk, and compliance practice. You will work with enterprise clients to assess and improve their security posture against ISO 27001, SOC 2, and RBI/SEBI regulatory frameworks.`,
+    responsibilities: [
+      'Conduct risk assessments and gap analyses against ISO 27001, SOC 2, and NIST CSF',
+      'Support clients through ISMS implementation and audit preparation',
+      'Draft and review security policies, procedures, and control documentation',
+      'Assist with data privacy impact assessments under DPDP Act and GDPR',
+      'Deliver client workshops and stakeholder awareness sessions',
+    ],
+    requirements: [
+      '2+ years GRC, audit, or compliance experience',
+      'Working knowledge of ISO 27001, SOC 2 Type II, and NIST CSF',
+      'Familiarity with India DPDP Act 2023 and GDPR fundamentals',
+      'ISO 27001 Lead Implementer or Lead Auditor certification preferred',
+      'Strong written communication and stakeholder management skills',
+    ],
+    skillNames: ['GRC', 'ISO 27001', 'Risk Assessment', 'NIST'],
+    certNames: ['CISA', 'ISO 27001'],
+  },
+  {
     employerSlug: 'crowdstrike',
     roleName: 'Security Engineer',
     jobTitle: 'Detection Engineer',
@@ -277,6 +334,118 @@ const JOB_TEMPLATES = [
     ],
     skillNames: ['Detection Engineering', 'Splunk', 'YARA'],
     certNames: ['GDAT', 'GCED'],
+  },
+  // RKavach — Growth subscription, 3 featured jobs
+  {
+    employerSlug: 'rkavach',
+    roleName: 'Security Engineer',
+    jobTitle: 'Product Security Engineer',
+    slug: 'product-security-engineer-rkavach',
+    jobType: 'FULL_TIME' as const,
+    workMode: 'HYBRID' as const,
+    experienceLevel: 'MID' as const,
+    applicationType: 'DIRECT' as const,
+    isFeatured: true,
+    description: `RKavach is hiring a Product Security Engineer to embed security across our product development lifecycle. You will own threat modelling, secure code review, and vulnerability management for our SaaS security platform.`,
+    responsibilities: [
+      'Lead threat modelling and secure design reviews for new product features',
+      'Perform manual and automated code reviews across Node.js and Go microservices',
+      'Manage vulnerability disclosure program and triage inbound bug bounty reports',
+      'Define and enforce secure SDLC practices across engineering squads',
+      'Own SAST/DAST tooling (Semgrep, Snyk, Burp) and integrate into CI/CD pipelines',
+    ],
+    requirements: [
+      '3+ years application security or product security experience',
+      'Strong knowledge of OWASP Top 10 and API security (OWASP API Top 10)',
+      'Hands-on experience with SAST/DAST tools and CI/CD security integrations',
+      'Proficiency in at least one backend language: Node.js, Go, or Python',
+      'BSCP, OSWE, or eWPTX certification preferred',
+    ],
+    skillNames: ['Application Security', 'Burp Suite', 'OWASP', 'Python'],
+    certNames: ['BSCP', 'OSCP'],
+  },
+  {
+    employerSlug: 'rkavach',
+    roleName: 'Cloud Security Engineer',
+    jobTitle: 'Cloud Security Architect',
+    slug: 'cloud-security-architect-rkavach',
+    jobType: 'FULL_TIME' as const,
+    workMode: 'REMOTE' as const,
+    experienceLevel: 'SENIOR' as const,
+    applicationType: 'DIRECT' as const,
+    isFeatured: true,
+    description: `RKavach is scaling its cloud infrastructure and needs a Cloud Security Architect to define the security blueprint for our multi-cloud environment. You will own zero-trust architecture, cloud IAM strategy, and compliance automation.`,
+    responsibilities: [
+      'Design and implement zero-trust network architecture across AWS and Azure',
+      'Own IAM strategy, privilege access management (PAM), and identity federation',
+      'Build cloud security guardrails using infrastructure-as-code (Terraform, CDK)',
+      'Drive compliance automation for ISO 27001 and SOC 2 evidence collection',
+      'Mentor cloud and DevOps engineers on security best practices',
+    ],
+    requirements: [
+      '5+ years cloud security architecture experience',
+      'AWS Security Specialty and/or CCSP required',
+      'Strong Terraform and Python skills for security automation',
+      'Experience designing zero-trust and least-privilege IAM architectures at scale',
+      'Prior experience with CSPM tools such as Wiz, Prisma Cloud, or Lacework',
+    ],
+    skillNames: ['AWS', 'Cloud Security', 'Terraform', 'Kubernetes'],
+    certNames: ['AWS Security Specialty', 'CCSP'],
+  },
+  {
+    employerSlug: 'rkavach',
+    roleName: 'GRC Consultant',
+    jobTitle: 'Cyber Risk & Compliance Manager',
+    slug: 'cyber-risk-compliance-manager-rkavach',
+    jobType: 'FULL_TIME' as const,
+    workMode: 'HYBRID' as const,
+    experienceLevel: 'SENIOR' as const,
+    applicationType: 'DIRECT' as const,
+    isFeatured: true,
+    description: `RKavach is looking for a Cyber Risk & Compliance Manager to lead our internal GRC program and support enterprise clients through certification and regulatory audits. This is a high-impact role with board-level visibility.`,
+    responsibilities: [
+      `Own and drive the company's ISO 27001 certification and SOC 2 Type II audit`,
+      'Manage enterprise risk register, risk appetite framework, and treatment tracking',
+      'Lead external auditor engagements and coordinate evidence collection',
+      'Deliver compliance reporting and risk briefings to the CISO and executive board',
+      'Develop and maintain security policies, procedures, and training programmes',
+    ],
+    requirements: [
+      '5+ years GRC or information security management experience',
+      'Demonstrated ISO 27001 Lead Auditor or CISM/CISSP credential',
+      'Deep understanding of RBI cyber security framework, SEBI guidelines, and DPDP Act',
+      'Experience managing external audit relationships and evidence collection pipelines',
+      'Excellent stakeholder management and executive communication skills',
+    ],
+    skillNames: ['GRC', 'ISO 27001', 'Risk Assessment', 'NIST'],
+    certNames: ['CISM', 'CISSP', 'CISA'],
+  },
+  {
+    employerSlug: 'rkavach',
+    roleName: 'Penetration Tester',
+    jobTitle: 'Mobile & API Penetration Tester',
+    slug: 'mobile-api-penetration-tester-rkavach',
+    jobType: 'FULL_TIME' as const,
+    workMode: 'HYBRID' as const,
+    experienceLevel: 'MID' as const,
+    applicationType: 'DIRECT' as const,
+    description: `RKavach's offensive security team is growing. We need a Mobile & API Penetration Tester to own assessments of Android/iOS applications and RESTful/GraphQL APIs for our enterprise clientele.`,
+    responsibilities: [
+      'Conduct mobile application security assessments on Android and iOS (OWASP Mobile Top 10)',
+      'Perform REST and GraphQL API security testing including business logic and auth flaws',
+      'Use dynamic and static analysis to uncover vulnerabilities in compiled mobile apps',
+      'Write clear technical and executive-grade reports with prioritised findings',
+      'Stay current on mobile exploitation techniques, frameworks, and bypass methods',
+    ],
+    requirements: [
+      '2+ years mobile or API penetration testing experience',
+      'Proficiency with Frida, Objection, MobSF, and Burp Suite',
+      'Strong understanding of iOS/Android security models and secure storage pitfalls',
+      'Familiarity with API authentication schemes (OAuth 2.0, JWT, API keys)',
+      'eMAPT, GPEN, or equivalent mobile/API certification preferred',
+    ],
+    skillNames: ['Penetration Testing', 'Burp Suite', 'Python', 'Application Security'],
+    certNames: ['OSCP', 'eWPT'],
   },
 ];
 
@@ -344,6 +513,33 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
       });
     }
 
+    // Create subscription if specified
+    if ('subscriptionPackage' in emp && emp.subscriptionPackage) {
+      const pkg = await prisma.subscriptionPackage.findUnique({
+        where: { name: emp.subscriptionPackage },
+        select: { id: true },
+      });
+      if (pkg) {
+        const existingSub = await prisma.employerSubscription.findUnique({
+          where: { employerId: employer.id },
+        });
+        if (!existingSub) {
+          const expiresAt = new Date();
+          expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+          await prisma.employerSubscription.create({
+            data: {
+              employerId: employer.id,
+              packageId: pkg.id,
+              status: 'ACTIVE',
+              billingCycle: 'YEARLY',
+              expiresAt,
+            },
+          });
+          console.log(`  💳 Created ${emp.subscriptionPackage} subscription for ${emp.companyName}`);
+        }
+      }
+    }
+
     // Create jobs for this employer
     const empJobs = JOB_TEMPLATES.filter(j => j.employerSlug === emp.slug);
     for (const jt of empJobs) {
@@ -378,6 +574,7 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
           requirements: jt.requirements,
           responsibilities: jt.responsibilities,
           ...(roleId ? { roleId } : {}),
+          isFeatured: jt.isFeatured ?? false,
           status: 'APPROVED',
           publishedAt: new Date(),
           expiresAt: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
@@ -398,7 +595,8 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
         await prisma.jobCertification.createMany({ data: certData, skipDuplicates: true });
       }
 
-      console.log(`  ✅ Created job: ${jt.jobTitle} @ ${emp.companyName}`);
+      const featuredTag = jt.isFeatured ? ' ⭐ FEATURED' : '';
+      console.log(`  ✅ Created job: ${jt.jobTitle} @ ${emp.companyName}${featuredTag}`);
     }
   }
 
