@@ -8,8 +8,6 @@ import CTASection from "@/components/landing/CTASection";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 
-const PUBLIC_URL = process.env.PUBLIC_SERVICE_URL || "http://127.0.0.1:4006";
-
 function trimDescription(desc?: string): string {
   if (!desc) return "";
   const introEnd = desc.search(/\n\n(responsibilities|requirements):/i);
@@ -17,9 +15,10 @@ function trimDescription(desc?: string): string {
 }
 
 async function getFeaturedJobs(): Promise<FeaturedJob[]> {
+  const PUBLIC_URL = process.env.PUBLIC_SERVICE_URL || "http://127.0.0.1:4006";
   try {
     const res = await fetch(`${PUBLIC_URL}/public/jobs?featured=true&limit=6`, {
-      next: { revalidate: 60 },
+      next: { revalidate: 300 },
     });
     if (!res.ok) return [];
     const body = await res.json();
@@ -32,6 +31,7 @@ async function getFeaturedJobs(): Promise<FeaturedJob[]> {
 }
 
 async function getSeekerTestimonials(): Promise<Testimonial[]> {
+  const PUBLIC_URL = process.env.PUBLIC_SERVICE_URL || "http://127.0.0.1:4006";
   try {
     const res = await fetch(`${PUBLIC_URL}/public/testimonials?type=SEEKER`, {
       next: { revalidate: 3600 },
