@@ -1,12 +1,14 @@
 import { Controller, Get, Query, HttpCode, HttpStatus } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from "@nestjs/swagger";
 import { Public } from "@cykruit/auth-core";
+import { SkipRateLimit } from "@cykruit/rate-limit";
 import { SkillsService } from "./skills.service";
 import { SkillsSearchDto } from "./dto/skills-search.dto";
 
 @ApiTags("skills")
 @Controller("skills")
 @Public()
+@SkipRateLimit()
 export class SkillsController {
   constructor(private readonly skillsService: SkillsService) {}
 

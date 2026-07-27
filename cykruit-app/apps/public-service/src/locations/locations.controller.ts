@@ -1,12 +1,14 @@
 import { Controller, Get, Query, HttpCode, HttpStatus } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from "@nestjs/swagger";
 import { Public } from "@cykruit/auth-core";
+import { SkipRateLimit } from "@cykruit/rate-limit";
 import { LocationsService } from "./locations.service";
 import { LocationSearchDto } from "./dto/locations-search.dto";
 
 @ApiTags("locations")
 @Controller("locations")
 @Public()
+@SkipRateLimit()
 export class LocationsController {
   constructor(private readonly locationsService: LocationsService) {}
 

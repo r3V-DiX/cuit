@@ -1,6 +1,7 @@
 import { Controller, Get, Query, HttpCode, HttpStatus } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from "@nestjs/swagger";
 import { Public } from "@cykruit/auth-core";
+import { PublicSearchRateLimit } from "@cykruit/rate-limit";
 import { SuggestionsService } from "./suggestions.service";
 
 @ApiTags("suggestions")
@@ -10,6 +11,7 @@ export class SuggestionsController {
   constructor(private readonly suggestionsService: SuggestionsService) {}
 
   @Get()
+  @PublicSearchRateLimit()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Search active suggestions for autocomplete" })
   @ApiQuery({ name: "q", required: false })

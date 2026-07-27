@@ -1,12 +1,14 @@
 import { Controller, Get, Query, HttpCode, HttpStatus } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from "@nestjs/swagger";
 import { Public } from "@cykruit/auth-core";
+import { SkipRateLimit } from "@cykruit/rate-limit";
 import { AnnouncementTarget } from "@prisma/client";
 import { AnnouncementsService } from "./announcements.service";
 
 @ApiTags("announcements")
 @Controller("announcements")
 @Public()
+@SkipRateLimit()
 export class AnnouncementsController {
   constructor(private readonly announcementsService: AnnouncementsService) {}
 

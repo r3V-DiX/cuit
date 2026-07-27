@@ -14,12 +14,14 @@ import {
   ApiParam,
 } from "@nestjs/swagger";
 import { Public } from "@cykruit/auth-core";
+import { SkipRateLimit } from "@cykruit/rate-limit";
 import { CmsService } from "./cms.service";
 import { BlogQueryDto } from "./dto/blog-query.dto";
 
 @ApiTags("cms")
 @Controller()
 @Public()
+@SkipRateLimit()
 export class CmsController {
   constructor(private readonly cmsService: CmsService) {}
 

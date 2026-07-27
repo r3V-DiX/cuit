@@ -1,12 +1,14 @@
 import { Controller, Get, Query, HttpCode, HttpStatus } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from "@nestjs/swagger";
 import { Public } from "@cykruit/auth-core";
+import { SkipRateLimit } from "@cykruit/rate-limit";
 import { RolesService } from "./roles.service";
 import { RolesSearchDto } from "./dto/roles-search.dto";
 
 @ApiTags("roles")
 @Controller("roles")
 @Public()
+@SkipRateLimit()
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
