@@ -2,8 +2,6 @@ import { Module, Global } from "@nestjs/common";
 import { ThrottlerModule, ThrottlerModuleOptions } from "@nestjs/throttler";
 import { ThrottlerStorageRedisService } from "@nest-lab/throttler-storage-redis";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { APP_GUARD, Reflector } from "@nestjs/core";
-import { RateLimitGuard } from "./rate-limit.guard";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -91,13 +89,7 @@ const isDev = process.env.NODE_ENV === "development";
       }),
     }),
   ],
-  providers: [
-    Reflector,
-    {
-      provide: APP_GUARD,
-      useClass: RateLimitGuard,
-    },
-  ],
+  providers: [],
   exports: [ThrottlerModule],
 })
 export class RateLimitModule {}
