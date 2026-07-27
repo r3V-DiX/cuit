@@ -91,6 +91,7 @@ async function fetchJobs(params: {
       posted: new Date(job.publishedAt || Date.now()).toLocaleDateString(),
       tags: job.skills?.map((s: any) => s.name) || [],
       domain: job.role?.name || "Cybersecurity",
+      isFeatured: job.isFeatured ?? false,
       }; });
     return { data: mapped, total: r.total || result.data?.total || mapped.length, totalPages: r.totalPages || result.data?.totalPages || 1 };
   } catch (error) {
@@ -337,7 +338,12 @@ function JobsContent() {
                     className="group relative flex flex-col gap-4 p-5 rounded-2xl bg-white border border-slate-200 border-l-2 border-l-slate-200 shadow-sm hover:border-blue-300 hover:border-l-blue-400 hover:shadow-md hover:shadow-blue-500/8 transition-all duration-200 overflow-hidden"
                   >
                     <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-blue-400/0 via-blue-500/60 to-blue-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                    <CyberIcon className="absolute top-4 right-4 w-5 h-5 text-slate-100 group-hover:text-blue-100 transition-colors" />
+                    {job.isFeatured && (
+                      <span className="absolute top-3 right-10 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-amber-50 text-amber-600 border border-amber-200">
+                        ⭐ Featured
+                      </span>
+                    )}
+                    <CyberIcon className={`absolute top-4 right-4 w-5 h-5 text-slate-100 group-hover:text-blue-100 transition-colors ${job.isFeatured ? "opacity-0" : ""}`} />
 
                     <div className="flex items-center gap-3 pr-6">
                       <div className={`w-10 h-10 rounded-xl ${job.accent} flex items-center justify-center shrink-0 font-bold text-xs font-mono`}>
@@ -465,8 +471,9 @@ function FilterDropdown({
   onChange: (v: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+  const [pos, setPos] = useState({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
   const active = value !== "All";
   const [mounted, setMounted] = useState(false);
 
@@ -475,7 +482,7 @@ function FilterDropdown({
   const updatePos = () => {
     if (!btnRef.current) return;
     const r = btnRef.current.getBoundingClientRect();
-    setPos({ top: r.bottom + 6, left: r.left, width: r.width });
+    setPos({ top: r.bottom + 6, left: r.left });
   };
 
   const handleToggle = () => {
@@ -486,7 +493,11 @@ function FilterDropdown({
   useEffect(() => {
     if (!open) return;
     const close = (e: MouseEvent) => {
-      if (btnRef.current && !btnRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        btnRef.current && !btnRef.current.contains(target) &&
+        dropRef.current && !dropRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     };
@@ -497,15 +508,15 @@ function FilterDropdown({
 
   const dropdown = open && mounted ? createPortal(
     <div
+      ref={dropRef}
       className="fixed bg-white border border-slate-200 rounded-xl shadow-2xl py-1.5 overflow-y-auto"
-      style={{ top: pos.top, left: pos.left, minWidth: Math.max(pos.width, 176), maxHeight: 280, zIndex: 9999 }}
+      style={{ top: pos.top, left: pos.left, minWidth: 160, maxHeight: 280, zIndex: 9999 }}
     >
       {options.map((opt) => (
         <button
           key={opt}
-          onMouseDown={(e) => e.preventDefault()}
           onClick={() => { onChange(opt); setOpen(false); }}
-          className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer ${
+          className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer whitespace-nowrap ${
             value === opt
               ? "text-blue-700 bg-blue-50 font-semibold"
               : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"

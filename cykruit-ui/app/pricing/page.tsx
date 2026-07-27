@@ -1,8 +1,7 @@
 import PricingClient, { PricingPackage } from "./PricingClient";
 
-const SUBS_URL = process.env.SUBS_SERVICE_URL || "http://127.0.0.1:4008";
-
 async function getPackages(): Promise<PricingPackage[]> {
+  const SUBS_URL = process.env.SUBS_SERVICE_URL || "http://127.0.0.1:4008";
   try {
     const res = await fetch(`${SUBS_URL}/subscriptions/packages`, {
       next: { revalidate: 3600 },

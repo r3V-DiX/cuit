@@ -19,6 +19,7 @@ export type Job = {
   companyDescription: string;
   companySize: string;
   companyIndustry: string;
+  isFeatured?: boolean;
 };
 
 export const jobs: Job[] = jobsJson as Job[];
