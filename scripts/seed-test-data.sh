@@ -1,5 +1,5 @@
 #!/bin/bash
-# seed-test-data.sh — create test employer + seeker + jobs for full flow testing
+# seed-test-data.sh — seed employer accounts, subscriptions, and jobs
 # Run: sudo bash scripts/seed-test-data.sh
 # Requires: containers running, .env.prod present
 set -euo pipefail
@@ -22,7 +22,6 @@ if [ -z "$DATABASE_URL" ]; then
   echo "ERROR: DATABASE_URL not found in $ENV_FILE"
   exit 1
 fi
-# Strip Prisma-only query params (?schema=...) — invalid for psql
 PSQL_URL=$(echo "$DATABASE_URL" | sed 's/?.*$//')
 
 run_sql() {
@@ -41,120 +40,124 @@ $1
 SQL
 }
 
-# Hash password using bcrypt via node in the auth-service container
 hash_password() {
   local plain="$1"
   docker exec cykruit-v2-auth-service-1 node -e \
     "const b=require('bcryptjs');b.hash('${plain}',10).then(h=>process.stdout.write(h))"
 }
 
-step "Seeding test data..."
+step "Seeding employer accounts, subscriptions, and jobs..."
 
 # ── 1. Hash passwords ──────────────────────────────────────────────────────────
 info "Hashing passwords..."
-EMPLOYER1_HASH=$(hash_password "Test@1234")
-EMPLOYER2_HASH=$(hash_password "Test@1234")
+RIVEDIX_HASH=$(hash_password "Rivedix@2025!")
+RKAVACH_HASH=$(hash_password "RKavach@2025!")
 SEEKER_HASH=$(hash_password "Test@1234")
 info "Done."
 
-# ── 2. Get a valid location ID ─────────────────────────────────────────────────
-LOCATION_ID=$(run_sql "SELECT id FROM locations WHERE city='Bengaluru' LIMIT 1;")
-if [ -z "$LOCATION_ID" ]; then
-  LOCATION_ID=$(run_sql "SELECT id FROM locations LIMIT 1;")
-fi
-info "Using location: $LOCATION_ID"
-
-# ── 3. Get skill IDs ───────────────────────────────────────────────────────────
-SKILL_REACT=$(run_sql "SELECT id FROM skills WHERE name='React' LIMIT 1;")
-SKILL_NODE=$(run_sql "SELECT id FROM skills WHERE name='Node.js' LIMIT 1;")
+# ── 2. Lookup skill IDs ────────────────────────────────────────────────────────
+SKILL_PENTEST=$(run_sql "SELECT id FROM skills WHERE name='Penetration Testing' LIMIT 1;")
+SKILL_BURP=$(run_sql "SELECT id FROM skills WHERE name='Burp Suite' LIMIT 1;")
 SKILL_PYTHON=$(run_sql "SELECT id FROM skills WHERE name='Python' LIMIT 1;")
-SKILL_SQL=$(run_sql "SELECT id FROM skills WHERE name='PostgreSQL' LIMIT 1;")
-[ -z "$SKILL_REACT" ]  && SKILL_REACT=$(run_sql  "SELECT id FROM skills LIMIT 1;")
-[ -z "$SKILL_NODE" ]   && SKILL_NODE=$(run_sql   "SELECT id FROM skills OFFSET 1 LIMIT 1;")
-[ -z "$SKILL_PYTHON" ] && SKILL_PYTHON=$(run_sql "SELECT id FROM skills OFFSET 2 LIMIT 1;")
-[ -z "$SKILL_SQL" ]    && SKILL_SQL=$(run_sql    "SELECT id FROM skills OFFSET 3 LIMIT 1;")
+SKILL_AWS=$(run_sql "SELECT id FROM skills WHERE name='AWS' LIMIT 1;")
+SKILL_APPSEC=$(run_sql "SELECT id FROM skills WHERE name='Application Security' LIMIT 1;")
+SKILL_TERRAFORM=$(run_sql "SELECT id FROM skills WHERE name='Terraform' LIMIT 1;")
+SKILL_CLOUDSEC=$(run_sql "SELECT id FROM skills WHERE name='Cloud Security' LIMIT 1;")
+SKILL_OWASP=$(run_sql "SELECT id FROM skills WHERE name='OWASP' LIMIT 1;")
 
-# ── 4. Get free subscription package ──────────────────────────────────────────
+# ── 3. Lookup package IDs ──────────────────────────────────────────────────────
 FREE_PKG_ID=$(run_sql "SELECT id FROM subscription_packages WHERE name='Free' LIMIT 1;")
-if [ -z "$FREE_PKG_ID" ]; then
-  FREE_PKG_ID=$(run_sql "SELECT id FROM subscription_packages LIMIT 1;")
-fi
-info "Free package: $FREE_PKG_ID"
+GROWTH_PKG_ID=$(run_sql "SELECT id FROM subscription_packages WHERE name='Growth' LIMIT 1;")
+info "Free: $FREE_PKG_ID | Growth: $GROWTH_PKG_ID"
 
-# ── 5. Create employer 1 ──────────────────────────────────────────────────────
-step "Creating Employer 1 (TechCorp)..."
-EMPLOYER1_USER_ID=$(run_sql "SELECT id FROM users WHERE email='yograj.hukumdar@rivedix.com' LIMIT 1;")
+# ── 4. Rivedix employer ────────────────────────────────────────────────────────
+step "Creating Rivedix employer (yograj.hukumdar@rivedix.com)..."
+RIVEDIX_USER_ID=$(run_sql "SELECT id FROM users WHERE email='yograj.hukumdar@rivedix.com' LIMIT 1;")
 
-if [ -z "$EMPLOYER1_USER_ID" ]; then
-  EMPLOYER1_USER_ID=$(run_sql "
+if [ -z "$RIVEDIX_USER_ID" ]; then
+  RIVEDIX_USER_ID=$(run_sql "
     INSERT INTO users (id, email, password, \"firstName\", \"lastName\", role, status, \"isEmailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\")
-    VALUES (gen_random_uuid(), 'yograj.hukumdar@rivedix.com', '$EMPLOYER1_HASH', 'Yograj', 'Hukumdar', 'EMPLOYER', 'ACTIVE', true, now(), now(), now())
+    VALUES (gen_random_uuid(), 'yograj.hukumdar@rivedix.com', '$RIVEDIX_HASH', 'Yograj', 'Hukumdar', 'EMPLOYER', 'ACTIVE', true, now(), now(), now())
     RETURNING id;")
-  info "Created user: $EMPLOYER1_USER_ID"
+  info "Created user: $RIVEDIX_USER_ID"
 else
-  info "Employer 1 user already exists: $EMPLOYER1_USER_ID"
+  info "User already exists: $RIVEDIX_USER_ID"
 fi
 
-EMPLOYER1_ID=$(run_sql "SELECT id FROM employers WHERE \"userId\"='$EMPLOYER1_USER_ID' LIMIT 1;")
-if [ -z "$EMPLOYER1_ID" ]; then
-  EMPLOYER1_ID=$(run_sql "
-    INSERT INTO employers (id, \"userId\", \"companyName\", \"companyType\", industry, \"companySize\", location, slug, about, \"isVerified\", \"isActive\", \"profileCompletion\", \"createdAt\", \"updatedAt\")
-    VALUES (gen_random_uuid(), '$EMPLOYER1_USER_ID', 'TechCorp Solutions', 'PRIVATE_LIMITED_COMPANY', 'TECHNOLOGY', 'SIZE_51_200', 'Bengaluru, Karnataka', 'techcorp-solutions', 'We build great software products.', true, true, 80, now(), now())
+RIVEDIX_ID=$(run_sql "SELECT id FROM employers WHERE \"userId\"='$RIVEDIX_USER_ID' LIMIT 1;")
+if [ -z "$RIVEDIX_ID" ]; then
+  RIVEDIX_ID=$(run_sql "
+    INSERT INTO employers (id, \"userId\", \"companyName\", \"companyType\", industry, \"companySize\", location, slug, \"companyWebsite\", about, \"isVerified\", \"verifiedAt\", \"isActive\", \"profileCompletion\", \"createdAt\", \"updatedAt\")
+    VALUES (gen_random_uuid(), '$RIVEDIX_USER_ID', 'Rivedix Technology Solutions', 'PRIVATE_LIMITED_COMPANY', 'TECHNOLOGY', 'SIZE_11_50', 'Pune, IN', 'rivedix', 'https://rivedix.com', 'Rivedix is a practitioner-grade cybersecurity consultancy delivering offensive security, defensive security, cyber GRC, data privacy, AI governance, and vCISO advisory.', true, now(), true, 90, now(), now())
     RETURNING id;")
-  info "Created employer: $EMPLOYER1_ID"
+  info "Created employer: $RIVEDIX_ID"
 
-  # Free subscription
-  if [ -n "$FREE_PKG_ID" ]; then
-    run_sql_multi "
-      INSERT INTO employer_subscriptions (id, \"employerId\", \"packageId\", status, \"startedAt\", \"expiresAt\", \"createdAt\", \"updatedAt\")
-      VALUES (gen_random_uuid(), '$EMPLOYER1_ID', '$FREE_PKG_ID', 'ACTIVE', now(), now() + interval '1 year', now(), now())
-      ON CONFLICT DO NOTHING;"
-    info "Assigned Free subscription"
-  fi
-fi
-
-# ── 6. Create employer 2 ──────────────────────────────────────────────────────
-step "Creating Employer 2 (StartupHub)..."
-EMPLOYER2_USER_ID=$(run_sql "SELECT id FROM users WHERE email='employer2@test.com' LIMIT 1;")
-
-if [ -z "$EMPLOYER2_USER_ID" ]; then
-  EMPLOYER2_USER_ID=$(run_sql "
-    INSERT INTO users (id, email, password, \"firstName\", \"lastName\", role, status, \"isEmailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\")
-    VALUES (gen_random_uuid(), 'employer2@test.com', '$EMPLOYER2_HASH', 'Priya', 'Patel', 'EMPLOYER', 'ACTIVE', true, now(), now(), now())
-    RETURNING id;")
-  info "Created user: $EMPLOYER2_USER_ID"
-else
-  info "Employer 2 user already exists: $EMPLOYER2_USER_ID"
-fi
-
-EMPLOYER2_ID=$(run_sql "SELECT id FROM employers WHERE \"userId\"='$EMPLOYER2_USER_ID' LIMIT 1;")
-if [ -z "$EMPLOYER2_ID" ]; then
-  EMPLOYER2_ID=$(run_sql "
-    INSERT INTO employers (id, \"userId\", \"companyName\", \"companyType\", industry, \"companySize\", location, slug, about, \"isVerified\", \"isActive\", \"profileCompletion\", \"createdAt\", \"updatedAt\")
-    VALUES (gen_random_uuid(), '$EMPLOYER2_USER_ID', 'StartupHub Ventures', 'PRIVATE_LIMITED_COMPANY', 'TECHNOLOGY', 'SIZE_11_50', 'Mumbai, Maharashtra', 'startuphub-ventures', 'Early-stage startup building the future.', true, true, 70, now(), now())
-    RETURNING id;")
-  info "Created employer: $EMPLOYER2_ID"
+  run_sql_multi "
+    INSERT INTO employer_members (id, \"employerId\", \"userId\", role, \"createdAt\", \"updatedAt\")
+    VALUES (gen_random_uuid(), '$RIVEDIX_ID', '$RIVEDIX_USER_ID', 'OWNER', now(), now())
+    ON CONFLICT DO NOTHING;"
 
   if [ -n "$FREE_PKG_ID" ]; then
     run_sql_multi "
       INSERT INTO employer_subscriptions (id, \"employerId\", \"packageId\", status, \"startedAt\", \"expiresAt\", \"createdAt\", \"updatedAt\")
-      VALUES (gen_random_uuid(), '$EMPLOYER2_ID', '$FREE_PKG_ID', 'ACTIVE', now(), now() + interval '1 year', now(), now())
+      VALUES (gen_random_uuid(), '$RIVEDIX_ID', '$FREE_PKG_ID', 'ACTIVE', now(), now() + interval '1 year', now(), now())
       ON CONFLICT DO NOTHING;"
+    info "Assigned Free subscription to Rivedix"
   fi
+else
+  info "Employer already exists: $RIVEDIX_ID"
 fi
 
-# ── 7. Create jobs ─────────────────────────────────────────────────────────────
+# ── 5. RKavach employer ────────────────────────────────────────────────────────
+step "Creating RKavach employer (support@rkavach.com) with Growth subscription..."
+RKAVACH_USER_ID=$(run_sql "SELECT id FROM users WHERE email='support@rkavach.com' LIMIT 1;")
+
+if [ -z "$RKAVACH_USER_ID" ]; then
+  RKAVACH_USER_ID=$(run_sql "
+    INSERT INTO users (id, email, password, \"firstName\", \"lastName\", role, status, \"isEmailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\")
+    VALUES (gen_random_uuid(), 'support@rkavach.com', '$RKAVACH_HASH', 'Support', 'Team', 'EMPLOYER', 'ACTIVE', true, now(), now(), now())
+    RETURNING id;")
+  info "Created user: $RKAVACH_USER_ID"
+else
+  info "User already exists: $RKAVACH_USER_ID"
+fi
+
+RKAVACH_ID=$(run_sql "SELECT id FROM employers WHERE \"userId\"='$RKAVACH_USER_ID' LIMIT 1;")
+if [ -z "$RKAVACH_ID" ]; then
+  RKAVACH_ID=$(run_sql "
+    INSERT INTO employers (id, \"userId\", \"companyName\", \"companyType\", industry, \"companySize\", location, slug, \"companyWebsite\", about, \"isVerified\", \"verifiedAt\", \"isActive\", \"profileCompletion\", \"createdAt\", \"updatedAt\")
+    VALUES (gen_random_uuid(), '$RKAVACH_USER_ID', 'RKavach', 'PRIVATE_LIMITED_COMPANY', 'TECHNOLOGY', 'SIZE_11_50', 'Pune, IN', 'rkavach', 'https://rkavach.com', 'RKavach is a cybersecurity product and services company building intelligent security solutions for modern enterprises — from managed detection to GRC automation.', true, now(), true, 90, now(), now())
+    RETURNING id;")
+  info "Created employer: $RKAVACH_ID"
+
+  run_sql_multi "
+    INSERT INTO employer_members (id, \"employerId\", \"userId\", role, \"createdAt\", \"updatedAt\")
+    VALUES (gen_random_uuid(), '$RKAVACH_ID', '$RKAVACH_USER_ID', 'OWNER', now(), now())
+    ON CONFLICT DO NOTHING;"
+
+  if [ -n "$GROWTH_PKG_ID" ]; then
+    run_sql_multi "
+      INSERT INTO employer_subscriptions (id, \"employerId\", \"packageId\", status, \"billingCycle\", \"startedAt\", \"expiresAt\", \"createdAt\", \"updatedAt\")
+      VALUES (gen_random_uuid(), '$RKAVACH_ID', '$GROWTH_PKG_ID', 'ACTIVE', 'YEARLY', now(), now() + interval '1 year', now(), now())
+      ON CONFLICT DO NOTHING;"
+    info "Assigned Growth subscription to RKavach"
+  fi
+else
+  info "Employer already exists: $RKAVACH_ID"
+fi
+
+# ── 6. Jobs ────────────────────────────────────────────────────────────────────
 step "Creating jobs..."
 
 create_job() {
-  local emp_id="$1" title="$2" slug="$3" jtype="$4" wmode="$5" level="$6" desc="$7" reqs="$8" resps="$9"
+  local emp_id="$1" title="$2" slug="$3" jtype="$4" wmode="$5" level="$6" featured="$7" desc="$8" reqs="$9" resps="${10}"
   local existing
   existing=$(run_sql "SELECT id FROM jobs WHERE slug='$slug' LIMIT 1;")
   if [ -z "$existing" ]; then
     local jid
     jid=$(run_sql "
-      INSERT INTO jobs (id, \"employerId\", \"jobTitle\", slug, \"jobType\", \"workMode\", \"experienceLevel\", description, requirements, responsibilities, \"applicationType\", status, \"locationId\", \"publishedAt\", \"expiresAt\", \"createdAt\", \"updatedAt\")
-      VALUES (gen_random_uuid(), '$emp_id', '$title', '$slug', '$jtype', '$wmode', '$level', '$desc', '$reqs'::jsonb, '$resps'::jsonb, 'DIRECT', 'APPROVED', $([ -n "$LOCATION_ID" ] && echo "'$LOCATION_ID'" || echo "NULL"), now(), now() + interval '45 days', now(), now())
+      INSERT INTO jobs (id, \"employerId\", \"jobTitle\", slug, \"jobType\", \"workMode\", \"experienceLevel\", description, requirements, responsibilities, \"applicationType\", \"isFeatured\", status, \"publishedAt\", \"expiresAt\", \"createdAt\", \"updatedAt\")
+      VALUES (gen_random_uuid(), '$emp_id', '$title', '$slug', '$jtype', '$wmode', '$level', '$desc', '$reqs'::jsonb, '$resps'::jsonb, 'DIRECT', $featured, 'APPROVED', now(), now() + interval '45 days', now(), now())
       RETURNING id;")
     echo "$jid"
   else
@@ -162,42 +165,74 @@ create_job() {
   fi
 }
 
-JOB1_ID=$(create_job "$EMPLOYER1_ID" \
-  "Senior React Developer" "senior-react-dev-techcorp" "FULL_TIME" "HYBRID" "SENIOR" \
-  "Build modern web applications using React and TypeScript in a fast-paced product team." \
-  '["3+ years of experience with React and TypeScript","Strong understanding of component lifecycle and hooks","Experience with state management (Redux or Zustand)","Familiarity with REST APIs and GraphQL","Good communication skills"]' \
-  '["Design and implement reusable UI components","Collaborate with backend engineers on API contracts","Write unit and integration tests","Participate in code reviews","Contribute to technical documentation"]')
+# Rivedix jobs
+RJOB1_ID=$(create_job "$RIVEDIX_ID" \
+  "Penetration Tester – Web & Network" "penetration-tester-web-network-rivedix" "FULL_TIME" "HYBRID" "MID" "false" \
+  "Rivedix Technology Solutions is hiring a Penetration Tester to join our offensive security practice. You will conduct web application, network, and API assessments for clients across India, the US, and Europe." \
+  '["2+ years hands-on penetration testing experience","Proficiency with Burp Suite Pro, Nmap, Metasploit","Strong understanding of OWASP Top 10","OSCP or eWPT certification preferred","Strong written communication for client-facing reports"]' \
+  '["Perform black-box and grey-box web application and API penetration tests","Write detailed technical and executive-level reports","Support red team engagements and adversary simulation","Contribute to internal tooling and playbook development","Engage across BFSI, healthcare, and enterprise SaaS clients"]')
+info "Rivedix job 1: $RJOB1_ID"
 
-JOB2_ID=$(create_job "$EMPLOYER1_ID" \
-  "Backend Node.js Engineer" "backend-nodejs-techcorp" "FULL_TIME" "REMOTE" "MID" \
-  "Design and build scalable REST APIs using Node.js and PostgreSQL for our core platform." \
-  '["2+ years of Node.js backend development","Experience with PostgreSQL and ORMs","Knowledge of RESTful API design principles","Understanding of authentication (JWT, OAuth)","Experience with Docker"]' \
-  '["Build and maintain REST APIs","Design database schemas and write efficient queries","Write automated tests","Monitor service performance and reliability","Collaborate with frontend engineers"]')
+RJOB2_ID=$(create_job "$RIVEDIX_ID" \
+  "Cyber GRC Analyst" "cyber-grc-analyst-rivedix" "FULL_TIME" "HYBRID" "MID" "false" \
+  "Rivedix is hiring a Cyber GRC Analyst to support our growing governance, risk, and compliance practice. You will work with enterprise clients against ISO 27001, SOC 2, and RBI/SEBI regulatory frameworks." \
+  '["2+ years GRC, audit, or compliance experience","Working knowledge of ISO 27001, SOC 2 Type II, and NIST CSF","Familiarity with India DPDP Act 2023 and GDPR","ISO 27001 Lead Implementer or Lead Auditor certification preferred","Strong written communication and stakeholder management"]' \
+  '["Conduct risk assessments and gap analyses","Support clients through ISMS implementation and audit preparation","Draft and review security policies and control documentation","Assist with data privacy impact assessments","Deliver client workshops and stakeholder awareness sessions"]')
+info "Rivedix job 2: $RJOB2_ID"
 
-JOB3_ID=$(create_job "$EMPLOYER2_ID" \
-  "Python Data Engineer" "python-data-engineer-startuphub" "FULL_TIME" "ONSITE" "MID" \
-  "Build data pipelines and analytics systems using Python to power our data-driven product." \
-  '["2+ years of Python development","Experience with data pipeline tools (Airflow, Luigi)","Strong SQL skills","Familiarity with cloud data warehouses (BigQuery, Redshift)","Knowledge of data modeling concepts"]' \
-  '["Design and implement ETL pipelines","Maintain and optimize data warehouse","Build dashboards and reports","Collaborate with product and analytics teams","Ensure data quality and integrity"]')
+# RKavach featured jobs
+RKJOB1_ID=$(create_job "$RKAVACH_ID" \
+  "Product Security Engineer" "product-security-engineer-rkavach" "FULL_TIME" "HYBRID" "MID" "true" \
+  "RKavach is hiring a Product Security Engineer to embed security across our product development lifecycle. You will own threat modelling, secure code review, and vulnerability management for our SaaS security platform." \
+  '["3+ years application security or product security experience","Strong knowledge of OWASP Top 10 and API security","Hands-on experience with SAST/DAST tools and CI/CD security integrations","Proficiency in at least one backend language: Node.js, Go, or Python","BSCP, OSWE, or eWPTX certification preferred"]' \
+  '["Lead threat modelling and secure design reviews for new features","Perform manual and automated code reviews across Node.js and Go microservices","Manage vulnerability disclosure program and triage bug bounty reports","Define and enforce secure SDLC practices across engineering squads","Own SAST/DAST tooling and integrate into CI/CD pipelines"]')
+info "RKavach job 1 (featured): $RKJOB1_ID"
 
-JOB4_ID=$(create_job "$EMPLOYER2_ID" \
-  "Full Stack Intern" "fullstack-intern-startuphub" "INTERNSHIP" "HYBRID" "ENTRY" \
-  "Work across the stack with React and Node.js in a high-growth startup environment. Great for freshers." \
-  '["Basic knowledge of HTML, CSS, JavaScript","Familiarity with React or any frontend framework","Willingness to learn Node.js and databases","Good problem-solving attitude","Currently pursuing or recently completed CS/IT degree"]' \
-  '["Build and ship features across frontend and backend","Fix bugs and write tests","Participate in daily standups","Learn from senior engineers","Contribute to product discussions"]')
+RKJOB2_ID=$(create_job "$RKAVACH_ID" \
+  "Cloud Security Architect" "cloud-security-architect-rkavach" "FULL_TIME" "REMOTE" "SENIOR" "true" \
+  "RKavach needs a Cloud Security Architect to define the security blueprint for our multi-cloud environment. You will own zero-trust architecture, cloud IAM strategy, and compliance automation." \
+  '["5+ years cloud security architecture experience","AWS Security Specialty and/or CCSP required","Strong Terraform and Python skills for security automation","Experience designing zero-trust and least-privilege IAM architectures","Prior experience with CSPM tools such as Wiz, Prisma Cloud, or Lacework"]' \
+  '["Design and implement zero-trust network architecture across AWS and Azure","Own IAM strategy, privilege access management, and identity federation","Build cloud security guardrails using infrastructure-as-code","Drive compliance automation for ISO 27001 and SOC 2","Mentor cloud and DevOps engineers on security best practices"]')
+info "RKavach job 2 (featured): $RKJOB2_ID"
 
-info "Jobs: $JOB1_ID | $JOB2_ID | $JOB3_ID | $JOB4_ID"
+RKJOB3_ID=$(create_job "$RKAVACH_ID" \
+  "Cyber Risk & Compliance Manager" "cyber-risk-compliance-manager-rkavach" "FULL_TIME" "HYBRID" "SENIOR" "true" \
+  "RKavach is looking for a Cyber Risk & Compliance Manager to lead our internal GRC program and support enterprise clients through certification and regulatory audits." \
+  '["5+ years GRC or information security management experience","Demonstrated ISO 27001 Lead Auditor or CISM/CISSP credential","Deep understanding of RBI cyber security framework, SEBI guidelines, and DPDP Act","Experience managing external audit relationships and evidence collection","Excellent stakeholder management and executive communication skills"]' \
+  '["Own and drive ISO 27001 certification and SOC 2 Type II audit","Manage enterprise risk register and risk appetite framework","Lead external auditor engagements and coordinate evidence collection","Deliver compliance reporting and risk briefings to the CISO and board","Develop and maintain security policies, procedures, and training programmes"]')
+info "RKavach job 3 (featured): $RKJOB3_ID"
 
-# Add skills to jobs
-for jid in "$JOB1_ID" "$JOB2_ID" "$JOB3_ID" "$JOB4_ID"; do
-  for sid in "$SKILL_REACT" "$SKILL_NODE" "$SKILL_PYTHON" "$SKILL_SQL"; do
-    [ -z "$sid" ] && continue
-    run_sql_multi "INSERT INTO job_skills (id, \"jobId\", \"skillId\") VALUES (gen_random_uuid(), '$jid', '$sid') ON CONFLICT DO NOTHING;" 2>/dev/null || true
-  done
+RKJOB4_ID=$(create_job "$RKAVACH_ID" \
+  "Mobile & API Penetration Tester" "mobile-api-penetration-tester-rkavach" "FULL_TIME" "HYBRID" "MID" "false" \
+  "RKavach's offensive security team is growing. We need a Mobile & API Penetration Tester to own assessments of Android/iOS applications and RESTful/GraphQL APIs for our enterprise clientele." \
+  '["2+ years mobile or API penetration testing experience","Proficiency with Frida, Objection, MobSF, and Burp Suite","Strong understanding of iOS/Android security models","Familiarity with API authentication schemes (OAuth 2.0, JWT, API keys)","eMAPT, GPEN, or equivalent certification preferred"]' \
+  '["Conduct mobile application security assessments on Android and iOS","Perform REST and GraphQL API security testing","Use dynamic and static analysis to uncover vulnerabilities in compiled apps","Write clear technical and executive-grade reports","Stay current on mobile exploitation techniques and bypass methods"]')
+info "RKavach job 4: $RKJOB4_ID"
+
+# Attach skills to jobs
+attach_skill() {
+  local jid="$1" sid="$2"
+  [ -z "$jid" ] || [ -z "$sid" ] && return
+  run_sql_multi "INSERT INTO job_skills (id, \"jobId\", \"skillId\") VALUES (gen_random_uuid(), '$jid', '$sid') ON CONFLICT DO NOTHING;" 2>/dev/null || true
+}
+
+for jid in "$RJOB1_ID" "$RKJOB1_ID" "$RKJOB4_ID"; do
+  attach_skill "$jid" "$SKILL_PENTEST"
+  attach_skill "$jid" "$SKILL_BURP"
+  attach_skill "$jid" "$SKILL_PYTHON"
+  attach_skill "$jid" "$SKILL_OWASP"
+done
+for jid in "$RKJOB1_ID"; do
+  attach_skill "$jid" "$SKILL_APPSEC"
+done
+for jid in "$RKJOB2_ID"; do
+  attach_skill "$jid" "$SKILL_AWS"
+  attach_skill "$jid" "$SKILL_CLOUDSEC"
+  attach_skill "$jid" "$SKILL_TERRAFORM"
 done
 
-# ── 8. Create seeker ──────────────────────────────────────────────────────────
-step "Creating Seeker (Yograj Dev)..."
+# ── 7. Seeker ──────────────────────────────────────────────────────────────────
+step "Creating seeker..."
 SEEKER_USER_ID=$(run_sql "SELECT id FROM users WHERE email='yograjhukumdar0@gmail.com' LIMIT 1;")
 
 if [ -z "$SEEKER_USER_ID" ]; then
@@ -205,93 +240,59 @@ if [ -z "$SEEKER_USER_ID" ]; then
     INSERT INTO users (id, email, password, \"firstName\", \"lastName\", role, status, \"isEmailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\")
     VALUES (gen_random_uuid(), 'yograjhukumdar0@gmail.com', '$SEEKER_HASH', 'Yograj', 'Dev', 'SEEKER', 'ACTIVE', true, now(), now(), now())
     RETURNING id;")
-  info "Created seeker user: $SEEKER_USER_ID"
+  info "Created seeker: $SEEKER_USER_ID"
+else
+  info "Seeker already exists: $SEEKER_USER_ID"
 fi
 
 SEEKER_PROFILE_ID=$(run_sql "SELECT id FROM job_seeker_profiles WHERE \"userId\"='$SEEKER_USER_ID' LIMIT 1;")
 if [ -z "$SEEKER_PROFILE_ID" ]; then
   SEEKER_PROFILE_ID=$(run_sql "
     INSERT INTO job_seeker_profiles (id, \"userId\", \"firstName\", \"lastName\", title, \"professionalSummary\", \"profileCompletion\", \"createdAt\", \"updatedAt\")
-    VALUES (gen_random_uuid(), '$SEEKER_USER_ID', 'Yograj', 'Dev', 'Full Stack Developer', 'Passionate developer with 3 years experience in React and Node.js.', 60, now(), now())
+    VALUES (gen_random_uuid(), '$SEEKER_USER_ID', 'Yograj', 'Dev', 'Security Engineer', 'Cybersecurity professional with 3 years experience in penetration testing and application security.', 60, now(), now())
     RETURNING id;")
-  info "Created seeker profile: $SEEKER_PROFILE_ID"
-
-  # Add skills to seeker
-  for sid in "$SKILL_REACT" "$SKILL_NODE"; do
-    [ -z "$sid" ] && continue
-    run_sql_multi "INSERT INTO job_seeker_skills (id, \"profileId\", \"skillId\", proficiency) VALUES (gen_random_uuid(), '$SEEKER_PROFILE_ID', '$sid', 'Expert') ON CONFLICT DO NOTHING;" 2>/dev/null || true
-  done
+  info "Created profile: $SEEKER_PROFILE_ID"
 fi
 
-# ── 9. Create applications ────────────────────────────────────────────────────
-step "Creating applications for seeker..."
-
-create_application() {
-  local seeker_id="$1" job_id="$2" app_status="$3"
-  [ -z "$job_id" ] && return
-  local existing
-  existing=$(run_sql "SELECT id FROM applications WHERE \"seekerId\"='$seeker_id' AND \"jobId\"='$job_id' LIMIT 1;")
-  if [ -z "$existing" ]; then
-    run_sql_multi "
-      INSERT INTO applications (id, \"jobId\", \"seekerId\", status, \"appliedAt\", \"updatedAt\")
-      VALUES (gen_random_uuid(), '$job_id', '$seeker_id', '$app_status', now(), now())
-      ON CONFLICT DO NOTHING;"
-    info "Applied to job $job_id with status $app_status"
-  else
-    info "Application to $job_id already exists"
-  fi
-}
-
-create_application "$SEEKER_USER_ID" "$JOB1_ID" "APPLIED"
-create_application "$SEEKER_USER_ID" "$JOB2_ID" "SHORTLISTED"
-create_application "$SEEKER_USER_ID" "$JOB3_ID" "APPLIED"
-
-# ── 10. Seed search suggestions from roles + skills ───────────────────────────
+# ── 8. Search suggestions ──────────────────────────────────────────────────────
 step "Seeding search suggestions..."
 ADMIN_ID=$(run_sql "SELECT id FROM admins WHERE email='admin@cykruit.com' LIMIT 1;")
 if [ -n "$ADMIN_ID" ]; then
-  # Insert all role names as ROLE suggestions
   run_sql_multi "
     INSERT INTO search_suggestions (id, text, type, \"isActive\", \"createdBy\", \"createdAt\", \"updatedAt\")
     SELECT gen_random_uuid(), name, 'ROLE', true, '$ADMIN_ID', now(), now()
-    FROM roles
-    WHERE name IS NOT NULL
+    FROM roles WHERE name IS NOT NULL
     ON CONFLICT (text, type) DO NOTHING;"
-  info "Seeded role suggestions"
 
-  # Insert top skills as SKILL suggestions
   run_sql_multi "
     INSERT INTO search_suggestions (id, text, type, \"isActive\", \"createdBy\", \"createdAt\", \"updatedAt\")
     SELECT gen_random_uuid(), name, 'SKILL', true, '$ADMIN_ID', now(), now()
-    FROM skills
-    WHERE name IS NOT NULL
+    FROM skills WHERE name IS NOT NULL
     ON CONFLICT (text, type) DO NOTHING;"
-  info "Seeded skill suggestions"
+  info "Seeded search suggestions"
 else
-  warn "No admin found — skipping search suggestions (run reset-db.sh first to seed admin)"
+  warn "No admin found — skipping search suggestions"
 fi
 
-# ── 11. Summary ───────────────────────────────────────────────────────────────
+# ── 9. Summary ─────────────────────────────────────────────────────────────────
 echo ""
 echo "================================================"
-echo "   Test Data Seeded"
+echo "   Seed Complete"
 echo "================================================"
 echo ""
-echo "  EMPLOYER 1 (TechCorp Solutions)"
-echo "    Email:    yograj.hukumdar@rivedix.com"
-echo "    Password: Test@1234"
+echo "  RIVEDIX (yograj.hukumdar@rivedix.com)"
+echo "    Password: Rivedix@2025!"
+echo "    Subscription: Free"
+echo "    Jobs: Penetration Tester, Cyber GRC Analyst"
 echo ""
-echo "  EMPLOYER 2 (StartupHub Ventures)"
-echo "    Email:    employer2@test.com"
-echo "    Password: Test@1234"
+echo "  RKAVACH (support@rkavach.com)"
+echo "    Password: RKavach@2025!"
+echo "    Subscription: Growth (1 year)"
+echo "    Jobs:"
+echo "      [FEATURED] Product Security Engineer"
+echo "      [FEATURED] Cloud Security Architect"
+echo "      [FEATURED] Cyber Risk & Compliance Manager"
+echo "               Mobile & API Penetration Tester"
 echo ""
-echo "  SEEKER"
-echo "    Email:    yograjhukumdar0@gmail.com"
-echo "    Password: Test@1234"
-echo ""
-echo "  JOBS: 4 approved jobs (2 per employer)"
-echo "  APPLICATIONS: seeker applied to 3 jobs (APPLIED, SHORTLISTED, APPLIED)"
-echo ""
-echo "  NOTE: Login uses OTP. Trigger OTP via login page,"
-echo "  or bypass by setting session directly in DB."
+echo "  SEEKER (yograjhukumdar0@gmail.com / Test@1234)"
 echo "================================================"
