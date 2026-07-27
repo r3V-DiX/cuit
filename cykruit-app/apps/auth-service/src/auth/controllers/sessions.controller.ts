@@ -8,19 +8,17 @@
 
 import {
   Controller,
-  Get,
   Post,
   Delete,
   Param,
   Body,
   Req,
-  Res,
   HttpCode,
   HttpStatus,
   UseGuards,
   BadRequestException,
 } from "@nestjs/common";
-import type { Request, Response } from "express";
+import type { Request } from "express";
 import { SessionService } from "../services/session.service";
 import { SessionMobileService } from "../services/session-mobile.service";
 import { AuthService } from "../services/auth.service";
@@ -34,7 +32,6 @@ import {
   UpdatePushTokenDto,
 } from "../dto/device-session.dto";
 import { sanitizeIpAddress, sanitizeUserAgent } from "../utils/auth.utils";
-import { DeviceType } from "../types/session.types";
 import { LoginRateLimit, RefreshTokenRateLimit } from "@cykruit/rate-limit";
 import type { User } from "@prisma/client";
 
@@ -109,59 +106,12 @@ export class SessionsController {
   }
 
   // ── Multi-device management ───────────────────────────────
-
-  @Get("sessions")
-  @UseGuards(AuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async listSessions(@CurrentUser() user: User, @Req() req: Request) {
-    const currentToken =
-      req.cookies?.[CookieConfig.COOKIE_NAMES.SESSION] ??
-      req.headers.authorization?.replace("Bearer ", "") ??
-      "";
-
-    // FIX [7] NOTE: Device fingerprinting is captured on session creation but comparison
-    // is not active in the auth guard path because AuthGuard calls validateSession(token, ip, ua)
-    // without a Request object. To enable fingerprint comparison, ISessionValidator interface
-    // would need to accept Request. Current behaviour: fingerprint stored, never compared.
-    // TODO: extend ISessionValidator.validateSession to accept optional req: Request
-    const sessions = await this.sessionService.listUserSessions(
-      user.id,
-      currentToken,
-    );
-    return { data: sessions, message: `${sessions.length} active session(s)` };
-  }
-
-  @Delete("sessions/:id")
-  @UseGuards(AuthGuard)
-  @HttpCode(HttpStatus.OK)
-  async revokeSession(
-    @Param("id") sessionId: string,
-    @CurrentUser() user: User,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const currentToken = req.cookies?.[CookieConfig.COOKIE_NAMES.SESSION];
-    const ip = sanitizeIpAddress(req.ip ?? req.socket.remoteAddress);
-    const ua = sanitizeUserAgent(req.headers["user-agent"]);
-
-    const isCurrentSession = currentToken
-      ? await this.sessionService.isTokenForSession(currentToken, sessionId)
-      : false;
-
-    await this.sessionService.revokeSession(sessionId, user.id, {
-      ip,
-      userAgent: ua,
-    });
-
-    if (isCurrentSession) {
-      res.clearCookie(
-        CookieConfig.COOKIE_NAMES.SESSION,
-        CookieConfig.getClearCookieOptions(),
-      );
-    }
-
-    return { message: "Session revoked successfully" };
-  }
+  // NOTE: GET "sessions" and DELETE "sessions/:id" used to be defined here too,
+  // but AuthController (auth.controller.ts) registers the identical routes first —
+  // NestJS silently shadows the later registration, so these copies were 100% dead
+  // code. Removed 2026-07-27; AuthController's versions are the live ones (its
+  // revokeSession() was updated in the same pass to match this file's superior
+  // isCurrentSession-cookie-clear behavior, which the live copy was missing).
 
   @Delete("sessions")
   @UseGuards(AuthGuard)

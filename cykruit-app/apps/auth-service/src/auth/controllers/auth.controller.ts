@@ -230,10 +230,21 @@ export class AuthController {
     @Param("id") sessionId: string,
     @CurrentUser() user: User,
     @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
   ) {
+    const currentToken = req.cookies?.[CookieConfig.COOKIE_NAMES.SESSION];
+    const isCurrentSession = currentToken
+      ? await this.sessionService.isTokenForSession(currentToken, sessionId)
+      : false;
+
     const ip = sanitizeIpAddress(req.ip ?? req.socket.remoteAddress);
     const ua = sanitizeUserAgent(req.headers["user-agent"]);
     await this.sessionService.revokeSession(sessionId, user.id, { ip, userAgent: ua });
+
+    if (isCurrentSession) {
+      res.clearCookie(CookieConfig.COOKIE_NAMES.SESSION, CookieConfig.getClearCookieOptions());
+    }
+
     return { message: "Session revoked successfully." };
   }
 
