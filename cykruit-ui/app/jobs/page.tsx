@@ -9,7 +9,7 @@ import Footer from "@/components/layout/Footer";
 import {
   MapPin, Clock, X, ArrowRight, ChevronDown,
   Shield, Terminal, Lock, Bug, Wifi, Eye, Cpu, Crosshair,
-  Network, Binary, ChevronLeft, ChevronRight, Sparkles,
+  Network, Binary, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { jobTypes, remoteTypes, type Job } from "@/lib/jobs-data";
 import SearchBox from "@/components/ui/SearchBox";
@@ -109,17 +109,9 @@ export default function JobsPage() {
   );
 }
 
-const SMART_EXAMPLES = [
-  "senior red teamer with OSCP, remote US",
-  "cloud security architect AWS 5+ years",
-  "appsec engineer fintech London",
-];
-
 function JobsContent() {
   const router = useRouter();
   const params = useSearchParams();
-  const [smartSearch, setSmartSearch] = useState(false);
-  const [smartInput, setSmartInput] = useState("");
 
   const search     = params.get("q")    ?? "";
   const specFilter = params.get("spec") ?? "All";
@@ -254,56 +246,6 @@ function JobsContent() {
           </div>
         </div>
 
-        {/* ── Smart Search bar ────────────────────────────────────────────── */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-0">
-          <div className={`rounded-2xl border transition-all ${smartSearch ? "bg-violet-50 border-violet-200" : "bg-white border-slate-200"} p-4`}>
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-violet-100 border border-violet-200 flex items-center justify-center shrink-0">
-                <Sparkles className="w-4 h-4 text-violet-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900">Smart Search <span className="ml-1 text-[10px] font-bold text-white bg-violet-500 px-1.5 py-0.5 rounded-full align-middle">AI</span></p>
-                <p className="text-xs text-slate-400 hidden sm:block">Describe what you&apos;re looking for in plain English</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSmartSearch(!smartSearch)}
-                className={`w-10 h-6 rounded-full transition-colors relative shrink-0 cursor-pointer ${smartSearch ? "bg-violet-600" : "bg-slate-200"}`}
-              >
-                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${smartSearch ? "left-[calc(100%-1.375rem)]" : "left-0.5"}`} />
-              </button>
-            </div>
-
-            {smartSearch && (
-              <div className="mt-3">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                  <input
-                    value={smartInput}
-                    onChange={(e) => setSmartInput(e.target.value)}
-                    placeholder="e.g. senior red teamer with OSCP, remote US…"
-                    className="flex-1 h-10 px-3.5 rounded-xl bg-white border border-violet-200 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-500/10 transition-all min-w-0"
-                  />
-                  <button
-                    disabled={!smartInput.trim()}
-                    onClick={() => { if (smartInput.trim()) setParams({ q: smartInput.trim() }); }}
-                    className="flex items-center justify-center gap-1.5 px-4 h-10 rounded-xl bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" /> Search
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <span className="text-[11px] font-mono text-slate-400">Try:</span>
-                  {SMART_EXAMPLES.map((ex) => (
-                    <button key={ex} onClick={() => setSmartInput(ex)}
-                      className="text-[11px] font-mono text-violet-600 bg-white border border-violet-200 rounded-lg px-2 py-0.5 hover:bg-violet-50 transition-colors cursor-pointer">
-                      {ex}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
 
         {/* ── Jobs grid ───────────────────────────────────────────────────── */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
