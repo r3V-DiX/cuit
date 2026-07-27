@@ -532,7 +532,7 @@ export default function EmployerSettingsPage() {
             {tab === "security" && (
               <div>
                 <Section title="Sessions & Login History" desc="Manage devices signed into your account and review past activity.">
-                  <SessionsPanel />
+                  <SessionsPanel historyHref="/employer/activity?tab=auth" />
                 </Section>
               </div>
             )}

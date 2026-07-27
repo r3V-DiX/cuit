@@ -197,7 +197,7 @@ export class AuthController {
   @UseGuards(AuthGuard)
   async listSessions(@CurrentUser() user: User, @Req() req: Request) {
     const rawToken = req.cookies[CookieConfig.COOKIE_NAMES.SESSION] ?? "";
-    return { data: await this.sessionService.listUserSessions(user.id, rawToken) };
+    return this.sessionService.listUserSessions(user.id, rawToken);
   }
 
   @Get("sessions/history")

@@ -50,8 +50,8 @@ export default function ApplicationDetailPage() {
         setApp({
           id: data.id,
           role: data.job.jobTitle,
-          company: data.job.employer.companyName,
-          location: data.job.locationType || data.job.location || "Remote",
+          company: data.job.employer?.companyName || "Unknown",
+          location: data.job.location?.displayName || "Remote",
           type: data.job.jobType || "Full-time",
           applied: new Date(data.appliedAt).toLocaleDateString(),
           status: data.status === "APPLIED" ? "Applied"

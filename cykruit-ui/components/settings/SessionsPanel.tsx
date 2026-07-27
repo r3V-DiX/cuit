@@ -52,7 +52,7 @@ function timeAgo(iso: string): string {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function SessionsPanel({ onSignedOutAll }: { onSignedOutAll?: () => void }) {
+export function SessionsPanel({ onSignedOutAll, historyHref }: { onSignedOutAll?: () => void; historyHref: string }) {
   const { toast } = useToast();
   const { openModal } = useModal();
 
@@ -229,7 +229,7 @@ export function SessionsPanel({ onSignedOutAll }: { onSignedOutAll?: () => void 
 
       {/* ── Login history link ───────────────────────────────────── */}
       <a
-        href="/employer/activity?tab=auth"
+        href={historyHref}
         className="flex items-center gap-3 p-3.5 rounded-xl border border-slate-200 hover:border-blue-200 hover:bg-blue-50/30 transition-all group"
       >
         <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">

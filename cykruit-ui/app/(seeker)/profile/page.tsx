@@ -720,6 +720,10 @@ export default function ProfilePage() {
       toast({ type: "warning", message: "Select a certification", description: "Type to search and pick from the dropdown." });
       return;
     }
+    if (certForm.year && Number(certForm.year) > currentYear) {
+      toast({ type: "error", message: "Invalid year", description: "Year obtained can't be in the future." });
+      return;
+    }
     const issueDate = certForm.year ? `${certForm.year}-01` : `${new Date().getFullYear()}-01`;
     try {
       const addRes = await fetch("/api/profile/certifications", {
@@ -784,7 +788,7 @@ export default function ProfilePage() {
     const payload = {
       platform: ctfForm.platform,
       username: ctfForm.handle,
-      profileUrl: ctfForm.url || "https://hackthebox.com",
+      profileUrl: ctfForm.url ? (ctfForm.url.startsWith("http") ? ctfForm.url : `https://${ctfForm.url}`) : "https://hackthebox.com",
       rank: ctfForm.rank || undefined,
     };
 

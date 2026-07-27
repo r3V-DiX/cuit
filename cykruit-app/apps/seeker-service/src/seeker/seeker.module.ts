@@ -14,14 +14,17 @@ import { AuthCoreModule, SharedSessionValidator } from '@cykruit/auth-core';
 import { JobsController } from './controllers/jobs.controller';
 import { ApplicationsController } from './controllers/applications.controller';
 import { SavedJobsController } from './controllers/saved-jobs.controller';
+import { ActivityController } from './controllers/activity.controller';
 
 import { JobsService } from './services/jobs.service';
 import { ApplicationsService } from './services/applications.service';
 import { SavedJobsService } from './services/saved-jobs.service';
+import { ActivityService } from './services/activity.service';
 
 import { JobsRepository } from './repositories/jobs.repository';
 import { ApplicationsRepository } from './repositories/applications.repository';
 import { SavedJobsRepository } from './repositories/saved-jobs.repository';
+import { ActivityRepository } from './repositories/activity.repository';
 
 // Session validation moved to SharedSessionValidator (@cykruit/auth-core) —
 // see docs/SESSION_MEMORY.md.
@@ -45,6 +48,7 @@ import { SavedJobsRepository } from './repositories/saved-jobs.repository';
         JobsController,
         ApplicationsController,
         SavedJobsController,
+        ActivityController,
     ],
     providers: [
         JobsService,
@@ -53,6 +57,8 @@ import { SavedJobsRepository } from './repositories/saved-jobs.repository';
         ApplicationsRepository,
         SavedJobsService,
         SavedJobsRepository,
+        ActivityService,
+        ActivityRepository,
     ],
 })
 export class SeekerModule {}

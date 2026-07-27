@@ -474,7 +474,7 @@ export default function SettingsPage() {
                 </Section>
 
                 <Section title="Sessions & Login History" desc="Manage devices signed into your account and review past activity.">
-                  <SessionsPanel />
+                  <SessionsPanel historyHref="/settings/activity" />
                 </Section>
               </div>
             )}

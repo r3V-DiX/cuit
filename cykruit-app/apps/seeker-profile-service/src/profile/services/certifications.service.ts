@@ -219,7 +219,14 @@ export class CertificationsService {
     const { query, organization, limit = 20 } = dto;
     const certifications = await this.prisma.certification.findMany({
       where: {
-        ...(query ? { name: { contains: query, mode: "insensitive" } } : {}),
+        ...(query
+          ? {
+              OR: [
+                { name: { contains: query, mode: "insensitive" } },
+                { organization: { contains: query, mode: "insensitive" } },
+              ],
+            }
+          : {}),
         ...(organization
           ? { organization: { contains: organization, mode: "insensitive" } }
           : {}),
