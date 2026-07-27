@@ -11,6 +11,13 @@ import {
 } from "lucide-react";
 import { FaLinkedinIn, FaGithub, FaXTwitter } from "react-icons/fa6";
 import { Country, State, City } from "country-state-city";
+import { formatErrorDetails } from "@/lib/api";
+
+// Raw fetch() error responses arrive as {success:false, error:{code,message,details}} —
+// unlike apiFetch()/ApiError, nothing here unwraps that envelope automatically.
+function describeFetchError(body: any, fallback: string): { message: string; description?: string } {
+  return { message: body?.error?.message || fallback, description: formatErrorDetails(body?.error?.details) };
+}
 // ─── Seed data ────────────────────────────────────────────────────────────────
 const sections = [
   { id: "basics", label: "Basic Details", icon: User },
@@ -68,10 +75,11 @@ export default function ProfilePage() {
         toast({ type: "success", message: "Photo updated" });
         loadProfile();
       } else {
-        toast({ type: "error", message: "Failed to upload photo" });
+        const body = await res.json().catch(() => null);
+        toast({ type: "error", ...describeFetchError(body, "Failed to upload photo") });
       }
     } catch (err) {
-      toast({ type: "error", message: "Error uploading photo" });
+      toast({ type: "error", message: "Error uploading photo", description: err instanceof Error ? err.message : undefined });
     }
     e.target.value = "";
   }
@@ -89,10 +97,11 @@ export default function ProfilePage() {
         toast({ type: "success", message: "Photo removed" });
         loadProfile();
       } else {
-        toast({ type: "error", message: "Failed to remove photo" });
+        const body = await res.json().catch(() => null);
+        toast({ type: "error", ...describeFetchError(body, "Failed to remove photo") });
       }
     } catch (err) {
-      toast({ type: "error", message: "Error removing photo" });
+      toast({ type: "error", message: "Error removing photo", description: err instanceof Error ? err.message : undefined });
     }
   }
 
@@ -138,8 +147,8 @@ export default function ProfilePage() {
         toast({ type: "success", message: "Profile Auto-filled!", description: "Your details have been extracted and saved." });
         loadProfile();
       } else {
-        const errData = await res.json();
-        toast({ type: "error", message: "Parsing failed", description: errData.message || "Failed to parse resume" });
+        const errData = await res.json().catch(() => null);
+        toast({ type: "error", message: "Parsing failed", description: describeFetchError(errData, "Failed to parse resume").message });
       }
     } catch (error) {
       toast({ type: "error", message: "Network error", description: "Failed to connect to parsing service." });
@@ -167,7 +176,7 @@ export default function ProfilePage() {
         }
         try {
           const err = await res.json();
-          toast({ type: "error", message: "Generation failed", description: err.message || "Failed to generate bio" });
+          toast({ type: "error", message: "Generation failed", description: describeFetchError(err, "Failed to generate bio").message });
         } catch {
           toast({ type: "error", message: `Server error (${res.status})` });
         }
@@ -204,7 +213,7 @@ export default function ProfilePage() {
         }
         try {
           const err = await res.json();
-          toast({ type: "error", message: "Generation failed", description: err.message || "Failed to suggest skills" });
+          toast({ type: "error", message: "Generation failed", description: describeFetchError(err, "Failed to suggest skills").message });
         } catch {
           toast({ type: "error", message: `Server error (${res.status})` });
         }
@@ -239,7 +248,7 @@ export default function ProfilePage() {
         }
         try {
           const err = await res.json();
-          toast({ type: "error", message: "Failed to load tips", description: err.message });
+          toast({ type: "error", message: "Failed to load tips", description: describeFetchError(err, "").message || undefined });
         } catch {
           toast({ type: "error", message: `Server error (${res.status})` });
         }
@@ -377,11 +386,11 @@ export default function ProfilePage() {
         setEditingBasics(false);
         toast({ type: "success", message: "Profile updated" });
       } else {
-        const errData = await response.json();
-        toast({ type: "error", message: "Failed to update profile", description: errData.error?.message || errData.message || "Invalid input values" });
+        const errData = await response.json().catch(() => null);
+        toast({ type: "error", message: "Failed to update profile", description: describeFetchError(errData, "Invalid input values").message });
       }
     } catch (error) {
-      toast({ type: "error", message: "Network error", description: "Failed to save profile changes" });
+      toast({ type: "error", message: "Network error", description: error instanceof Error ? error.message : "Failed to save profile changes" });
     }
   }
 
@@ -406,11 +415,11 @@ export default function ProfilePage() {
         setEditingBio(false);
         toast({ type: "success", message: "Bio updated" });
       } else {
-        const errData = await response.json();
-        toast({ type: "error", message: "Failed to update bio", description: errData.message || "Invalid input values" });
+        const errData = await response.json().catch(() => null);
+        toast({ type: "error", message: "Failed to update bio", description: describeFetchError(errData, "Invalid input values").message });
       }
     } catch (error) {
-      toast({ type: "error", message: "Network error", description: "Failed to save bio changes" });
+      toast({ type: "error", message: "Network error", description: error instanceof Error ? error.message : "Failed to save bio changes" });
     }
   }
 
@@ -464,11 +473,11 @@ export default function ProfilePage() {
         setShowSkillDropdown(false);
         loadProfile();
       } else {
-        const err = await addRes.json();
-        toast({ type: "error", message: "Failed to add skill", description: err.message });
+        const err = await addRes.json().catch(() => null);
+        toast({ type: "error", message: "Failed to add skill", description: describeFetchError(err, "").message || undefined });
       }
-    } catch {
-      toast({ type: "error", message: "Error adding skill" });
+    } catch (err) {
+      toast({ type: "error", message: "Error adding skill", description: err instanceof Error ? err.message : undefined });
     }
   }
 
@@ -485,10 +494,11 @@ export default function ProfilePage() {
         toast({ type: "info", message: "Skill removed", description: `"${name}" was removed.` });
         loadProfile();
       } else {
-        toast({ type: "error", message: "Failed to remove skill" });
+        const body = await res.json().catch(() => null);
+        toast({ type: "error", ...describeFetchError(body, "Failed to remove skill") });
       }
     } catch (err) {
-      toast({ type: "error", message: "Error removing skill" });
+      toast({ type: "error", message: "Error removing skill", description: err instanceof Error ? err.message : undefined });
     }
   }
 
@@ -565,11 +575,11 @@ export default function ProfilePage() {
         setAddingExp(false);
         setEditingExp(null);
       } else {
-        const err = await res.json();
-        toast({ type: "error", message: "Failed to save experience", description: err.message });
+        const err = await res.json().catch(() => null);
+        toast({ type: "error", message: "Failed to save experience", description: describeFetchError(err, "").message || undefined });
       }
     } catch (err) {
-      toast({ type: "error", message: "Error saving experience" });
+      toast({ type: "error", message: "Error saving experience", description: err instanceof Error ? err.message : undefined });
     }
   }
   async function deleteExp(id: string) {
@@ -591,10 +601,11 @@ export default function ProfilePage() {
             toast({ type: "success", message: "Experience removed" });
             loadProfile();
           } else {
-            toast({ type: "error", message: "Failed to remove experience" });
+            const body = await res.json().catch(() => null);
+            toast({ type: "error", ...describeFetchError(body, "Failed to remove experience") });
           }
         } catch (err) {
-          toast({ type: "error", message: "Error removing experience" });
+          toast({ type: "error", message: "Error removing experience", description: err instanceof Error ? err.message : undefined });
         }
       },
     });
@@ -650,11 +661,11 @@ export default function ProfilePage() {
         setAddingEdu(false);
         setEditingEdu(null);
       } else {
-        const err = await res.json();
-        toast({ type: "error", message: "Failed to save education", description: err.message });
+        const err = await res.json().catch(() => null);
+        toast({ type: "error", message: "Failed to save education", description: describeFetchError(err, "").message || undefined });
       }
     } catch (err) {
-      toast({ type: "error", message: "Error saving education" });
+      toast({ type: "error", message: "Error saving education", description: err instanceof Error ? err.message : undefined });
     }
   }
   async function deleteEdu(id: string) {
@@ -676,10 +687,11 @@ export default function ProfilePage() {
             toast({ type: "success", message: "Education removed" });
             loadProfile();
           } else {
-            toast({ type: "error", message: "Failed to remove education" });
+            const body = await res.json().catch(() => null);
+            toast({ type: "error", ...describeFetchError(body, "Failed to remove education") });
           }
         } catch (err) {
-          toast({ type: "error", message: "Error removing education" });
+          toast({ type: "error", message: "Error removing education", description: err instanceof Error ? err.message : undefined });
         }
       },
     });
@@ -738,11 +750,11 @@ export default function ProfilePage() {
         setAddingCert(false);
         setCertForm({ certId: "", name: "", issuer: "", year: "" });
       } else {
-        const err = await addRes.json();
-        toast({ type: "error", message: "Failed to add certification", description: err.message });
+        const err = await addRes.json().catch(() => null);
+        toast({ type: "error", message: "Failed to add certification", description: describeFetchError(err, "").message || undefined });
       }
-    } catch {
-      toast({ type: "error", message: "Error adding certification" });
+    } catch (err) {
+      toast({ type: "error", message: "Error adding certification", description: err instanceof Error ? err.message : undefined });
     }
   }
   async function deleteCert(id: string, name: string) {
@@ -764,10 +776,11 @@ export default function ProfilePage() {
             toast({ type: "success", message: "Certification removed" });
             loadProfile();
           } else {
-            toast({ type: "error", message: "Failed to remove certification" });
+            const body = await res.json().catch(() => null);
+            toast({ type: "error", ...describeFetchError(body, "Failed to remove certification") });
           }
         } catch (err) {
-          toast({ type: "error", message: "Error removing certification" });
+          toast({ type: "error", message: "Error removing certification", description: err instanceof Error ? err.message : undefined });
         }
       },
     });
@@ -809,11 +822,11 @@ export default function ProfilePage() {
         setAddingCtf(false);
         setCtfForm({ platform: "", handle: "", rank: "", url: "" });
       } else {
-        const err = await res.json();
-        toast({ type: "error", message: "Failed to add CTF profile", description: err.message });
+        const err = await res.json().catch(() => null);
+        toast({ type: "error", message: "Failed to add CTF profile", description: describeFetchError(err, "").message || undefined });
       }
     } catch (err) {
-      toast({ type: "error", message: "Error saving CTF profile" });
+      toast({ type: "error", message: "Error saving CTF profile", description: err instanceof Error ? err.message : undefined });
     }
   }
   async function deleteCtf(id: string, platform: string) {
@@ -835,10 +848,11 @@ export default function ProfilePage() {
             toast({ type: "success", message: "CTF profile removed" });
             loadProfile();
           } else {
-            toast({ type: "error", message: "Failed to remove CTF profile" });
+            const body = await res.json().catch(() => null);
+            toast({ type: "error", ...describeFetchError(body, "Failed to remove CTF profile") });
           }
         } catch (err) {
-          toast({ type: "error", message: "Error removing CTF profile" });
+          toast({ type: "error", message: "Error removing CTF profile", description: err instanceof Error ? err.message : undefined });
         }
       },
     });
@@ -888,11 +902,11 @@ export default function ProfilePage() {
         setAddingResume(false);
         setResumeLabel("");
       } else {
-        const err = await res.json();
-        toast({ type: "error", message: "Failed to add resume", description: err.message });
+        const err = await res.json().catch(() => null);
+        toast({ type: "error", message: "Failed to add resume", description: describeFetchError(err, "").message || undefined });
       }
     } catch (err) {
-      toast({ type: "error", message: "Error uploading resume" });
+      toast({ type: "error", message: "Error uploading resume", description: err instanceof Error ? err.message : undefined });
     }
   }
 
@@ -915,10 +929,11 @@ export default function ProfilePage() {
             toast({ type: "success", message: "Resume removed" });
             loadProfile();
           } else {
-            toast({ type: "error", message: "Failed to remove resume" });
+            const body = await res.json().catch(() => null);
+            toast({ type: "error", ...describeFetchError(body, "Failed to remove resume") });
           }
         } catch (err) {
-          toast({ type: "error", message: "Error removing resume" });
+          toast({ type: "error", message: "Error removing resume", description: err instanceof Error ? err.message : undefined });
         }
       },
     });

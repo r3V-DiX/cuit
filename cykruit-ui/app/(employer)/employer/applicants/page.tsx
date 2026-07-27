@@ -8,7 +8,7 @@ import {
   Users, ChevronDown, Sparkles, AlertCircle
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, describeError } from "@/lib/api";
 import { KycGate } from "@/components/employer/KycGate";
 import { useKycStatus } from "@/lib/employer-context";
 import { ApplicantTableSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
@@ -61,7 +61,7 @@ export default function ApplicantsPage() {
         const options = Array.from(jobsMap.entries()).map(([id, title]) => ({ label: title, value: id }));
         setJobOptions([{ label: "All Jobs", value: "all" }, ...options]);
       } catch (err) {
-        toast({ type: "error", message: "Failed to fetch applications" });
+        toast({ type: "error", ...describeError(err, "Failed to fetch applications") });
       } finally {
         setLoading(false);
       }

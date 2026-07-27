@@ -5,7 +5,7 @@ import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
-import { apiFetch, authHeaders } from "@/lib/api";
+import { apiFetch, authHeaders, describeError } from "@/lib/api";
 import {
   Bell, BellOff, CheckCheck, Trash2, X,
   Briefcase, Sparkles, Eye, Shield, ChevronRight,
@@ -103,8 +103,8 @@ export default function NotificationsPage() {
           createdTs: new Date(n.createdAt).getTime(),
         }))
       );
-    } catch {
-      toast({ type: "error", message: "Failed to load notifications" });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Failed to load notifications") });
     } finally {
       setLoading(false);
     }
@@ -129,8 +129,8 @@ export default function NotificationsPage() {
     try {
       await apiFetch(`/api/notifications/${id}/read`, { method: "PATCH", headers: authHeaders() });
       setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
-    } catch {
-      toast({ type: "error", message: "Failed to mark as read" });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Failed to mark as read") });
     }
   }
 
@@ -145,8 +145,8 @@ export default function NotificationsPage() {
           await apiFetch("/api/notifications/read-all", { method: "PATCH", headers: authHeaders() });
           setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
           toast({ type: "success", message: "All notifications marked as read" });
-        } catch {
-          toast({ type: "error", message: "Failed to mark all as read" });
+        } catch (err) {
+          toast({ type: "error", ...describeError(err, "Failed to mark all as read") });
         }
       },
     });
@@ -164,8 +164,8 @@ export default function NotificationsPage() {
           await apiFetch(`/api/notifications/${id}`, { method: "DELETE", headers: authHeaders() });
           setNotifs((prev) => prev.filter((n) => n.id !== id));
           toast({ type: "info", message: "Notification deleted" });
-        } catch {
-          toast({ type: "error", message: "Failed to delete notification" });
+        } catch (err) {
+          toast({ type: "error", ...describeError(err, "Failed to delete notification") });
         }
       },
     });

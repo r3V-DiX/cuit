@@ -147,6 +147,20 @@ export async function apiFetch<T = unknown>(
   return { data: body as T };
 }
 
+export function formatErrorDetails(details: unknown): string | undefined {
+  if (!Array.isArray(details)) return undefined;
+  const msgs = details.map((d) => (d as { message?: string })?.message).filter(Boolean);
+  return msgs.length ? msgs.join(' ') : undefined;
+}
+
+export function describeError(err: unknown, fallback: string): { message: string; description?: string } {
+  if (err instanceof ApiError) {
+    return { message: err.message || fallback, description: formatErrorDetails(err.details) };
+  }
+  if (err instanceof Error) return { message: err.message || fallback };
+  return { message: fallback };
+}
+
 export function getCsrf(): string {
   if (typeof document === 'undefined') return '';
   const match = document.cookie

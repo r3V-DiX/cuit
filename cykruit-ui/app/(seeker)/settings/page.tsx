@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { useToast } from "@/components/ui/Toast";
-import { apiFetch, authHeaders } from "@/lib/api";
+import { apiFetch, authHeaders, describeError } from "@/lib/api";
 import {
   User, Bell, Shield, Trash2, Eye,
   Check, Mail, MapPin, Briefcase, Globe, Info, Lock,
@@ -219,7 +219,7 @@ export default function SettingsPage() {
       setPrefs(prefsBuffer);
       toast({ type: "success", message: "Preferences saved", description: "Your job preferences have been updated." });
     } catch (err) {
-      toast({ type: "error", message: "Error saving preferences" });
+      toast({ type: "error", ...describeError(err, "Error saving preferences") });
     }
   }
 
@@ -240,7 +240,7 @@ export default function SettingsPage() {
       });
       toast({ type: "success", message: "Notification preferences saved" });
     } catch (err) {
-      toast({ type: "error", message: "Error saving notifications" });
+      toast({ type: "error", ...describeError(err, "Error saving notifications") });
     }
   }
 
@@ -255,7 +255,7 @@ export default function SettingsPage() {
       });
       toast({ type: "success", message: "Privacy settings saved" });
     } catch (err) {
-      toast({ type: "error", message: "Error saving privacy settings" });
+      toast({ type: "error", ...describeError(err, "Error saving privacy settings") });
     }
   }
 
@@ -267,8 +267,8 @@ export default function SettingsPage() {
       });
       toast({ type: "error", message: "Account scheduled for deletion", description: "You will be logged out.", duration: 6000 });
       window.location.href = "/login";
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Error deleting account" });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Error deleting account") });
     }
   }
 

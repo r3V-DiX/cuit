@@ -10,7 +10,7 @@ import {
   Briefcase, SlidersHorizontal, Inbox, ArrowUpDown,
 } from "lucide-react";
 import { SavedJobSkeletonList } from "@/components/ui/skeletons/SavedJobSkeleton";
-import { apiFetch, authHeaders } from "@/lib/api";
+import { apiFetch, authHeaders, describeError } from "@/lib/api";
 
 type SavedJob = {
   id: string;
@@ -72,8 +72,8 @@ export default function SavedPage() {
     try {
       const body = await apiFetch<{ items: unknown[] }>("/api/seeker/saved-jobs?limit=50");
       setJobs((body?.data?.items ?? []).map(mapItem));
-    } catch {
-      toast({ type: "error", message: "Failed to load saved jobs" });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Failed to load saved jobs") });
     } finally {
       setLoading(false);
     }
@@ -109,8 +109,8 @@ export default function SavedPage() {
       });
       setJobs((prev) => prev.filter((j) => j.jobId !== job.jobId));
       toast({ type: "info", message: "Job removed", description: `"${job.role}" at ${job.company} was unsaved.` });
-    } catch {
-      toast({ type: "error", message: "Failed to unsave job" });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Failed to unsave job") });
     }
   }
 
