@@ -29,6 +29,24 @@ fi
 ECR_REGISTRY="443370715886.dkr.ecr.ap-south-1.amazonaws.com"
 DEPLOY_DIR="/opt/cykruit-v2"
 export COMPOSE_FILE="${DEPLOY_DIR}/docker-compose.prod.yml"
+
+# ── Ensure compose file is present ────────────────────────────────────────────
+# Resolve the script's own directory so it works regardless of cwd
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ ! -f "$COMPOSE_FILE" ]; then
+  # Try to copy from alongside this script (repo checkout) or scripts/ subdir
+  if [ -f "${SCRIPT_DIR}/docker-compose.prod.yml" ]; then
+    cp "${SCRIPT_DIR}/docker-compose.prod.yml" "$COMPOSE_FILE"
+    info "Copied docker-compose.prod.yml from ${SCRIPT_DIR}"
+  elif [ -f "${DEPLOY_DIR}/scripts/docker-compose.prod.yml" ]; then
+    cp "${DEPLOY_DIR}/scripts/docker-compose.prod.yml" "$COMPOSE_FILE"
+    info "Copied docker-compose.prod.yml from ${DEPLOY_DIR}/scripts/"
+  else
+    error "docker-compose.prod.yml not found at $COMPOSE_FILE"
+    error "Copy it manually: cp scripts/docker-compose.prod.yml /opt/cykruit-v2/docker-compose.prod.yml"
+    exit 1
+  fi
+fi
 BACKEND_ENV="${DEPLOY_DIR}/.env.${ENV}"
 ADMIN_ENV="${DEPLOY_DIR}/.env.${ENV}.admin"
 CYKRUIT_SERVICES=(ai-service auth-service user-settings-service seeker-profile-service employer-service seeker-service public-service notification-service subscription-service gateway)
