@@ -28,6 +28,7 @@ fi
 
 ECR_REGISTRY="443370715886.dkr.ecr.ap-south-1.amazonaws.com"
 DEPLOY_DIR="/opt/cykruit-v2"
+export COMPOSE_FILE="${DEPLOY_DIR}/scripts/docker-compose.prod.yml"
 BACKEND_ENV="${DEPLOY_DIR}/.env.${ENV}"
 ADMIN_ENV="${DEPLOY_DIR}/.env.${ENV}.admin"
 CYKRUIT_SERVICES=(ai-service auth-service user-settings-service seeker-profile-service employer-service seeker-service public-service notification-service subscription-service gateway)
