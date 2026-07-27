@@ -1,6 +1,6 @@
 // admin-app/src/admin/dto/jobs.dto.ts
 
-import { IsEnum, IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsInt, IsBoolean, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 import { JobStatus } from '@prisma/client';
 
@@ -40,4 +40,9 @@ export class RejectJobDto {
     @IsOptional()
     @IsString()
     adminNotes?: string;
+}
+
+export class SetFeaturedJobDto {
+    @IsBoolean()
+    isFeatured: boolean;
 }

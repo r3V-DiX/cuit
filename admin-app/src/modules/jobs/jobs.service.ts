@@ -2,7 +2,7 @@
 
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { AdminJobsRepository } from './jobs.repository';
-import { AdminJobListQueryDto, ApproveJobDto, RejectJobDto } from './dto/jobs.dto';
+import { AdminJobListQueryDto, ApproveJobDto, RejectJobDto, SetFeaturedJobDto } from './dto/jobs.dto';
 import { AdminAuditLogger } from '../../common';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { JobStatus } from '@prisma/client';
@@ -114,6 +114,29 @@ export class AdminJobsService {
                 'admin-app',
             );
         }
+
+        return updated;
+    }
+
+    async setFeatured(id: string, adminId: string, dto: SetFeaturedJobDto) {
+        const job = await this.getById(id);
+
+        if (job.status !== JobStatus.APPROVED) {
+            throw new BadRequestException('Only approved jobs can be featured');
+        }
+
+        const updated = await this.jobsRepository.setFeatured(id, dto.isFeatured);
+
+        this.auditLogger.log({
+            adminId,
+            action: 'jobs:feature',
+            module: 'jobs',
+            resource: 'Job',
+            resourceId: id,
+            riskLevel: 'LOW',
+            result: 'SUCCESS',
+            newData: { isFeatured: dto.isFeatured } as unknown as import('@prisma/client').Prisma.InputJsonValue,
+        });
 
         return updated;
     }

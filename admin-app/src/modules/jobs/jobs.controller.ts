@@ -19,7 +19,7 @@ import { RequirePermission } from '../../common';
 import { ACTIONS } from '../../common';
 import type { Admin } from '@prisma/client';
 import { AdminJobsService } from './jobs.service';
-import { AdminJobListQueryDto, ApproveJobDto, RejectJobDto } from './dto/jobs.dto';
+import { AdminJobListQueryDto, ApproveJobDto, RejectJobDto, SetFeaturedJobDto } from './dto/jobs.dto';
 
 @Controller('admin/jobs')
 @UseGuards(AdminAuthGuard, PermissionsGuard)
@@ -62,5 +62,17 @@ export class AdminJobsController {
         @Body() dto: RejectJobDto,
     ) {
         return this.jobsService.reject(id, admin.id, dto);
+    }
+
+    // PATCH /admin/jobs/:id/feature
+    @Patch(':id/feature')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.JOBS.FEATURE)
+    setFeatured(
+        @CurrentAdmin() admin: Admin,
+        @Param('id', ParseUUIDPipe) id: string,
+        @Body() dto: SetFeaturedJobDto,
+    ) {
+        return this.jobsService.setFeatured(id, admin.id, dto);
     }
 }

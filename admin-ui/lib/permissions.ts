@@ -7,7 +7,7 @@ export const ACTIONS = {
   DASHBOARD: { VIEW: 'dashboard:view' },
   USERS: { VIEW: 'users:view', SUSPEND: 'users:suspend', DELETE: 'users:delete', UNLOCK: 'users:unlock' },
   KYC: { VIEW: 'kyc:view', REVIEW: 'kyc:review' },
-  JOBS: { VIEW: 'jobs:view', REVIEW: 'jobs:review' },
+  JOBS: { VIEW: 'jobs:view', REVIEW: 'jobs:review', FEATURE: 'jobs:feature' },
   SUBSCRIPTIONS: { VIEW: 'subscriptions:view', MANAGE: 'subscriptions:manage' },
   RBAC: { VIEW: 'rbac:view', MANAGE: 'rbac:manage' },
   AUDIT: { VIEW: 'audit:view' },

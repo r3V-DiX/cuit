@@ -162,6 +162,7 @@ export class JobsService {
     const where: any = {
       status: "APPROVED",
       AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
+      ...(dto.featured ? { isFeatured: true } : {}),
     };
 
     if (dto.search) {

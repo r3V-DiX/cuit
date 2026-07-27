@@ -1,5 +1,5 @@
-import { IsString, IsOptional, IsEnum, IsInt, Min, Max, MaxLength } from "class-validator";
-import { Type } from "class-transformer";
+import { IsString, IsOptional, IsEnum, IsInt, IsBoolean, Min, Max, MaxLength } from "class-validator";
+import { Type, Transform } from "class-transformer";
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { JobType, WorkMode, ExperienceLevel } from "@prisma/client";
 
@@ -63,6 +63,15 @@ export class JobsQueryDto {
   @IsOptional()
   @IsString()
   domainId?: string;
+
+  @ApiPropertyOptional({
+    description: "Filter to featured jobs only",
+    example: true,
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === "true" || value === true)
+  @IsBoolean()
+  featured?: boolean;
 
   @ApiPropertyOptional({
     description: "Page number for pagination",

@@ -126,4 +126,12 @@ export class AdminJobsRepository {
             data: { status: JobStatus.REJECTED, rejectionReason: reason },
         });
     }
+
+    async setFeatured(id: string, isFeatured: boolean) {
+        return this.prisma.job.update({
+            where: { id },
+            data: { isFeatured },
+            select: { id: true, jobTitle: true, isFeatured: true, status: true },
+        });
+    }
 }

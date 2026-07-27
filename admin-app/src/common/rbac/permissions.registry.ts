@@ -20,6 +20,7 @@ export const ACTIONS = {
     JOBS: {
         VIEW: 'jobs:view',
         REVIEW: 'jobs:review',
+        FEATURE: 'jobs:feature',
     },
     SUBSCRIPTIONS: {
         VIEW: 'subscriptions:view',
@@ -107,6 +108,7 @@ export const PERMISSION_DESCRIPTIONS: Record<Action, string> = {
     'kyc:review': 'Approve or reject employer verifications',
     'jobs:view': 'View the job moderation queue and job details',
     'jobs:review': 'Approve or reject job postings',
+    'jobs:feature': 'Mark or unmark a job as featured on the landing page',
     'subscriptions:view': 'View subscription packages and employer subscriptions',
     'subscriptions:manage': 'Create/edit/delete packages and manage employer subscriptions',
     'rbac:view': 'View roles, permissions, assignments and overrides',
@@ -185,6 +187,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
             ACTIONS.KYC.REVIEW,
             ACTIONS.JOBS.VIEW,
             ACTIONS.JOBS.REVIEW,
+            ACTIONS.JOBS.FEATURE,
             ACTIONS.REPORTS.VIEW,
         ],
     },
