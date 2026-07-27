@@ -33,6 +33,10 @@ const SIZES = [
   { id: "SIZE_1000_PLUS", label: "1000+ employees" },
 ];
 
+// Must match company.dto.ts's @MaxLength on `about`/`cultureDescription`.
+const BIO_MAX_LENGTH = 3000;
+const CULTURE_MAX_LENGTH = 2000;
+
 const inputCls = "w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-400";
 const labelCls = "block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5";
 const selectCls = "w-full h-10 pl-3.5 pr-8 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-sm focus:outline-none focus:border-blue-400 appearance-none cursor-pointer";
@@ -415,16 +419,17 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
               <div className="flex flex-col gap-4">
                 <div>
                   <label className={labelCls}>Company Bio <span className="text-rose-400">*</span></label>
-                  <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4}
+                  <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={4} maxLength={BIO_MAX_LENGTH}
                     placeholder="Describe what your company does, your mission, and what makes you different…"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:bg-white resize-none transition-all" />
-                  <p className="text-[10px] font-mono text-slate-400 mt-1">{bio.length} / 500 chars</p>
+                  <p className={`text-[10px] font-mono mt-1 ${bio.length >= BIO_MAX_LENGTH ? "text-rose-500" : "text-slate-400"}`}>{bio.length} / {BIO_MAX_LENGTH} chars</p>
                 </div>
                 <div>
                   <label className={labelCls}>Culture & Work Environment</label>
-                  <textarea value={culture} onChange={(e) => setCulture(e.target.value)} rows={3}
+                  <textarea value={culture} onChange={(e) => setCulture(e.target.value)} rows={3} maxLength={CULTURE_MAX_LENGTH}
                     placeholder="Describe your team culture, work style, and values…"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:bg-white resize-none transition-all" />
+                  <p className={`text-[10px] font-mono mt-1 ${culture.length >= CULTURE_MAX_LENGTH ? "text-rose-500" : "text-slate-400"}`}>{culture.length} / {CULTURE_MAX_LENGTH} chars</p>
                 </div>
               </div>
             </Section>
