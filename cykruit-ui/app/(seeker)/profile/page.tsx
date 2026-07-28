@@ -159,9 +159,14 @@ export default function ProfilePage() {
       const res = await fetch("/api/profile/ai/generate-bio", { method: "GET", credentials: "include" });
       if (res.ok) {
         const data = await res.json();
-        setBioBuffer(data.data.bio);
-        setEditingBio(true);
-        toast({ type: "success", message: "Bio generated!" });
+        const generatedBio: string = data?.data?.bio || data?.bio || "";
+        if (generatedBio) {
+          setBioBuffer(generatedBio);
+          setEditingBio(true);
+          toast({ type: "success", message: "Bio generated!" });
+        } else {
+          toast({ type: "error", message: "AI returned empty bio", description: "Try again in a moment." });
+        }
       } else {
         if (res.status === 504) {
            toast({ type: "info", message: "AI is taking a while", description: "Ollama is generating in the background. Check back in a minute!" });
@@ -268,6 +273,7 @@ export default function ProfilePage() {
     twitter: "",
   });
   const [editingBasics, setEditingBasics] = useState(false);
+  const [savingBasics, setSavingBasics] = useState(false);
   const [basicsBuffer, setBasicsBuffer] = useState<BasicDetails>({
     name: "User",
     email: "",
@@ -341,6 +347,7 @@ export default function ProfilePage() {
       toast({ type: "error", message: "Name is required" });
       return;
     }
+    setSavingBasics(true);
     try {
       const nameParts = basicsBuffer.name.trim().split(" ");
       const firstName = nameParts[0] || "";
@@ -384,14 +391,18 @@ export default function ProfilePage() {
       }
     } catch (error) {
       toast({ type: "error", message: "Network error", description: error instanceof Error ? error.message : "Failed to save profile changes" });
+    } finally {
+      setSavingBasics(false);
     }
   }
 
   const [editingBio, setEditingBio] = useState(false);
+  const [savingBio, setSavingBio] = useState(false);
   const [bio, setBio] = useState("");
   const [bioBuffer, setBioBuffer] = useState(bio);
 
   async function saveBio() {
+    setSavingBio(true);
     try {
       const response = await fetch("/api/profile/summary", {
         method: "PATCH",
@@ -413,6 +424,8 @@ export default function ProfilePage() {
       }
     } catch (error) {
       toast({ type: "error", message: "Network error", description: error instanceof Error ? error.message : "Failed to save bio changes" });
+    } finally {
+      setSavingBio(false);
     }
   }
 
@@ -500,6 +513,7 @@ export default function ProfilePage() {
   const [experience, setExperience] = useState<Exp[]>([]);
   const [editingExp, setEditingExp] = useState<Exp | null>(null);
   const [addingExp, setAddingExp] = useState(false);
+  const [savingExp, setSavingExp] = useState(false);
   const currentYear = new Date().getFullYear();
   const startYearOptions = Array.from({ length: 41 }, (_, i) => String(currentYear - i));
   const endYearOptions = Array.from({ length: 46 }, (_, i) => String(currentYear + 5 - i));
@@ -536,6 +550,7 @@ export default function ProfilePage() {
       toast({ type: "error", message: "Missing start year", description: "Please select a start year." });
       return;
     }
+    setSavingExp(true);
 
     const descText = expForm.desc.trim();
     const payload = {
@@ -573,6 +588,8 @@ export default function ProfilePage() {
       }
     } catch (err) {
       toast({ type: "error", message: "Error saving experience", description: err instanceof Error ? err.message : undefined });
+    } finally {
+      setSavingExp(false);
     }
   }
   async function deleteExp(id: string) {
@@ -609,6 +626,7 @@ export default function ProfilePage() {
   const [education, setEducation] = useState<Edu[]>([]);
   const [editingEdu, setEditingEdu] = useState<Edu | null>(null);
   const [addingEdu, setAddingEdu] = useState(false);
+  const [savingEdu, setSavingEdu] = useState(false);
   const [eduForm, setEduForm] = useState({ degree: "", school: "", startYear: "", endYear: "", desc: "" });
 
   function openAddEdu() {
@@ -626,7 +644,7 @@ export default function ProfilePage() {
       toast({ type: "error", message: "Missing fields", description: "Degree and school are required." });
       return;
     }
-    
+    setSavingEdu(true);
     const payload = {
       degree: eduForm.degree,
       instituteName: eduForm.school,
@@ -659,6 +677,8 @@ export default function ProfilePage() {
       }
     } catch (err) {
       toast({ type: "error", message: "Error saving education", description: err instanceof Error ? err.message : undefined });
+    } finally {
+      setSavingEdu(false);
     }
   }
   async function deleteEdu(id: string) {
@@ -867,6 +887,10 @@ export default function ProfilePage() {
       toast({ type: "error", message: "File too large", description: "Please upload a PDF under 5 MB." });
       return;
     }
+    if (resumes.length >= 5) {
+      toast({ type: "error", message: "Resume limit reached", description: "You can save up to 5 resumes. Remove one to add another." });
+      return;
+    }
     setPendingFile(file);
     setResumeLabel("");
     setAddingResume(true);
@@ -960,7 +984,7 @@ export default function ProfilePage() {
             email: b.email || userEmail || "",
             professionalEmail: b.professionalEmail || "",
             title: b.title || "",
-            location: b.location?.displayName || b.location?.city || "",
+            location: b.location?.displayName || [b.location?.city, b.location?.state, b.location?.country].filter(Boolean).join(", ") || "",
             phone: b.phone || "",
             linkedin: b.linkedin || "",
             github: b.github || "",
@@ -987,13 +1011,21 @@ export default function ProfilePage() {
             })).filter((s: any) => s.name));
           }
           if (data.experiences && Array.isArray(data.experiences)) {
-            setExperience(data.experiences.map((e: any) => ({
-              id: e.id,
-              role: e.title || e.role || "",
-              company: e.company || e.companyName || "",
-              period: `${e.startDate ? new Date(e.startDate).getFullYear() : ""} – ${e.endDate ? new Date(e.endDate).getFullYear() : "Present"}`,
-              desc: e.description || "",
-            })));
+            setExperience(
+              [...data.experiences]
+                .sort((a: any, b: any) => {
+                  const aYear = a.startDate ? new Date(a.startDate).getFullYear() : 0;
+                  const bYear = b.startDate ? new Date(b.startDate).getFullYear() : 0;
+                  return bYear - aYear;
+                })
+                .map((e: any) => ({
+                  id: e.id,
+                  role: e.title || e.role || "",
+                  company: e.company || e.companyName || "",
+                  period: `${e.startDate ? new Date(e.startDate).getFullYear() : ""} – ${e.endDate ? new Date(e.endDate).getFullYear() : "Present"}`,
+                  desc: e.description || "",
+                }))
+            );
           }
           if (data.certifications && Array.isArray(data.certifications)) {
             setCerts(data.certifications.map((c: any) => ({
@@ -1208,8 +1240,11 @@ export default function ProfilePage() {
                     {!editingBasics
                       ? <button onClick={() => { setBasicsBuffer(basics); setEditingBasics(true); }} className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"><Pencil className="w-3 h-3" /> Edit</button>
                       : <div className="flex gap-2">
-                          <button onClick={saveBasics} className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors"><Check className="w-3 h-3" /> Save</button>
-                          <button onClick={() => setEditingBasics(false)} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-colors"><X className="w-3 h-3" /> Cancel</button>
+                          <button onClick={saveBasics} disabled={savingBasics} className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 px-3 py-1.5 rounded-lg transition-colors">
+                            {savingBasics ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" /> : <Check className="w-3 h-3" />}
+                            {savingBasics ? "Saving..." : "Save"}
+                          </button>
+                          <button onClick={() => setEditingBasics(false)} disabled={savingBasics} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 border border-slate-200 hover:bg-slate-50 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors"><X className="w-3 h-3" /> Cancel</button>
                         </div>
                     }
                   </div>
@@ -1307,12 +1342,21 @@ export default function ProfilePage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {/* Identity row */}
+                      {/* Row 1: name + title */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
                           { label: "Full name", value: basics.name },
                           { label: "Job title", value: basics.title },
-                          { label: "Location", value: basics.location },
+                        ].map(({ label, value }) => (
+                          <div key={label} className="p-3.5 rounded-xl border bg-slate-50 border-slate-200">
+                            <p className="text-[10px] font-medium text-slate-400 mb-0.5">{label}</p>
+                            <p className="text-sm font-medium text-slate-800">{value || <span className="text-slate-300 italic">Not set</span>}</p>
+                          </div>
+                        ))}
+                      </div>
+                      {/* Row 2: prof email + phone */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {[
                           { label: "Professional Email", value: basics.professionalEmail },
                           { label: "Phone", value: basics.phone },
                         ].map(({ label, value }) => (
@@ -1321,6 +1365,11 @@ export default function ProfilePage() {
                             <p className="text-sm font-medium text-slate-800">{value || <span className="text-slate-300 italic">Not set</span>}</p>
                           </div>
                         ))}
+                      </div>
+                      {/* Row 3: location full-width */}
+                      <div className="p-3.5 rounded-xl border bg-slate-50 border-slate-200">
+                        <p className="text-[10px] font-medium text-slate-400 mb-0.5">Location</p>
+                        <p className="text-sm font-medium text-slate-800">{basics.location || <span className="text-slate-300 italic">Not set</span>}</p>
                       </div>
 
                       {/* Links */}
@@ -1388,11 +1437,13 @@ export default function ProfilePage() {
                         <div className="flex gap-2">
                           <button
                             onClick={saveBio}
-                            className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors"
+                            disabled={savingBio}
+                            className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 px-3 py-1.5 rounded-lg transition-colors"
                           >
-                            <Check className="w-3 h-3" /> Save
+                            {savingBio ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" /> : <Check className="w-3 h-3" />}
+                            {savingBio ? "Saving..." : "Save"}
                           </button>
-                          <button onClick={() => setEditingBio(false)} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 transition-colors">
+                          <button onClick={() => setEditingBio(false)} disabled={savingBio} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-700 disabled:opacity-50 px-3 py-1.5 rounded-lg border border-slate-200 transition-colors">
                             <X className="w-3 h-3" /> Cancel
                           </button>
                         </div>
@@ -1501,10 +1552,11 @@ export default function ProfilePage() {
                       </div>
                       <textarea value={expForm.desc} onChange={(e) => setExpForm({ ...expForm, desc: e.target.value })} placeholder="Description" rows={3} maxLength={1000} className={`${field} resize-none`} />
                       <div className="flex gap-2">
-                        <button onClick={saveExp} className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors">
-                          <Check className="w-3 h-3" /> {editingExp ? "Update" : "Save"}
+                        <button onClick={saveExp} disabled={savingExp} className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 px-3 py-1.5 rounded-lg transition-colors">
+                          {savingExp ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" /> : <Check className="w-3 h-3" />}
+                          {savingExp ? "Saving..." : editingExp ? "Update" : "Save"}
                         </button>
-                        <button onClick={() => setAddingExp(false)} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-colors">
+                        <button onClick={() => setAddingExp(false)} disabled={savingExp} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 border border-slate-200 hover:bg-slate-50 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors">
                           <X className="w-3 h-3" /> Cancel
                         </button>
                       </div>
@@ -1581,10 +1633,11 @@ export default function ProfilePage() {
                       </div>
                       <textarea value={eduForm.desc} onChange={(e) => setEduForm({ ...eduForm, desc: e.target.value })} placeholder="Description (optional)" rows={3} maxLength={1000} className={`${field} resize-none`} />
                       <div className="flex gap-2">
-                        <button onClick={saveEdu} className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors">
-                          <Check className="w-3 h-3" /> {editingEdu ? "Update" : "Save"}
+                        <button onClick={saveEdu} disabled={savingEdu} className="flex items-center gap-1.5 text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 px-3 py-1.5 rounded-lg transition-colors">
+                          {savingEdu ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" /> : <Check className="w-3 h-3" />}
+                          {savingEdu ? "Saving..." : editingEdu ? "Update" : "Save"}
                         </button>
-                        <button onClick={() => setAddingEdu(false)} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 border border-slate-200 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-colors">
+                        <button onClick={() => setAddingEdu(false)} disabled={savingEdu} className="flex items-center gap-1.5 text-xs font-medium text-slate-500 border border-slate-200 hover:bg-slate-50 disabled:opacity-50 px-3 py-1.5 rounded-lg transition-colors">
                           <X className="w-3 h-3" /> Cancel
                         </button>
                       </div>
