@@ -50,7 +50,7 @@ function DropdownPortal({
       top: r.bottom + 6,
       left: r.left,
       width: r.width,
-      zIndex: 99999,
+      zIndex: 49,
     });
   }, [anchorRef]);
 
