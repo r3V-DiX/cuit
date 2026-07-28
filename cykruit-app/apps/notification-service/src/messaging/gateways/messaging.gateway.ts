@@ -27,6 +27,10 @@ interface WsPayload {
 @Injectable()
 @WebSocketGateway({
     namespace: '/messaging',
+    // Client (hooks/useMessaging.ts) requests this exact path whether it connects
+    // through the gateway's /ws passthrough or straight to this service in dev —
+    // must match on both sides since the gateway does not rewrite the prefix.
+    path: '/ws/socket.io',
     cors: {
         origin: process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()) || [
             'http://localhost:3000',

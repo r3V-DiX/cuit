@@ -23,9 +23,11 @@ type UseMessagingOptions = {
   enabled?: boolean;
 };
 
+// Falls back to notification-service's direct dev port, matching proxy.ts's CSP default —
+// window.location.origin (the Next.js app itself) can never serve a /messaging socket.io namespace.
 const WS_URL =
   typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_WS_URL || window.location.origin)
+    ? (process.env.NEXT_PUBLIC_WS_URL || "http://127.0.0.1:4007")
     : "";
 
 async function fetchWsToken(attempt = 0): Promise<string | null> {
