@@ -65,10 +65,10 @@ export default function TeamPage() {
     setLoading(true);
     try {
       const [teamRes, meRes] = await Promise.all([
-        apiFetch<{ items?: Member[] }>("/api/employer/team"),
+        apiFetch<Member[]>("/api/employer/team"),
         apiFetch<{ id?: string }>("/api/auth/me"),
       ]);
-      const items: Member[] = (teamRes.data?.items ?? []) as Member[];
+      const items: Member[] = teamRes.data ?? [];
       setMembers(items);
       const myId = meRes.data?.id ?? null;
       setMyUserId(myId);
