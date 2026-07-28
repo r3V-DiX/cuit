@@ -9,7 +9,7 @@ import { useModal } from "@/components/ui/Modal";
 import {
   ChevronLeft, MapPin, Briefcase, Calendar, FileText,
   CheckCircle2, Eye, XCircle, Send, X, AlertCircle,
-  Clock, MessageSquare,
+  Clock, MessageSquare, ExternalLink, Quote,
 } from "lucide-react";
 import { ApplicationDetailSkeleton } from "@/components/ui/skeletons/PageSkeletons";
 import type { AppStatus, Application } from "../data";
@@ -37,6 +37,17 @@ const STATUS_CFG: Record<AppStatus, {
 
 const PROGRESS_STEPS: AppStatus[] = ["Applied", "Under Review", "Shortlisted"];
 
+// ─── Timeline dot color by event type ─────────────────────────────────────────
+
+function timelineDotClass(event: string, index: number): string {
+  if (index === 0) return "bg-blue-500 w-3.5 h-3.5 ring-4 ring-blue-100";
+  if (/reject/i.test(event)) return "bg-red-400 w-2.5 h-2.5";
+  if (/shortlist/i.test(event)) return "bg-green-500 w-2.5 h-2.5";
+  if (/review/i.test(event)) return "bg-amber-400 w-2.5 h-2.5";
+  if (/withdraw/i.test(event)) return "bg-slate-400 w-2.5 h-2.5";
+  return "bg-slate-300 w-2.5 h-2.5";
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ApplicationDetailPage() {
@@ -54,6 +65,7 @@ export default function ApplicationDetailPage() {
         const { data } = await apiFetch<any>(`/api/seeker/applications/${id}`);
         setApp({
           id: data.id,
+          jobId: data.job.id,
           role: data.job.jobTitle,
           company: data.job.employer?.companyName || "Unknown",
           location: data.job.location?.displayName || "Remote",
@@ -154,47 +166,59 @@ export default function ApplicationDetailPage() {
           </Link>
 
           {/* Header card */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="flex items-start gap-4">
-                <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-500 shrink-0">
-                  {app.company[0]}
-                </div>
-                <div>
-                  <h1 className="text-lg font-bold text-slate-900">{app.role}</h1>
-                  <p className="text-sm text-slate-500 mt-0.5">{app.company}</p>
-                  <div className="flex items-center gap-3 mt-2 flex-wrap">
-                    <span className="flex items-center gap-1 text-xs text-slate-400">
-                      <MapPin className="w-3 h-3" /> {app.location}
-                    </span>
-                    <span className="flex items-center gap-1 text-xs text-slate-400">
-                      <Briefcase className="w-3 h-3" /> {formatEnum(app.type)}
-                    </span>
-                    <span className="flex items-center gap-1 text-xs text-slate-400">
-                      <Calendar className="w-3 h-3" /> Applied {app.applied}
-                    </span>
-                  </div>
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm">
+            <div className="flex items-start gap-4 flex-wrap sm:flex-nowrap">
+              {/* Company avatar */}
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 flex items-center justify-center text-2xl font-extrabold text-blue-600 shrink-0 shadow-sm">
+                {app.company[0]}
+              </div>
+
+              {/* Role + meta */}
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl font-bold text-slate-900 leading-tight">{app.role}</h1>
+                <p className="text-sm text-slate-500 mt-0.5 font-medium">{app.company}</p>
+                <div className="flex items-center gap-2 mt-3 flex-wrap">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200 rounded-full px-2.5 py-1">
+                    <MapPin className="w-3 h-3 text-slate-400" /> {app.location}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200 rounded-full px-2.5 py-1">
+                    <Briefcase className="w-3 h-3 text-slate-400" /> {formatEnum(app.type)}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200 rounded-full px-2.5 py-1">
+                    <Calendar className="w-3 h-3 text-slate-400" /> Applied {app.applied}
+                  </span>
                 </div>
               </div>
 
-              {/* Status badge */}
-              <div className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl border shrink-0 ${
-                app.status === "Shortlisted"    ? "text-green-700 bg-green-50 border-green-200" :
-                app.status === "Under Review"   ? "text-amber-700 bg-amber-50 border-amber-200" :
-                app.status === "Applied"        ? "text-blue-700 bg-blue-50 border-blue-200" :
-                app.status === "Rejected"       ? "text-red-700 bg-red-50 border-red-200" :
-                "text-slate-500 bg-slate-100 border-slate-200"
-              }`}>
-                {cfg.icon}
-                {app.status}
+              {/* Status + View Job */}
+              <div className="flex flex-col items-end gap-2.5 shrink-0 self-start">
+                <div className={`inline-flex items-center gap-2 text-sm font-semibold px-3.5 py-1.5 rounded-xl border ${
+                  app.status === "Shortlisted"  ? "text-green-700 bg-green-50 border-green-200" :
+                  app.status === "Under Review" ? "text-amber-700 bg-amber-50 border-amber-200" :
+                  app.status === "Applied"      ? "text-blue-700 bg-blue-50 border-blue-200" :
+                  app.status === "Rejected"     ? "text-red-700 bg-red-50 border-red-200" :
+                  "text-slate-500 bg-slate-100 border-slate-200"
+                }`}>
+                  {cfg.icon}
+                  {app.status}
+                </div>
+                {app.jobId && (
+                  <Link
+                    href={`/jobs/${app.jobId}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-lg px-3 py-1.5 transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    View Job
+                  </Link>
+                )}
               </div>
             </div>
           </div>
 
           {/* Progress tracker — only for non-terminal */}
           {!isTerminal && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6">
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Application Progress</h2>
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-6">Application Progress</h2>
               <div className="flex items-center gap-0">
                 {PROGRESS_STEPS.map((step, i) => {
                   const stepNum = i + 1;
@@ -203,19 +227,19 @@ export default function ApplicationDetailPage() {
                   return (
                     <div key={step} className="flex items-center flex-1 last:flex-none">
                       <div className="flex flex-col items-center gap-2">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center border-2 transition-all ${
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 transition-all ${
                           done
-                            ? "bg-blue-600 border-blue-600 text-white"
+                            ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200"
                             : "bg-slate-50 border-slate-200 text-slate-300"
                         } ${current ? "ring-4 ring-blue-100" : ""}`}>
                           {done ? STATUS_CFG[step].icon : <span className="text-xs font-bold">{stepNum}</span>}
                         </div>
-                        <span className={`text-[11px] font-medium whitespace-nowrap ${done ? "text-slate-800" : "text-slate-400"}`}>
+                        <span className={`text-[11px] font-semibold whitespace-nowrap ${done ? "text-slate-800" : "text-slate-400"}`}>
                           {step}
                         </span>
                       </div>
                       {i < PROGRESS_STEPS.length - 1 && (
-                        <div className={`flex-1 h-0.5 mx-2 mb-5 rounded-full transition-all ${activeStep > stepNum ? "bg-blue-600" : "bg-slate-200"}`} />
+                        <div className={`flex-1 h-0.5 mx-2 mb-6 rounded-full transition-all ${activeStep > stepNum ? "bg-blue-600" : "bg-slate-200"}`} />
                       )}
                     </div>
                   );
@@ -226,19 +250,19 @@ export default function ApplicationDetailPage() {
 
           {/* Terminal state banner */}
           {isTerminal && (
-            <div className={`rounded-2xl border p-4 flex items-center gap-3 ${
-              app.status === "Rejected" ? "bg-red-50 border-red-100" : "bg-slate-100 border-slate-200"
+            <div className={`rounded-2xl border p-5 flex items-center gap-4 shadow-sm ${
+              app.status === "Rejected" ? "bg-red-50 border-red-100" : "bg-slate-50 border-slate-200"
             }`}>
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                app.status === "Rejected" ? "bg-red-100" : "bg-slate-200"
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                app.status === "Rejected" ? "bg-red-100 text-red-500" : "bg-slate-200 text-slate-500"
               }`}>
-                {cfg.icon}
+                <span className="[&>svg]:w-6 [&>svg]:h-6">{cfg.icon}</span>
               </div>
               <div>
-                <p className={`text-sm font-semibold ${app.status === "Rejected" ? "text-red-700" : "text-slate-600"}`}>
+                <p className={`text-base font-bold ${app.status === "Rejected" ? "text-red-700" : "text-slate-700"}`}>
                   {app.status === "Rejected" ? "Application not progressed" : "Application withdrawn"}
                 </p>
-                <p className={`text-xs mt-0.5 ${app.status === "Rejected" ? "text-red-500" : "text-slate-400"}`}>
+                <p className={`text-sm mt-0.5 leading-relaxed ${app.status === "Rejected" ? "text-red-500" : "text-slate-500"}`}>
                   {app.status === "Rejected"
                     ? "The employer has decided not to move forward with your application."
                     : "You withdrew this application. You can reapply if the position is still open."}
@@ -253,25 +277,25 @@ export default function ApplicationDetailPage() {
             <div className="lg:col-span-2 space-y-5">
 
               {/* Timeline */}
-              <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-5">Activity Timeline</h2>
-                <div className="relative pl-5">
-                  <div className="absolute left-2 top-1 bottom-1 w-px bg-slate-200" />
-                  <div className="space-y-5">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-6">Activity Timeline</h2>
+                <div className="relative pl-6">
+                  <div className="absolute left-[7px] top-2 bottom-2 w-px bg-slate-200" />
+                  <div className="space-y-6">
                     {app.timeline.map((ev: any, i: number) => (
-                      <div key={i} className="relative">
-                        <div className={`absolute -left-[13px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white ${i === 0 ? "bg-blue-500" : "bg-slate-300"}`} />
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-semibold text-slate-800 leading-snug">{ev.event}</p>
-                            {ev.note && (
-                              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
-                                {ev.note}
-                              </p>
-                            )}
-                          </div>
-                          <span className="text-[10px] font-mono text-slate-400 shrink-0 mt-0.5">{ev.date}</span>
+                      <div key={i} className="relative flex items-start gap-4">
+                        <div className={`absolute -left-[22px] top-1 rounded-full border-2 border-white shrink-0 ${timelineDotClass(ev.event, i)}`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 leading-snug">{ev.event}</p>
+                          {ev.note && (
+                            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                              {ev.note}
+                            </p>
+                          )}
                         </div>
+                        <span className="text-[11px] font-medium text-slate-400 bg-slate-50 border border-slate-200 rounded-md px-2 py-0.5 shrink-0 mt-0.5 whitespace-nowrap">
+                          {ev.date}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -280,51 +304,53 @@ export default function ApplicationDetailPage() {
 
               {/* Cover note */}
               {app.coverNote && (
-                <div className="bg-white rounded-2xl border border-slate-200 p-6">
+                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
                   <div className="flex items-center gap-2 mb-4">
-                    <MessageSquare className="w-4 h-4 text-slate-400" />
+                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center">
+                      <Quote className="w-3.5 h-3.5 text-slate-400" />
+                    </div>
                     <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Cover Note</h2>
                   </div>
-                  <p className="text-sm text-slate-600 leading-relaxed">{app.coverNote}</p>
+                  <p className="text-sm text-slate-600 leading-relaxed pl-1 border-l-2 border-slate-200 ml-1">
+                    {app.coverNote}
+                  </p>
                 </div>
               )}
             </div>
 
             {/* Right col — details + actions */}
             <div className="lg:col-span-1 sticky top-6 self-start">
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4 shadow-sm">
                 <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Details</h2>
 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
-                    <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-                      <FileText className="w-3.5 h-3.5 text-blue-600" />
+                <div className="space-y-2.5">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-colors">
+                    <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
+                      <FileText className="w-4 h-4 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400">Resume used</p>
-                      <p className="text-xs font-semibold text-slate-800">{app.resume}</p>
+                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">Resume used</p>
+                      <p className="text-xs font-semibold text-slate-800 mt-0.5">{app.resume}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                      <Calendar className="w-3.5 h-3.5 text-slate-500" />
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-colors">
+                    <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                      <Calendar className="w-4 h-4 text-slate-500" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400">Date applied</p>
-                      <p className="text-xs font-semibold text-slate-800">{app.applied}</p>
+                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">Date applied</p>
+                      <p className="text-xs font-semibold text-slate-800 mt-0.5">{app.applied}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
-                    <div className="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
-                      <Clock className="w-3.5 h-3.5 text-slate-500" />
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-colors">
+                    <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                      <Clock className="w-4 h-4 text-slate-500" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400">Last update</p>
-                      <p className="text-xs font-semibold text-slate-800">
-                        {app.timeline[0].date}
-                      </p>
+                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wide">Last update</p>
+                      <p className="text-xs font-semibold text-slate-800 mt-0.5">{app.timeline[0].date}</p>
                     </div>
                   </div>
                 </div>
@@ -334,7 +360,7 @@ export default function ApplicationDetailPage() {
                     <div className="border-t border-slate-100 pt-1" />
                     <button
                       onClick={withdraw}
-                      className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-200 bg-red-50 text-xs font-semibold text-red-600 hover:bg-red-100 hover:border-red-300 transition-colors"
                     >
                       <X className="w-3.5 h-3.5" />
                       Withdraw Application

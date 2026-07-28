@@ -19,12 +19,11 @@ type MessageNewPayload = {
 
 type UseMessagingOptions = {
   conversationId: string | null;
+  allConversationIds?: string[];
   onMessageNew: (payload: MessageNewPayload) => void;
   enabled?: boolean;
 };
 
-// Falls back to notification-service's direct dev port, matching proxy.ts's CSP default —
-// window.location.origin (the Next.js app itself) can never serve a /messaging socket.io namespace.
 const WS_URL =
   typeof window !== "undefined"
     ? (process.env.NEXT_PUBLIC_WS_URL || "http://127.0.0.1:4007")
@@ -43,6 +42,7 @@ async function fetchWsToken(attempt = 0): Promise<string | null> {
 
 export function useMessaging({
   conversationId,
+  allConversationIds,
   onMessageNew,
   enabled = true,
 }: UseMessagingOptions) {
@@ -70,9 +70,6 @@ export function useMessaging({
 
       socket = io(`${WS_URL}/messaging`, {
         auth: { token },
-        // Gateway only proxies WebSocket traffic under /ws (see apps/gateway/src/main.ts),
-        // stripping that prefix before forwarding to notification-service's default
-        // /socket.io path — the client must request the same /ws-prefixed path.
         path: "/ws/socket.io",
         transports: ["websocket", "polling"],
         reconnectionAttempts: 5,
@@ -89,13 +86,15 @@ export function useMessaging({
 
       socketRef.current = socket;
 
-      if (conversationId) {
-        socket.on("connect", () => {
-          socket.emit("join:conversation", { conversationId });
-        });
-        if (socket.connected) {
-          socket.emit("join:conversation", { conversationId });
-        }
+      // Join ALL conversation rooms on connect so messages on any conv are received
+      socket.on("connect", () => {
+        const ids = allConversationIds ?? (conversationId ? [conversationId] : []);
+        ids.forEach((id) => socket.emit("join:conversation", { conversationId: id }));
+      });
+
+      if (socket.connected) {
+        const ids = allConversationIds ?? (conversationId ? [conversationId] : []);
+        ids.forEach((id) => socket.emit("join:conversation", { conversationId: id }));
       }
     })();
 
@@ -107,11 +106,12 @@ export function useMessaging({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
 
+  // When conversationId changes, join new (already in room if allConversationIds was provided)
   useEffect(() => {
     if (!conversationId || !socketRef.current?.connected) return;
     socketRef.current.emit("join:conversation", { conversationId });
     return () => {
-      socketRef.current?.emit("leave:conversation", { conversationId });
+      // Don't leave — we want to keep receiving messages for all convs
     };
   }, [conversationId]);
 

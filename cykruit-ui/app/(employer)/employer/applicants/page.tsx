@@ -73,14 +73,16 @@ export default function ApplicantsPage() {
     fetchApplicants();
   }, [toast, kycStatus]);
 
-  const filtered = applicants.filter((a) => {
-    const matchStatus = statusFilter === "All" || a?.status === statusFilter;
-    const matchJob    = jobFilter    === "all" || a?.jobId === jobFilter;
-    const name = `${a.jobSeeker?.firstName || ""} ${a.jobSeeker?.lastName || ""}`.trim();
-    const role = a.job?.jobTitle || "";
-    const matchSearch = !search || name.toLowerCase().includes(search.toLowerCase()) || role.toLowerCase().includes(search.toLowerCase());
-    return matchStatus && matchJob && matchSearch;
-  });
+  const filtered = applicants
+    .filter((a) => {
+      const matchStatus = statusFilter === "All" || a?.status === statusFilter;
+      const matchJob    = jobFilter    === "all" || a?.jobId === jobFilter;
+      const name = `${a.jobSeeker?.firstName || ""} ${a.jobSeeker?.lastName || ""}`.trim();
+      const role = a.job?.jobTitle || "";
+      const matchSearch = !search || name.toLowerCase().includes(search.toLowerCase()) || role.toLowerCase().includes(search.toLowerCase());
+      return matchStatus && matchJob && matchSearch;
+    })
+    .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime());
 
   return (
     <>
@@ -224,6 +226,7 @@ export default function ApplicantsPage() {
                   const expObj = a.jobSeeker?.jobSeekerProfile?.experiences?.[0];
                   const experience = expObj ? `${expObj.title} at ${expObj.company}` : "N/A";
                   const appliedDate = new Date(a.appliedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                  const appliedTime = new Date(a.appliedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
                   return (
                     <tr key={a.id} className="hover:bg-slate-50/60 transition-colors group">
@@ -261,7 +264,10 @@ export default function ApplicantsPage() {
                           {cfg.icon}{formatEnum(a.status as string)}
                         </span>
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-slate-400 font-mono hidden sm:table-cell">{appliedDate}</td>
+                      <td className="px-4 py-3.5 hidden sm:table-cell">
+                        <p className="text-xs text-slate-600 font-mono">{appliedDate}</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{appliedTime}</p>
+                      </td>
                       {aiRank && (
                         <td className="px-4 py-3.5 text-center">
                           {(() => {

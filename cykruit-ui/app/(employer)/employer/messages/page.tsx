@@ -127,7 +127,21 @@ export default function EmployerMessagesPage() {
         const items: any[] = Array.isArray(convsDataObj?.data) ? convsDataObj.data : (convsDataObj?.data?.items ?? []);
         const mapped = items.map((c, i) => mapApiConv(c, i));
         setConvs(mapped);
-        if (mapped.length > 0) setActiveId(mapped[0].id);
+        if (mapped.length > 0) {
+          const firstId = mapped[0].id;
+          setActiveId(firstId);
+          const fullResult = await apiFetch(`/api/conversations/${firstId}`);
+          const full = (fullResult?.data ?? fullResult) as any;
+          const msgs: Message[] = (full.messages ?? []).map((m: any) => ({
+            id: m.id,
+            from: m.senderId === userId ? "employer" as const : "seeker" as const,
+            text: m.content,
+            time: formatTime(m.createdAt),
+            timeTs: new Date(m.createdAt).getTime(),
+          }));
+          setConvs(mapped.map((c, i) => i === 0 ? { ...c, messages: msgs, employerUnread: 0 } : c));
+          apiFetch(`/api/conversations/${firstId}/read`, { method: "PATCH", headers: authHeaders() }).catch(() => {});
+        }
       } finally {
         setLoading(false);
       }
@@ -226,6 +240,15 @@ export default function EmployerMessagesPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [active?.messages.length, activeId]);
 
+  useEffect(() => {
+    const conv = convs.find((c) => c.id === activeId);
+    if (conv && conv.messages.length === 0) {
+      setInput("Hi, I came across your profile and would like to discuss an opportunity.");
+    } else {
+      setInput("");
+    }
+  }, [activeId, convs]);
+
   const totalUnread = convs.reduce((s, c) => s + c.employerUnread, 0);
 
   const handleMessageNew = useCallback(({ conversationId, message }: { conversationId: string; message: any }) => {
@@ -252,6 +275,7 @@ export default function EmployerMessagesPage() {
 
   useMessaging({
     conversationId: activeId || null,
+    allConversationIds: convs.map((c) => c.id),
     onMessageNew: handleMessageNew,
     enabled: !loading,
   });
@@ -304,19 +328,32 @@ export default function EmployerMessagesPage() {
                 <button
                   key={conv.id}
                   onClick={() => openConv(conv.id)}
-                  className={`w-full text-left px-4 py-3.5 transition-colors ${isActive ? "bg-blue-50" : "hover:bg-slate-50"}`}
+                  className={`w-full text-left px-4 py-3.5 transition-colors border-l-2 ${
+                    isActive
+                      ? "bg-blue-50 border-l-blue-600"
+                      : conv.employerUnread > 0
+                      ? "hover:bg-slate-50 border-l-blue-300 bg-blue-50/30"
+                      : "hover:bg-slate-50 border-l-transparent"
+                  }`}
                 >
                   <div className="flex items-start gap-3">
                     {/* Candidate avatar */}
-                    <div className={`w-10 h-10 rounded-xl ${conv.candidateAccent} flex items-center justify-center text-white text-xs font-bold shrink-0`}>
+                    <div className={`w-10 h-10 rounded-full ${conv.candidateAccent} flex items-center justify-center text-white text-xs font-bold shrink-0`}>
                       {conv.candidateInitials}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
-                        <span className={`text-xs font-semibold truncate ${isActive ? "text-blue-700" : "text-slate-800"}`}>
+                        <span className={`text-xs font-bold truncate ${isActive ? "text-blue-700" : "text-slate-800"}`}>
                           {conv.candidateName}
                         </span>
-                        <span className="text-[10px] text-slate-400 shrink-0">{last?.time ?? ""}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {conv.employerUnread > 0 && (
+                            <span className="w-4 h-4 rounded-full bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center">
+                              {conv.employerUnread}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-slate-400">{last?.time ?? ""}</span>
+                        </div>
                       </div>
                       <p className="text-[11px] text-slate-500 truncate mt-0.5">{conv.jobTitle}</p>
                       {last && (
@@ -325,11 +362,6 @@ export default function EmployerMessagesPage() {
                         </p>
                       )}
                     </div>
-                    {conv.employerUnread > 0 && (
-                      <span className="w-4 h-4 rounded-full bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center shrink-0 mt-1">
-                        {conv.employerUnread}
-                      </span>
-                    )}
                   </div>
                 </button>
               );

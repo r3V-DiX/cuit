@@ -242,6 +242,7 @@ export default function SeekerMessagesPage() {
 
   useMessaging({
     conversationId: activeId || null,
+    allConversationIds: convs.map((c) => c.id),
     onMessageNew: handleMessageNew,
     enabled: !loading,
   });
@@ -303,30 +304,38 @@ export default function SeekerMessagesPage() {
                 <button
                   key={conv.id}
                   onClick={() => openConv(conv.id)}
-                  className={`w-full text-left px-4 py-3.5 transition-colors ${isActive ? "bg-blue-50" : "hover:bg-slate-50"}`}
+                  className={`w-full text-left px-4 py-3.5 transition-colors border-l-2 ${
+                    isActive
+                      ? "bg-blue-50 border-l-blue-600"
+                      : conv.seekerUnread > 0
+                      ? "hover:bg-slate-50 border-l-blue-300 bg-blue-50/30"
+                      : "hover:bg-slate-50 border-l-transparent"
+                  }`}
                 >
                   <div className="flex items-start gap-3">
                     {/* Company avatar */}
-                    <div className={`w-10 h-10 rounded-xl ${conv.companyAccent} flex items-center justify-center text-white text-xs font-bold shrink-0`}>
+                    <div className={`w-10 h-10 rounded-full ${conv.companyAccent} flex items-center justify-center text-white text-xs font-bold shrink-0`}>
                       {conv.companyInitials}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
-                        <span className={`text-xs font-semibold truncate ${isActive ? "text-blue-700" : "text-slate-800"}`}>
+                        <span className={`text-xs font-bold truncate ${isActive ? "text-blue-700" : "text-slate-800"}`}>
                           {conv.companyName}
                         </span>
-                        <span className="text-[10px] text-slate-400 shrink-0">{last?.time}</span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {conv.seekerUnread > 0 && (
+                            <span className="w-4 h-4 rounded-full bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center">
+                              {conv.seekerUnread}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-slate-400">{last?.time}</span>
+                        </div>
                       </div>
                       <p className="text-[11px] text-slate-500 truncate mt-0.5">{conv.jobTitle}</p>
                       <p className={`text-[11px] truncate mt-1 ${conv.seekerUnread > 0 ? "text-slate-700 font-medium" : "text-slate-400"}`}>
                         {last?.from === "seeker" ? "You: " : ""}{last?.text}
                       </p>
                     </div>
-                    {conv.seekerUnread > 0 && (
-                      <span className="w-4 h-4 rounded-full bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center shrink-0 mt-1">
-                        {conv.seekerUnread}
-                      </span>
-                    )}
                   </div>
                 </button>
               );
