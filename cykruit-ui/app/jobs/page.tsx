@@ -452,13 +452,13 @@ function FilterDropdown({
     <div
       ref={dropRef}
       className="fixed bg-white border border-slate-200 rounded-xl shadow-2xl py-1.5 overflow-y-auto"
-      style={{ top: pos.top, left: pos.left, minWidth: 160, maxHeight: 280, zIndex: 9999 }}
+      style={{ top: pos.top, left: pos.left, minWidth: 160, maxWidth: 280, maxHeight: 280, zIndex: 9999 }}
     >
       {options.map((opt) => (
         <button
           key={opt}
           onClick={() => { onChange(opt); setOpen(false); }}
-          className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer whitespace-nowrap ${
+          className={`w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer ${
             value === opt
               ? "text-blue-700 bg-blue-50 font-semibold"
               : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
