@@ -391,8 +391,6 @@ function JobsContent() {
 
               <p className="text-xs font-mono text-slate-400">
                 Page <span className="text-slate-700 font-bold">{page}</span> of <span className="text-slate-700 font-bold">{totalPages}</span>
-                <span className="mx-2 text-slate-300">·</span>
-                <span className="text-slate-700 font-bold">{total}</span> results
               </p>
             </div>
           )}
