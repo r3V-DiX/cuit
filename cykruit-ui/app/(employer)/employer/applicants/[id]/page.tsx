@@ -10,8 +10,9 @@ import {
   Download, Sparkles, TrendingUp, TrendingDown, Minus,
   ShieldCheck, AlertTriangle, ThumbsUp, Lock, Loader2,
 } from "lucide-react";
-import { apiFetch, authHeaders } from "@/lib/api";
+import { apiFetch, authHeaders, describeError } from "@/lib/api";
 import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
+import { useToast } from "@/components/ui/Toast";
 
 type AppStatus = "New" | "Shortlisted" | "Under Review" | "Rejected" | "Withdrawn";
 
@@ -31,6 +32,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
   const [app, setApp] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const { limits } = useSubscriptionLimits();
+  const { toast } = useToast();
 
   const [status, setStatus] = useState<AppStatus>("New");
 
@@ -154,8 +156,8 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                       body: JSON.stringify({ targetUserId: seeker.id, jobId: app.jobId })
                     });
                     router.push("/employer/messages");
-                  } catch (err: any) {
-                    alert(err?.message || "Failed to start conversation");
+                  } catch (err: unknown) {
+                    toast({ type: "error", ...describeError(err, "Failed to start conversation") });
                   }
                 }}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
@@ -410,8 +412,8 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                             body: JSON.stringify({ status: backendStatus })
                           });
                           setStatus(s);
-                        } catch (err: any) {
-                          alert(err?.message || "Failed to update status");
+                        } catch (err: unknown) {
+                          toast({ type: "error", ...describeError(err, "Failed to update status") });
                         }
                       }}
                       disabled={status === "Withdrawn"}
