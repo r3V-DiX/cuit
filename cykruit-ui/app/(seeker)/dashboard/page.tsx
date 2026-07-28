@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { ApplicationListSkeleton, DashboardListSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
+import { DashboardQuickLinksSkeleton, DashboardProfileStrengthSkeleton } from "@/components/ui/skeletons/PageSkeletons";
 import {
   FileText,
   Bookmark,
@@ -234,18 +235,22 @@ export default function DashboardPage() {
           </div>
 
           {/* ── Quick Links ─────────────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {QUICK_LINKS.map(({ label, href, icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-all group"
-              >
-                <span className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0">{icon}</span>
-                <span className="text-xs font-semibold">{label}</span>
-              </Link>
-            ))}
-          </div>
+          {loadingDashboard ? (
+            <DashboardQuickLinksSkeleton />
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {QUICK_LINKS.map(({ label, href, icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-all group"
+                >
+                  <span className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0">{icon}</span>
+                  <span className="text-xs font-semibold">{label}</span>
+                </Link>
+              ))}
+            </div>
+          )}
 
           {/* ── Stats row (4 cols) ───────────────────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -375,55 +380,59 @@ export default function DashboardPage() {
             </div>
 
             {/* Profile Strength */}
-            <div className="lg:col-span-1 bg-white rounded-2xl border border-slate-200 p-5 flex flex-col">
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-4 h-4 text-slate-400" />
-                <h2 className="text-sm font-semibold text-slate-900">Profile Strength</h2>
-              </div>
+            {loadingDashboard ? (
+              <DashboardProfileStrengthSkeleton />
+            ) : (
+              <div className="lg:col-span-1 bg-white rounded-2xl border border-slate-200 p-5 flex flex-col">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-4 h-4 text-slate-400" />
+                  <h2 className="text-sm font-semibold text-slate-900">Profile Strength</h2>
+                </div>
 
-              <div className="flex items-center gap-5 mb-4 flex-1">
-                <div className="relative shrink-0">
-                  <svg width="96" height="96" viewBox="0 0 96 96">
-                    <circle cx="48" cy="48" r={r} fill="none" stroke="#e2e8f0" strokeWidth="8" />
-                    <circle
-                      cx="48" cy="48" r={r}
-                      fill="none"
-                      stroke="#2563eb"
-                      strokeWidth="8"
-                      strokeLinecap="round"
-                      strokeDasharray={`${dash} ${circ - dash}`}
-                      strokeDashoffset={circ / 4}
-                      style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-bold text-slate-900 leading-none">{profilePct}%</span>
-                    <span className="text-[10px] font-mono text-green-600 mt-0.5">Strong</span>
+                <div className="flex items-center gap-5 mb-4 flex-1">
+                  <div className="relative shrink-0">
+                    <svg width="96" height="96" viewBox="0 0 96 96">
+                      <circle cx="48" cy="48" r={r} fill="none" stroke="#e2e8f0" strokeWidth="8" />
+                      <circle
+                        cx="48" cy="48" r={r}
+                        fill="none"
+                        stroke="#2563eb"
+                        strokeWidth="8"
+                        strokeLinecap="round"
+                        strokeDasharray={`${dash} ${circ - dash}`}
+                        strokeDashoffset={circ / 4}
+                        style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-lg font-bold text-slate-900 leading-none">{profilePct}%</span>
+                      <span className="text-[10px] font-mono text-green-600 mt-0.5">Strong</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5 flex-1">
+                    {profileChecks.map(({ label, done }) => (
+                      <div key={label} className="flex items-center gap-2">
+                        {done
+                          ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                          : <XCircle className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                        }
+                        <span className={`text-xs ${done ? "text-slate-700" : "text-slate-400"}`}>
+                          {label}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div className="space-y-1.5 flex-1">
-                  {profileChecks.map(({ label, done }) => (
-                    <div key={label} className="flex items-center gap-2">
-                      {done
-                        ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500 shrink-0" />
-                        : <XCircle className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-                      }
-                      <span className={`text-xs ${done ? "text-slate-700" : "text-slate-400"}`}>
-                        {label}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <Link
+                  href="/profile"
+                  className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 transition-all mt-auto"
+                >
+                  Edit profile <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
               </div>
-
-              <Link
-                href="/profile"
-                className="flex items-center justify-center gap-1.5 w-full py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 hover:border-blue-200 transition-all mt-auto"
-              >
-                Edit profile <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+            )}
 
           </div>
 

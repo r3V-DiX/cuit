@@ -9,8 +9,9 @@ import { useModal } from "@/components/ui/Modal";
 import {
   ChevronLeft, MapPin, Briefcase, Calendar, FileText,
   CheckCircle2, Eye, XCircle, Send, X, AlertCircle,
-  Clock, MessageSquare, Loader2,
+  Clock, MessageSquare,
 } from "lucide-react";
+import { ApplicationDetailSkeleton } from "@/components/ui/skeletons/PageSkeletons";
 import type { AppStatus, Application } from "../data";
 import { SEED } from "../data";
 import { apiFetch, authHeaders } from "@/lib/api";
@@ -85,8 +86,8 @@ export default function ApplicationDetailPage() {
     return (
       <>
         <SeekerTopbar title="Application" />
-        <main className="flex-1 flex items-center justify-center p-6">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6">
+          <ApplicationDetailSkeleton />
         </main>
       </>
     );

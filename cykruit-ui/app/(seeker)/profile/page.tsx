@@ -12,6 +12,7 @@ import {
 import { FaLinkedinIn, FaGithub, FaXTwitter } from "react-icons/fa6";
 import { Country, State, City } from "country-state-city";
 import { formatErrorDetails } from "@/lib/api";
+import { ProfilePageSkeleton } from "@/components/ui/skeletons/PageSkeletons";
 
 // Raw fetch() error responses arrive as {success:false, error:{code,message,details}} —
 // unlike apiFetch()/ApiError, nothing here unwraps that envelope automatically.
@@ -46,6 +47,7 @@ export default function ProfilePage() {
 
   const [activeSection, setActiveSection] = useState("basics");
   const [userId, setUserId] = useState<string>("");
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
   // Photo
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -1040,12 +1042,25 @@ export default function ProfilePage() {
       }
     } catch (err) {
       if (process.env.NODE_ENV === 'development') console.error(err);
+    } finally {
+      setLoadingProfile(false);
     }
   }
 
   useEffect(() => {
     loadProfile();
   }, []);
+
+  if (loadingProfile) {
+    return (
+      <>
+        <SeekerTopbar title="My Profile" />
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6">
+          <ProfilePageSkeleton />
+        </main>
+      </>
+    );
+  }
 
   // ─── Render ──────────────────────────────────────────────────────────────────
   const profileChecks = [

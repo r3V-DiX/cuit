@@ -11,7 +11,7 @@ import {
   Briefcase, Sparkles, Eye, Shield, ChevronRight,
   Clock, Inbox,
 } from "lucide-react";
-import { NotificationListSkeleton } from "@/components/ui/skeletons/NotificationSkeleton";
+import { NotificationsPageSkeleton } from "@/components/ui/skeletons/PageSkeletons";
 
 type NotifType = "APPLICATION" | "JOB_MATCH" | "PROFILE_VIEW" | "SYSTEM" | string;
 
@@ -189,6 +189,17 @@ export default function NotificationsPage() {
     });
   }
 
+  if (loading) {
+    return (
+      <>
+        <SeekerTopbar title="Notifications" />
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6">
+          <NotificationsPageSkeleton />
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <SeekerTopbar title="Notifications" />
@@ -260,11 +271,7 @@ export default function NotificationsPage() {
           </div>
 
           {/* List */}
-          {loading ? (
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-              <NotificationListSkeleton count={5} />
-            </div>
-          ) : filtered.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="text-center py-16 text-slate-400 bg-white rounded-2xl border border-slate-200">
               <BellOff className="w-8 h-8 mx-auto mb-3 opacity-30" />
               <p className="text-sm font-medium">

@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
-import { MessageSquare, Send, Search, Briefcase, ChevronRight, Loader2 } from "lucide-react";
+import { MessageSquare, Send, Search, Briefcase, ChevronRight } from "lucide-react";
+import { MessagesPageSkeleton } from "@/components/ui/skeletons/PageSkeletons";
 import { useMessaging } from "@/hooks/useMessaging";
 import { apiFetch, authHeaders } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
@@ -254,8 +255,8 @@ export default function SeekerMessagesPage() {
     return (
       <>
         <SeekerTopbar title="Messages" />
-        <main className="flex-1 flex items-center justify-center bg-slate-50">
-          <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+        <main className="flex-1 overflow-hidden flex">
+          <MessagesPageSkeleton />
         </main>
       </>
     );

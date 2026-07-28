@@ -9,7 +9,7 @@ import {
   MapPin, Bookmark, ArrowRight, Clock, Search, X,
   Briefcase, SlidersHorizontal, Inbox, ArrowUpDown,
 } from "lucide-react";
-import { SavedJobSkeletonList } from "@/components/ui/skeletons/SavedJobSkeleton";
+import { SavedPageSkeleton } from "@/components/ui/skeletons/PageSkeletons";
 import { apiFetch, authHeaders, describeError } from "@/lib/api";
 
 type SavedJob = {
@@ -139,6 +139,17 @@ export default function SavedPage() {
     setTypeFilter("All");
   }
 
+  if (loading) {
+    return (
+      <>
+        <SeekerTopbar title="Saved Jobs" />
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6">
+          <SavedPageSkeleton />
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <SeekerTopbar title="Saved Jobs" />
@@ -237,9 +248,7 @@ export default function SavedPage() {
             )}
           </div>
 
-          {loading ? (
-            <SavedJobSkeletonList count={4} />
-          ) : filtered.length === 0 ? (
+          {filtered.length === 0 ? (
             <div className="text-center py-16 text-slate-400 bg-white rounded-2xl border border-slate-200">
               <Inbox className="w-8 h-8 mx-auto mb-3 opacity-30" />
               <p className="text-sm font-medium">

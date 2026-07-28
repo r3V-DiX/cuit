@@ -12,6 +12,7 @@ import {
 import { SessionsPanel } from "@/components/settings/SessionsPanel";
 import { useSessionGuard } from "@/lib/use-session-guard";
 import { LocationSelect, LocationValue } from "@/components/ui/LocationSelect";
+import { SettingsPageSkeleton } from "@/components/ui/skeletons/PageSkeletons";
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 
@@ -77,6 +78,7 @@ const TABS = [
 export default function SettingsPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("account");
+  const [loadingSettings, setLoadingSettings] = useState(true);
   useSessionGuard();
 
   // ── Auth method ──
@@ -182,6 +184,8 @@ export default function SettingsPage() {
         }
       } catch (err) {
         if (process.env.NODE_ENV === 'development') console.error(err);
+      } finally {
+        setLoadingSettings(false);
       }
     }
     loadAllSettings();
@@ -271,6 +275,17 @@ export default function SettingsPage() {
     } catch (err) {
       toast({ type: "error", ...describeError(err, "Error deleting account") });
     }
+  }
+
+  if (loadingSettings) {
+    return (
+      <>
+        <SeekerTopbar title="Settings" />
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6">
+          <SettingsPageSkeleton />
+        </main>
+      </>
+    );
   }
 
   // ─── Render ──────────────────────────────────────────────────────────────────

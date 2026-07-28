@@ -7,7 +7,7 @@ import {
   MapPin, Clock, Search, X, ChevronRight,
   ArrowUpDown, CheckCircle2, Eye, XCircle, Send, Inbox,
 } from "lucide-react";
-import { ApplicationListSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
+import { ApplicationsPageSkeleton } from "@/components/ui/skeletons/PageSkeletons";
 import type { AppStatus } from "./data";
 import { apiFetch } from "@/lib/api";
 
@@ -91,6 +91,17 @@ export default function ApplicationsPage() {
     setPage(1);
   }, [search, sort, activeTab]);
 
+  if (loading) {
+    return (
+      <>
+        <SeekerTopbar title="Applications" />
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6">
+          <ApplicationsPageSkeleton />
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <SeekerTopbar title="Applications" />
@@ -149,9 +160,7 @@ export default function ApplicationsPage() {
 
           {/* Application rows */}
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            {loading ? (
-              <ApplicationListSkeleton count={5} />
-            ) : apps.length === 0 ? (
+            {apps.length === 0 ? (
               <div className="text-center py-14 text-slate-400">
                 <Inbox className="w-8 h-8 mx-auto mb-2 opacity-40" />
                 <p className="text-sm font-medium">No applications found</p>
