@@ -190,38 +190,63 @@ export default function DashboardPage() {
 
           {/* ── Greeting banner ──────────────────────────────────────────────── */}
           <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5 flex items-center justify-between gap-6 flex-wrap">
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 leading-snug">Good morning, {userName}</h1>
-              <p className="text-sm text-slate-500 mt-0.5">Here is your job search overview</p>
-            </div>
-
-            {/* Profile completion inline card */}
-            <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 shrink-0 flex-wrap">
-              <div className="text-right">
-                <p className="text-xs font-semibold text-slate-700">Profile completion</p>
-                <p className="text-[10px] font-mono text-slate-400 mt-0.5">Add more to get noticed</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-28 h-2 rounded-full bg-slate-200 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-blue-600 transition-all"
-                    style={{ width: `${profilePct}%` }}
-                  />
+            {loadingDashboard ? (
+              <div className="flex items-center justify-between w-full gap-6 flex-wrap">
+                <div className="flex flex-col gap-2">
+                  <div className="h-6 w-48 bg-slate-100 rounded-lg animate-pulse" />
+                  <div className="h-4 w-36 bg-slate-100 rounded-lg animate-pulse" />
                 </div>
-                <span className="text-xs font-bold text-blue-600 font-mono">{profilePct}%</span>
+                <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 shrink-0">
+                  <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
+                  <div className="w-28 h-2 rounded-full bg-slate-200 animate-pulse" />
+                  <div className="h-4 w-8 bg-slate-200 rounded animate-pulse" />
+                </div>
               </div>
-              <Link
-                href="/profile"
-                className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap"
-              >
-                Complete <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+            ) : (
+              <>
+                <div>
+                  <h1 className="text-xl font-bold text-slate-900 leading-snug">Good morning, {userName}</h1>
+                  <p className="text-sm text-slate-500 mt-0.5">Here is your job search overview</p>
+                </div>
+                {/* Profile completion inline card */}
+                <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 shrink-0 flex-wrap">
+                  <div className="text-right">
+                    <p className="text-xs font-semibold text-slate-700">Profile completion</p>
+                    <p className="text-[10px] font-mono text-slate-400 mt-0.5">Add more to get noticed</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-28 h-2 rounded-full bg-slate-200 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-blue-600 transition-all"
+                        style={{ width: `${profilePct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-blue-600 font-mono">{profilePct}%</span>
+                  </div>
+                  <Link
+                    href="/profile"
+                    className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap"
+                  >
+                    Complete <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </>
+            )}
           </div>
 
           {/* ── Stats row (4 cols) ───────────────────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {[
+            {loadingDashboard ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-200 px-4 py-4 flex items-center justify-between gap-3">
+                  <div className="flex flex-col gap-2">
+                    <div className="h-7 w-10 bg-slate-100 rounded animate-pulse" />
+                    <div className="h-3 w-20 bg-slate-100 rounded animate-pulse" />
+                  </div>
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 animate-pulse shrink-0" />
+                </div>
+              ))
+            ) : [
               {
                 label:    "Total Applied",
                 value:    stats.applied,
