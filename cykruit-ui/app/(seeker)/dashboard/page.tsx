@@ -15,7 +15,6 @@ import {
   XCircle,
   ArrowRight,
   Briefcase, 
-  Activity,
   ChevronRight,
   Send,
   X,
@@ -234,6 +233,20 @@ export default function DashboardPage() {
             )}
           </div>
 
+          {/* ── Quick Links ─────────────────────────────────────────────────── */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {QUICK_LINKS.map(({ label, href, icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-all group"
+              >
+                <span className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0">{icon}</span>
+                <span className="text-xs font-semibold">{label}</span>
+              </Link>
+            ))}
+          </div>
+
           {/* ── Stats row (4 cols) ───────────────────────────────────────────── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {loadingDashboard ? (
@@ -414,11 +427,11 @@ export default function DashboardPage() {
 
           </div>
 
-          {/* ── Row 2: Recommended Jobs + Quick Links ───────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* ── Row 2: Recommended Jobs ─────────────────────────────────────── */}
+          <div className="grid grid-cols-1 gap-4">
 
             {/* Recommended Jobs */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-violet-500" />
@@ -478,28 +491,6 @@ export default function DashboardPage() {
                     </div>
                   </div>
                 )))}
-              </div>
-            </div>
-
-            {/* Quick Links */}
-            <div className="lg:col-span-1 bg-white rounded-2xl border border-slate-200 p-5 flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                <Activity className="w-4 h-4 text-slate-400" />
-                <h2 className="text-sm font-semibold text-slate-900">Quick Links</h2>
-              </div>
-              <div className="grid grid-cols-2 gap-2 flex-1 content-start">
-                {QUICK_LINKS.map(({ label, href, icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className="flex flex-col items-center gap-2 py-3 px-2 rounded-xl border border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-all group"
-                  >
-                    <span className="text-slate-400 group-hover:text-blue-500 transition-colors">
-                      {icon}
-                    </span>
-                    <span className="text-[11px] font-medium text-center leading-snug">{label}</span>
-                  </Link>
-                ))}
               </div>
             </div>
 

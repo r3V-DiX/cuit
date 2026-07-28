@@ -135,15 +135,6 @@ export default function ProfilePage() {
       });
 
       if (res.ok) {
-        // Also save the uploaded file as a seeker resume
-        const resumeForm = new FormData();
-        resumeForm.append("file", file);
-        await fetch("/api/profile/resumes", {
-          method: "POST",
-          credentials: "include",
-          headers: { "x-csrf-token": getCsrfToken() },
-          body: resumeForm,
-        });
         toast({ type: "success", message: "Profile Auto-filled!", description: "Your details have been extracted and saved." });
         loadProfile();
       } else {
@@ -1071,6 +1062,13 @@ export default function ProfilePage() {
 
   return (
     <>
+      {isParsingResume && (
+        <div className="fixed inset-0 z-[9999] bg-black/50 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+          <div className="w-12 h-12 rounded-full border-4 border-white/20 border-t-white animate-spin" />
+          <p className="text-white text-sm font-semibold">Parsing your resume…</p>
+          <p className="text-white/60 text-xs">Please wait, do not navigate away</p>
+        </div>
+      )}
       <SeekerTopbar title="My Profile" />
       <main className="flex-1 overflow-y-auto p-3 sm:p-6">
         <div>

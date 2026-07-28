@@ -15,6 +15,10 @@ import { ApplicantTableSkeleton } from "@/components/ui/skeletons/ListRowSkeleto
 
 type AppStatus = "APPLIED" | "UNDER_REVIEW" | "SHORTLISTED" | "INTERVIEW" | "OFFERED" | "REJECTED" | "HIRED" | "WITHDRAWN" | "New" | "Shortlisted" | "Interview" | "Rejected";
 
+function formatEnum(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }> = {
   New:        { color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Send         className="w-3 h-3" /> },
   Shortlisted:{ color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3 h-3" /> },
@@ -100,7 +104,7 @@ export default function ApplicantsPage() {
               >
                 <div>
                   <p className="text-2xl font-bold text-slate-900 leading-none">{count}</p>
-                  <p className="text-[10px] text-slate-500 font-bold mt-1.5 uppercase">{s.replace("_", " ")}</p>
+                  <p className="text-[10px] text-slate-500 font-bold mt-1.5">{formatEnum(s)}</p>
                 </div>
                 <span className={`inline-flex items-center justify-center w-9 h-9 rounded-xl border ${cfg.color}`}>
                   {cfg.icon}
@@ -160,7 +164,7 @@ export default function ApplicantsPage() {
                   statusFilter === s ? "bg-blue-600 text-white shadow-sm" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
                 }`}
               >
-                {s}
+                {s === "All" ? "All" : formatEnum(s)}
               </button>
             ))}
           </div>
@@ -254,7 +258,7 @@ export default function ApplicantsPage() {
                       <td className="px-4 py-3.5 text-slate-500 text-xs hidden sm:table-cell">{experience}</td>
                       <td className="px-4 py-3.5">
                         <span className={`inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2.5 py-1 rounded-lg border ${cfg.color}`}>
-                          {cfg.icon}{(a.status as string).replace("_", " ")}
+                          {cfg.icon}{formatEnum(a.status as string)}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 text-xs text-slate-400 font-mono hidden sm:table-cell">{appliedDate}</td>

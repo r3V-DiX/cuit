@@ -11,6 +11,10 @@ import { ApplicationListSkeleton } from "@/components/ui/skeletons/ListRowSkelet
 import type { AppStatus } from "./data";
 import { apiFetch } from "@/lib/api";
 
+function formatEnum(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode; dot: string }> = {
@@ -179,7 +183,7 @@ export default function ApplicationsPage() {
                             <MapPin className="w-3 h-3 shrink-0" />
                             <span>{app.location}</span>
                             <span className="hidden sm:inline">·</span>
-                            <span className="font-mono hidden sm:inline">{app.type}</span>
+                            <span className="font-mono hidden sm:inline">{formatEnum(app.type)}</span>
                           </div>
                         </div>
                       </div>

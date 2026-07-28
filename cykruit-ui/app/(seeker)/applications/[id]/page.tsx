@@ -15,6 +15,10 @@ import type { AppStatus, Application } from "../data";
 import { SEED } from "../data";
 import { apiFetch, authHeaders } from "@/lib/api";
 
+function formatEnum(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 // ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<AppStatus, {
@@ -64,7 +68,7 @@ export default function ApplicationDetailPage() {
           coverNote: data.screeningAnswers ? JSON.stringify(data.screeningAnswers) : "",
           timeline: data.statusHistory?.length > 0 ? data.statusHistory.map((h: any) => ({
             date: new Date(h.changedAt).toLocaleDateString(),
-            event: `Status changed to ${h.newStatus}`,
+            event: `Status changed to ${formatEnum(h.newStatus)}`,
             note: h.reason || ""
           })) : [{ date: new Date(data.appliedAt).toLocaleDateString(), event: "Application submitted" }]
         });
@@ -163,7 +167,7 @@ export default function ApplicationDetailPage() {
                       <MapPin className="w-3 h-3" /> {app.location}
                     </span>
                     <span className="flex items-center gap-1 text-xs text-slate-400">
-                      <Briefcase className="w-3 h-3" /> {app.type}
+                      <Briefcase className="w-3 h-3" /> {formatEnum(app.type)}
                     </span>
                     <span className="flex items-center gap-1 text-xs text-slate-400">
                       <Calendar className="w-3 h-3" /> Applied {app.applied}

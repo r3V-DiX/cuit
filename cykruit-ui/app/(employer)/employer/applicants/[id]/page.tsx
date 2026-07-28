@@ -13,6 +13,7 @@ import {
 import { apiFetch, authHeaders, describeError } from "@/lib/api";
 import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
 import { useToast } from "@/components/ui/Toast";
+import { useModal } from "@/components/ui/Modal";
 
 type AppStatus = "New" | "Shortlisted" | "Under Review" | "Rejected" | "Withdrawn";
 
@@ -33,6 +34,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
   const [loading, setLoading] = useState(true);
   const { limits } = useSubscriptionLimits();
   const { toast } = useToast();
+  const { openModal } = useModal();
 
   const [status, setStatus] = useState<AppStatus>("New");
 
@@ -399,24 +401,35 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
               <div className="flex flex-col gap-2">
                 {STATUS_FLOW.map((s) => {
                   const c = STATUS_CFG[s];
+                  const isRejected = s === "Rejected";
                   return (
-                    <button key={s} onClick={async () => {
-                        try {
-                          let backendStatus = "UNDER_REVIEW";
-                          if (s === "Shortlisted") backendStatus = "SHORTLISTED";
-                          if (s === "Rejected") backendStatus = "REJECTED";
-
-                          await apiFetch(`/api/employer/applications/${id}/status`, {
-                            method: "PATCH",
-                            headers: authHeaders(),
-                            body: JSON.stringify({ status: backendStatus })
-                          });
-                          setStatus(s);
-                        } catch (err: unknown) {
-                          toast({ type: "error", ...describeError(err, "Failed to update status") });
-                        }
-                      }}
+                    <button
+                      key={s}
                       disabled={status === "Withdrawn"}
+                      onClick={() => {
+                        openModal({
+                          variant: isRejected ? "danger" : "default",
+                          title: `Move to ${c.label}?`,
+                          description: `This will update the applicant's status to "${c.label}". The applicant will be notified.`,
+                          confirmLabel: c.label,
+                          onConfirm: async () => {
+                            try {
+                              let backendStatus = "UNDER_REVIEW";
+                              if (s === "Shortlisted") backendStatus = "SHORTLISTED";
+                              if (s === "Rejected") backendStatus = "REJECTED";
+                              await apiFetch(`/api/employer/applications/${id}/status`, {
+                                method: "PATCH",
+                                headers: authHeaders(),
+                                body: JSON.stringify({ status: backendStatus })
+                              });
+                              setStatus(s);
+                              toast({ type: "success", message: `Status updated to ${c.label}` });
+                            } catch (err: unknown) {
+                              toast({ type: "error", ...describeError(err, "Failed to update status") });
+                            }
+                          },
+                        });
+                      }}
                       className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
                         status === s ? c.color + " shadow-sm" : "border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300"
                       } ${status === "Withdrawn" ? "opacity-50 cursor-not-allowed" : ""}`}

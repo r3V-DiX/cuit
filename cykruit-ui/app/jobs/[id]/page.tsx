@@ -45,10 +45,14 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [selectedResumeId, setSelectedResumeId] = useState<string | null>(null);
   const [resumesLoading, setResumesLoading] = useState(false);
   const [uploadingResume, setUploadingResume] = useState(false);
+  const [profilePct, setProfilePct] = useState<number | null>(null);
 
   useEffect(() => {
     apiFetch<any>("/api/auth/me", { skipAuthRedirect: true })
       .then((r) => { if (r.data) setUser(r.data); })
+      .catch(() => {});
+    apiFetch<any>("/api/profile/completion", { skipAuthRedirect: true })
+      .then((r) => { if (r.data?.percentage !== undefined) setProfilePct(r.data.percentage); })
       .catch(() => {});
   }, []);
 
@@ -100,7 +104,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       .then((b) => { const items = b?.data?.items ?? []; setIsSaved(items.some((s: any) => s.job?.id === job.id)); })
       .catch(() => {});
     apiFetch<{ items?: any[] }>("/api/seeker/applications")
-      .then((b) => { const items = b?.data?.items ?? []; setIsApplied(items.some((a: any) => a.jobId === job.id)); })
+      .then((b) => { const items = b?.data?.items ?? []; setIsApplied(items.some((a: any) => a.jobId === job.id && a.status !== "WITHDRAWN")); })
       .catch(() => {});
     if (user.userType !== "EMPLOYER" && job.slug) {
       apiFetch<any>(`/api/seeker/jobs/${job.slug}/match-score`)
@@ -532,7 +536,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 </div>
               </div>
               <div className="flex sm:flex-col gap-2 shrink-0">
-                {user?.userType !== "EMPLOYER" && (
+                {user?.userType !== "EMPLOYER" && (profilePct === null || profilePct >= 40) && (
                   <button
                     onClick={handleApplyClick}
                     className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer ${
@@ -634,7 +638,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     ? "This role uses an external application on the company website."
                     : `Submit your application directly to ${job.company}.`}
                 </p>
-                {user?.userType !== "EMPLOYER" && (
+                {user?.userType !== "EMPLOYER" && (profilePct === null || profilePct >= 40) ? (
                   <button
                     onClick={handleApplyClick}
                     className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm cursor-pointer ${
@@ -645,7 +649,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   >
                     <Send className="w-4 h-4" /> {isApplied ? "Applied" : job.applicationType === "EXTERNAL" ? "Apply Externally" : "Apply Now"}
                   </button>
-                )}
+                ) : user?.userType !== "EMPLOYER" ? (
+                  <Link href="/profile" className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
+                    Complete profile to apply
+                  </Link>
+                ) : null}
                 <button
                   onClick={handleSave}
                   className={`mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-semibold transition-colors cursor-pointer ${

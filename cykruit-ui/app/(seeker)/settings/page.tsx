@@ -213,6 +213,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           location: locObj,
           title: prefsBuffer.desiredRole,
+          phone: prefsBuffer.phone || null,
         }),
       });
 
@@ -445,7 +446,7 @@ export default function SettingsPage() {
             {/* ── SECURITY ── */}
             {activeTab === "security" && (
               <div>
-                <Section title="Connected Accounts" desc="Services linked to your Cykruit account for sign-in.">
+                {googleAuth && <Section title="Connected Accounts" desc="Services linked to your Cykruit account for sign-in.">
                   <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
@@ -471,7 +472,7 @@ export default function SettingsPage() {
                       </button>
                     )}
                   </div>
-                </Section>
+                </Section>}
 
                 <Section title="Sessions & Login History" desc="Manage devices signed into your account and review past activity.">
                   <SessionsPanel historyHref="/settings/activity" />
