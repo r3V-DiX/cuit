@@ -25,8 +25,12 @@ type SavedJob = {
   savedTs: number;
 };
 
-const MODES = ["All", "Remote", "Hybrid", "On-site"];
-const TYPES = ["All", "Full-time", "Contract", "Part-time"];
+const MODES = ["All", "Remote", "Hybrid", "Onsite"];
+const TYPES = ["All", "Full Time", "Contract", "Part Time"];
+
+function formatEnum(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 function formatSavedAt(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -47,8 +51,8 @@ function mapItem(item: any): SavedJob {
     location: j.location
       ? [j.location.city, j.location.country].filter(Boolean).join(", ")
       : "Remote",
-    mode: j.workMode ?? "Remote",
-    type: j.employmentType ?? "Full-time",
+    mode: formatEnum(j.workMode ?? "Remote"),
+    type: formatEnum(j.employmentType ?? j.jobType ?? "Full Time"),
     skills: (j.skills ?? []).map((s: any) => s.skill?.name ?? s.name).slice(0, 4),
     savedAt: formatSavedAt(item.savedAt),
     savedTs: new Date(item.savedAt).getTime(),
@@ -302,7 +306,7 @@ export default function SavedPage() {
                         job.mode === "Remote" ? "text-green-700 bg-green-50 border-green-200" :
                         job.mode === "Hybrid" ? "text-blue-700 bg-blue-50 border-blue-200" :
                         "text-slate-600 bg-slate-100 border-slate-200"
-                      }`}>{job.mode}</span>
+                      }`}>{job.mode === "Onsite" ? "On-site" : job.mode}</span>
                     </div>
                     <Link
                       href={`/jobs/${job.jobId}`}

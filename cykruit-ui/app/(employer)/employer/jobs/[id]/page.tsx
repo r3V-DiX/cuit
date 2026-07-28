@@ -12,6 +12,10 @@ import {
   Sparkles, MessageSquare, BarChart2, Calendar, AlertTriangle, RefreshCw,
 } from "lucide-react";
 
+function formatEnum(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 type JobStatus  = "Active" | "Pending" | "Draft" | "Closed";
 type AppStatus  = "New" | "Shortlisted" | "Interview" | "Rejected";
 
@@ -69,9 +73,9 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               id: rawJob.id,
               title: rawJob.jobTitle,
               domain: rawJob.role?.name || "Cybersecurity",
-              type: rawJob.jobType?.replace("_", "-").toLowerCase().replace(/\b\w/g, (c: string) => (c as string).toUpperCase()) || "Full-time",
+              type: formatEnum(rawJob.jobType || "FULL_TIME"),
               location: rawJob.location?.displayName || "Remote",
-              experience: rawJob.experienceLevel || "Mid-level",
+              experience: formatEnum(rawJob.experienceLevel || "MID_LEVEL"),
               posted: new Date(rawJob.createdAt).toLocaleDateString(),
               status: statusMap[rawJob.status] || "Draft",
               rawStatus: rawJob.status as string,

@@ -14,6 +14,10 @@ import { useKycStatus } from "@/lib/employer-context";
 import { KycGate } from "@/components/employer/KycGate";
 import { JobTableSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 
+function formatEnum(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 const JOBS_PER_PAGE = 10;
 
 type JobDisplayStatus = "Active" | "Pending" | "Draft" | "Closed" | "Rejected" | "Expired";
@@ -91,7 +95,7 @@ export default function MyJobsPage() {
           id: job.id,
           title: job.jobTitle,
           domain: job.role?.name || "Cybersecurity",
-          type: ({ FULL_TIME: "Full-time", PART_TIME: "Part-time", CONTRACT: "Contract", INTERNSHIP: "Internship" } as Record<string, string>)[job.jobType] || job.jobType || "Full-time",
+          type: formatEnum(job.jobType || "FULL_TIME"),
           location: job.location?.displayName || "Remote",
           applicants: job._count?.applications || 0,
           views: job.viewCount || 0,
