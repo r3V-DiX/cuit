@@ -39,12 +39,13 @@ const PROGRESS_STEPS: AppStatus[] = ["Applied", "Under Review", "Shortlisted"];
 
 // ─── Timeline dot color by event type ─────────────────────────────────────────
 
-function timelineDotClass(event: string, index: number): string {
-  if (index === 0) return "bg-blue-500 w-3.5 h-3.5 ring-4 ring-blue-100";
+function timelineDotClass(event: string, isFirst: boolean): string {
+  if (isFirst) return "bg-blue-500 w-3.5 h-3.5 ring-4 ring-blue-100";
   if (/reject/i.test(event)) return "bg-red-400 w-2.5 h-2.5";
   if (/shortlist/i.test(event)) return "bg-green-500 w-2.5 h-2.5";
   if (/review/i.test(event)) return "bg-amber-400 w-2.5 h-2.5";
   if (/withdraw/i.test(event)) return "bg-slate-400 w-2.5 h-2.5";
+  if (/submit/i.test(event)) return "bg-blue-300 w-2.5 h-2.5";
   return "bg-slate-300 w-2.5 h-2.5";
 }
 
@@ -79,11 +80,16 @@ export default function ApplicationDetailPage() {
             : "Applied",
           resume: data.resume?.fileName || "Resume.pdf",
           coverNote: data.screeningAnswers ? JSON.stringify(data.screeningAnswers) : "",
-          timeline: data.statusHistory?.length > 0 ? data.statusHistory.map((h: any) => ({
-            date: new Date(h.changedAt).toLocaleDateString(),
-            event: `Status changed to ${formatEnum(h.newStatus)}`,
-            note: h.reason || ""
-          })) : [{ date: new Date(data.appliedAt).toLocaleDateString(), event: "Application submitted" }]
+          timeline: [
+            ...[...(data.statusHistory || [])]
+              .sort((a: any, b: any) => new Date(b.changedAt).getTime() - new Date(a.changedAt).getTime())
+              .map((h: any) => ({
+                date: new Date(h.changedAt).toLocaleDateString(),
+                event: `Status changed to ${formatEnum(h.newStatus)}`,
+                note: h.reason || ""
+              })),
+            { date: new Date(data.appliedAt).toLocaleDateString(), event: "Application submitted", note: "" }
+          ]
         });
       } catch (err) {
         if (process.env.NODE_ENV === 'development') console.error(err);
@@ -284,7 +290,7 @@ export default function ApplicationDetailPage() {
                   <div className="space-y-6">
                     {app.timeline.map((ev: any, i: number) => (
                       <div key={i} className="relative flex items-start gap-4">
-                        <div className={`absolute -left-[22px] top-1 rounded-full border-2 border-white shrink-0 ${timelineDotClass(ev.event, i)}`} />
+                        <div className={`absolute -left-[22px] top-1 rounded-full border-2 border-white shrink-0 ${timelineDotClass(ev.event, i === 0)}`} />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-slate-800 leading-snug">{ev.event}</p>
                           {ev.note && (
