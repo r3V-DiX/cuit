@@ -82,7 +82,11 @@ export default function ApplicantsPage() {
       const matchSearch = !search || name.toLowerCase().includes(search.toLowerCase()) || role.toLowerCase().includes(search.toLowerCase());
       return matchStatus && matchJob && matchSearch;
     })
-    .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime());
+    .sort((a, b) =>
+      aiRank
+        ? (b.aiScore ?? 0) - (a.aiScore ?? 0)
+        : new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime()
+    );
 
   return (
     <>
