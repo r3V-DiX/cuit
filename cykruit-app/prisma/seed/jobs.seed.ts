@@ -73,7 +73,7 @@ const EMPLOYERS = [
     about: 'Zepto is India\'s fastest growing 10-minute grocery delivery startup, operating at massive scale.',
   },
   {
-    email: 'yograj.hukumdar@rivedix.com',
+    email: 'anshul.khaire@rivedix.com',
     password: 'Rivedix@2025!',
     firstName: 'Yograj',
     lastName: 'Hukumdar',
