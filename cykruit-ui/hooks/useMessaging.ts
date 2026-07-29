@@ -24,9 +24,11 @@ type UseMessagingOptions = {
   enabled?: boolean;
 };
 
+// NEXT_PUBLIC_WS_URL is build-time only. In production WS traffic is routed
+// through the same origin via nginx /ws/ → localhost:4007 proxy block.
 const WS_URL =
   typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_WS_URL || "http://127.0.0.1:4007")
+    ? (process.env.NEXT_PUBLIC_WS_URL || window.location.origin)
     : "";
 
 async function fetchWsToken(attempt = 0): Promise<string | null> {
