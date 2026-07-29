@@ -77,7 +77,7 @@ export function useMessaging({
       socket = io(`${WS_URL}/messaging`, {
         auth: { token },
         path: "/ws/socket.io",
-        transports: ["websocket", "polling"],
+        transports: ["polling", "websocket"],
         reconnectionAttempts: 5,
         reconnectionDelay: 2000,
       });
