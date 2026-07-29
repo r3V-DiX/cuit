@@ -1,3 +1,9 @@
+/* Hallmark · component: email-shell · genre: modern-minimal
+ * Macrostructure: letter (single-card email)
+ */
+
+import { COLORS, TYPOGRAPHY, SPACING } from "./colors";
+
 export const baseTemplate = (content: string, preheader = ""): string => `
 <!DOCTYPE html>
 <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -8,18 +14,27 @@ export const baseTemplate = (content: string, preheader = ""): string => `
   <meta name="format-detection" content="telephone=no, date=no, address=no, email=no, url=no">
   <title>Cykruit</title>
   <!--[if mso]>
-  <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
   <![endif]-->
+  <style>
+    .cykruit-btn:hover { background-color: ${COLORS.ACCENT_STRONG} !important; }
+  </style>
 </head>
-<body style="margin:0;padding:0;background-color:#eff6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;" bgcolor="#eff6ff">
+<body style="margin:0;padding:0;background-color:${COLORS.CANVAS};font-family:${TYPOGRAPHY.FONT_FAMILY};" bgcolor="${COLORS.CANVAS}">
 
   <!-- preheader (inbox preview text) -->
-  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#eff6ff;">
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:${COLORS.CANVAS};">
     ${preheader}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
   </div>
 
   <!-- outer wrapper -->
-  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="#eff6ff">
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" bgcolor="${COLORS.CANVAS}">
     <tr>
       <td align="center" style="padding:48px 16px;">
 
@@ -28,22 +43,21 @@ export const baseTemplate = (content: string, preheader = ""): string => `
 
           <!-- card body -->
           <tr>
-            <td style="background-color:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);">
+            <td style="background-color:${COLORS.PAPER};border:1px solid ${COLORS.PAPER_BORDER};border-radius:12px;">
 
-              <!-- header -->
+              <!-- header / logo row -->
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
-                  <td align="left" style="padding:32px 32px 0 32px;">
-                          <!-- logo box -->
-                          <img src="https://www.cykruit.com/white-bg-logo.svg" alt="Cykruit" style="height:40px; display:block; border:none;" />
+                  <td align="left" style="padding:${SPACING.CARD_PADDING} ${SPACING.CARD_PADDING} 0 ${SPACING.CARD_PADDING};">
+                    <img src="https://www.cykruit.com/white-bg-logo.svg" alt="Cykruit" style="height:40px;display:block;border:none;" />
                   </td>
                 </tr>
               </table>
 
-              <!-- content -->
+              <!-- content area -->
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
-                  <td style="padding:32px;">
+                  <td style="padding:${SPACING.CARD_PADDING};">
                     ${content}
                   </td>
                 </tr>
@@ -55,10 +69,10 @@ export const baseTemplate = (content: string, preheader = ""): string => `
           <!-- footer -->
           <tr>
             <td align="center" style="padding-top:24px;">
-              <p style="margin:0;font-size:12px;color:#94a3b8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
-                &copy; ${new Date().getFullYear()} Cykruit. All rights reserved.
+              <p style="margin:0;font-size:${TYPOGRAPHY.SMALL_SIZE};color:${COLORS.MUTED_LIGHTER};font-family:${TYPOGRAPHY.FONT_FAMILY};">
+                &copy; ${new Date().getFullYear()} Cykruit &mdash; All rights reserved.
               </p>
-              <p style="margin:8px 0 0;font-size:12px;color:#94a3b8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+              <p style="margin:8px 0 0;font-size:${TYPOGRAPHY.SMALL_SIZE};color:${COLORS.MUTED_LIGHTER};font-family:${TYPOGRAPHY.FONT_FAMILY};">
                 If you didn't expect this email, you can safely ignore it.
               </p>
             </td>

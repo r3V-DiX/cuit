@@ -1,6 +1,8 @@
-// libs/mail/src/templates/employer-invite.template.ts
+/* Hallmark · component: email-employer-invite · genre: modern-minimal */
+
 import { baseTemplate } from "./base.template";
 import { cyberButton } from "./cyber-button.template";
+import { COLORS, TYPOGRAPHY } from "./colors";
 
 export const employerInviteTemplate = (
   inviteeName: string,
@@ -16,29 +18,29 @@ export const employerInviteTemplate = (
     <div style="text-align:left;margin-bottom:24px;">
       ${
         companyLogo
-          ? `<img src="${companyLogo}" alt="${companyName}" style="max-height:48px;border-radius:8px;margin-bottom:16px;" />`
+          ? `<img src="${companyLogo}" alt="${companyName}" style="max-height:48px;border-radius:8px;margin-bottom:16px;display:block;" />`
           : ""
       }
-      <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#0f172a;letter-spacing:-0.2px;">You are invited</h1>
-      <p style="margin:0;font-size:12px;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;letter-spacing:0.5px;text-transform:uppercase;">Team access granted</p>
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:${TYPOGRAPHY.HEADING_WEIGHT};color:${COLORS.INK};letter-spacing:${TYPOGRAPHY.HEADING_LETTERSPACING};">You are invited</h1>
+      <p style="margin:0;font-size:${TYPOGRAPHY.META_SIZE};color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};letter-spacing:${TYPOGRAPHY.META_LETTERSPACING};text-transform:${TYPOGRAPHY.META_UPPERCASE};">Team access granted</p>
     </div>
 
-    <p style="margin:0 0 24px;color:#334155;font-size:15px;line-height:1.6;">
+    <p style="margin:0 0 24px;color:${COLORS.BODY};font-size:${TYPOGRAPHY.BODY_SIZE};line-height:${TYPOGRAPHY.BODY_LINEHEIGHT};">
       ${inviterName} invited you to join the ${companyName} hiring team on Cykruit as a ${assignedRole}.
     </p>
 
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px;">
       <tr>
-        <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:18px 22px;">
+        <td style="background:${COLORS.CANVAS};border:1px solid ${COLORS.PAPER_BORDER};border-radius:8px;padding:18px 22px;">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr>
-              <td style="padding:6px 0;font-size:13px;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;border-bottom:1px solid #e2e8f0;">
-                <span style="color:#64748b;">Company:</span> &nbsp; <strong style="color:#0f172a;">${companyName}</strong>
+              <td style="padding:6px 0;font-size:13px;color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};border-bottom:1px solid ${COLORS.PAPER_BORDER};">
+                <span style="color:${COLORS.MUTED};">Company:</span> &nbsp; <strong style="color:${COLORS.INK};">${companyName}</strong>
               </td>
             </tr>
             <tr>
-              <td style="padding:6px 0;font-size:13px;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
-                <span style="color:#64748b;">Role:</span> &nbsp; <strong style="color:#1d4ed8;">${assignedRole}</strong>
+              <td style="padding:6px 0;font-size:13px;color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};">
+                <span style="color:${COLORS.MUTED};">Role:</span> &nbsp; <strong style="color:${COLORS.ACCENT};">${assignedRole}</strong>
               </td>
             </tr>
           </table>
@@ -49,12 +51,12 @@ export const employerInviteTemplate = (
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
       <tr>
         <td align="left">
-          ${cyberButton(inviteUrl, "Accept Invitation")}
+          ${cyberButton("Accept Invitation", inviteUrl)}
         </td>
       </tr>
     </table>
 
-    <p style="margin:24px 0 0;font-size:12px;color:#94a3b8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+    <p style="margin:24px 0 0;font-size:${TYPOGRAPHY.SMALL_SIZE};color:${COLORS.MUTED_LIGHTER};font-family:${TYPOGRAPHY.FONT_FAMILY};">
       This invitation link will expire in ${expiresInHours} hours.
     </p>
     `,

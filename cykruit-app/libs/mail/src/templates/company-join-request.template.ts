@@ -1,6 +1,8 @@
-// libs/mail/src/templates/company-join-request.template.ts
+/* Hallmark · component: email-company-join-request · genre: modern-minimal */
+
 import { baseTemplate } from "./base.template";
 import { cyberButton } from "./cyber-button.template";
+import { COLORS, TYPOGRAPHY } from "./colors";
 
 export const companyJoinRequestTemplate = (
   ownerFirstName: string,
@@ -12,26 +14,26 @@ export const companyJoinRequestTemplate = (
   baseTemplate(
     `
     <div style="text-align:left;margin-bottom:24px;">
-      <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#0f172a;letter-spacing:-0.2px;">Team join request</h1>
-      <p style="margin:0;font-size:12px;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;letter-spacing:0.5px;text-transform:uppercase;">Action required</p>
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:${TYPOGRAPHY.HEADING_WEIGHT};color:${COLORS.INK};letter-spacing:${TYPOGRAPHY.HEADING_LETTERSPACING};">Team join request</h1>
+      <p style="margin:0;font-size:${TYPOGRAPHY.META_SIZE};color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};letter-spacing:${TYPOGRAPHY.META_LETTERSPACING};text-transform:${TYPOGRAPHY.META_UPPERCASE};">Action required</p>
     </div>
 
-    <p style="margin:0 0 24px;color:#334155;font-size:15px;line-height:1.6;">
+    <p style="margin:0 0 24px;color:${COLORS.BODY};font-size:${TYPOGRAPHY.BODY_SIZE};line-height:${TYPOGRAPHY.BODY_LINEHEIGHT};">
       ${ownerFirstName ? `${ownerFirstName},` : 'A'} new user wants to join the ${companyName} team on Cykruit.
     </p>
 
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px;">
       <tr>
-        <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:18px 22px;">
+        <td style="background:${COLORS.CANVAS};border:1px solid ${COLORS.PAPER_BORDER};border-radius:8px;padding:18px 22px;">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr>
-              <td style="padding:6px 0;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;border-bottom:1px solid #e2e8f0;">
-                <span style="color:#64748b;">Name:</span> &nbsp; <strong style="color:#0f172a;">${requesterName}</strong>
+              <td style="padding:6px 0;font-size:13px;font-family:${TYPOGRAPHY.FONT_FAMILY};border-bottom:1px solid ${COLORS.PAPER_BORDER};">
+                <span style="color:${COLORS.MUTED};">Name:</span> &nbsp; <strong style="color:${COLORS.INK};">${requesterName}</strong>
               </td>
             </tr>
             <tr>
-              <td style="padding:6px 0;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
-                <span style="color:#64748b;">Email:</span> &nbsp; <strong style="color:#1d4ed8;">${requesterEmail}</strong>
+              <td style="padding:6px 0;font-size:13px;font-family:${TYPOGRAPHY.FONT_FAMILY};">
+                <span style="color:${COLORS.MUTED};">Email:</span> &nbsp; <strong style="color:${COLORS.ACCENT};">${requesterEmail}</strong>
               </td>
             </tr>
           </table>
@@ -42,7 +44,7 @@ export const companyJoinRequestTemplate = (
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
       <tr>
         <td align="left">
-          ${cyberButton(dashboardUrl, "Review Request")}
+          ${cyberButton("Review Request", dashboardUrl)}
         </td>
       </tr>
     </table>

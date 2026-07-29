@@ -1,16 +1,18 @@
-// libs/mail/src/templates/password-reset.template.ts
+/* Hallmark · component: email-password-reset · genre: modern-minimal */
+
 import { baseTemplate } from "./base.template";
 import { cyberButton } from "./cyber-button.template";
+import { COLORS, TYPOGRAPHY } from "./colors";
 
 export const passwordResetTemplate = (resetUrl: string): string =>
   baseTemplate(
     `
     <div style="text-align:left;margin-bottom:24px;">
-      <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#0f172a;letter-spacing:-0.2px;">Reset password</h1>
-      <p style="margin:0;font-size:12px;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;letter-spacing:0.5px;text-transform:uppercase;">Account recovery</p>
+      <h1 style="margin:0 0 8px;font-size:22px;font-weight:${TYPOGRAPHY.HEADING_WEIGHT};color:${COLORS.INK};letter-spacing:${TYPOGRAPHY.HEADING_LETTERSPACING};">Reset password</h1>
+      <p style="margin:0;font-size:${TYPOGRAPHY.META_SIZE};color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};letter-spacing:${TYPOGRAPHY.META_LETTERSPACING};text-transform:${TYPOGRAPHY.META_UPPERCASE};">Account recovery</p>
     </div>
 
-    <p style="margin:0 0 24px;color:#334155;font-size:15px;line-height:1.6;">
+    <p style="margin:0 0 24px;color:${COLORS.BODY};font-size:${TYPOGRAPHY.BODY_SIZE};line-height:${TYPOGRAPHY.BODY_LINEHEIGHT};">
       We received a request to reset your password. Use the button below to create a new one. This link expires in 1 hour.
     </p>
 
@@ -18,8 +20,8 @@ export const passwordResetTemplate = (resetUrl: string): string =>
 
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:28px 0 0;">
       <tr>
-        <td style="background:#fff7ed;border-left:3px solid #f59e0b;padding:12px 16px;">
-          <p style="margin:0;font-size:13px;color:#92400e;line-height:1.5;">
+        <td style="background:${COLORS.WARNING_LIGHT};border-left:3px solid ${COLORS.WARNING_BORDER};padding:12px 16px;">
+          <p style="margin:0;font-size:13px;color:${COLORS.WARNING_TEXT};line-height:1.5;">
             If you did not request this, ignore this email. Your password will remain unchanged.
           </p>
         </td>
