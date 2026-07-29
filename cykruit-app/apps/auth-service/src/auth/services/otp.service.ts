@@ -15,7 +15,7 @@ import { MailService } from "@cykruit/mail";
 import { AuditService, AuditAction } from "@cykruit/audit";
 import { AuthRepository } from "../repositories/auth.repository";
 import { SessionService } from "./session.service";
-import { AccountStatus, UserRole, EmployerMemberRole } from "@prisma/client";
+import { AccountStatus, UserRole } from "@prisma/client";
 import { formatUserResponse } from "../utils/auth.utils";
 import { isBlockedEmailDomain, getEmailDomain } from "@cykruit/common";
 import { getPolicyInt } from "@cykruit/policy-config";
@@ -183,29 +183,10 @@ export class OtpService {
                 profileCompletion: 0,
               },
             });
-          } else if (role === UserRole.EMPLOYER) {
-            const slug = `${email.split("@")[0].toLowerCase()}-${Date.now()}`;
-            const employer = await tx.employer.create({
-              data: {
-                user: { connect: { id: newUser.id } },
-                companyName: "",
-                slug,
-                companyType: "OTHERS",
-                industry: "OTHER",
-                companySize: "SIZE_1_10",
-                location: "",
-                isVerified: false,
-                profileCompletion: 0,
-              },
-            });
-            await tx.employerMember.create({
-              data: {
-                employerId: employer.id,
-                userId: newUser.id,
-                role: EmployerMemberRole.OWNER,
-              },
-            });
           }
+          // EMPLOYER: no stub company created here. After OTP verify the UI shows
+          // a domain-check screen where the user either requests to join an existing
+          // company or sets up their own (which creates the Employer row via /company/setup).
 
           await tx.token.create({
             data: {

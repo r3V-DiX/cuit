@@ -282,6 +282,28 @@ export class AuthController {
     };
   }
 
+  @Patch("switch-to-seeker")
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async switchToSeeker(
+    @CurrentUser() user: User,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const ip = sanitizeIpAddress(req.ip ?? req.socket.remoteAddress);
+    const ua = sanitizeUserAgent(req.headers["user-agent"]);
+    const result = await this.authService.switchToSeeker(user.id, { ip, userAgent: ua });
+
+    // Update role cookie so the frontend immediately reflects the new role
+    res.cookie(
+      CookieConfig.COOKIE_NAMES.ROLE,
+      "SEEKER",
+      CookieConfig.getRoleCookieOptions(false),
+    );
+
+    return result;
+  }
+
   @Post("cancel-deletion")
   @UseGuards(AuthGuard)
   @HttpCode(HttpStatus.OK)

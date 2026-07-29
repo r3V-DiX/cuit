@@ -13,7 +13,9 @@ import {
     MaxLength,
     MinLength,
     IsIn,
+    IsUUID,
 } from 'class-validator';
+import { JoinRequestStatus } from '@prisma/client';
 import { CompanyType, Industry, CompanySize } from '@prisma/client';
 
 export class CreateCompanyDto {
@@ -169,4 +171,22 @@ export class AddCompanyBenefitDto {
     @IsOptional()
     @IsString()
     icon?: string;
+}
+
+export class RequestToJoinDto {
+    @IsOptional()
+    @IsString()
+    @MaxLength(500)
+    message?: string;
+}
+
+export class ResolveJoinRequestDto {
+    @IsUUID()
+    joinRequestId: string;
+
+    @IsEnum(JoinRequestStatus)
+    @IsIn(['ACCEPTED', 'REJECTED'], {
+        message: 'status must be ACCEPTED or REJECTED',
+    })
+    status: 'ACCEPTED' | 'REJECTED';
 }

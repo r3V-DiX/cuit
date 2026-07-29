@@ -281,6 +281,61 @@ export class AuthService {
     return { message: "Account deletion cancelled. Welcome back!" };
   }
 
+  // ── Switch to Seeker ─────────────────────────────────────────
+
+  async switchToSeeker(
+    userId: string,
+    reqCtx?: { ip?: string; userAgent?: string },
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: { employer: true },
+    });
+    if (!user) throw new NotFoundException(ErrorCodes.USER_NOT_FOUND);
+
+    if (user.role === UserRole.SEEKER) {
+      return { message: "Already a seeker." };
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // Flip role
+      await tx.user.update({
+        where: { id: userId },
+        data: { role: UserRole.SEEKER },
+      });
+
+      // Create seeker profile if missing
+      const existing = await tx.jobSeekerProfile.findUnique({ where: { userId } });
+      if (!existing) {
+        await tx.jobSeekerProfile.create({
+          data: {
+            userId,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            availability: "Open to offers",
+            profileCompletion: 0,
+          },
+        });
+      }
+
+      // Cancel any pending join requests from this user
+      await tx.employerJoinRequest.updateMany({
+        where: { requesterId: userId, status: "PENDING" },
+        data: { status: "REJECTED", resolvedAt: new Date() },
+      });
+    });
+
+    this.auditService.log(
+      AuditAction.ROLE_SWITCHED,
+      "SUCCESS",
+      userId,
+      reqCtx,
+      { from: "EMPLOYER", to: "SEEKER" },
+    );
+
+    return { message: "Switched to seeker successfully." };
+  }
+
   // ── Private helpers ──────────────────────────────────────────
 
   private async getEmployerStatus(user: User & { employer?: { id: string; isVerified: boolean; profileCompletion: number; verifications?: Array<{ status: string }> } | null; jobSeekerProfile?: unknown }) {

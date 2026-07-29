@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Users, UserPlus, Crown, Briefcase, Eye, Trash2,
-  MoreVertical, Mail, Loader2, Shield, ChevronDown, AlertTriangle,
+  MoreVertical, Mail, Loader2, Shield, AlertTriangle,
+  Clock, CheckCircle2, XCircle, UserCheck,
 } from "lucide-react";
 import { TeamMemberListSkeleton } from "@/components/ui/skeletons/TeamMemberSkeleton";
 import Link from "next/link";
@@ -32,6 +33,21 @@ interface Member {
   };
 }
 
+interface JoinRequest {
+  id: string;
+  status: "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED";
+  message?: string;
+  createdAt: string;
+  expiresAt: string;
+  requester: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    profileImage?: string;
+  };
+}
+
 const ROLE_META: Record<MemberRole, { label: string; color: string; icon: React.ReactNode; desc: string }> = {
   OWNER:          { label: "Owner",           color: "text-yellow-700 bg-yellow-50 border-yellow-200",  icon: <Crown className="w-3 h-3" />,    desc: "Full access — billing, team, jobs, settings" },
   HIRING_MANAGER: { label: "Hiring Manager",  color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Briefcase className="w-3 h-3" />, desc: "Manage jobs, applications, invite members" },
@@ -42,16 +58,17 @@ const ROLE_META: Record<MemberRole, { label: string; color: string; icon: React.
 const ASSIGNABLE_ROLES: MemberRole[] = ["HIRING_MANAGER", "RECRUITER", "VIEWER"];
 
 export default function TeamPage() {
-  const [members, setMembers]     = useState<Member[]>([]);
-  const [loading, setLoading]     = useState(false);
-  const [myRole,  setMyRole]      = useState<MemberRole | null>(null);
-  const [myUserId, setMyUserId]   = useState<string | null>(null);
-  const [openMenu, setOpenMenu]   = useState<string | null>(null);
+  const [members, setMembers]         = useState<Member[]>([]);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [loading, setLoading]         = useState(false);
+  const [resolving, setResolving]     = useState<string | null>(null);
+  const [myRole,  setMyRole]          = useState<MemberRole | null>(null);
+  const [myUserId, setMyUserId]       = useState<string | null>(null);
+  const [openMenu, setOpenMenu]       = useState<string | null>(null);
   const { limits: subLimits, loading: subLoading } = useSubscriptionLimits();
   const teamLimit = subLimits?.maxTeamMembers ?? null;
 
-  // Invite form
-  const [showInvite, setShowInvite] = useState(false);
+  const [showInvite, setShowInvite]   = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole,  setInviteRole]  = useState<MemberRole>("RECRUITER");
   const [inviting,    setInviting]    = useState(false);
@@ -60,7 +77,7 @@ export default function TeamPage() {
   const { openModal } = useModal();
   const kycStatus     = useKycStatus();
 
-  async function load() {
+  const load = useCallback(async () => {
     if (kycStatus !== "verified") return;
     setLoading(true);
     try {
@@ -73,15 +90,25 @@ export default function TeamPage() {
       const myId = meRes.data?.id ?? null;
       setMyUserId(myId);
       const me = items.find((m) => m.userId === myId);
-      setMyRole(me?.role ?? null);
+      const role = me?.role ?? null;
+      setMyRole(role);
+
+      if (role === "OWNER" || role === "HIRING_MANAGER") {
+        try {
+          const jrRes = await apiFetch<JoinRequest[]>("/api/employer/company/join-requests");
+          setJoinRequests(jrRes.data ?? []);
+        } catch {
+          // non-critical
+        }
+      }
     } catch (err: unknown) {
       toast({ type: "error", message: (err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Failed to load team") });
     } finally {
       setLoading(false);
     }
-  }
+  }, [kycStatus, toast]);
 
-  useEffect(() => { load(); }, [kycStatus]);
+  useEffect(() => { load(); }, [load]);
 
   async function handleInvite() {
     if (!inviteEmail.trim() || inviting) return;
@@ -146,9 +173,30 @@ export default function TeamPage() {
     });
   }
 
+  async function handleResolveRequest(joinRequestId: string, status: "ACCEPTED" | "REJECTED") {
+    setResolving(joinRequestId);
+    try {
+      await apiFetch("/api/employer/company/join-requests/resolve", {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({ joinRequestId, status }),
+      });
+      toast({
+        type: "success",
+        message: status === "ACCEPTED" ? "Request accepted — member added" : "Request declined",
+      });
+      load();
+    } catch (err: unknown) {
+      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to resolve request") });
+    } finally {
+      setResolving(null);
+    }
+  }
+
   const canManage = myRole === "OWNER" || myRole === "HIRING_MANAGER";
   const canInvite = canManage;
   const canChangeRole = myRole === "OWNER";
+  const pendingCount = joinRequests.filter((r) => r.status === "PENDING").length;
 
   return (
     <>
@@ -160,7 +208,14 @@ export default function TeamPage() {
           {/* Header */}
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Team Members</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-slate-900">Team Members</h1>
+                {pendingCount > 0 && (
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-violet-500 text-white text-[10px] font-bold">
+                    {pendingCount}
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-slate-500 mt-0.5">
                 Manage who has access to your organization
                 {teamLimit !== null && teamLimit > 0 && (
@@ -217,7 +272,6 @@ export default function TeamPage() {
                 </button>
               </div>
 
-              {/* Role descriptions */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
                 {ASSIGNABLE_ROLES.map((r) => (
                   <div key={r} className={`px-3 py-2 rounded-xl border text-xs ${inviteRole === r ? ROLE_META[r].color : "bg-slate-50 border-slate-200 text-slate-500"} transition-all`}>
@@ -228,6 +282,89 @@ export default function TeamPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Join requests section — OWNER/HIRING_MANAGER only */}
+          {canManage && joinRequests.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <UserCheck className="w-4 h-4 text-violet-500" />
+                  <span className="text-sm font-semibold text-slate-700">Join Requests</span>
+                  {pendingCount > 0 && (
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 text-[11px] font-bold">
+                      {pendingCount} pending
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <ul className="divide-y divide-slate-100">
+                {joinRequests.map((req) => {
+                  const initials = `${req.requester.firstName[0]}${req.requester.lastName[0]}`.toUpperCase();
+                  const isPending = req.status === "PENDING";
+                  const isResolving = resolving === req.id;
+
+                  return (
+                    <li key={req.id} className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 flex-wrap sm:flex-nowrap">
+                      {req.requester.profileImage ? (
+                        <img src={req.requester.profileImage} alt=""
+                          className="w-10 h-10 rounded-xl object-cover shrink-0 border border-slate-200" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center shrink-0 text-violet-700 font-bold text-sm">
+                          {initials}
+                        </div>
+                      )}
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">
+                          {req.requester.firstName} {req.requester.lastName}
+                        </p>
+                        <p className="text-xs text-slate-400 truncate">{req.requester.email}</p>
+                        {req.message && (
+                          <p className="text-xs text-slate-500 mt-0.5 italic truncate">"{req.message}"</p>
+                        )}
+                      </div>
+
+                      {isPending ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-[11px] font-semibold shrink-0">
+                          <Clock className="w-3 h-3" /> Pending
+                        </span>
+                      ) : req.status === "ACCEPTED" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-green-200 bg-green-50 text-green-700 text-[11px] font-semibold shrink-0">
+                          <CheckCircle2 className="w-3 h-3" /> Accepted
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 text-[11px] font-semibold shrink-0">
+                          <XCircle className="w-3 h-3" /> {req.status === "EXPIRED" ? "Expired" : "Declined"}
+                        </span>
+                      )}
+
+                      {isPending && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => handleResolveRequest(req.id, "ACCEPTED")}
+                            disabled={isResolving}
+                            className="h-8 px-3 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                          >
+                            {isResolving ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => handleResolveRequest(req.id, "REJECTED")}
+                            disabled={isResolving}
+                            className="h-8 px-3 rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+                          >
+                            {isResolving ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
+                            Decline
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           )}
 
@@ -304,7 +441,6 @@ export default function TeamPage() {
 
                   return (
                     <li key={member.id} className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 hover:bg-slate-50/50 transition-colors relative flex-wrap sm:flex-nowrap">
-                      {/* Avatar */}
                       {member.user?.profileImage ? (
                         <img src={member.user.profileImage} alt={fullName}
                           className="w-10 h-10 rounded-xl object-cover shrink-0 border border-slate-200" />
@@ -314,7 +450,6 @@ export default function TeamPage() {
                         </div>
                       )}
 
-                      {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-semibold text-slate-800 truncate">{fullName}</p>
@@ -323,12 +458,10 @@ export default function TeamPage() {
                         <p className="text-xs text-slate-400 truncate">{member.user?.email ?? "—"}</p>
                       </div>
 
-                      {/* Role badge */}
                       <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-semibold shrink-0 ${rm.color}`}>
                         {rm.icon} {rm.label}
                       </span>
 
-                      {/* Actions */}
                       {canManage && !isMe && member.role !== "OWNER" && (
                         <div className="relative shrink-0">
                           <button onClick={() => setOpenMenu(openMenu === member.id ? null : member.id)}
@@ -371,7 +504,6 @@ export default function TeamPage() {
       </main>
       </KycGate>
 
-      {/* Close menu on outside click */}
       {openMenu && (
         <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
       )}

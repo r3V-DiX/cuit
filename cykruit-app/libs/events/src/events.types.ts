@@ -36,6 +36,10 @@ export enum DomainEventType {
 
     // ── Team (accept) ────────────────────────────────────────────────────────
     TEAM_INVITE_ACCEPTED          = 'team.invite_accepted',            // member accepted invite (may include role upgrade)
+
+    // ── Join Request ─────────────────────────────────────────────────────────
+    JOIN_REQUEST_RECEIVED         = 'join_request.received',           // user requested to join a company
+    JOIN_REQUEST_RESOLVED         = 'join_request.resolved',           // owner accepted or rejected
 }
 
 // ── Payload types per event ────────────────────────────────────────────────────
@@ -177,7 +181,26 @@ export interface TeamInviteAcceptedPayload {
     employerId: string;
     companyName: string;
     role: string;
-    roleUpgraded: boolean; // true when user was SEEKER and was upgraded to EMPLOYER
+    roleUpgraded: boolean;
+}
+
+export interface JoinRequestReceivedPayload {
+    joinRequestId: string;
+    employerId: string;
+    ownerUserId: string;   // notify the OWNER
+    companyName: string;
+    requesterUserId: string;
+    requesterEmail: string;
+    requesterName: string;
+}
+
+export interface JoinRequestResolvedPayload {
+    joinRequestId: string;
+    employerId: string;
+    companyName: string;
+    requesterUserId: string;
+    status: 'ACCEPTED' | 'REJECTED';
+    resolvedByUserId: string;
 }
 
 // ── Discriminated union ────────────────────────────────────────────────────────
@@ -201,6 +224,8 @@ export type DomainEventPayloadMap = {
     [DomainEventType.SUBSCRIPTION_CANCELLED]:         SubscriptionCancelledPayload;
     [DomainEventType.EMPLOYER_SETUP_COMPLETE]:        EmployerSetupCompletePayload;
     [DomainEventType.TEAM_INVITE_ACCEPTED]:           TeamInviteAcceptedPayload;
+    [DomainEventType.JOIN_REQUEST_RECEIVED]:          JoinRequestReceivedPayload;
+    [DomainEventType.JOIN_REQUEST_RESOLVED]:          JoinRequestResolvedPayload;
 };
 
 export interface DomainEvent<T extends DomainEventType = DomainEventType> {

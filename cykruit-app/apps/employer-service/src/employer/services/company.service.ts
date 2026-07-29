@@ -5,12 +5,13 @@ import {
     NotFoundException,
     ConflictException,
     BadRequestException,
+    ForbiddenException,
 } from '@nestjs/common';
-import { EmployerMemberRole } from '@prisma/client';
+import { EmployerMemberRole, JoinRequestStatus } from '@prisma/client';
 import { PrismaService } from '@cykruit/prisma';
 import { UploadService, UPLOAD_CONFIGS } from '@cykruit/upload';
 import { EmployerCompletionService, CompanyErrorCodes } from '@cykruit/common';
-import { EventPublisher, DomainEventType } from '@cykruit/events';
+import { EventPublisher, DomainEventType, type JoinRequestReceivedPayload, type JoinRequestResolvedPayload } from '@cykruit/events';
 import { AuditService } from '@cykruit/audit';
 import { CompanyRepository } from '../repositories/company.repository';
 import {
@@ -361,6 +362,233 @@ export class CompanyService {
         });
 
         return { message: 'Company benefit removed successfully' };
+    }
+
+    // ── Join Request ─────────────────────────────────────────────
+
+    /**
+     * Returns the verified company (if any) that shares the same email domain
+     * as the requesting user. Used on the post-register screen to decide
+     * whether to show "request to join" or "set up your own company".
+     */
+    async checkDomain(userId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true },
+        });
+        if (!user) throw new NotFoundException('User not found.');
+
+        const domain = user.email.split('@')[1]?.toLowerCase();
+        if (!domain) return { found: false, company: null };
+
+        // Find any verified employer where at least one member's email matches domain
+        const match = await this.prisma.employer.findFirst({
+            where: {
+                isVerified: true,
+                members: {
+                    some: {
+                        user: { email: { endsWith: `@${domain}` } },
+                    },
+                },
+            },
+            select: { id: true, companyName: true, companyLogo: true, location: true },
+        });
+
+        if (!match) return { found: false, company: null };
+        return { found: true, company: match };
+    }
+
+    /**
+     * Creates a join request for the requesting user to join the company
+     * that owns their email domain. Sends WS event to notify the OWNER.
+     */
+    async requestToJoin(userId: string, message?: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true, firstName: true, lastName: true },
+        });
+        if (!user) throw new NotFoundException('User not found.');
+
+        const domain = user.email.split('@')[1]?.toLowerCase();
+        if (!domain) throw new BadRequestException('Could not determine email domain.');
+
+        const employer = await this.prisma.employer.findFirst({
+            where: {
+                isVerified: true,
+                members: {
+                    some: { user: { email: { endsWith: `@${domain}` } } },
+                },
+            },
+            include: {
+                members: {
+                    where: { role: EmployerMemberRole.OWNER },
+                    include: { user: { select: { id: true } } },
+                    take: 1,
+                },
+            },
+        });
+        if (!employer) throw new NotFoundException('No verified company found for your email domain.');
+
+        // Already a member
+        const alreadyMember = await this.prisma.employerMember.findUnique({
+            where: { employerId_userId: { employerId: employer.id, userId } },
+        });
+        if (alreadyMember) throw new ConflictException('You are already a member of this company.');
+
+        // Existing pending request
+        const existing = await this.prisma.employerJoinRequest.findUnique({
+            where: { employerId_requesterId: { employerId: employer.id, requesterId: userId } },
+        });
+        if (existing && existing.status === JoinRequestStatus.PENDING) {
+            throw new ConflictException('You already have a pending join request for this company.');
+        }
+
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        const joinRequest = await this.prisma.employerJoinRequest.upsert({
+            where: { employerId_requesterId: { employerId: employer.id, requesterId: userId } },
+            create: { employerId: employer.id, requesterId: userId, message, expiresAt, status: JoinRequestStatus.PENDING },
+            update: { status: JoinRequestStatus.PENDING, message, expiresAt, resolvedAt: null, resolvedBy: null },
+        });
+
+        const ownerUserId = employer.members[0]?.user?.id;
+        if (ownerUserId) {
+            this.eventPublisher.publish(
+                DomainEventType.JOIN_REQUEST_RECEIVED,
+                {
+                    joinRequestId: joinRequest.id,
+                    employerId: employer.id,
+                    ownerUserId,
+                    companyName: employer.companyName,
+                    requesterUserId: userId,
+                    requesterEmail: user.email,
+                    requesterName: `${user.firstName} ${user.lastName}`.trim() || user.email,
+                } satisfies JoinRequestReceivedPayload,
+                'employer-service',
+            );
+        }
+
+        return joinRequest;
+    }
+
+    /** Returns pending join requests for the authenticated user's company. OWNER/HIRING_MANAGER only. */
+    async getJoinRequests(userId: string) {
+        const employer = await this.companyRepository.findByMemberId(userId);
+        if (!employer) throw new NotFoundException('No company found for your account.');
+
+        const member = await this.prisma.employerMember.findUnique({
+            where: { employerId_userId: { employerId: employer.id, userId } },
+            select: { role: true },
+        });
+        if (!member || (member.role !== EmployerMemberRole.OWNER && member.role !== EmployerMemberRole.HIRING_MANAGER)) {
+            throw new ForbiddenException('Only OWNER or HIRING_MANAGER can view join requests.');
+        }
+
+        // Auto-expire stale requests
+        await this.prisma.employerJoinRequest.updateMany({
+            where: { employerId: employer.id, status: JoinRequestStatus.PENDING, expiresAt: { lt: new Date() } },
+            data: { status: JoinRequestStatus.EXPIRED },
+        });
+
+        return this.prisma.employerJoinRequest.findMany({
+            where: { employerId: employer.id, status: JoinRequestStatus.PENDING },
+            include: {
+                requester: { select: { id: true, email: true, firstName: true, lastName: true } },
+            },
+            orderBy: { createdAt: 'asc' },
+        });
+    }
+
+    /** Owner/HM accepts or rejects a join request. Accept atomically adds the user as RECRUITER. */
+    async resolveJoinRequest(
+        userId: string,
+        joinRequestId: string,
+        status: 'ACCEPTED' | 'REJECTED',
+    ) {
+        const employer = await this.companyRepository.findByMemberId(userId);
+        if (!employer) throw new NotFoundException('No company found for your account.');
+
+        const member = await this.prisma.employerMember.findUnique({
+            where: { employerId_userId: { employerId: employer.id, userId } },
+            select: { role: true },
+        });
+        if (!member || (member.role !== EmployerMemberRole.OWNER && member.role !== EmployerMemberRole.HIRING_MANAGER)) {
+            throw new ForbiddenException('Only OWNER or HIRING_MANAGER can resolve join requests.');
+        }
+
+        const joinRequest = await this.prisma.employerJoinRequest.findUnique({
+            where: { id: joinRequestId },
+            include: { requester: { select: { id: true, email: true, firstName: true, lastName: true, role: true } } },
+        });
+        if (!joinRequest || joinRequest.employerId !== employer.id) {
+            throw new NotFoundException('Join request not found.');
+        }
+        if (joinRequest.status !== 'PENDING') {
+            throw new ConflictException(`Join request is already ${joinRequest.status.toLowerCase()}.`);
+        }
+
+        await this.prisma.$transaction(async (tx) => {
+            await tx.employerJoinRequest.update({
+                where: { id: joinRequestId },
+                data: { status, resolvedBy: userId, resolvedAt: new Date() },
+            });
+
+            if (status === 'ACCEPTED') {
+                // Upgrade role from SEEKER to EMPLOYER if needed
+                if (joinRequest.requester.role === 'SEEKER') {
+                    await tx.user.update({
+                        where: { id: joinRequest.requesterId },
+                        data: { role: 'EMPLOYER' },
+                    });
+                }
+                await tx.employerMember.create({
+                    data: {
+                        employerId: employer.id,
+                        userId: joinRequest.requesterId,
+                        role: EmployerMemberRole.RECRUITER,
+                        invitedBy: userId,
+                    },
+                });
+                await tx.employerSubscription.updateMany({
+                    where: { employerId: employer.id },
+                    data: { currentTeamMembers: { increment: 1 } },
+                });
+            }
+        });
+
+        this.eventPublisher.publish(
+            DomainEventType.JOIN_REQUEST_RESOLVED,
+            {
+                joinRequestId,
+                employerId: employer.id,
+                companyName: employer.companyName,
+                requesterUserId: joinRequest.requesterId,
+                status,
+                resolvedByUserId: userId,
+            } satisfies JoinRequestResolvedPayload,
+            'employer-service',
+        );
+
+        return { message: status === 'ACCEPTED' ? 'User added to your team.' : 'Join request rejected.' };
+    }
+
+    /** Returns the current join request status for the authenticated user (used by post-register screen). */
+    async getMyJoinRequest(userId: string) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+        if (!user) throw new NotFoundException('User not found.');
+
+        const domain = user.email.split('@')[1]?.toLowerCase();
+        if (!domain) return null;
+
+        const employer = await this.prisma.employer.findFirst({
+            where: { isVerified: true, members: { some: { user: { email: { endsWith: `@${domain}` } } } } },
+            select: { id: true },
+        });
+        if (!employer) return null;
+
+        return this.prisma.employerJoinRequest.findUnique({
+            where: { employerId_requesterId: { employerId: employer.id, requesterId: userId } },
+            select: { id: true, status: true, createdAt: true, expiresAt: true },
+        });
     }
 
     // ── Private helpers ──────────────────────────────────────────

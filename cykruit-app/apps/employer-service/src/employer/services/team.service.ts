@@ -290,15 +290,6 @@ export class TeamService {
             throw new ConflictException('You are already a member of this company.');
         }
 
-        // Block joining a second employer — a user can only belong to one company.
-        // findByMemberId returns the first employer for a user; if one exists, reject.
-        const alreadyInEmployer = await this.companyRepository.findByMemberId(userId);
-        if (alreadyInEmployer) {
-            throw new ConflictException(
-                'You are already a member of another company. Leave that company before accepting a new invite.',
-            );
-        }
-
         // Atomically: upgrade role if needed + create membership + consume token.
         const member = await this.prisma.$transaction(async (tx) => {
             if (roleUpgraded) {

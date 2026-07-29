@@ -34,8 +34,9 @@ export enum AuditAction {
 
   // ── Account ───────────────────────────────────────────────────
   ACCOUNT_DELETED = "ACCOUNT_DELETED",
-  ACCOUNT_DEACTIVATED = "ACCOUNT_DEACTIVATED", // ✅ NEW
-  ACCOUNT_DELETION_CANCELLED = "ACCOUNT_DELETION_CANCELLED", // ✅ NEW
+  ACCOUNT_DEACTIVATED = "ACCOUNT_DEACTIVATED",
+  ACCOUNT_DELETION_CANCELLED = "ACCOUNT_DELETION_CANCELLED",
+  ROLE_SWITCHED = "ROLE_SWITCHED",
 
   // ── OTP ──────────────────────────────────────────────────────
   OTP_SENT = "OTP_SENT",

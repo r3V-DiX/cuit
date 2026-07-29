@@ -2,13 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Shield, ArrowRight, Building2, ChevronLeft, Lock, Mail, RefreshCw } from "lucide-react";
+import { Shield, ArrowRight, Building2, ChevronLeft, Lock, Mail, RefreshCw, Users, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, ApiError, authHeaders } from "@/lib/api";
 import { broadcastLogin } from "@/lib/auth-sync";
 
-// Kept in sync with backend libs/common/src/utils/email-domain.util.ts
 const BLOCKED_DOMAINS = new Set([
   "gmail.com","googlemail.com",
   "yahoo.com","yahoo.in","yahoo.co.in","yahoo.co.uk","ymail.com","rocketmail.com",
@@ -110,8 +109,35 @@ function OtpInput({ value, onChange, disabled }: { value: string; onChange: (v: 
   );
 }
 
+type Step = "info" | "otp" | "domain-found" | "join-requested";
+
+type DomainCompany = {
+  id: string;
+  companyName: string;
+  companyLogo?: string | null;
+};
+
+type VerifyOtpData = {
+  isNewUser: boolean;
+  role: string;
+  id: string;
+  email: string;
+};
+
+type DomainCheckResponse = {
+  found: boolean;
+  company?: DomainCompany;
+};
+
+const Spinner = () => (
+  <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+  </svg>
+);
+
 export default function EmployerClient() {
-  const [step, setStep] = useState<"info" | "otp">("info");
+  const [step, setStep] = useState<Step>("info");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -120,6 +146,7 @@ export default function EmployerClient() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [domainCompany, setDomainCompany] = useState<DomainCompany | null>(null);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
   const router = useRouter();
@@ -168,22 +195,23 @@ export default function EmployerClient() {
       setStep("otp");
       startResendCooldown();
       toast({ type: "success", message: "OTP sent", description: "Check your inbox for a 6-digit code." });
-    } catch (err: any) {
-      if (err instanceof ApiError && err.code === "EMAIL_DOMAIN_NOT_ALLOWED") {
-        setEmailError(err.message);
+    } catch (err: unknown) {
+      const apiErr = err instanceof ApiError ? err : null;
+      if (apiErr?.code === "EMAIL_DOMAIN_NOT_ALLOWED") {
+        setEmailError(apiErr.message);
         return;
       }
-      if (err instanceof ApiError && err.code === "ACCOUNT_EXISTS") {
+      if (apiErr?.code === "ACCOUNT_EXISTS") {
         toast({ type: "error", message: "An account with this email already exists. Sign in instead." });
         router.push("/login");
         return;
       }
-      if (err instanceof ApiError && err.code === "ROLE_MISMATCH") {
+      if (apiErr?.code === "ROLE_MISMATCH") {
         toast({ type: "error", message: "This email is registered as a Job Seeker. Please sign in on the seeker portal." });
         router.push("/login");
         return;
       }
-      toast({ type: "error", message: err.message || "Failed to send OTP" });
+      toast({ type: "error", message: apiErr?.message || "Failed to send OTP" });
     } finally {
       setLoading(false);
     }
@@ -194,7 +222,7 @@ export default function EmployerClient() {
     if (otp.length !== 6) { toast({ type: "error", message: "Enter the 6-digit OTP" }); return; }
     setLoading(true);
     try {
-      const result = await apiFetch<any>("/api/auth/verify-otp", {
+      const result = await apiFetch<VerifyOtpData>("/api/auth/verify-otp", {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
@@ -206,11 +234,32 @@ export default function EmployerClient() {
         }),
       });
       broadcastLogin("EMPLOYER");
-      toast({ type: "success", message: result.data?.isNewUser ? "Employer account created!" : "Welcome back!" });
-      setTimeout(() => router.push("/kyc/employer"), 800);
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Invalid OTP" });
-      if (err.code === "OTP_MAX_ATTEMPTS") { setStep("info"); setOtp(""); }
+
+      if (result.data?.isNewUser) {
+        try {
+          const domainResult = await apiFetch<DomainCheckResponse>(
+            "/api/employer/company/domain-check",
+            { headers: authHeaders() },
+          );
+          if (domainResult.data.found && domainResult.data.company) {
+            setDomainCompany(domainResult.data.company);
+            setStep("domain-found");
+          } else {
+            toast({ type: "success", message: "Employer account created!" });
+            setTimeout(() => router.push("/kyc/employer"), 800);
+          }
+        } catch {
+          toast({ type: "success", message: "Employer account created!" });
+          setTimeout(() => router.push("/kyc/employer"), 800);
+        }
+      } else {
+        toast({ type: "success", message: "Welcome back!" });
+        setTimeout(() => router.push("/employer/dashboard"), 800);
+      }
+    } catch (err: unknown) {
+      const apiErr = err instanceof ApiError ? err : null;
+      toast({ type: "error", message: apiErr?.message || "Invalid OTP" });
+      if (apiErr?.code === "OTP_MAX_ATTEMPTS") { setStep("info"); setOtp(""); }
     } finally {
       setLoading(false);
     }
@@ -228,9 +277,43 @@ export default function EmployerClient() {
       setOtp("");
       startResendCooldown();
       toast({ type: "success", message: "New OTP sent" });
-    } catch (err: any) {
-      toast({ type: "error", message: err.message || "Failed to resend OTP" });
+    } catch (err: unknown) {
+      const apiErr = err instanceof ApiError ? err : null;
+      toast({ type: "error", message: apiErr?.message || "Failed to resend OTP" });
     } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRequestToJoin() {
+    setLoading(true);
+    try {
+      await apiFetch("/api/employer/company/join-request", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({}),
+      });
+      setStep("join-requested");
+    } catch (err: unknown) {
+      const apiErr = err instanceof ApiError ? err : null;
+      toast({ type: "error", message: apiErr?.message || "Failed to send request" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSwitchToSeeker() {
+    setLoading(true);
+    try {
+      await apiFetch("/api/auth/switch-to-seeker", {
+        method: "PATCH",
+        headers: authHeaders(),
+      });
+      broadcastLogin("SEEKER");
+      router.push("/jobs");
+    } catch (err: unknown) {
+      const apiErr = err instanceof ApiError ? err : null;
+      toast({ type: "error", message: apiErr?.message || "Failed to switch role" });
       setLoading(false);
     }
   }
@@ -245,12 +328,16 @@ export default function EmployerClient() {
 
       <div className="relative z-10 w-full max-w-lg">
         <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={() => step === "otp" ? (setStep("info"), setOtp("")) : router.push("/register")}
-            className="flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-slate-600 transition-colors tracking-widest cursor-pointer"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" /> {step === "otp" ? "CHANGE EMAIL" : "BACK"}
-          </button>
+          {step === "info" || step === "otp" ? (
+            <button
+              onClick={() => step === "otp" ? (setStep("info"), setOtp("")) : router.push("/register")}
+              className="flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-slate-600 transition-colors tracking-widest cursor-pointer"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" /> {step === "otp" ? "CHANGE EMAIL" : "BACK"}
+            </button>
+          ) : (
+            <div className="w-12" />
+          )}
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-lg bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
               <Shield className="w-4 h-4 text-white" strokeWidth={2.5} />
@@ -268,112 +355,205 @@ export default function EmployerClient() {
           <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r border-violet-100 pointer-events-none" />
 
           <div className="p-7">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center shrink-0">
-                {step === "otp" ? <Mail className="w-5 h-5 text-violet-600" /> : <Building2 className="w-5 h-5 text-violet-600" />}
-              </div>
-              <div>
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-violet-100 bg-violet-50 text-violet-600 text-xs font-mono tracking-widest mb-1.5">
-                  <span className="w-1 h-1 rounded-full bg-violet-500 animate-pulse" />
-                  {step === "otp" ? "VERIFY OTP" : "EMPLOYER"}
-                </div>
-                <h1 className="text-2xl font-bold text-slate-900 leading-tight">
-                  {step === "otp" ? "Check your inbox" : "Create your account"}
-                </h1>
-                {step === "otp" && (
-                  <p className="text-sm text-slate-500 mt-0.5">
-                    Code sent to <span className="font-mono font-medium text-slate-700">{email}</span>
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {step === "info" ? (
-              <form className="space-y-4" onSubmit={handleSendOtp}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-mono text-slate-400 tracking-widest mb-1.5 uppercase">First Name</label>
-                    <input type="text" placeholder="Priya" value={firstName} onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-violet-400 focus:bg-white transition-all" />
+            {step === "info" && (
+              <>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center shrink-0">
+                    <Building2 className="w-5 h-5 text-violet-600" />
                   </div>
                   <div>
-                    <label className="block text-xs font-mono text-slate-400 tracking-widest mb-1.5 uppercase">Last Name</label>
-                    <input type="text" placeholder="Nair" value={lastName} onChange={(e) => setLastName(e.target.value)}
-                      className="w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-violet-400 focus:bg-white transition-all" />
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-violet-100 bg-violet-50 text-violet-600 text-xs font-mono tracking-widest mb-1.5">
+                      <span className="w-1 h-1 rounded-full bg-violet-500 animate-pulse" />
+                      EMPLOYER
+                    </div>
+                    <h1 className="text-2xl font-bold text-slate-900 leading-tight">Create your account</h1>
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-mono text-slate-400 tracking-widest mb-1.5 uppercase">Work Email</label>
-                  <input type="email" autoComplete="email" placeholder="you@company.com" value={email} onChange={(e) => handleEmailChange(e.target.value)}
-                    className={`w-full h-10 px-3.5 rounded-xl bg-slate-50 border text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:bg-white transition-all font-mono ${
-                      emailError ? "border-rose-300 focus:border-rose-400" : "border-slate-200 focus:border-violet-400"
-                    }`} />
-                  {emailError ? (
-                    <p className="text-xs text-rose-500 mt-1.5 leading-snug">{emailError}</p>
-                  ) : (
-                    <p className="text-xs text-slate-400 font-mono mt-1">Use your company email, not a personal one</p>
-                  )}
-                </div>
+                <form className="space-y-4" onSubmit={handleSendOtp}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-mono text-slate-400 tracking-widest mb-1.5 uppercase">First Name</label>
+                      <input type="text" placeholder="Priya" value={firstName} onChange={(e) => setFirstName(e.target.value)}
+                        className="w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-violet-400 focus:bg-white transition-all" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-mono text-slate-400 tracking-widest mb-1.5 uppercase">Last Name</label>
+                      <input type="text" placeholder="Nair" value={lastName} onChange={(e) => setLastName(e.target.value)}
+                        className="w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:border-violet-400 focus:bg-white transition-all" />
+                    </div>
+                  </div>
 
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded border-slate-300 accent-violet-500" />
-                  <span className="text-sm text-slate-500 leading-relaxed">
-                    I agree to the{" "}
-                    <Link href="/terms" className="text-violet-600 hover:text-violet-700 transition-colors">Terms of Service</Link>
-                    {" "}and{" "}
-                    <Link href="/privacy" className="text-violet-600 hover:text-violet-700 transition-colors">Privacy Policy</Link>
-                  </span>
-                </label>
+                  <div>
+                    <label className="block text-xs font-mono text-slate-400 tracking-widest mb-1.5 uppercase">Work Email</label>
+                    <input type="email" autoComplete="email" placeholder="you@company.com" value={email} onChange={(e) => handleEmailChange(e.target.value)}
+                      className={`w-full h-10 px-3.5 rounded-xl bg-slate-50 border text-slate-900 placeholder-slate-400 text-base focus:outline-none focus:bg-white transition-all font-mono ${
+                        emailError ? "border-rose-300 focus:border-rose-400" : "border-slate-200 focus:border-violet-400"
+                      }`} />
+                    {emailError ? (
+                      <p className="text-xs text-rose-500 mt-1.5 leading-snug">{emailError}</p>
+                    ) : (
+                      <p className="text-xs text-slate-400 font-mono mt-1">Use your company email, not a personal one</p>
+                    )}
+                  </div>
 
-                <button type="submit" disabled={loading || !!emailError}
-                  className="w-full h-11 rounded-xl bg-linear-to-r from-violet-500 to-violet-600 text-white text-base font-semibold hover:from-violet-400 hover:to-violet-500 shadow-md shadow-violet-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
-                  {loading ? (
-                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                    </svg>
-                  ) : (
-                    <><Mail className="w-4 h-4" /> Send OTP <ArrowRight className="w-4 h-4" /></>
-                  )}
-                </button>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded border-slate-300 accent-violet-500" />
+                    <span className="text-sm text-slate-500 leading-relaxed">
+                      I agree to the{" "}
+                      <Link href="/terms" className="text-violet-600 hover:text-violet-700 transition-colors">Terms of Service</Link>
+                      {" "}and{" "}
+                      <Link href="/privacy" className="text-violet-600 hover:text-violet-700 transition-colors">Privacy Policy</Link>
+                    </span>
+                  </label>
 
-              </form>
-            ) : (
-              <form className="space-y-5" onSubmit={handleVerifyOtp}>
-                <div>
-                  <label className="block text-xs font-mono text-slate-400 tracking-widest mb-3 uppercase">Enter OTP</label>
-                  <OtpInput value={otp} onChange={setOtp} disabled={loading} />
-                </div>
-
-                <button type="submit" disabled={loading || otp.length !== 6}
-                  className="w-full h-11 rounded-xl bg-linear-to-r from-violet-500 to-violet-600 text-white text-base font-semibold hover:from-violet-400 hover:to-violet-500 shadow-md shadow-violet-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
-                  {loading ? (
-                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                    </svg>
-                  ) : (
-                    <>Create Employer Account <ArrowRight className="w-4 h-4" /></>
-                  )}
-                </button>
-
-                <div className="flex items-center justify-center gap-2">
-                  <button type="button" onClick={handleResend} disabled={resendCooldown > 0 || loading}
-                    className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-violet-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}
+                  <button type="submit" disabled={loading || !!emailError}
+                    className="w-full h-11 rounded-xl bg-linear-to-r from-violet-500 to-violet-600 text-white text-base font-semibold hover:from-violet-400 hover:to-violet-500 shadow-md shadow-violet-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                    {loading ? <Spinner /> : <><Mail className="w-4 h-4" /> Send OTP <ArrowRight className="w-4 h-4" /></>}
                   </button>
-                </div>
-                <p className="text-center text-xs text-slate-400">OTP expires in 10 minutes</p>
-              </form>
+                </form>
+              </>
             )}
 
-            <p className="text-center text-sm text-slate-500 mt-4">
-              Already have an account?{" "}
-              <Link href="/login" className="text-violet-600 hover:text-violet-700 font-medium transition-colors">Sign in</Link>
-            </p>
+            {step === "otp" && (
+              <>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center shrink-0">
+                    <Mail className="w-5 h-5 text-violet-600" />
+                  </div>
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-violet-100 bg-violet-50 text-violet-600 text-xs font-mono tracking-widest mb-1.5">
+                      <span className="w-1 h-1 rounded-full bg-violet-500 animate-pulse" />
+                      VERIFY OTP
+                    </div>
+                    <h1 className="text-2xl font-bold text-slate-900 leading-tight">Check your inbox</h1>
+                    <p className="text-sm text-slate-500 mt-0.5">
+                      Code sent to <span className="font-mono font-medium text-slate-700">{email}</span>
+                    </p>
+                  </div>
+                </div>
+
+                <form className="space-y-5" onSubmit={handleVerifyOtp}>
+                  <div>
+                    <label className="block text-xs font-mono text-slate-400 tracking-widest mb-3 uppercase">Enter OTP</label>
+                    <OtpInput value={otp} onChange={setOtp} disabled={loading} />
+                  </div>
+
+                  <button type="submit" disabled={loading || otp.length !== 6}
+                    className="w-full h-11 rounded-xl bg-linear-to-r from-violet-500 to-violet-600 text-white text-base font-semibold hover:from-violet-400 hover:to-violet-500 shadow-md shadow-violet-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                    {loading ? <Spinner /> : <>Create Employer Account <ArrowRight className="w-4 h-4" /></>}
+                  </button>
+
+                  <div className="flex items-center justify-center gap-2">
+                    <button type="button" onClick={handleResend} disabled={resendCooldown > 0 || loading}
+                      className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-violet-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}
+                    </button>
+                  </div>
+                  <p className="text-center text-xs text-slate-400">OTP expires in 10 minutes</p>
+                </form>
+              </>
+            )}
+
+            {step === "domain-found" && domainCompany && (
+              <div className="space-y-5">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center shrink-0">
+                    <Users className="w-5 h-5 text-violet-600" />
+                  </div>
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-violet-100 bg-violet-50 text-violet-600 text-xs font-mono tracking-widest mb-1.5">
+                      <span className="w-1 h-1 rounded-full bg-violet-500 animate-pulse" />
+                      DOMAIN MATCH
+                    </div>
+                    <h1 className="text-2xl font-bold text-slate-900 leading-tight">Your company is here</h1>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex items-center gap-3">
+                  {domainCompany.companyLogo ? (
+                    <img src={domainCompany.companyLogo} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                      <Building2 className="w-5 h-5 text-violet-500" />
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-semibold text-slate-900">{domainCompany.companyName}</p>
+                    <p className="text-xs text-slate-500 font-mono">Verified company</p>
+                  </div>
+                </div>
+
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Your email domain is already associated with this company. Request to join their team — once the owner approves, you'll have full employer access.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handleRequestToJoin}
+                  disabled={loading}
+                  className="w-full h-11 rounded-xl bg-linear-to-r from-violet-500 to-violet-600 text-white text-base font-semibold hover:from-violet-400 hover:to-violet-500 shadow-md shadow-violet-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {loading ? <Spinner /> : <>Request to join {domainCompany.companyName} <ArrowRight className="w-4 h-4" /></>}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSwitchToSeeker}
+                  disabled={loading}
+                  className="w-full h-10 rounded-xl border border-slate-200 text-slate-500 text-sm font-medium hover:bg-slate-50 hover:text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Continue as job seeker instead
+                </button>
+              </div>
+            )}
+
+            {step === "join-requested" && (
+              <div className="space-y-5">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0">
+                    <Clock className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-amber-100 bg-amber-50 text-amber-600 text-xs font-mono tracking-widest mb-1.5">
+                      <span className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
+                      PENDING APPROVAL
+                    </div>
+                    <h1 className="text-2xl font-bold text-slate-900 leading-tight">Request sent!</h1>
+                  </div>
+                </div>
+
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Your request to join{" "}
+                  <span className="font-semibold text-slate-800">{domainCompany?.companyName}</span>{" "}
+                  has been sent to their team administrator. You'll be notified once it's reviewed.
+                </p>
+
+                <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
+                  <p className="text-xs text-amber-700 leading-relaxed">
+                    Once approved you'll receive a notification and can log in as an employer. Until then, you can browse jobs as a seeker.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSwitchToSeeker}
+                  disabled={loading}
+                  className="w-full h-11 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 hover:text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loading ? <Spinner /> : "Continue as job seeker instead"}
+                </button>
+              </div>
+            )}
+
+            {(step === "info" || step === "otp") && (
+              <p className="text-center text-sm text-slate-500 mt-4">
+                Already have an account?{" "}
+                <Link href="/login" className="text-violet-600 hover:text-violet-700 font-medium transition-colors">Sign in</Link>
+              </p>
+            )}
           </div>
         </div>
 

@@ -24,4 +24,6 @@ export {
     SubscriptionCancelledPayload,
     EmployerSetupCompletePayload,
     TeamInviteAcceptedPayload,
+    JoinRequestReceivedPayload,
+    JoinRequestResolvedPayload,
 } from './events.types';

@@ -18,6 +18,7 @@ import {
     MaxFileSizeValidator,
     FileTypeValidator,
     ParseUUIDPipe,
+    SetMetadata,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
@@ -25,6 +26,7 @@ import type { User } from '@prisma/client';
 import { UserRole } from '@prisma/client';
 import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
 import { PermissionGuard, RequirePermission, ACTIONS } from '@cykruit/permissions';
+import { KycVerifiedGuard, SKIP_KYC_CHECK_KEY } from '../guards/kyc-verified.guard';
 import { CompanyService } from '../services/company.service';
 import {
     CreateCompanyDto,
@@ -33,10 +35,14 @@ import {
     UpdateCompanySocialDto,
     AddOfficeLocationDto,
     AddCompanyBenefitDto,
+    RequestToJoinDto,
+    ResolveJoinRequestDto,
 } from '../dto/company.dto';
 
+const SkipKycCheck = () => SetMetadata(SKIP_KYC_CHECK_KEY, true);
+
 @Controller('employer/company')
-@UseGuards(AuthGuard, RolesGuard, CsrfGuard, PermissionGuard)
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard, KycVerifiedGuard, PermissionGuard)
 @Roles(UserRole.EMPLOYER)
 export class CompanyController {
     constructor(private readonly companyService: CompanyService) { }
@@ -128,5 +134,43 @@ export class CompanyController {
     @RequirePermission(ACTIONS.COMPANY.UPDATE)
     removeBenefit(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
         return this.companyService.removeBenefit(user.id, id);
+    }
+
+    // ── Join Request routes (all skip KYC — user hasn't verified yet) ────────
+
+    /** GET /employer/company/domain-check — call after register to show the right screen */
+    @Get('domain-check')
+    @SkipKycCheck()
+    domainCheck(@CurrentUser() user: User) {
+        return this.companyService.checkDomain(user.id);
+    }
+
+    /** POST /employer/company/join-request — user requests to join their domain's company */
+    @Post('join-request')
+    @HttpCode(HttpStatus.CREATED)
+    @SkipKycCheck()
+    requestToJoin(@CurrentUser() user: User, @Body() dto: RequestToJoinDto) {
+        return this.companyService.requestToJoin(user.id, dto.message);
+    }
+
+    /** GET /employer/company/join-request/me — poll own request status */
+    @Get('join-request/me')
+    @SkipKycCheck()
+    getMyJoinRequest(@CurrentUser() user: User) {
+        return this.companyService.getMyJoinRequest(user.id);
+    }
+
+    /** GET /employer/company/join-requests — OWNER/HM: list pending requests for their company */
+    @Get('join-requests')
+    @RequirePermission(ACTIONS.COMPANY.READ)
+    getJoinRequests(@CurrentUser() user: User) {
+        return this.companyService.getJoinRequests(user.id);
+    }
+
+    /** PATCH /employer/company/join-requests/resolve — accept or reject a request */
+    @Patch('join-requests/resolve')
+    @RequirePermission(ACTIONS.COMPANY.INVITE_MEMBER)
+    resolveJoinRequest(@CurrentUser() user: User, @Body() dto: ResolveJoinRequestDto) {
+        return this.companyService.resolveJoinRequest(user.id, dto.joinRequestId, dto.status);
     }
 }
