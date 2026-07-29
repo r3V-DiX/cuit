@@ -97,27 +97,24 @@ export class OAuthBaseService {
   private async findEmployerByDomain(
     domain: string,
   ): Promise<{ companyName: string; companyLogo: string | null } | null> {
-    // Find any ACTIVE EMPLOYER whose email shares the same domain.
-    // We use the OWNER member's user email as the canonical domain source.
-    const match = await this.prisma.user.findFirst({
+    // Find a KYC-verified employer where at least one member's email shares the domain.
+    // Checks the Employer table directly (not user.role) so it works regardless of
+    // whether the member's user row has role=EMPLOYER or SEEKER.
+    const match = await this.prisma.employer.findFirst({
       where: {
-        role: UserRole.EMPLOYER,
-        status: AccountStatus.ACTIVE,
-        email: { endsWith: `@${domain}` },
-      },
-      select: {
-        employer: {
-          select: {
-            companyName: true,
-            companyLogo: true,
+        isVerified: true,
+        members: {
+          some: {
+            user: { email: { endsWith: `@${domain}` } },
           },
         },
       },
+      select: { companyName: true, companyLogo: true },
     });
-    if (!match?.employer?.companyName) return null;
+    if (!match?.companyName) return null;
     return {
-      companyName: match.employer.companyName,
-      companyLogo: match.employer.companyLogo ?? null,
+      companyName: match.companyName,
+      companyLogo: match.companyLogo ?? null,
     };
   }
 
@@ -289,15 +286,21 @@ export class OAuthBaseService {
       };
     }
 
-    // Domain match detection: new SEEKER whose email domain matches an existing employer.
-    // We still create them as SEEKER — they can request an invite from their admin.
+    // Domain match detection: run for both SEEKER and EMPLOYER new users.
+    // For EMPLOYER: if a verified company already owns their domain, don't create a stub —
+    // redirect them to the request-to-join flow instead.
+    // For SEEKER: same — show the domain-match banner so they know their company is on Cykruit.
     let domainMatchEmployer: { companyName: string; companyLogo: string | null } | null = null;
-    if (role === UserRole.SEEKER && profile.email) {
+    if (profile.email) {
       const domain = getEmailDomain(profile.email);
       if (domain) {
         domainMatchEmployer = await this.findEmployerByDomain(domain);
       }
     }
+
+    // If EMPLOYER role but domain already has a verified company, downgrade to SEEKER for now.
+    // They will see the domain-match screen and can request to join via the UI.
+    const effectiveRole = (role === UserRole.EMPLOYER && domainMatchEmployer) ? UserRole.SEEKER : role;
 
     const newUser = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -309,7 +312,7 @@ export class OAuthBaseService {
           isEmailVerified: true,
           emailVerifiedAt: new Date(),
           password: "",
-          role,
+          role: effectiveRole,
           status: AccountStatus.ACTIVE,
         },
       });
@@ -323,17 +326,20 @@ export class OAuthBaseService {
         },
       });
 
-      if (role === UserRole.SEEKER) {
-        await tx.jobSeekerProfile.create({
-          data: {
-            user: { connect: { id: user.id } },
-            firstName: profile.firstName,
-            lastName: profile.lastName,
-            availability: "Open to offers",
-            profileCompletion: 0,
-          },
-        });
-      } else if (role === UserRole.EMPLOYER) {
+      // Always create a seeker profile — needed for dashboard and role-switch.
+      // EMPLOYER without domain match also gets one so switching to seeker later works.
+      await tx.jobSeekerProfile.create({
+        data: {
+          user: { connect: { id: user.id } },
+          firstName: profile.firstName,
+          lastName: profile.lastName,
+          availability: "Open to offers",
+          profileCompletion: 0,
+        },
+      });
+
+      // Only create an employer stub when there is NO domain match (user is genuinely new OWNER).
+      if (effectiveRole === UserRole.EMPLOYER) {
         const slug = `${profile.email.split("@")[0].toLowerCase()}-${Date.now()}`;
         const employer = await tx.employer.create({
           data: {
