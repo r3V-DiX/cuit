@@ -4,13 +4,6 @@ import type { NextRequest } from "next/server";
 const SESSION_COOKIE = "session_token";
 const ROLE_COOKIE    = "user_role";
 
-// Derived (not hand-maintained) so the CSP scheme always matches what socket.io-client
-// actually uses: it upgrades http->ws and https->wss based on NEXT_PUBLIC_WS_URL's own
-// scheme (see hooks/useMessaging.ts). A mismatched scheme here would make the browser
-// block its own WebSocket connection.
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "http://127.0.0.1:4007";
-const WS_ORIGIN = WS_URL.replace(/^http/, "ws");
-
 function buildCsp(nonce: string): string {
   const isDev = process.env.NODE_ENV === "development";
   return [
@@ -19,7 +12,8 @@ function buildCsp(nonce: string): string {
     `style-src 'self' 'nonce-${nonce}' https://checkout.razorpay.com`,
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src 'self' ${WS_ORIGIN} http://127.0.0.1:* http://localhost:* https://api.razorpay.com https://checkout.razorpay.com`,
+    // 'self' covers wss://<same-host> for WebSocket — no explicit WS origin needed
+    `connect-src 'self' http://127.0.0.1:* http://localhost:* https://api.razorpay.com https://checkout.razorpay.com`,
     "frame-src https://api.razorpay.com https://checkout.razorpay.com",
     "frame-ancestors 'none'",
   ].join("; ");
