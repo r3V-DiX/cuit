@@ -24,12 +24,9 @@ type UseMessagingOptions = {
   enabled?: boolean;
 };
 
-// NEXT_PUBLIC_WS_URL is build-time only. In production WS traffic is routed
-// through the same origin via nginx /ws/ → localhost:4007 proxy block.
-const WS_URL =
-  typeof window !== "undefined"
-    ? (process.env.NEXT_PUBLIC_WS_URL || window.location.origin)
-    : "";
+// WS routes through the same origin via nginx /ws/ → localhost:4007.
+// Never use NEXT_PUBLIC_WS_URL — it bakes the API domain at build time and breaks this.
+const WS_URL = typeof window !== "undefined" ? window.location.origin : "";
 
 async function fetchWsToken(attempt = 0): Promise<string | null> {
   try {
