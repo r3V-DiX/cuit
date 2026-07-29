@@ -137,10 +137,13 @@ export class CompanyController {
     }
 
     // ── Join Request routes (all skip KYC — user hasn't verified yet) ────────
+    // @Roles overrides the class-level EMPLOYER restriction so SEEKER users
+    // (domain-matched registrants) can access these before their role is upgraded.
 
     /** GET /employer/company/domain-check — call after register to show the right screen */
     @Get('domain-check')
     @SkipKycCheck()
+    @Roles(UserRole.SEEKER, UserRole.EMPLOYER)
     domainCheck(@CurrentUser() user: User) {
         return this.companyService.checkDomain(user.id);
     }
@@ -149,6 +152,7 @@ export class CompanyController {
     @Post('join-request')
     @HttpCode(HttpStatus.CREATED)
     @SkipKycCheck()
+    @Roles(UserRole.SEEKER, UserRole.EMPLOYER)
     requestToJoin(@CurrentUser() user: User, @Body() dto: RequestToJoinDto) {
         return this.companyService.requestToJoin(user.id, dto.message);
     }
@@ -156,6 +160,7 @@ export class CompanyController {
     /** GET /employer/company/join-request/me — poll own request status */
     @Get('join-request/me')
     @SkipKycCheck()
+    @Roles(UserRole.SEEKER, UserRole.EMPLOYER)
     getMyJoinRequest(@CurrentUser() user: User) {
         return this.companyService.getMyJoinRequest(user.id);
     }
