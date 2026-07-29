@@ -434,6 +434,7 @@ export default function ProfilePage() {
   const [newSkill, setNewSkill] = useState("");
   const [skillSuggestions, setSkillSuggestions] = useState<{ id: string; name: string }[]>([]);
   const [showSkillDropdown, setShowSkillDropdown] = useState(false);
+  const [addingSkillId, setAddingSkillId] = useState<string | null>(null);
   const skillSearchTimer = useCallback(() => {}, []);
 
   async function searchSkillSuggestions(query: string) {
@@ -465,6 +466,10 @@ export default function ProfilePage() {
       toast({ type: "warning", message: "Already added" });
       return;
     }
+    setAddingSkillId(skillId);
+    setShowSkillDropdown(false);
+    setNewSkill("");
+    setSkillSuggestions([]);
     try {
       const addRes = await fetch("/api/profile/skills", {
         method: "POST",
@@ -474,9 +479,6 @@ export default function ProfilePage() {
       });
       if (addRes.ok) {
         toast({ type: "success", message: "Skill added", description: `"${skillName}" added to your profile.` });
-        setNewSkill("");
-        setSkillSuggestions([]);
-        setShowSkillDropdown(false);
         loadProfile();
       } else {
         const err = await addRes.json().catch(() => null);
@@ -484,6 +486,8 @@ export default function ProfilePage() {
       }
     } catch (err) {
       toast({ type: "error", message: "Error adding skill", description: err instanceof Error ? err.message : undefined });
+    } finally {
+      setAddingSkillId(null);
     }
   }
 
@@ -1402,28 +1406,30 @@ export default function ProfilePage() {
               {activeSection === "bio" && (
                 <div className="space-y-6">
                   <div>
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                       <h3 className="text-sm font-semibold text-slate-900">About</h3>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={handleAiGenerateBio}
-                          disabled={isGeneratingBio}
-                          className="text-xs font-semibold text-violet-600 hover:text-violet-700 flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                          disabled={isGeneratingBio || editingBio}
+                          className="flex items-center gap-1.5 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg transition-colors"
                           title="Generate bio from your profile data"
                         >
                           {isGeneratingBio ? (
-                            <span className="w-3.5 h-3.5 border-2 border-violet-400 border-t-violet-700 rounded-full animate-spin shrink-0" />
+                            <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
                           ) : (
                             <Wand2 className="w-3.5 h-3.5" />
                           )}
                           {isGeneratingBio ? "Generating..." : "Generate with AI"}
                         </button>
-                        <button
-                          onClick={() => { setEditingBio(!editingBio); setBioBuffer(bio); }}
-                          className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                        >
-                          <Pencil className="w-3 h-3" /> {editingBio ? "Cancel" : "Edit"}
-                        </button>
+                        {!editingBio && (
+                          <button
+                            onClick={() => { setBioBuffer(bio); setEditingBio(true); }}
+                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                          >
+                            <Pencil className="w-3 h-3" /> Edit
+                          </button>
+                        )}
                       </div>
                     </div>
                     {editingBio ? (
@@ -1431,8 +1437,9 @@ export default function ProfilePage() {
                         <textarea
                           value={bioBuffer}
                           onChange={(e) => setBioBuffer(e.target.value)}
-                          rows={4}
+                          rows={6}
                           className={`${field} resize-none`}
+                          placeholder="Write a short professional summary..."
                         />
                         <div className="flex gap-2">
                           <button
@@ -1448,8 +1455,10 @@ export default function ProfilePage() {
                           </button>
                         </div>
                       </div>
+                    ) : bio ? (
+                      <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{bio}</p>
                     ) : (
-                      <p className="text-sm text-slate-600 leading-relaxed">{bio}</p>
+                      <p className="text-sm text-slate-300 italic">No bio yet. Write one or use &quot;Generate with AI&quot;.</p>
                     )}
                   </div>
 
@@ -1491,9 +1500,13 @@ export default function ProfilePage() {
                         onFocus={() => { if (skillSuggestions.length > 0) setShowSkillDropdown(true); }}
                         placeholder="Search skills (e.g. Penetration Testing, Python)..."
                         maxLength={50}
-                        className={`${field} h-9 pr-10`}
+                        disabled={!!addingSkillId}
+                        className={`${field} h-9 pr-10 disabled:opacity-60`}
                       />
-                      {showSkillDropdown && (
+                      {addingSkillId && (
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-blue-400 border-t-blue-700 rounded-full animate-spin" />
+                      )}
+                      {showSkillDropdown && !addingSkillId && (
                         <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-50 overflow-hidden">
                           {skillSuggestions.map((s) => (
                             <button

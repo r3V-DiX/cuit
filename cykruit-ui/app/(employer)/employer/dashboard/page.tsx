@@ -6,8 +6,10 @@ import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Briefcase, Users, Eye, TrendingUp, ArrowRight, ChevronRight,
   PlusCircle, CheckCircle2, Clock, XCircle, Send, Building2,
-  BarChart2, Activity, Loader2, AlertTriangle, ShieldCheck, ShieldAlert,
+  BarChart2, AlertTriangle, ShieldCheck, ShieldAlert,
 } from "lucide-react";
+import { DashboardListSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { apiFetch } from "@/lib/api";
 import { useKycStatus } from "@/lib/employer-context";
 
@@ -28,6 +30,13 @@ const STATUS_MAP: Record<string, AppStatus> = {
   REJECTED: "Rejected",
   INTERVIEW: "Interview",
 };
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 function relativeTime(dateStr: string | null | undefined): string {
   if (!dateStr) return "—";
@@ -221,8 +230,8 @@ export default function EmployerDashboardPage() {
           {/* Greeting */}
           <div className="bg-white rounded-2xl border border-slate-200 px-6 py-5 flex items-center justify-between gap-6 flex-wrap">
             <div>
-              <h1 className="text-xl font-bold text-slate-900 leading-snug">Good morning, {displayName}</h1>
-              <p className="text-sm text-slate-500 mt-0.5">Here's your hiring overview for today</p>
+              <h1 className="text-xl font-bold text-slate-900 leading-snug">{getGreeting()}, {displayName}</h1>
+              <p className="text-sm text-slate-500 mt-0.5">Here&apos;s your hiring overview for today</p>
             </div>
             {canPost ? (
               <Link
@@ -238,13 +247,39 @@ export default function EmployerDashboardPage() {
             )}
           </div>
 
+          {/* Quick Links — below greeting */}
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+            {QUICK_LINKS.map(({ label, href, icon, requiresKyc }) => {
+              const locked = requiresKyc && !canPost;
+              return locked ? (
+                <div
+                  key={href}
+                  title="Complete KYC to unlock"
+                  className="flex flex-col items-center gap-2 py-3 px-2 rounded-xl border border-slate-200 bg-white text-slate-300 cursor-not-allowed select-none"
+                >
+                  <span>{icon}</span>
+                  <span className="text-[11px] font-medium text-center leading-snug">{label}</span>
+                </div>
+              ) : (
+                <Link
+                  key={href}
+                  href={href}
+                  className="flex flex-col items-center gap-2 py-3 px-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-all group"
+                >
+                  <span className="text-slate-400 group-hover:text-blue-500 transition-colors">{icon}</span>
+                  <span className="text-[11px] font-medium text-center leading-snug">{label}</span>
+                </Link>
+              );
+            })}
+          </div>
+
           {/* Stats row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Active Jobs",       value: statVal(activeJobsCount),  href: "/employer/jobs",       iconBg: "bg-blue-50 text-blue-600",   numColor: "text-blue-600",   icon: <Briefcase    className="w-5 h-5" /> },
-              { label: "Total Applicants",  value: statVal(totalApplicants),  href: "/employer/applicants", iconBg: "bg-violet-50 text-violet-600", numColor: "text-violet-600", icon: <Users        className="w-5 h-5" /> },
-              { label: "New This Week",     value: statVal(newThisWeek),      href: "/employer/applicants", iconBg: "bg-green-50 text-green-600", numColor: "text-green-600",  icon: <TrendingUp   className="w-5 h-5" /> },
-              { label: "Total Views",       value: statVal(totalViews),       href: "/employer/jobs",       iconBg: "bg-amber-50 text-amber-600", numColor: "text-amber-600",  icon: <Eye          className="w-5 h-5" /> },
+              { label: "Active Jobs",       value: statVal(activeJobsCount),  href: "/employer/jobs",       iconBg: "bg-blue-50 text-blue-600",    numColor: "text-blue-600",   icon: <Briefcase   className="w-5 h-5" /> },
+              { label: "Total Applicants",  value: statVal(totalApplicants),  href: "/employer/applicants", iconBg: "bg-violet-50 text-violet-600", numColor: "text-violet-600", icon: <Users       className="w-5 h-5" /> },
+              { label: "New This Week",     value: statVal(newThisWeek),      href: "/employer/applicants", iconBg: "bg-green-50 text-green-600",  numColor: "text-green-600",  icon: <TrendingUp  className="w-5 h-5" /> },
+              { label: "Total Views",       value: statVal(totalViews),       href: "/employer/jobs",       iconBg: "bg-amber-50 text-amber-600",  numColor: "text-amber-600",  icon: <Eye         className="w-5 h-5" /> },
             ].map(({ label, value, href, iconBg, numColor, icon }) => (
               <Link
                 key={label}
@@ -253,7 +288,7 @@ export default function EmployerDashboardPage() {
               >
                 <div>
                   {loading
-                    ? <Loader2 className={`w-5 h-5 animate-spin ${numColor}`} />
+                    ? <Skeleton className="h-7 w-10 mb-1" />
                     : <p className={`text-2xl font-bold leading-none ${numColor}`}>{value}</p>
                   }
                   <p className="text-xs text-slate-600 font-medium mt-1.5">{label}</p>
@@ -265,7 +300,7 @@ export default function EmployerDashboardPage() {
             ))}
           </div>
 
-          {/* Row 1: Recent Applicants + Quick Links */}
+          {/* Row 1: Recent Applicants + Hiring Funnel */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
             {/* Recent Applicants */}
@@ -281,8 +316,8 @@ export default function EmployerDashboardPage() {
               </div>
               <div className="divide-y divide-slate-100">
                 {loading ? (
-                  <div className="flex items-center justify-center py-10">
-                    <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                  <div className="p-2">
+                    <DashboardListSkeleton count={4} />
                   </div>
                 ) : recentApplicants.length === 0 ? (
                   <p className="text-xs text-slate-400 text-center py-10">No applicants yet</p>
@@ -314,91 +349,6 @@ export default function EmployerDashboardPage() {
               </div>
             </div>
 
-            {/* Quick Links */}
-            <div className="lg:col-span-1 bg-white rounded-2xl border border-slate-200 p-5 flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                <Activity className="w-4 h-4 text-slate-400" />
-                <h2 className="text-sm font-semibold text-slate-900">Quick Links</h2>
-              </div>
-              <div className="grid grid-cols-2 gap-2 flex-1 content-start">
-                {QUICK_LINKS.map(({ label, href, icon, requiresKyc }) => {
-                  const locked = requiresKyc && !canPost;
-                  return locked ? (
-                    <div
-                      key={href}
-                      title="Complete KYC to unlock"
-                      className="flex flex-col items-center gap-2 py-3 px-2 rounded-xl border border-slate-200 text-slate-300 cursor-not-allowed select-none"
-                    >
-                      <span>{icon}</span>
-                      <span className="text-[11px] font-medium text-center leading-snug">{label}</span>
-                    </div>
-                  ) : (
-                    <Link
-                      key={href}
-                      href={href}
-                      className="flex flex-col items-center gap-2 py-3 px-2 rounded-xl border border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-all group"
-                    >
-                      <span className="text-slate-400 group-hover:text-blue-500 transition-colors">{icon}</span>
-                      <span className="text-[11px] font-medium text-center leading-snug">{label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Row 2: Active Job Listings + Hiring Funnel */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-            {/* Active Job Listings */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-                <div className="flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-slate-400" />
-                  <h2 className="text-sm font-semibold text-slate-900">Active Job Listings</h2>
-                </div>
-                <Link href="/employer/jobs" className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700 transition-colors">
-                  Manage all <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-              <div className="divide-y divide-slate-100">
-                {loading ? (
-                  <div className="flex items-center justify-center py-10">
-                    <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-                  </div>
-                ) : jobsList.length === 0 ? (
-                  <p className="text-xs text-slate-400 text-center py-10">No jobs posted yet</p>
-                ) : jobsList.map((job) => (
-                  <div key={job.id} className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 hover:bg-slate-50/60 transition-colors group">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{job.title}</p>
-                        <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md border shrink-0 ${
-                          job.status === "Active"
-                            ? "text-green-700 bg-green-50 border-green-200"
-                            : job.status === "Pending"
-                            ? "text-amber-700 bg-amber-50 border-amber-200"
-                            : job.status === "Closed" || job.status === "Draft"
-                            ? "text-slate-500 bg-slate-50 border-slate-200"
-                            : "text-rose-700 bg-rose-50 border-rose-200"
-                        }`}>
-                          {job.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-0.5 font-mono">Posted {job.posted}</p>
-                    </div>
-                    <div className="flex items-center gap-2 sm:gap-4 shrink-0 text-xs text-slate-500">
-                      <span className="hidden sm:flex items-center gap-1"><Users className="w-3.5 h-3.5 text-slate-300" />{job.applicants}</span>
-                      <span className="hidden sm:flex items-center gap-1"><Eye className="w-3.5 h-3.5 text-slate-300" />{job.views}</span>
-                      <Link href={`/employer/jobs/${job.id}/edit`} className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 transition-colors">
-                        Edit <ChevronRight className="w-3 h-3" />
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Hiring Funnel */}
             <div className="lg:col-span-1 bg-white rounded-2xl border border-slate-200 p-5 flex flex-col">
               <div className="flex items-center gap-2 mb-4">
@@ -406,24 +356,34 @@ export default function EmployerDashboardPage() {
                 <h2 className="text-sm font-semibold text-slate-900">Hiring Funnel</h2>
               </div>
               <div className="flex flex-col gap-3 flex-1">
-                {[
-                  { label: "Total Applied",  count: funnelTotal,       pct: 100,                                                                  color: "bg-blue-500"   },
-                  { label: "Shortlisted",    count: funnelShortlisted, pct: funnelTotal ? Math.round(funnelShortlisted / funnelTotal * 100) : 0,  color: "bg-violet-500" },
-                  { label: "Interview",      count: funnelInterview,   pct: funnelTotal ? Math.round(funnelInterview   / funnelTotal * 100) : 0,  color: "bg-amber-500"  },
-                  { label: "Offer Sent",     count: funnelOffer,       pct: funnelTotal ? Math.round(funnelOffer       / funnelTotal * 100) : 0,  color: "bg-green-500"  },
-                ].map(({ label, count, pct, color }) => (
-                  <div key={label}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-slate-600 font-medium">{label}</span>
-                      <span className="text-xs font-bold text-slate-900 font-mono">
-                        {loading ? <Loader2 className="w-3 h-3 animate-spin inline" /> : count}
-                      </span>
+                {loading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i}>
+                      <div className="flex items-center justify-between mb-1">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-3 w-6" />
+                      </div>
+                      <Skeleton className="h-1.5 w-full rounded-full" />
                     </div>
-                    <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                  ))
+                ) : (
+                  [
+                    { label: "Total Applied",  count: funnelTotal,       pct: 100,                                                                  color: "bg-blue-500"   },
+                    { label: "Shortlisted",    count: funnelShortlisted, pct: funnelTotal ? Math.round(funnelShortlisted / funnelTotal * 100) : 0,  color: "bg-violet-500" },
+                    { label: "Interview",      count: funnelInterview,   pct: funnelTotal ? Math.round(funnelInterview   / funnelTotal * 100) : 0,  color: "bg-amber-500"  },
+                    { label: "Offer Sent",     count: funnelOffer,       pct: funnelTotal ? Math.round(funnelOffer       / funnelTotal * 100) : 0,  color: "bg-green-500"  },
+                  ].map(({ label, count, pct, color }) => (
+                    <div key={label}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-slate-600 font-medium">{label}</span>
+                        <span className="text-xs font-bold text-slate-900 font-mono">{count}</span>
+                      </div>
+                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
               <Link
                 href="/employer/applicants"
@@ -433,6 +393,55 @@ export default function EmployerDashboardPage() {
               </Link>
             </div>
 
+          </div>
+
+          {/* Row 2: Active Job Listings */}
+          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Briefcase className="w-4 h-4 text-slate-400" />
+                <h2 className="text-sm font-semibold text-slate-900">Active Job Listings</h2>
+              </div>
+              <Link href="/employer/jobs" className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                Manage all <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {loading ? (
+                <div className="p-2">
+                  <DashboardListSkeleton count={3} />
+                </div>
+              ) : jobsList.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-10">No jobs posted yet</p>
+              ) : jobsList.map((job) => (
+                <div key={job.id} className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 hover:bg-slate-50/60 transition-colors group">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-slate-900 truncate">{job.title}</p>
+                      <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md border shrink-0 ${
+                        job.status === "Active"
+                          ? "text-green-700 bg-green-50 border-green-200"
+                          : job.status === "Pending"
+                          ? "text-amber-700 bg-amber-50 border-amber-200"
+                          : job.status === "Closed" || job.status === "Draft"
+                          ? "text-slate-500 bg-slate-50 border-slate-200"
+                          : "text-rose-700 bg-rose-50 border-rose-200"
+                      }`}>
+                        {job.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5 font-mono">Posted {job.posted}</p>
+                  </div>
+                  <div className="flex items-center gap-2 sm:gap-4 shrink-0 text-xs text-slate-500">
+                    <span className="hidden sm:flex items-center gap-1"><Users className="w-3.5 h-3.5 text-slate-300" />{job.applicants}</span>
+                    <span className="hidden sm:flex items-center gap-1"><Eye className="w-3.5 h-3.5 text-slate-300" />{job.views}</span>
+                    <Link href={`/employer/jobs/${job.id}/edit`} className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 transition-colors">
+                      Edit <ChevronRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </main>

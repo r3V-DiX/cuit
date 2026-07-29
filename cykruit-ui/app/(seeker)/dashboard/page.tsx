@@ -21,6 +21,13 @@ import {
   X,
 } from "lucide-react";
        
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
+}
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 type AppStatus = "Applied" | "Under Review" | "Shortlisted" | "Rejected" | "Withdrawn";
@@ -205,7 +212,7 @@ export default function DashboardPage() {
             ) : (
               <>
                 <div>
-                  <h1 className="text-xl font-bold text-slate-900 leading-snug">Good morning, {userName}</h1>
+                  <h1 className="text-xl font-bold text-slate-900 leading-snug">{getGreeting()}, {userName}</h1>
                   <p className="text-sm text-slate-500 mt-0.5">Here is your job search overview</p>
                 </div>
                 {/* Profile completion inline card */}

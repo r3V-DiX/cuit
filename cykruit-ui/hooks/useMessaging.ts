@@ -50,6 +50,9 @@ export function useMessaging({
   const onMessageNewRef = useRef(onMessageNew);
   onMessageNewRef.current = onMessageNew;
 
+  // Track which room IDs have been joined so we don't double-emit
+  const joinedIdsRef = useRef<Set<string>>(new Set());
+
   const joinConversation = useCallback((convId: string) => {
     socketRef.current?.emit("join:conversation", { conversationId: convId });
   }, []);
@@ -58,6 +61,7 @@ export function useMessaging({
     socketRef.current?.emit("leave:conversation", { conversationId: convId });
   }, []);
 
+  // Connect socket once when enabled
   useEffect(() => {
     if (!enabled) return;
 
@@ -86,15 +90,31 @@ export function useMessaging({
 
       socketRef.current = socket;
 
-      // Join ALL conversation rooms on connect so messages on any conv are received
+      // On (re)connect: join all known rooms
       socket.on("connect", () => {
-        const ids = allConversationIds ?? (conversationId ? [conversationId] : []);
-        ids.forEach((id) => socket.emit("join:conversation", { conversationId: id }));
+        // Clear joined set on reconnect so we re-join everything
+        joinedIdsRef.current.clear();
+        const ids = allConversationIds?.length
+          ? allConversationIds
+          : conversationId
+          ? [conversationId]
+          : [];
+        ids.forEach((id) => {
+          socket.emit("join:conversation", { conversationId: id });
+          joinedIdsRef.current.add(id);
+        });
       });
 
       if (socket.connected) {
-        const ids = allConversationIds ?? (conversationId ? [conversationId] : []);
-        ids.forEach((id) => socket.emit("join:conversation", { conversationId: id }));
+        const ids = allConversationIds?.length
+          ? allConversationIds
+          : conversationId
+          ? [conversationId]
+          : [];
+        ids.forEach((id) => {
+          socket.emit("join:conversation", { conversationId: id });
+          joinedIdsRef.current.add(id);
+        });
       }
     })();
 
@@ -102,18 +122,32 @@ export function useMessaging({
       active = false;
       socketRef.current?.disconnect();
       socketRef.current = null;
+      joinedIdsRef.current.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
 
-  // When conversationId changes, join new (already in room if allConversationIds was provided)
+  // When conversationId changes, join that room
   useEffect(() => {
     if (!conversationId || !socketRef.current?.connected) return;
-    socketRef.current.emit("join:conversation", { conversationId });
-    return () => {
-      // Don't leave — we want to keep receiving messages for all convs
-    };
+    if (!joinedIdsRef.current.has(conversationId)) {
+      socketRef.current.emit("join:conversation", { conversationId });
+      joinedIdsRef.current.add(conversationId);
+    }
   }, [conversationId]);
+
+  // When allConversationIds array grows (convs load after socket connects),
+  // join any rooms not yet joined — this is the key fix for real-time on all convs
+  useEffect(() => {
+    if (!allConversationIds?.length || !socketRef.current?.connected) return;
+    allConversationIds.forEach((id) => {
+      if (!joinedIdsRef.current.has(id)) {
+        socketRef.current!.emit("join:conversation", { conversationId: id });
+        joinedIdsRef.current.add(id);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allConversationIds]);
 
   return { joinConversation, leaveConversation };
 }
