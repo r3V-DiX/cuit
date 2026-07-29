@@ -233,7 +233,7 @@ export class OtpService {
       }
 
       if (tokenCreatedInTx) {
-        this.auditService.log(AuditAction.LOGIN_SUCCESS, "SUCCESS", user.id, reqCtx, {
+        this.auditService.log(AuditAction.OTP_SENT, "SUCCESS", user.id, reqCtx, {
           action: "OTP_REQUESTED",
         });
         // Don't block the response on the outbound email API call — send it in the background.
@@ -258,7 +258,7 @@ export class OtpService {
       },
     });
 
-    this.auditService.log(AuditAction.LOGIN_SUCCESS, "SUCCESS", user.id, reqCtx, {
+    this.auditService.log(AuditAction.OTP_SENT, "SUCCESS", user.id, reqCtx, {
       action: "OTP_REQUESTED",
     });
 

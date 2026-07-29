@@ -37,6 +37,9 @@ export enum AuditAction {
   ACCOUNT_DEACTIVATED = "ACCOUNT_DEACTIVATED", // ✅ NEW
   ACCOUNT_DELETION_CANCELLED = "ACCOUNT_DELETION_CANCELLED", // ✅ NEW
 
+  // ── OTP ──────────────────────────────────────────────────────
+  OTP_SENT = "OTP_SENT",
+
   // ── Mobile ───────────────────────────────────────────────────
   MOBILE_LOGIN = "MOBILE_LOGIN",
   MOBILE_TOKEN_REFRESHED = "MOBILE_TOKEN_REFRESHED",
