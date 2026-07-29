@@ -492,7 +492,7 @@ export class CompanyService {
         return this.prisma.employerJoinRequest.findMany({
             where: { employerId: employer.id, status: JoinRequestStatus.PENDING },
             include: {
-                requester: { select: { id: true, email: true, firstName: true, lastName: true } },
+                requester: { select: { id: true, email: true, firstName: true, lastName: true, profileImage: true } },
             },
             orderBy: { createdAt: 'asc' },
         });
