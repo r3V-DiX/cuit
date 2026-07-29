@@ -485,7 +485,8 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
       });
     }
 
-    // Find or create employer profile
+    // Find or create employer profile — always ensure isVerified=true so re-running
+    // seed fixes accounts that were registered via the UI before seeding ran.
     let employer = await prisma.employer.findFirst({ where: { userId: user.id } });
     if (!employer) {
       employer = await prisma.employer.create({
@@ -503,7 +504,6 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
           verifiedAt: new Date(),
         },
       });
-      // Also link the user as an OWNER of the newly created employer profile
       await prisma.employerMember.create({
         data: {
           employerId: employer.id,
@@ -511,6 +511,12 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
           role: 'OWNER',
         },
       });
+    } else if (!employer.isVerified) {
+      employer = await prisma.employer.update({
+        where: { id: employer.id },
+        data: { isVerified: true, verifiedAt: new Date() },
+      });
+      console.log(`  ✅ KYC-verified existing employer: ${emp.companyName}`);
     }
 
     // Create subscription if specified

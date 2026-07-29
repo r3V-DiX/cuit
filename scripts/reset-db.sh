@@ -42,7 +42,7 @@ if docker exec cykruit-v2-auth-service-1 \
 else
   echo -e "${YELLOW}[WARN]${NC} Prisma seed failed — seeding admin manually..."
   ADMIN_HASH=$(docker exec cykruit-v2-auth-service-1 node -e \
-    "const b=require('bcryptjs');b.hash('Admin@123',10).then(h=>process.stdout.write(h))")
+    "const b=require('bcryptjs');b.hash('Rivedix@2025',10).then(h=>process.stdout.write(h))")
   docker run --rm \
     --network cykruit-v2_default \
     postgres:15-alpine \
@@ -50,7 +50,7 @@ else
       INSERT INTO admins (id, email, password, \"firstName\", \"lastName\", \"createdAt\", \"updatedAt\")
       VALUES (gen_random_uuid(), 'admin@cykruit.com', '$ADMIN_HASH', 'Super', 'Admin', now(), now())
       ON CONFLICT (email) DO NOTHING;"
-  echo -e "${GREEN}[INFO]${NC} Admin created: admin@cykruit.com / Admin@123"
+  echo -e "${GREEN}[INFO]${NC} Admin created: admin@cykruit.com / Rivedix@2025"
   echo -e "${YELLOW}[WARN]${NC} Skills/locations/packages NOT seeded — run prisma db seed manually after fixing ts-node."
 fi
 

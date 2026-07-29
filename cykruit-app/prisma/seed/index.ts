@@ -14,7 +14,7 @@ import { seedSuggestions } from './suggestions.seed';
 const prisma = new PrismaClient();
 
 const BOOTSTRAP_EMAIL = process.env.RBAC_BOOTSTRAP_ADMIN_EMAIL ?? 'admin@cykruit.com';
-const BOOTSTRAP_PASSWORD = process.env.RBAC_BOOTSTRAP_ADMIN_PASSWORD ?? 'Admin@123456';
+const BOOTSTRAP_PASSWORD = process.env.RBAC_BOOTSTRAP_ADMIN_PASSWORD ?? 'Rivedix@2025';
 
 async function ensureBootstrapAdmin(): Promise<void> {
     const existing = await prisma.admin.findUnique({ where: { email: BOOTSTRAP_EMAIL } });
