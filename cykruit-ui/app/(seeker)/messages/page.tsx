@@ -192,11 +192,14 @@ export default function SeekerMessagesPage() {
         time: formatTime(returned.createdAt),
         timeTs: new Date(returned.createdAt).getTime(),
       };
-      setConvs((prev) =>
-        prev.map((c) =>
+      setConvs((prev) => {
+        const updated = prev.map((c) =>
           c.id === activeId ? { ...c, messages: [...c.messages, newMsg] } : c
-        )
-      );
+        );
+        const idx = updated.findIndex((c) => c.id === activeId);
+        if (idx <= 0) return updated;
+        return [updated[idx], ...updated.slice(0, idx), ...updated.slice(idx + 1)];
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Message could not be sent";
       toast({ type: "error", message: "Send failed", description: msg });
@@ -219,8 +222,8 @@ export default function SeekerMessagesPage() {
   const [showList, setShowList] = useState(true);
 
   const handleMessageNew = useCallback(({ conversationId, message }: { conversationId: string; message: any }) => {
-    setConvs((prev) =>
-      prev.map((c) => {
+    setConvs((prev) => {
+      const updated = prev.map((c) => {
         if (c.id !== conversationId) return c;
         const newMsg: Message = {
           id: message.id,
@@ -236,8 +239,11 @@ export default function SeekerMessagesPage() {
           messages: [...c.messages, newMsg],
           seekerUnread: c.id === activeId ? 0 : c.seekerUnread + (newMsg.from === "employer" ? 1 : 0),
         };
-      })
-    );
+      });
+      const idx = updated.findIndex((c) => c.id === conversationId);
+      if (idx <= 0) return updated;
+      return [updated[idx], ...updated.slice(0, idx), ...updated.slice(idx + 1)];
+    });
   }, [currentUserId, activeId]);
 
   useMessaging({

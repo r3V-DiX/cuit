@@ -217,13 +217,16 @@ export default function EmployerMessagesPage() {
         time: formatTime(savedMsg?.createdAt ?? new Date().toISOString()),
         timeTs: savedMsg?.createdAt ? new Date(savedMsg.createdAt).getTime() : Date.now(),
       };
-      setConvs((prev) =>
-        prev.map((c) =>
+      setConvs((prev) => {
+        const updated = prev.map((c) =>
           c.id === active.id
             ? { ...c, messages: [...c.messages, newMsg], employerUnread: 0 }
             : c
-        )
-      );
+        );
+        const idx = updated.findIndex((c) => c.id === active.id);
+        if (idx <= 0) return updated;
+        return [updated[idx], ...updated.slice(0, idx), ...updated.slice(idx + 1)];
+      });
     } catch (err: any) {
       toast({ type: "error", message: err.message ?? "Failed to send message" });
     }
@@ -252,8 +255,8 @@ export default function EmployerMessagesPage() {
   const totalUnread = convs.reduce((s, c) => s + c.employerUnread, 0);
 
   const handleMessageNew = useCallback(({ conversationId, message }: { conversationId: string; message: any }) => {
-    setConvs((prev) =>
-      prev.map((c) => {
+    setConvs((prev) => {
+      const updated = prev.map((c) => {
         if (c.id !== conversationId) return c;
         const newMsg: Message = {
           id: message.id,
@@ -269,8 +272,11 @@ export default function EmployerMessagesPage() {
           messages: [...c.messages, newMsg],
           employerUnread: c.id === activeId ? 0 : c.employerUnread + (newMsg.from === "seeker" ? 1 : 0),
         };
-      })
-    );
+      });
+      const idx = updated.findIndex((c) => c.id === conversationId);
+      if (idx <= 0) return updated;
+      return [updated[idx], ...updated.slice(0, idx), ...updated.slice(idx + 1)];
+    });
   }, [currentUserId, activeId]);
 
   useMessaging({
