@@ -325,17 +325,6 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
           <p className="text-sm font-semibold text-green-800">Organisation verified — job posting is active</p>
         </div>
       )}
-      {kycStatus === "APPROVED" && verifiedAt && (() => {
-        const msElapsed = Date.now() - new Date(verifiedAt).getTime();
-        const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
-        if (msElapsed > THREE_DAYS_MS) return null;
-        return (
-          <div className="mx-6 mt-2 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 rounded-xl shadow-sm w-fit">
-            <ShieldCheck className="w-4 h-4 text-white shrink-0" />
-            <span className="text-xs font-bold text-white tracking-wide">Organisation verified</span>
-          </div>
-        );
-      })()}
 
       <main className="flex-1 overflow-y-auto p-3 sm:p-6">
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
