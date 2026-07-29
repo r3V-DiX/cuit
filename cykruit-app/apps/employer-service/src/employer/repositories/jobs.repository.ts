@@ -20,6 +20,7 @@ const JOB_DETAIL_INCLUDE = {
             companySize: true,
         },
     },
+    _count: { select: { applications: true } },
 } satisfies Prisma.JobInclude;
 
 @Injectable()

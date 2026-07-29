@@ -67,6 +67,7 @@ interface ApiJob {
   applicantCount?: number;
   viewCount?: number;
   publishedAt?: string | null;
+  _count?: { applications?: number };
 }
 
 interface ApiApplication {
@@ -142,7 +143,8 @@ export default function EmployerDashboardPage() {
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     return new Date(a.appliedAt).getTime() >= weekAgo;
   }).length;
-  const totalViews = jobs.reduce((sum, j) => sum + (j.viewCount || 0), 0);
+  const totalViews = jobs.reduce((sum, j) => sum + (j.viewCount ?? 0), 0);
+  const totalApplicantsFromJobs = jobs.reduce((sum, j) => sum + (j._count?.applications ?? j.applicantCount ?? 0), 0);
 
   // Recent applicants: last 4 by appliedAt desc
   const recentApplicants = [...applications]
@@ -162,7 +164,7 @@ export default function EmployerDashboardPage() {
     .map(j => ({
       id: j.id,
       title: j.jobTitle,
-      applicants: j.applicantCount ?? 0,
+      applicants: j._count?.applications ?? j.applicantCount ?? 0,
       views: j.viewCount ?? 0,
       posted: relativeTime(j.publishedAt),
       status: j.status === "APPROVED" ? "Active" :
@@ -277,7 +279,7 @@ export default function EmployerDashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: "Active Jobs",       value: statVal(activeJobsCount),  href: "/employer/jobs",       iconBg: "bg-blue-50 text-blue-600",    numColor: "text-blue-600",   icon: <Briefcase   className="w-5 h-5" /> },
-              { label: "Total Applicants",  value: statVal(totalApplicants),  href: "/employer/applicants", iconBg: "bg-violet-50 text-violet-600", numColor: "text-violet-600", icon: <Users       className="w-5 h-5" /> },
+              { label: "Total Applicants",  value: statVal(totalApplicantsFromJobs),  href: "/employer/applicants", iconBg: "bg-violet-50 text-violet-600", numColor: "text-violet-600", icon: <Users       className="w-5 h-5" /> },
               { label: "New This Week",     value: statVal(newThisWeek),      href: "/employer/applicants", iconBg: "bg-green-50 text-green-600",  numColor: "text-green-600",  icon: <TrendingUp  className="w-5 h-5" /> },
               { label: "Total Views",       value: statVal(totalViews),       href: "/employer/jobs",       iconBg: "bg-amber-50 text-amber-600",  numColor: "text-amber-600",  icon: <Eye         className="w-5 h-5" /> },
             ].map(({ label, value, href, iconBg, numColor, icon }) => (
