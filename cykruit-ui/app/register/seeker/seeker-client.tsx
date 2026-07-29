@@ -12,25 +12,34 @@ import { broadcastLogin } from "@/lib/auth-sync";
 
 function OtpInput({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled: boolean }) {
   const refs = useRef<Array<HTMLInputElement | null>>([]);
+  const valueRef = useRef(value);
+  valueRef.current = value;
 
   function handleChange(i: number, e: React.ChangeEvent<HTMLInputElement>) {
-    const digit = e.target.value.replace(/\D/g, "").slice(-1);
-    if (!digit) return;
-    const newOtp = value.slice(0, i) + digit + value.slice(i + 1);
-    onChange(newOtp.slice(0, 6));
+    const digits = e.target.value.replace(/\D/g, "");
+    if (digits.length > 1) {
+      const filled = (valueRef.current.slice(0, i) + digits).slice(0, 6);
+      onChange(filled);
+      refs.current[Math.min(filled.length, 5)]?.focus();
+      return;
+    }
+    if (!digits) return;
+    const next = (valueRef.current.slice(0, i) + digits + valueRef.current.slice(i + 1)).slice(0, 6);
+    onChange(next);
     if (i < 5) refs.current[i + 1]?.focus();
   }
 
   function handleKeyDown(i: number, e: React.KeyboardEvent<HTMLInputElement>) {
+    const cur = valueRef.current;
     if (e.key === "Backspace") {
       e.preventDefault();
-      if (value[i]) {
-        onChange(value.slice(0, i) + value.slice(i + 1));
+      if (cur[i]) {
+        onChange(cur.slice(0, i) + cur.slice(i + 1));
       } else if (i > 0) {
-        onChange(value.slice(0, i - 1) + value.slice(i));
+        onChange(cur.slice(0, i - 1) + cur.slice(i));
         refs.current[i - 1]?.focus();
       }
-    } else if (e.key === "Enter" && value.length === 6) {
+    } else if (e.key === "Enter" && cur.length === 6) {
       (e.target as HTMLInputElement).form?.requestSubmit();
     } else if (e.key === "ArrowLeft" && i > 0) {
       e.preventDefault();
@@ -49,7 +58,7 @@ function OtpInput({ value, onChange, disabled }: { value: string; onChange: (v: 
   }
 
   function handleFocus(i: number) {
-    const nextEmpty = value.length;
+    const nextEmpty = valueRef.current.length;
     if (i > nextEmpty) refs.current[nextEmpty]?.focus();
   }
 
@@ -62,7 +71,7 @@ function OtpInput({ value, onChange, disabled }: { value: string; onChange: (v: 
           type="text"
           inputMode="numeric"
           autoComplete={i === 0 ? "one-time-code" : "off"}
-          maxLength={2}
+          maxLength={1}
           value={value[i] ?? ""}
           onChange={(e) => handleChange(i, e)}
           onKeyDown={(e) => handleKeyDown(i, e)}
