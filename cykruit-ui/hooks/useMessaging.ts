@@ -49,6 +49,13 @@ export function useMessaging({
   const onMessageNewRef = useRef(onMessageNew);
   onMessageNewRef.current = onMessageNew;
 
+  // Keep a live ref so the connect handler always reads current IDs,
+  // not a stale closure captured at effect-run time.
+  const allConversationIdsRef = useRef<string[]>(allConversationIds ?? []);
+  allConversationIdsRef.current = allConversationIds ?? [];
+  const conversationIdRef = useRef<string | null>(conversationId);
+  conversationIdRef.current = conversationId;
+
   // Track which room IDs have been joined so we don't double-emit
   const joinedIdsRef = useRef<Set<string>>(new Set());
 
@@ -66,6 +73,20 @@ export function useMessaging({
 
     let socket: Socket;
     let active = true;
+
+    const joinAll = () => {
+      const ids = allConversationIdsRef.current.length
+        ? allConversationIdsRef.current
+        : conversationIdRef.current
+        ? [conversationIdRef.current]
+        : [];
+      ids.forEach((id) => {
+        if (!joinedIdsRef.current.has(id)) {
+          socket.emit("join:conversation", { conversationId: id });
+          joinedIdsRef.current.add(id);
+        }
+      });
+    };
 
     (async () => {
       const token = await fetchWsToken();
@@ -89,31 +110,14 @@ export function useMessaging({
 
       socketRef.current = socket;
 
-      // On (re)connect: join all known rooms
+      // On (re)connect: re-join all rooms using the ref (always current, never stale)
       socket.on("connect", () => {
-        // Clear joined set on reconnect so we re-join everything
         joinedIdsRef.current.clear();
-        const ids = allConversationIds?.length
-          ? allConversationIds
-          : conversationId
-          ? [conversationId]
-          : [];
-        ids.forEach((id) => {
-          socket.emit("join:conversation", { conversationId: id });
-          joinedIdsRef.current.add(id);
-        });
+        joinAll();
       });
 
       if (socket.connected) {
-        const ids = allConversationIds?.length
-          ? allConversationIds
-          : conversationId
-          ? [conversationId]
-          : [];
-        ids.forEach((id) => {
-          socket.emit("join:conversation", { conversationId: id });
-          joinedIdsRef.current.add(id);
-        });
+        joinAll();
       }
     })();
 
@@ -135,8 +139,7 @@ export function useMessaging({
     }
   }, [conversationId]);
 
-  // When allConversationIds array grows (convs load after socket connects),
-  // join any rooms not yet joined — this is the key fix for real-time on all convs
+  // When allConversationIds grows (convs load after socket connects), join new rooms
   useEffect(() => {
     if (!allConversationIds?.length || !socketRef.current?.connected) return;
     allConversationIds.forEach((id) => {
