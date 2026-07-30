@@ -19,8 +19,8 @@ export interface ParsedExp { title?: string; company?: string; location?: string
 export interface ParsedEdu { degree?: string; school?: string; startDate?: string; endDate?: string; }
 export interface ParsedCert { name?: string; issuer?: string; issueDate?: string; }
 export interface ParsedResume {
-  firstName?: string; lastName?: string; email?: string; title?: string;
-  location?: string; linkedin?: string; github?: string; portfolio?: string;
+  firstName?: string; lastName?: string; email?: string; phone?: string; title?: string;
+  location?: string;
   summary?: string;
   experiences?: ParsedExp[];
   education?: ParsedEdu[];
@@ -85,6 +85,7 @@ export class AIProfileService {
     if (parsedData.firstName) basicInfo.firstName = parsedData.firstName as string;
     if (parsedData.lastName) basicInfo.lastName = parsedData.lastName as string;
     if (parsedData.email) basicInfo.professionalEmail = parsedData.email as string;
+    if (parsedData.phone) basicInfo.phone = parsedData.phone as string;
     if (parsedData.title) basicInfo.title = parsedData.title as string;
     if (parsedData.location) {
       const parts = (parsedData.location as string).split(',').map((p: string) => p.trim());
@@ -94,9 +95,6 @@ export class AIProfileService {
         basicInfo.location = { city: parts[0], country: "Unknown" };
       }
     }
-    if (parsedData.linkedin) basicInfo.linkedin = parsedData.linkedin as string;
-    if (parsedData.github) basicInfo.github = parsedData.github as string;
-    if (parsedData.portfolio) basicInfo.portfolio = parsedData.portfolio as string;
 
     if (Object.keys(basicInfo).length > 0) {
       await this.profileService.updateBasicInfo(userId, basicInfo).catch(e => this.logger.warn("Failed basic info update", e.message));

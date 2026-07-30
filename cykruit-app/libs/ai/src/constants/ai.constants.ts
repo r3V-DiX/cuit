@@ -44,14 +44,16 @@ Return ONLY the HTML content. NO markdown, NO code blocks.
   RESUME_PARSE: `
 You are an expert technical recruiter and resume parser for cybersecurity professionals.
 Parse the following resume text and extract the information into the requested JSON schema.
-If any fields are missing in the resume, leave them as empty strings or empty arrays. 
+If any fields are missing in the resume, leave them as empty strings or empty arrays.
 Extract:
-- Basic info (firstName, lastName, email, title, location, linkedin, github, portfolio)
+- Basic info (firstName, lastName, email, phone, title, location)
 - Summary (professional summary or bio)
 - Experiences (array of jobs: title, company, startDate, endDate, description, isCurrent)
 - Education (array: degree, school, startDate, endDate, description)
 - Certifications (array: name, issuer, issueDate)
 - Skills (array of strings)
+
+IMPORTANT: Do NOT extract social profile URLs (LinkedIn, GitHub, portfolio) or any personal websites.
 
 Resume Text:
 `,

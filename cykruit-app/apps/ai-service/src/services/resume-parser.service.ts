@@ -6,11 +6,9 @@ const ParsedResumeSchema = z.object({
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   email: z.string().optional(),
+  phone: z.string().optional(),
   title: z.string().optional(),
   location: z.string().optional(),
-  linkedin: z.string().optional(),
-  github: z.string().optional(),
-  portfolio: z.string().optional(),
   summary: z.string().optional(),
   experiences: z
     .array(
@@ -59,6 +57,8 @@ export class ResumeParserService {
 You are an expert ATS (Applicant Tracking System) parser.
 Extract the following information from the provided resume text and format it as structured JSON.
 Ensure you accurately identify skills, work experience, education, and personal details.
+
+IMPORTANT: Do NOT extract social profile URLs (LinkedIn, GitHub, portfolio) or any personal websites.
 
 RESUME TEXT:
 ${resumeText}
