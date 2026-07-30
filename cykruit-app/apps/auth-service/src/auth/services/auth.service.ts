@@ -50,6 +50,21 @@ export class AuthService {
             },
           },
         },
+        employerMemberships: {
+          where: { employer: { isVerified: true } },
+          include: {
+            employer: {
+              include: {
+                verifications: {
+                  where: { isLatest: true },
+                  orderBy: { submittedAt: 'desc' },
+                  take: 1,
+                },
+              },
+            },
+          },
+          take: 1,
+        },
         jobSeekerProfile: true,
       },
     });
@@ -59,7 +74,13 @@ export class AuthService {
     const userResponse = formatUserResponse(user);
 
     if (user.role === UserRole.EMPLOYER) {
-      const employerStatus = await this.getEmployerStatus(user);
+      // Members joined via join-request have user.employer = null but have an
+      // EmployerMember row. Resolve their employer from memberships so
+      // getEmployerStatus doesn't return hasProfile:false and send them to KYC.
+      const resolvedUser = user.employer
+        ? user
+        : { ...user, employer: (user as any).employerMemberships?.[0]?.employer ?? null };
+      const employerStatus = await this.getEmployerStatus(resolvedUser);
       const userData = { ...userResponse, employerStatus };
 
       if (employerStatus.profileCompletion < 100) {
@@ -294,6 +315,13 @@ export class AuthService {
     if (!user) throw new NotFoundException(ErrorCodes.USER_NOT_FOUND);
 
     if (user.role === UserRole.SEEKER) {
+      // Still cancel any pending join requests even if already a seeker —
+      // domain-match flow creates a join request before role is set to EMPLOYER,
+      // so the user may be SEEKER with an open PENDING request.
+      await this.prisma.employerJoinRequest.updateMany({
+        where: { requesterId: userId, status: 'PENDING' },
+        data: { status: 'REJECTED', resolvedAt: new Date() },
+      });
       return { message: "Already a seeker." };
     }
 
@@ -320,8 +348,8 @@ export class AuthService {
 
       // Cancel any pending join requests from this user
       await tx.employerJoinRequest.updateMany({
-        where: { requesterId: userId, status: "PENDING" },
-        data: { status: "REJECTED", resolvedAt: new Date() },
+        where: { requesterId: userId, status: 'PENDING' },
+        data: { status: 'REJECTED', resolvedAt: new Date() },
       });
     });
 
