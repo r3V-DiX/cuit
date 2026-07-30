@@ -10,6 +10,7 @@ import {
   ChevronLeft, Edit3, MapPin, Briefcase, Users, Eye,
   CheckCircle2, Clock, XCircle, Send, ChevronRight,
   Sparkles, MessageSquare, BarChart2, Calendar, AlertTriangle, RefreshCw,
+  Download, Lock,
 } from "lucide-react";
 
 function formatEnum(value: string): string {
@@ -50,6 +51,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const { toast } = useToast();
   const { limits: subLimits } = useSubscriptionLimits();
   const aiScoringEnabled = subLimits?.aiScoringEnabled ?? false;
+  const canExportApplicants = subLimits?.canExportApplicants ?? false;
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const fetchJob = async () => {
@@ -169,6 +172,58 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       toast({ type: "error", ...describeError(err, "Resubmit failed") });
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleExport() {
+    if (!canExportApplicants || exporting) return;
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/employer/jobs/${id}/applications/export`, {
+        credentials: "include",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: { message?: string } })?.error?.message ?? "Export failed");
+      }
+      const rows = (await res.json()) as Record<string, unknown>[];
+      if (rows.length === 0) {
+        toast({ type: "info", message: "No applicants to export" });
+        return;
+      }
+      const headers = ["id", "status", "appliedAt", "aiScore", "firstName", "lastName", "jobTitle", "resumeFileName", "resumeUrl"];
+      const csvRows = [
+        headers.join(","),
+        ...rows.map((r) => {
+          const seeker = r.jobSeeker as Record<string, unknown> | undefined;
+          const job = r.job as Record<string, unknown> | undefined;
+          const resume = r.resume as Record<string, unknown> | undefined;
+          return [
+            r.id,
+            r.status,
+            r.appliedAt,
+            r.aiScore ?? "",
+            seeker?.firstName ?? "",
+            seeker?.lastName ?? "",
+            job?.jobTitle ?? "",
+            resume?.fileName ?? "",
+            resume?.fileUrl ?? "",
+          ].map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",");
+        }),
+      ].join("\n");
+      const blob = new Blob([csvRows], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `applicants-${id}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast({ type: "success", message: `Exported ${rows.length} applicant${rows.length !== 1 ? "s" : ""}` });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Export failed") });
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -457,6 +512,25 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 </button>
               ))}
             </div>
+            <button
+              onClick={handleExport}
+              disabled={!canExportApplicants || exporting}
+              title={!canExportApplicants ? "Upgrade to export applicants" : "Export to CSV"}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border shadow-sm transition-all ${
+                canExportApplicants
+                  ? "bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                  : "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed"
+              }`}
+            >
+              {exporting ? (
+                <span className="w-3.5 h-3.5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+              ) : canExportApplicants ? (
+                <Download className="w-3.5 h-3.5" />
+              ) : (
+                <Lock className="w-3.5 h-3.5" />
+              )}
+              Export CSV
+            </button>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">

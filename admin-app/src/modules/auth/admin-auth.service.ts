@@ -24,6 +24,9 @@ export class AdminAuthService {
         private readonly authAuditLogger: AdminAuthAuditLogger,
     ) {}
 
+    private static readonly MAX_FAILED_ATTEMPTS = 5;
+    private static readonly LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
     async login(
         dto: AdminLoginDto,
         ipAddress?: string,
@@ -44,15 +47,39 @@ export class AdminAuthService {
             throw new UnauthorizedException('Invalid credentials');
         }
 
-        const passwordValid = await compare(dto.password, admin.password);
-        if (!passwordValid) {
+        // Account lockout check
+        if (admin.lockedUntil && admin.lockedUntil > new Date()) {
             this.authAuditLogger.log({
                 action: 'ADMIN_LOGIN_FAILURE',
                 status: 'FAILURE',
                 adminId: admin.id,
                 ipAddress,
                 userAgent,
-                metadata: { email: dto.email, reason: 'bad_password' },
+                metadata: { email: dto.email, reason: 'account_locked' },
+            });
+            throw new UnauthorizedException('Account temporarily locked. Try again later.');
+        }
+
+        const passwordValid = await compare(dto.password, admin.password);
+        if (!passwordValid) {
+            const newCount = admin.failedLoginAttempts + 1;
+            const shouldLock = newCount >= AdminAuthService.MAX_FAILED_ATTEMPTS;
+            await this.prisma.admin.update({
+                where: { id: admin.id },
+                data: {
+                    failedLoginAttempts: newCount,
+                    lockedUntil: shouldLock
+                        ? new Date(Date.now() + AdminAuthService.LOCKOUT_DURATION_MS)
+                        : null,
+                },
+            });
+            this.authAuditLogger.log({
+                action: 'ADMIN_LOGIN_FAILURE',
+                status: 'FAILURE',
+                adminId: admin.id,
+                ipAddress,
+                userAgent,
+                metadata: { email: dto.email, reason: 'bad_password', attempt: newCount, locked: shouldLock },
             });
             throw new UnauthorizedException('Invalid credentials');
         }
@@ -74,7 +101,12 @@ export class AdminAuthService {
             }),
             this.prisma.admin.update({
                 where: { id: admin.id },
-                data: { lastLogin: new Date(), lastLoginIp: ipAddress },
+                data: {
+                    lastLogin: new Date(),
+                    lastLoginIp: ipAddress,
+                    failedLoginAttempts: 0,
+                    lockedUntil: null,
+                },
             }),
         ]);
 
@@ -117,6 +149,8 @@ export class AdminAuthService {
                         isActive: true,
                         lastLogin: true,
                         lastLoginIp: true,
+                        failedLoginAttempts: true,
+                        lockedUntil: true,
                         createdAt: true,
                         updatedAt: true,
                     },
