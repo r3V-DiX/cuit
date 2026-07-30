@@ -56,6 +56,14 @@ export class EmployerApplicationsService {
         };
     }
 
+    private redactAiFields<T extends { aiScore?: unknown; aiScoreData?: unknown; aiScoredAt?: unknown }>(
+        item: T,
+        aiScoringEnabled: boolean,
+    ): T {
+        if (aiScoringEnabled) return item;
+        return { ...item, aiScore: null, aiScoreData: null, aiScoredAt: null };
+    }
+
     async listForJob(userId: string, jobId: string, query: ApplicationListQueryDto) {
         const employer = await this.resolveEmployer(userId);
 
@@ -70,7 +78,12 @@ export class EmployerApplicationsService {
         const page = query.page ?? 1;
         const limit = query.limit ?? 20;
 
-        const redacted = await Promise.all(items.map((a) => this.redactResume(a, limits.resumeViewEnabled)));
+        const redacted = await Promise.all(
+            items.map(async (a) => {
+                const r = await this.redactResume(a, limits.resumeViewEnabled);
+                return this.redactAiFields(r, limits.aiScoringEnabled);
+            }),
+        );
 
         return {
             items: redacted,
@@ -88,7 +101,12 @@ export class EmployerApplicationsService {
         const page = query.page ?? 1;
         const limit = query.limit ?? 20;
 
-        const redacted = await Promise.all(items.map((a) => this.redactResume(a, limits.resumeViewEnabled)));
+        const redacted = await Promise.all(
+            items.map(async (a) => {
+                const r = await this.redactResume(a, limits.resumeViewEnabled);
+                return this.redactAiFields(r, limits.aiScoringEnabled);
+            }),
+        );
 
         return {
             items: redacted,
@@ -103,7 +121,8 @@ export class EmployerApplicationsService {
         if (jobId && application.jobId !== jobId) throw new NotFoundException('Application not found');
 
         const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
-        return this.redactResume(application, limits.resumeViewEnabled);
+        const redacted = await this.redactResume(application, limits.resumeViewEnabled);
+        return this.redactAiFields(redacted, limits.aiScoringEnabled);
     }
 
     async exportForJob(userId: string, jobId: string) {
@@ -117,7 +136,10 @@ export class EmployerApplicationsService {
         const job = await this.jobsRepo.findByIdAndEmployer(jobId, employer.id);
         if (!job) throw new NotFoundException('Job not found');
 
-        return this.applicationsRepo.findAllForExport(jobId, employer.id);
+        const rows = await this.applicationsRepo.findAllForExport(jobId, employer.id);
+        return limits.aiScoringEnabled
+            ? rows
+            : rows.map((r) => ({ ...r, aiScore: null }));
     }
 
     async updateStatus(
