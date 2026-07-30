@@ -469,7 +469,7 @@ export default function TeamPage() {
                             <MoreVertical className="w-4 h-4" />
                           </button>
                           {openMenu === member.id && (
-                            <div className="absolute right-0 top-9 z-20 bg-white rounded-xl border border-slate-200 shadow-lg shadow-slate-200/60 py-1 w-48">
+                            <div className="absolute right-0 bottom-9 z-20 bg-white rounded-xl border border-slate-200 shadow-lg shadow-slate-200/60 py-1 w-48">
                               {canChangeRole && (
                                 <>
                                   <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Change Role</p>
