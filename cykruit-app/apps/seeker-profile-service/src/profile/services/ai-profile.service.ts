@@ -19,7 +19,7 @@ export interface ParsedExp { title?: string; company?: string; location?: string
 export interface ParsedEdu { degree?: string; school?: string; startDate?: string; endDate?: string; }
 export interface ParsedCert { name?: string; issuer?: string; issueDate?: string; }
 export interface ParsedResume {
-  firstName?: string; lastName?: string; email?: string; phone?: string; title?: string;
+  fullName?: string; firstName?: string; lastName?: string; email?: string; phone?: string; title?: string;
   location?: string;
   summary?: string;
   experiences?: ParsedExp[];
@@ -84,6 +84,14 @@ export class AIProfileService {
     const basicInfo: Partial<UpdateBasicInfoDto> = {};
     if (parsedData.firstName) basicInfo.firstName = parsedData.firstName as string;
     if (parsedData.lastName) basicInfo.lastName = parsedData.lastName as string;
+    // Fallback: split fullName into firstName/lastName if individual parts missing
+    if (!basicInfo.firstName || !basicInfo.lastName) {
+      if (parsedData.fullName) {
+        const parts = (parsedData.fullName as string).trim().split(/\s+/);
+        if (parts.length >= 2 && !basicInfo.firstName) basicInfo.firstName = parts[0];
+        if (!basicInfo.lastName) basicInfo.lastName = parts.slice(1).join(' ');
+      }
+    }
     if (parsedData.email) basicInfo.professionalEmail = parsedData.email as string;
     if (parsedData.phone) basicInfo.phone = parsedData.phone as string;
     if (parsedData.title) basicInfo.title = parsedData.title as string;

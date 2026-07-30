@@ -3,13 +3,14 @@ import { AIService } from '@cykruit/ai';
 import { z } from 'zod';
 
 const ParsedResumeSchema = z.object({
+  fullName: z.string().optional(),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   email: z.string().optional(),
   phone: z.string().optional(),
-  title: z.string().optional(),
+  title: z.string().describe("Job title / current role"),
   location: z.string().optional(),
-  summary: z.string().optional(),
+  summary: z.string().describe("Professional summary / bio"),
   experiences: z
     .array(
       z.object({
@@ -55,8 +56,18 @@ export class ResumeParserService {
   async parseResume(resumeText: string): Promise<ParsedResume> {
     const prompt = `
 You are an expert ATS (Applicant Tracking System) parser.
-Extract the following information from the provided resume text and format it as structured JSON.
-Ensure you accurately identify skills, work experience, education, and personal details.
+Extract ALL of the following from the provided resume text and return structured JSON.
+DO NOT skip any section — extract everything available:
+
+- fullName, firstName, lastName
+- email, phone
+- title (current/most recent job title)
+- location (city, state, country)
+- summary (professional summary / bio / objective from top of resume)
+- experiences (work history with title, company, dates, description)
+- education (degrees, schools, years)
+- skills (technical and soft skills)
+- certifications (names, issuers, dates)
 
 IMPORTANT: Do NOT extract social profile URLs (LinkedIn, GitHub, portfolio) or any personal websites.
 
