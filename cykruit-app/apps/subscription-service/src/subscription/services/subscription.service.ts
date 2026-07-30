@@ -130,7 +130,12 @@ export class SubscriptionService {
         const sub = await this.repo.findSubscriptionByEmployer(employerId);
 
         if (!sub) {
-            const freePkg = await this.payRepo.findFreePackage();
+            const [freePkg, activeJobs, teamMembers, featuredJobs] = await Promise.all([
+                this.payRepo.findFreePackage(),
+                this.repo.countActiveJobs(employerId),
+                this.repo.countTeamMembers(employerId),
+                this.repo.countFeaturedJobs(employerId),
+            ]);
             return {
                 hasSubscription: false,
                 limits: {
@@ -145,9 +150,9 @@ export class SubscriptionService {
                     prioritySupportEnabled: freePkg?.prioritySupportEnabled ?? false,
                 },
                 usage: {
-                    currentActiveJobs: 0,
-                    currentTeamMembers: 0,
-                    usedFeaturedJobSlots: 0,
+                    currentActiveJobs: activeJobs,
+                    currentTeamMembers: teamMembers,
+                    usedFeaturedJobSlots: featuredJobs,
                 },
             };
         }

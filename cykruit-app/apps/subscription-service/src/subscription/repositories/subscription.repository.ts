@@ -283,6 +283,22 @@ export class SubscriptionRepository {
     }
 
     /** Sync real-time usage from live DB counts. */
+    async countActiveJobs(employerId: string): Promise<number> {
+        return this.prisma.job.count({
+            where: { employerId, status: { in: ['APPROVED', 'PENDING'] } },
+        });
+    }
+
+    async countTeamMembers(employerId: string): Promise<number> {
+        return this.prisma.employerMember.count({ where: { employerId } });
+    }
+
+    async countFeaturedJobs(employerId: string): Promise<number> {
+        return this.prisma.job.count({
+            where: { employerId, isFeatured: true, status: { in: ['APPROVED', 'PENDING'] } },
+        });
+    }
+
     async refreshUsage(employerId: string) {
         const [activeJobs, teamMembers, featuredJobs] = await this.prisma.$transaction([
             this.prisma.job.count({
