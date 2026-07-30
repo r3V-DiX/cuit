@@ -199,6 +199,28 @@ export class DomainEventProcessor {
 
             // ── Team events ───────────────────────────────────────────────────
 
+            case DomainEventType.TEAM_INVITE_ACCEPTED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.userId);
+                if (!contact) break;
+                await this.notificationService.emit({
+                    userId: p.userId,
+                    type: NotificationType.JOIN_REQUEST_RESOLVED,
+                    title: `Welcome to ${p.companyName}!`,
+                    message: p.roleUpgraded
+                        ? `You've joined ${p.companyName} as ${p.role.toLowerCase()}. Please log in again to access your employer dashboard.`
+                        : `You've joined ${p.companyName} as ${p.role.toLowerCase()}.`,
+                    actionUrl: p.roleUpgraded ? `/login?reason=role_upgraded` : `/employer/dashboard`,
+                    relatedEntityType: 'Employer',
+                    relatedEntityId: p.employerId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact.email,
+                    firstName: contact.firstName,
+                });
+                break;
+            }
+
             case DomainEventType.TEAM_INVITE_SENT: {
                 const p = event.payload as any;
                 if (p.invitedUserId) {

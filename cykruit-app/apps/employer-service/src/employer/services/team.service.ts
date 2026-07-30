@@ -290,12 +290,19 @@ export class TeamService {
             throw new ConflictException('You are already a member of this company.');
         }
 
-        // Atomically: upgrade role if needed + create membership + consume token.
+        // Atomically: upgrade role if needed + create membership + consume token
+        // + revoke sessions (role change requires fresh login) + cancel any pending
+        // join request for the same employer (invite supersedes it).
         const member = await this.prisma.$transaction(async (tx) => {
             if (roleUpgraded) {
                 await tx.user.update({
                     where: { id: userId },
                     data: { role: UserRole.EMPLOYER },
+                });
+                // Revoke all existing sessions so stale SEEKER role cookie cannot be used.
+                await tx.session.updateMany({
+                    where: { userId, isActive: true },
+                    data: { isActive: false, revokedAt: new Date(), revokedBy: 'role_upgrade' },
                 });
             }
 
@@ -311,6 +318,12 @@ export class TeamService {
             await tx.token.update({
                 where: { id: tokenRecord.id },
                 data: { usedAt: new Date() },
+            });
+
+            // Cancel any pending join request for this employer — invite supersedes it.
+            await tx.employerJoinRequest.updateMany({
+                where: { requesterId: userId, employerId: employer.id, status: 'PENDING' },
+                data: { status: 'ACCEPTED', resolvedAt: new Date() },
             });
 
             return newMember;

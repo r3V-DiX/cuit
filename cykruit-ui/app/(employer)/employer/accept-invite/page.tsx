@@ -76,7 +76,12 @@ export default function AcceptInvitePage() {
       });
       setStage("success");
       toast({ type: "success", message: "You've joined the team!" });
-      setTimeout(() => router.replace("/employer/dashboard"), 2000);
+      // Role upgraded: sessions were revoked — must re-login to get EMPLOYER cookie.
+      // No upgrade: session is still valid, go straight to dashboard.
+      setTimeout(
+        () => router.replace(preview?.requiresRoleUpgrade ? "/login?reason=role_upgraded" : "/employer/dashboard"),
+        2000,
+      );
     } catch (err) {
       const msg =
         err instanceof ApiError
@@ -158,7 +163,7 @@ export default function AcceptInvitePage() {
                   {preview.requiresRoleUpgrade ? "Accept & Upgrade Account" : "Accept & Join Team"}
                 </button>
                 <Link
-                  href="/employer/dashboard"
+                  href={preview?.requiresRoleUpgrade ? "/jobs" : "/employer/dashboard"}
                   className="w-full h-10 rounded-xl border border-slate-200 text-slate-600 text-sm hover:bg-slate-50 transition-colors flex items-center justify-center"
                 >
                   Decline
@@ -186,11 +191,13 @@ export default function AcceptInvitePage() {
               </div>
               <h1 className="text-xl font-bold text-slate-900 mb-2">You're in!</h1>
               <p className="text-sm text-slate-500 mb-6">
-                You've successfully joined the team. Redirecting to your dashboard…
+                {preview?.requiresRoleUpgrade
+                  ? "Your account has been upgraded. Please log in again to access your employer dashboard."
+                  : "You've successfully joined the team. Redirecting to your dashboard…"}
               </p>
               <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
                 <Users className="w-3.5 h-3.5" />
-                <span>Redirecting to employer dashboard</span>
+                <span>{preview?.requiresRoleUpgrade ? "Redirecting to login…" : "Redirecting to employer dashboard"}</span>
               </div>
             </>
           )}
