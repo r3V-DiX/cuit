@@ -80,7 +80,7 @@ export default function Navbar() {
             </Link>
           ) : (
             <>
-              <Button href="/login" variant="ghost" size="sm">Sign In</Button>
+              <Button href="/login" variant="outline-light" size="sm">Sign In</Button>
               <Button href="/register" variant="primary" size="sm">Get Started</Button>
             </>
           )}
