@@ -53,12 +53,14 @@ function OtpInput({ value, onChange, disabled }: { value: string; onChange: (v: 
     // Multi-digit: SMS autofill or paste via onChange
     if (digits.length > 1) {
       const filled = (valueRef.current.slice(0, i) + digits).slice(0, 6);
+      valueRef.current = filled;
       onChange(filled);
       refs.current[Math.min(filled.length, 5)]?.focus();
       return;
     }
     if (!digits) return;
     const next = (valueRef.current.slice(0, i) + digits + valueRef.current.slice(i + 1)).slice(0, 6);
+    valueRef.current = next;
     onChange(next);
     if (i < 5) refs.current[i + 1]?.focus();
   }
@@ -68,9 +70,13 @@ function OtpInput({ value, onChange, disabled }: { value: string; onChange: (v: 
     if (e.key === "Backspace") {
       e.preventDefault();
       if (cur[i]) {
-        onChange(cur.slice(0, i) + cur.slice(i + 1));
+        const next = cur.slice(0, i) + cur.slice(i + 1);
+        valueRef.current = next;
+        onChange(next);
       } else if (i > 0) {
-        onChange(cur.slice(0, i - 1) + cur.slice(i));
+        const next = cur.slice(0, i - 1) + cur.slice(i);
+        valueRef.current = next;
+        onChange(next);
         refs.current[i - 1]?.focus();
       }
     } else if (e.key === "Enter" && cur.length === 6) {
