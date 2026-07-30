@@ -57,24 +57,22 @@ export class AiServiceController {
     return this.matchService.getRecommendedJobs(body.seekerId, body.limit || 3);
   }
 
-  // ── Seeker-facing (auth + SEEKER role required) ──────────────────────────
+  // ── Seeker profile AI (internal — called server-to-server by seeker-profile-service) ──
+  // seeker-profile-service enforces SEEKER auth on its own controller before calling these.
 
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.SEEKER)
+  @Public()
   @Post('profile/generate-bio')
   async generateBio(@Body() body: { title: string, skills: string[], experienceTitles: string[] }) {
     return this.seekerAssistantService.generateBio(body.title, body.skills, body.experienceTitles);
   }
 
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.SEEKER)
+  @Public()
   @Post('profile/suggest-skills')
   async suggestSkills(@Body() body: { title: string, currentSkills: string[] }) {
     return this.seekerAssistantService.suggestSkills(body.title, body.currentSkills);
   }
 
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.SEEKER)
+  @Public()
   @Post('profile/tips')
   async getProfileTips(@Body() body: { title: string, missingSections: string[] }) {
     return this.seekerAssistantService.getProfileTips(body.title, body.missingSections);
