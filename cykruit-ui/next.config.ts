@@ -112,10 +112,17 @@ const nextConfig: NextConfig = {
         source: "/api/public/:path*",
         destination: `${PUBLIC_URL}/public/:path*`,
       },
-      {
-        source: "/api/ai/:path*",
-        destination: `${AI_URL}/ai/:path*`,
-      },
+      // Internal ai-service routes (embed/query, resume/parse, match-score, jobs/recommend)
+      // are intentionally excluded — backend services call ai-service directly via AI_SERVICE_URL.
+      // Only browser-facing endpoints are proxied here.
+      { source: "/api/ai/profile/generate-bio",        destination: `${AI_URL}/ai/profile/generate-bio` },
+      { source: "/api/ai/profile/suggest-skills",      destination: `${AI_URL}/ai/profile/suggest-skills` },
+      { source: "/api/ai/profile/tips",                destination: `${AI_URL}/ai/profile/tips` },
+      { source: "/api/ai/job-description/generate",    destination: `${AI_URL}/ai/job-description/generate` },
+      { source: "/api/ai/jobs/improve-description",    destination: `${AI_URL}/ai/jobs/improve-description` },
+      { source: "/api/ai/jobs/infer-domain",           destination: `${AI_URL}/ai/jobs/infer-domain` },
+      { source: "/api/ai/jobs/suggest-skills",         destination: `${AI_URL}/ai/jobs/suggest-skills` },
+      { source: "/api/ai/jobs/generate-questions",     destination: `${AI_URL}/ai/jobs/generate-questions` },
       {
         source: "/uploads/:path*",
         destination: `${PROFILE_URL}/uploads/:path*`,
