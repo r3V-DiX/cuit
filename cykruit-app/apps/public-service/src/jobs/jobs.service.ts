@@ -95,22 +95,27 @@ export class JobsService {
 
       if (searchVector) {
         const vectorStr = `[${searchVector.join(',')}]`;
+        const searchPattern = `%${dto.search}%`;
         const conditions = [
-          Prisma.sql`status = 'APPROVED'`,
-          Prisma.sql`("expiresAt" IS NULL OR "expiresAt" > ${now})`
+          Prisma.sql`j.status = 'APPROVED'`,
+          Prisma.sql`(j."expiresAt" IS NULL OR j."expiresAt" > ${now})`,
+          Prisma.sql`(j."jobTitle" ILIKE ${searchPattern} OR e."companyName" ILIKE ${searchPattern})`,
         ];
 
-        if (dto.roleId) conditions.push(Prisma.sql`"roleId" = ${dto.roleId}`);
-        if (dto.jobType) conditions.push(Prisma.sql`"jobType" = CAST(${dto.jobType} AS "JobType")`);
-        if (dto.workMode) conditions.push(Prisma.sql`"workMode" = CAST(${dto.workMode} AS "WorkMode")`);
-        if (dto.locationId) conditions.push(Prisma.sql`"locationId" = ${dto.locationId}`);
-        if (dto.experienceLevel) conditions.push(Prisma.sql`"experienceLevel" = CAST(${dto.experienceLevel} AS "ExperienceLevel")`);
+        if (dto.roleId) conditions.push(Prisma.sql`j."roleId" = ${dto.roleId}`);
+        if (dto.jobType) conditions.push(Prisma.sql`j."jobType" = CAST(${dto.jobType} AS "JobType")`);
+        if (dto.workMode) conditions.push(Prisma.sql`j."workMode" = CAST(${dto.workMode} AS "WorkMode")`);
+        if (dto.locationId) conditions.push(Prisma.sql`j."locationId" = ${dto.locationId}`);
+        if (dto.experienceLevel) conditions.push(Prisma.sql`j."experienceLevel" = CAST(${dto.experienceLevel} AS "ExperienceLevel")`);
 
         const whereSql = Prisma.join(conditions, ' AND ');
 
         const rawIds = await this.prisma.$queryRaw<{id: string, total: bigint}[]>`
           WITH filtered AS (
-            SELECT id, embedding FROM jobs WHERE ${whereSql}
+            SELECT j.id, j.embedding
+            FROM jobs j
+            JOIN employers e ON e.id = j."employerId"
+            WHERE ${whereSql}
           )
           SELECT id, count(*) OVER() as total
           FROM filtered
