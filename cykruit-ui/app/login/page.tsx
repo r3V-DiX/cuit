@@ -159,10 +159,17 @@ function LoginForm() {
   };
   useEffect(() => {
     const errCode = searchParams.get("error");
+    const reason = searchParams.get("reason");
     if (errCode) {
       toast({
         type: "error",
         message: OAUTH_ERROR_MESSAGES[errCode] ?? "Sign-in failed. Please try again.",
+      });
+    } else if (reason === "role_upgraded") {
+      toast({
+        type: "success",
+        message: "Join request approved!",
+        description: "Log in to access your employer dashboard.",
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

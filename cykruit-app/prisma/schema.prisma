@@ -84,6 +84,9 @@ enum NotificationType {
     FEEDBACK_RECEIVED
     CERTIFICATION_ALERT
     BUG_BOUNTY_ALERT
+
+    // Team / Join Request
+    JOIN_REQUEST_RESOLVED
 }
 
 enum NotificationStatus {

@@ -552,6 +552,12 @@ export class CompanyService {
                     where: { employerId: employer.id },
                     data: { currentTeamMembers: { increment: 1 } },
                 });
+                // Invalidate all existing sessions so the role change takes effect
+                // cleanly on next login — prevents stale SEEKER role cookie in browser.
+                await tx.session.updateMany({
+                    where: { userId: joinRequest.requesterId, isActive: true },
+                    data: { isActive: false, revokedAt: new Date(), revokedBy: 'role_upgrade' },
+                });
             }
         });
 

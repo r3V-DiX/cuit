@@ -154,12 +154,43 @@ export default function EmployerClient() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [domainCompany, setDomainCompany] = useState<DomainCompany | null>(null);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
-    return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
+    return () => {
+      if (cooldownRef.current) clearInterval(cooldownRef.current);
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, []);
+
+  useEffect(() => {
+    if (step !== "join-requested") {
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      return;
+    }
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await apiFetch<{ status?: string } | null>("/api/employer/company/join-request/me");
+        const status = res?.data?.status;
+        if (status === "ACCEPTED") {
+          clearInterval(pollRef.current!);
+          pollRef.current = null;
+          toast({ type: "success", message: "Request approved!", description: "Please log in again to access your employer dashboard." });
+          router.push("/login?reason=role_upgraded");
+        } else if (status === "REJECTED") {
+          clearInterval(pollRef.current!);
+          pollRef.current = null;
+          toast({ type: "error", message: "Request declined", description: "Your join request was not approved. You can continue as a job seeker." });
+          setStep("info");
+        }
+      } catch {
+        // network hiccup — retry next tick
+      }
+    }, 10000);
+    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  }, [step]);
 
   function handleEmailChange(val: string) {
     setEmail(val);

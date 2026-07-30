@@ -357,6 +357,40 @@ export class DomainEventProcessor {
                 break;
             }
 
+            case DomainEventType.JOIN_REQUEST_RESOLVED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.requesterUserId);
+                if (!contact) break;
+                if (p.status === 'ACCEPTED') {
+                    await this.notificationService.emit({
+                        userId: p.requesterUserId,
+                        type: NotificationType.JOIN_REQUEST_RESOLVED,
+                        title: 'Join request approved',
+                        message: `You've been added to ${p.companyName} as a team member. Please log in again to access your employer dashboard.`,
+                        actionUrl: `/login?reason=role_upgraded`,
+                        relatedEntityType: 'Employer',
+                        relatedEntityId: p.employerId,
+                        deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                        sendEmail: true,
+                        userEmail: contact.email,
+                        firstName: contact.firstName,
+                    });
+                } else {
+                    await this.notificationService.emit({
+                        userId: p.requesterUserId,
+                        type: NotificationType.JOIN_REQUEST_RESOLVED,
+                        title: 'Join request declined',
+                        message: `Your request to join ${p.companyName} was not approved. You can continue using Cykruit as a job seeker.`,
+                        actionUrl: `/jobs`,
+                        relatedEntityType: 'Employer',
+                        relatedEntityId: p.employerId,
+                        deliveredVia: [DeliveryChannel.WEBSOCKET],
+                        sendEmail: false,
+                    });
+                }
+                break;
+            }
+
             default:
                 this.logger.warn(
                     `[DomainEventProcessor] Unhandled event type: ${(event as any).type}`,
