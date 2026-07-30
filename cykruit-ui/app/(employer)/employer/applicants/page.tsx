@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, describeError } from "@/lib/api";
+import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
 import { KycGate } from "@/components/employer/KycGate";
 import { useKycStatus } from "@/lib/employer-context";
 import { ApplicantTableSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
@@ -46,6 +47,8 @@ export default function ApplicantsPage() {
   const [jobOptions, setJobOptions]     = useState<{label: string, value: string}[]>([{ label: "All Jobs", value: "all" }]);
   const { toast } = useToast();
   const kycStatus = useKycStatus();
+  const { limits: subLimits } = useSubscriptionLimits();
+  const aiEnabled = subLimits?.aiScoringEnabled ?? false;
 
   useEffect(() => {
     if (kycStatus !== "verified") return;
@@ -121,20 +124,29 @@ export default function ApplicantsPage() {
         </div>
 
         {/* AI Rank banner */}
-        <div className={`flex items-center gap-3 mb-4 px-4 py-3 rounded-2xl border transition-all ${aiRank ? "bg-violet-50 border-violet-200" : "bg-white border-slate-200"}`}>
+        <div className={`flex items-center gap-3 mb-4 px-4 py-3 rounded-2xl border transition-all ${!aiEnabled ? "bg-slate-50 border-slate-200 opacity-70" : aiRank ? "bg-violet-50 border-violet-200" : "bg-white border-slate-200"}`}>
           <div className="w-8 h-8 rounded-xl bg-violet-100 border border-violet-200 flex items-center justify-center shrink-0">
             <Sparkles className="w-4 h-4 text-violet-600" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-slate-900">AI Candidate Ranking</p>
-            <p className="text-xs text-slate-400">Automatically rank applicants by how well they match your job requirements</p>
+            {aiEnabled ? (
+              <p className="text-xs text-slate-400">Automatically rank applicants by how well they match your job requirements</p>
+            ) : (
+              <p className="text-xs text-slate-400">
+                AI features require a paid plan.{" "}
+                <a href="/employer/subscription?tab=plans" className="text-blue-600 font-semibold hover:underline">Upgrade →</a>
+              </p>
+            )}
           </div>
           <button
             type="button"
-            onClick={() => setAiRank(!aiRank)}
-            className={`w-10 h-6 rounded-full transition-colors relative shrink-0 cursor-pointer ${aiRank ? "bg-violet-600" : "bg-slate-200"}`}
+            onClick={() => aiEnabled && setAiRank(!aiRank)}
+            disabled={!aiEnabled}
+            title={!aiEnabled ? "AI features require a paid plan" : undefined}
+            className={`w-10 h-6 rounded-full transition-colors relative shrink-0 ${!aiEnabled ? "cursor-not-allowed bg-slate-200" : `cursor-pointer ${aiRank ? "bg-violet-600" : "bg-slate-200"}`}`}
           >
-            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${aiRank ? "left-[calc(100%-1.375rem)]" : "left-0.5"}`} />
+            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${aiRank && aiEnabled ? "left-[calc(100%-1.375rem)]" : "left-0.5"}`} />
           </button>
         </div>
 

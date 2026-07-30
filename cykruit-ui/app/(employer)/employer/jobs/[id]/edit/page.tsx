@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
+import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
 import { LocationSelect, LocationValue } from "@/components/ui/LocationSelect";
 
 const JOB_TYPES    = ["Full-time", "Part-time", "Contract", "Internship"];
@@ -179,6 +180,8 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
   // AI state
   const [aiRedrafting, setAiRedrafting] = useState(false);
   const [aiSuggesting, setAiSuggesting] = useState(false);
+  const { limits: subLimits } = useSubscriptionLimits();
+  const aiEnabled = subLimits?.aiScoringEnabled ?? false;
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -427,8 +430,9 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
                   <button
                     type="button"
                     onClick={handleAiRedraft}
-                    disabled={aiRedrafting}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-60"
+                    disabled={aiRedrafting || !aiEnabled}
+                    title={!aiEnabled ? "AI features require a paid plan" : "Improve description with AI"}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {aiRedrafting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
                     AI Redraft
@@ -476,8 +480,9 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
                 <button
                   type="button"
                   onClick={handleAiSuggest}
-                  disabled={aiSuggesting}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-60"
+                  disabled={aiSuggesting || !aiEnabled}
+                  title={!aiEnabled ? "AI features require a paid plan" : "Suggest skills with AI"}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {aiSuggesting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
                   AI Suggest
