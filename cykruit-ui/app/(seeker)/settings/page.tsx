@@ -82,7 +82,7 @@ export default function SettingsPage() {
   useSessionGuard();
 
   // ── Auth method ──
-  const [googleAuth, setGoogleAuth] = useState(false);
+  const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
 
   // ── Account / preferences ─────────────────────────────────────────────────
   const [lockedUser, setLockedUser] = useState({ name: "User", email: "user@email.com" });
@@ -125,14 +125,14 @@ export default function SettingsPage() {
   useEffect(() => {
     async function loadAllSettings() {
       try {
-        const userResult = await apiFetch<{ firstName?: string; lastName?: string; email?: string; provider?: string }>("/api/auth/me");
+        const userResult = await apiFetch<{ firstName?: string; lastName?: string; email?: string; provider?: string; linkedProviders?: string[] }>("/api/auth/me");
         if (userResult.data) {
           const user = userResult.data;
           setLockedUser({
             name: [user.firstName, user.lastName].filter(Boolean).join(" ") || "User",
             email: user.email || "",
           });
-          setGoogleAuth(user.provider === "GOOGLE" || user.provider === "GITHUB");
+          setLinkedProviders(user.linkedProviders ?? (user.provider ? [user.provider] : []));
         }
 
         const settingsResult = await apiFetch<{ general?: Record<string, any>; notifications?: Record<string, any> }>("/api/settings");
@@ -461,7 +461,7 @@ export default function SettingsPage() {
             {/* ── SECURITY ── */}
             {activeTab === "security" && (
               <div>
-                {googleAuth && <Section title="Connected Accounts" desc="Services linked to your Cykruit account for sign-in.">
+                <Section title="Connected Accounts" desc="Sign-in providers linked to your Cykruit account.">
                   <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
@@ -474,20 +474,22 @@ export default function SettingsPage() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-slate-800">Google</p>
-                        <p className="text-xs text-slate-400">{googleAuth ? lockedUser.email : "Not connected"}</p>
+                        <p className="text-xs text-slate-400">
+                          {linkedProviders.includes("GOOGLE") ? lockedUser.email : "Not connected"}
+                        </p>
                       </div>
                     </div>
-                    {googleAuth ? (
+                    {linkedProviders.includes("GOOGLE") ? (
                       <span className="text-[10px] font-mono text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-lg flex items-center gap-1.5">
                         <Check className="w-3 h-3" /> Connected
                       </span>
                     ) : (
-                      <button className="text-xs font-medium text-blue-600 hover:text-blue-700 border border-blue-200 hover:bg-blue-50 px-3 py-1.5 rounded-xl transition-colors">
-                        Connect
-                      </button>
+                      <span className="text-[10px] font-mono text-slate-400 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+                        Not connected
+                      </span>
                     )}
                   </div>
-                </Section>}
+                </Section>
 
                 <Section title="Sessions & Login History" desc="Manage devices signed into your account and review past activity.">
                   <SessionsPanel historyHref="/settings/activity" />

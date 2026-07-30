@@ -59,6 +59,7 @@ export function formatUserResponse(user: UserWithOAuthProviders) {
     profileImage: user.profileImage ?? null,
     hasPassword: !!hasPassword,
     provider: primaryProvider,
+    linkedProviders: oauthProviders.map((p) => p.provider),
     isEmailVerified: user.isEmailVerified ?? false,
     lastLogin: user.lastLogin ?? null,
     createdAt: user.createdAt ?? null,
