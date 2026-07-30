@@ -168,6 +168,8 @@ export default function PostJobPage() {
   const usageLimits: UsageLimits | null = subLimits && subUsage
     ? { jobsUsed: subUsage.currentActiveJobs, jobsLimit: subLimits.maxActiveJobs }
     : null;
+  const aiEnabled = subLimits?.aiScoringEnabled ?? false;
+  const limitReached = !!(usageLimits && usageLimits.jobsLimit > 0 && usageLimits.jobsUsed >= usageLimits.jobsLimit);
   const [location, setLocation] = useState<LocationValue>({ city: "", state: "", country: "" });
   const descTooltipTimerRef             = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showDescTip, setShowDescTip]   = useState(false);
@@ -487,7 +489,18 @@ export default function PostJobPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
 
           {/* ── Left: form ──────────────────────────────────────────────────── */}
-          <div className="xl:col-span-2 flex flex-col gap-5">
+          <fieldset disabled={limitReached} className="xl:col-span-2 flex flex-col gap-5 min-w-0">
+
+            {limitReached && (
+              <div className="flex items-start gap-3 p-4 rounded-xl border border-red-200 bg-red-50">
+                <span className="text-red-500 text-lg leading-none shrink-0">🚫</span>
+                <div>
+                  <p className="text-sm font-semibold text-red-800">Job limit reached ({usageLimits!.jobsUsed}/{usageLimits!.jobsLimit})</p>
+                  <p className="text-xs text-red-600 mt-0.5">Upgrade your plan to post more jobs. The form is locked until you upgrade.</p>
+                  <Link href="/employer/subscription?tab=plans" className="text-xs font-semibold text-red-700 underline mt-1 inline-block">Upgrade plan →</Link>
+                </div>
+              </div>
+            )}
 
             <section id="section-basics" className="bg-white rounded-2xl border border-slate-200 p-6">
               <h2 className="text-sm font-bold text-slate-900 mb-4">Basic Details</h2>
@@ -528,8 +541,8 @@ export default function PostJobPage() {
                           setIsInferring(false);
                         }
                       }}
-                      disabled={!title.trim() || isInferring}
-                      title="Auto-infer domain from job title"
+                      disabled={!title.trim() || isInferring || !aiEnabled}
+                      title={aiEnabled ? "Auto-infer domain from job title" : "AI features require a paid plan"}
                       className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
                     >
                       {isInferring ? <span className="w-3.5 h-3.5 border-2 border-violet-300 border-t-violet-700 rounded-full animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />} AI Fill
@@ -586,7 +599,8 @@ export default function PostJobPage() {
                       setIsDrafting(false);
                     }
                   }}
-                  disabled={!title.trim() || isDrafting}
+                  disabled={!title.trim() || isDrafting || !aiEnabled}
+                  title={aiEnabled ? undefined : "AI features require a paid plan"}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {isDrafting ? <span className="w-3.5 h-3.5 border-2 border-violet-300 border-t-violet-700 rounded-full animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />} AI Draft
@@ -642,7 +656,8 @@ export default function PostJobPage() {
                 <button
                   type="button"
                   onClick={generateAITags}
-                  disabled={tagsGenerating}
+                  disabled={tagsGenerating || !aiEnabled}
+                  title={aiEnabled ? undefined : "AI features require a paid plan"}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {tagsGenerating ? (
@@ -674,7 +689,8 @@ export default function PostJobPage() {
                 </div>
                 <button
                   type="button"
-                  disabled={sqGenerating || !title.trim()}
+                  disabled={sqGenerating || !title.trim() || !aiEnabled}
+                  title={aiEnabled ? undefined : "AI features require a paid plan"}
                   onClick={generateAIQuestions}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shrink-0"
                 >
@@ -803,21 +819,10 @@ export default function PostJobPage() {
               </div>
             </section>
 
-            {usageLimits && usageLimits.jobsLimit > 0 && usageLimits.jobsUsed >= usageLimits.jobsLimit && (
-              <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50">
-                <span className="text-amber-500 text-lg leading-none shrink-0">⚠</span>
-                <div>
-                  <p className="text-sm font-semibold text-amber-800">Job listing limit reached ({usageLimits.jobsUsed}/{usageLimits.jobsLimit})</p>
-                  <p className="text-xs text-amber-600 mt-0.5">You cannot publish more jobs on your current plan.</p>
-                  <Link href="/employer/subscription?tab=plans" className="text-xs font-semibold text-amber-700 underline mt-1 inline-block">Upgrade plan →</Link>
-                </div>
-              </div>
-            )}
-
             <div className="flex items-center gap-3 pb-6">
               <button
                 onClick={handlePublish}
-                disabled={publishing || savingDraft || !!(usageLimits && usageLimits.jobsLimit > 0 && usageLimits.jobsUsed >= usageLimits.jobsLimit)}
+                disabled={publishing || savingDraft}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shadow-blue-500/20 cursor-pointer"
               >
                 {publishing ? (
@@ -840,7 +845,7 @@ export default function PostJobPage() {
                 {savingDraft ? "Saving…" : "Save as Draft"}
               </button>
             </div>
-          </div>
+          </fieldset>
 
           {/* ── Right: sticky sidebar ────────────────────────────────────────── */}
           <div className="xl:col-span-1 flex flex-col gap-4 sticky top-6">
@@ -903,7 +908,7 @@ export default function PostJobPage() {
             {/* Quick publish */}
             <button
               onClick={handlePublish}
-              disabled={publishing || savingDraft || !!(usageLimits && usageLimits.jobsLimit > 0 && usageLimits.jobsUsed >= usageLimits.jobsLimit)}
+              disabled={publishing || savingDraft || limitReached}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shadow-blue-500/20 cursor-pointer"
             >
               {publishing ? (

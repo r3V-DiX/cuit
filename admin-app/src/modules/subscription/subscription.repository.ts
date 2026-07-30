@@ -102,6 +102,14 @@ export class SubscriptionRepository {
         });
     }
 
+    async findEmployerIdsByPackage(packageId: string): Promise<string[]> {
+        const rows = await this.prisma.employerSubscription.findMany({
+            where: { packageId, status: 'ACTIVE' },
+            select: { employerId: true },
+        });
+        return rows.map((r) => r.employerId);
+    }
+
     async findSubscriptionByEmployer(employerId: string) {
         return this.prisma.employerSubscription.findUnique({
             where: { employerId },

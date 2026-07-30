@@ -14,7 +14,7 @@ export interface EmployerLimits {
 }
 
 const FREE_LIMITS: EmployerLimits = {
-    maxActiveJobs: 3,
+    maxActiveJobs: 1,
     maxTeamMembers: 2,
     featuredJobSlots: 0,
     aiScoringEnabled: false,

@@ -1,9 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import { AiServiceModule } from './ai-service.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AiServiceModule);
+  app.use(cookieParser());
 
   const config = new DocumentBuilder()
     .setTitle('AI Service API')

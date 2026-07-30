@@ -38,7 +38,7 @@ interface UseSubscriptionLimitsResult {
 }
 
 const FREE_LIMITS: SubscriptionLimits = {
-    maxActiveJobs: 3,
+    maxActiveJobs: 1,
     maxTeamMembers: 2,
     featuredJobSlots: 0,
     aiScoringEnabled: false,

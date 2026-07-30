@@ -1,9 +1,11 @@
-import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, UseGuards } from '@nestjs/common';
+import { Public } from '@cykruit/auth-core';
 import { AiServiceService } from './ai-service.service';
 import { ResumeParserService } from './services/resume-parser.service';
 import { JobAssistantService } from './services/job-assistant.service';
 import { SeekerAssistantService } from './services/seeker-assistant.service';
 import { MatchService } from './services/match.service';
+import { AiScoringGuard } from './guards/ai-scoring.guard';
 
 @Controller('ai')
 export class AiServiceController {
@@ -15,6 +17,9 @@ export class AiServiceController {
     private readonly matchService: MatchService,
   ) {}
 
+  // ── Internal / queue-triggered (no user session) ─────────────────────────
+
+  @Public()
   @Post('embed/query')
   async embedQuery(@Body('text') text: string) {
     if (!text) {
@@ -24,6 +29,7 @@ export class AiServiceController {
     return { vector };
   }
 
+  @Public()
   @Post('resume/parse')
   async parseResume(@Body('text') text: string) {
     if (!text) {
@@ -32,45 +38,25 @@ export class AiServiceController {
     return this.resumeParserService.parseResume(text);
   }
 
-  @Post('job-description/generate')
-  async generateJobDescription(@Body('prompt') prompt: string) {
-    if (!prompt) {
-      throw new BadRequestException('Prompt is required');
+  @Public()
+  @Post('match-score')
+  async getMatchScore(@Body() body: { seekerId: string, jobId: string }) {
+    if (!body.seekerId || !body.jobId) {
+      throw new BadRequestException('seekerId and jobId are required');
     }
-    return this.jobAssistantService.generateJobDescription(prompt);
+    return this.matchService.matchSeekerToJob(body.seekerId, body.jobId);
   }
 
-  @Post('jobs/improve-description')
-  async improveJobDescription(@Body() body: { title: string, description: string, jobType?: string, experienceLevel?: string }) {
-    if (!body.title || !body.description) {
-      throw new BadRequestException('Title and description are required');
+  @Public()
+  @Post('jobs/recommend')
+  async getRecommendedJobs(@Body() body: { seekerId: string, limit?: number }) {
+    if (!body.seekerId) {
+      throw new BadRequestException('seekerId is required');
     }
-    return this.jobAssistantService.improveJobDescription(body.title, body.description, body.jobType, body.experienceLevel);
+    return this.matchService.getRecommendedJobs(body.seekerId, body.limit || 3);
   }
 
-  @Post('jobs/infer-domain')
-  async inferDomain(@Body() body: { title: string }) {
-    if (!body.title) {
-      throw new BadRequestException('Title is required');
-    }
-    return this.jobAssistantService.inferDomain(body.title);
-  }
-
-  @Post('jobs/suggest-skills')
-  async suggestJobSkills(@Body() body: { title: string, description: string }) {
-    if (!body.title || !body.description) {
-      throw new BadRequestException('Title and description are required');
-    }
-    return this.jobAssistantService.suggestJobSkills(body.title, body.description);
-  }
-
-  @Post('jobs/generate-questions')
-  async generateScreeningQuestions(@Body() body: { title: string, description?: string }) {
-    if (!body.title) {
-      throw new BadRequestException('Title is required');
-    }
-    return this.jobAssistantService.generateScreeningQuestions(body.title, body.description);
-  }
+  // ── Seeker-facing (auth required, no subscription gate) ──────────────────
 
   @Post('profile/generate-bio')
   async generateBio(@Body() body: { title: string, skills: string[], experienceTitles: string[] }) {
@@ -87,19 +73,50 @@ export class AiServiceController {
     return this.seekerAssistantService.getProfileTips(body.title, body.missingSections);
   }
 
-  @Post('match-score')
-  async getMatchScore(@Body() body: { seekerId: string, jobId: string }) {
-    if (!body.seekerId || !body.jobId) {
-      throw new BadRequestException('seekerId and jobId are required');
+  // ── Employer-facing AI (auth + paid-plan subscription required) ──────────
+
+  @UseGuards(AiScoringGuard)
+  @Post('job-description/generate')
+  async generateJobDescription(@Body('prompt') prompt: string) {
+    if (!prompt) {
+      throw new BadRequestException('Prompt is required');
     }
-    return this.matchService.matchSeekerToJob(body.seekerId, body.jobId);
+    return this.jobAssistantService.generateJobDescription(prompt);
   }
 
-  @Post('jobs/recommend')
-  async getRecommendedJobs(@Body() body: { seekerId: string, limit?: number }) {
-    if (!body.seekerId) {
-      throw new BadRequestException('seekerId is required');
+  @UseGuards(AiScoringGuard)
+  @Post('jobs/improve-description')
+  async improveJobDescription(@Body() body: { title: string, description: string, jobType?: string, experienceLevel?: string }) {
+    if (!body.title || !body.description) {
+      throw new BadRequestException('Title and description are required');
     }
-    return this.matchService.getRecommendedJobs(body.seekerId, body.limit || 3);
+    return this.jobAssistantService.improveJobDescription(body.title, body.description, body.jobType, body.experienceLevel);
+  }
+
+  @UseGuards(AiScoringGuard)
+  @Post('jobs/infer-domain')
+  async inferDomain(@Body() body: { title: string }) {
+    if (!body.title) {
+      throw new BadRequestException('Title is required');
+    }
+    return this.jobAssistantService.inferDomain(body.title);
+  }
+
+  @UseGuards(AiScoringGuard)
+  @Post('jobs/suggest-skills')
+  async suggestJobSkills(@Body() body: { title: string, description: string }) {
+    if (!body.title || !body.description) {
+      throw new BadRequestException('Title and description are required');
+    }
+    return this.jobAssistantService.suggestJobSkills(body.title, body.description);
+  }
+
+  @UseGuards(AiScoringGuard)
+  @Post('jobs/generate-questions')
+  async generateScreeningQuestions(@Body() body: { title: string, description?: string }) {
+    if (!body.title) {
+      throw new BadRequestException('Title is required');
+    }
+    return this.jobAssistantService.generateScreeningQuestions(body.title, body.description);
   }
 }

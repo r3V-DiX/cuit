@@ -28,6 +28,18 @@ export class SubscriptionService {
         }
     }
 
+    private async invalidateLimitsCacheForPackage(packageId: string): Promise<void> {
+        if (!this.redis) return;
+        try {
+            const employerIds = await this.repository.findEmployerIdsByPackage(packageId);
+            if (employerIds.length === 0) return;
+            const keys = employerIds.map((id) => `employer-limits:${id}`);
+            await (this.redis as { del: (...keys: string[]) => Promise<unknown> }).del(...keys);
+        } catch {
+            // non-fatal — stale cache expires within TTL anyway
+        }
+    }
+
     // ── Packages ──────────────────────────────────────────────────────────────
 
     async listPackages(query: { isActive?: boolean; page?: number; limit?: number } = {}) {
@@ -55,6 +67,9 @@ export class SubscriptionService {
 
     async updatePackage(adminId: string, id: string, dto: UpdatePackageDto) {
         const result = await this.repository.updatePackage(id, dto);
+        // Invalidate cached limits for every employer currently on this package
+        // so changes (e.g. flipping aiScoringEnabled) take effect immediately.
+        void this.invalidateLimitsCacheForPackage(id);
         this.auditLogger.log({
             adminId,
             action: 'subscription:update-package',
@@ -69,6 +84,8 @@ export class SubscriptionService {
     }
 
     async deletePackage(adminId: string, id: string) {
+        // Capture affected employer IDs before the row is deleted
+        void this.invalidateLimitsCacheForPackage(id);
         const result = await this.repository.deletePackage(id);
         this.auditLogger.log({
             adminId,
