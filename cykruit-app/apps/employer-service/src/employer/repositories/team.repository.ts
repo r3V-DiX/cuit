@@ -81,6 +81,14 @@ export class TeamRepository {
 
     // ── Member Mutations ──────────────────────────────────────────
 
+    private static readonly MEMBER_SELECT = {
+        id: true,
+        employerId: true,
+        userId: true,
+        role: true,
+        joinedAt: true,
+    } as const;
+
     async addMember(
         employerId: string,
         userId: string,
@@ -94,6 +102,7 @@ export class TeamRepository {
                 role,
                 ...(invitedBy ? { invitedBy } : {}),
             },
+            select: TeamRepository.MEMBER_SELECT,
         });
     }
 
@@ -101,6 +110,7 @@ export class TeamRepository {
         return this.prisma.employerMember.update({
             where: { id: memberId },
             data: { role: newRole },
+            select: TeamRepository.MEMBER_SELECT,
         });
     }
 

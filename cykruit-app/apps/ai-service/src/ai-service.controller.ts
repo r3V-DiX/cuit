@@ -1,5 +1,6 @@
 import { Controller, Post, Body, BadRequestException, UseGuards } from '@nestjs/common';
-import { Public } from '@cykruit/auth-core';
+import { Public, Roles, RolesGuard } from '@cykruit/auth-core';
+import { UserRole } from '@prisma/client';
 import { AiServiceService } from './ai-service.service';
 import { ResumeParserService } from './services/resume-parser.service';
 import { JobAssistantService } from './services/job-assistant.service';
@@ -56,26 +57,33 @@ export class AiServiceController {
     return this.matchService.getRecommendedJobs(body.seekerId, body.limit || 3);
   }
 
-  // ── Seeker-facing (auth required, no subscription gate) ──────────────────
+  // ── Seeker-facing (auth + SEEKER role required) ──────────────────────────
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SEEKER)
   @Post('profile/generate-bio')
   async generateBio(@Body() body: { title: string, skills: string[], experienceTitles: string[] }) {
     return this.seekerAssistantService.generateBio(body.title, body.skills, body.experienceTitles);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SEEKER)
   @Post('profile/suggest-skills')
   async suggestSkills(@Body() body: { title: string, currentSkills: string[] }) {
     return this.seekerAssistantService.suggestSkills(body.title, body.currentSkills);
   }
 
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SEEKER)
   @Post('profile/tips')
   async getProfileTips(@Body() body: { title: string, missingSections: string[] }) {
     return this.seekerAssistantService.getProfileTips(body.title, body.missingSections);
   }
 
-  // ── Employer-facing AI (auth + paid-plan subscription required) ──────────
+  // ── Employer-facing AI (auth + EMPLOYER role + paid-plan required) ────────
 
-  @UseGuards(AiScoringGuard)
+  @UseGuards(RolesGuard, AiScoringGuard)
+  @Roles(UserRole.EMPLOYER)
   @Post('job-description/generate')
   async generateJobDescription(@Body('prompt') prompt: string) {
     if (!prompt) {
@@ -84,7 +92,8 @@ export class AiServiceController {
     return this.jobAssistantService.generateJobDescription(prompt);
   }
 
-  @UseGuards(AiScoringGuard)
+  @UseGuards(RolesGuard, AiScoringGuard)
+  @Roles(UserRole.EMPLOYER)
   @Post('jobs/improve-description')
   async improveJobDescription(@Body() body: { title: string, description: string, jobType?: string, experienceLevel?: string }) {
     if (!body.title || !body.description) {
@@ -93,7 +102,8 @@ export class AiServiceController {
     return this.jobAssistantService.improveJobDescription(body.title, body.description, body.jobType, body.experienceLevel);
   }
 
-  @UseGuards(AiScoringGuard)
+  @UseGuards(RolesGuard, AiScoringGuard)
+  @Roles(UserRole.EMPLOYER)
   @Post('jobs/infer-domain')
   async inferDomain(@Body() body: { title: string }) {
     if (!body.title) {
@@ -102,7 +112,8 @@ export class AiServiceController {
     return this.jobAssistantService.inferDomain(body.title);
   }
 
-  @UseGuards(AiScoringGuard)
+  @UseGuards(RolesGuard, AiScoringGuard)
+  @Roles(UserRole.EMPLOYER)
   @Post('jobs/suggest-skills')
   async suggestJobSkills(@Body() body: { title: string, description: string }) {
     if (!body.title || !body.description) {
@@ -111,7 +122,8 @@ export class AiServiceController {
     return this.jobAssistantService.suggestJobSkills(body.title, body.description);
   }
 
-  @UseGuards(AiScoringGuard)
+  @UseGuards(RolesGuard, AiScoringGuard)
+  @Roles(UserRole.EMPLOYER)
   @Post('jobs/generate-questions')
   async generateScreeningQuestions(@Body() body: { title: string, description?: string }) {
     if (!body.title) {

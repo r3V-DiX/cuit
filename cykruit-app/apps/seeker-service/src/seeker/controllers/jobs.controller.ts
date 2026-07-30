@@ -1,8 +1,8 @@
 // apps/seeker-service/src/seeker/controllers/jobs.controller.ts
 
 import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
-import { AuthGuard, OptionalAuthGuard, CurrentUser } from '@cykruit/auth-core';
-import type { User } from '@prisma/client';
+import { AuthGuard, OptionalAuthGuard, RolesGuard, Roles, CurrentUser } from '@cykruit/auth-core';
+import { UserRole, type User } from '@prisma/client';
 import { JobsService } from '../services/jobs.service';
 import { JobSearchDto } from '../dto/job-search.dto';
 
@@ -22,7 +22,8 @@ export class JobsController {
     // ── GET /jobs/recommended ─────────────────────────────────────────────────
 
     @Get('recommended')
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(UserRole.SEEKER)
     getRecommendedJobs(@Query('limit') limit: string, @CurrentUser() user: User) {
         return this.jobsService.getRecommendedJobs(user.id, limit ? parseInt(limit, 10) : 3);
     }
@@ -38,7 +39,8 @@ export class JobsController {
     // ── GET /jobs/:slug/match-score ──────────────────────────────────────────
 
     @Get(':slug/match-score')
-    @UseGuards(AuthGuard)
+    @UseGuards(AuthGuard, RolesGuard)
+    @Roles(UserRole.SEEKER)
     getMatchScore(@Param('slug') slug: string, @CurrentUser() user: User) {
         return this.jobsService.getMatchScore(slug, user.id);
     }
