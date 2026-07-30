@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Shield, Building2, ArrowRight, Clock, Loader2, Users } from "lucide-react";
@@ -27,6 +27,7 @@ function AuthCallback() {
 
   const [screen, setScreen] = useState<Screen>("loading");
   const [loading, setLoading] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     async function completeAuth() {
@@ -61,6 +62,17 @@ function AuthCallback() {
           }
           router.push("/employer/dashboard");
         } else {
+          // Check if this SEEKER had a join request accepted while they were away.
+          // Their sessions were revoked on accept so they re-logged in as SEEKER —
+          // this shouldn't happen, but guard against it just in case.
+          const jr = await apiFetch<{ status?: string } | null>(
+            "/api/employer/company/join-request/me",
+          ).catch(() => null);
+          if (jr?.data?.status === "ACCEPTED") {
+            toast({ type: "info", message: "Your join request was approved", description: "Please log in again to access your employer dashboard." });
+            router.push("/login?reason=role_upgraded");
+            return;
+          }
           router.push("/dashboard");
         }
       } catch (err: unknown) {
@@ -75,6 +87,36 @@ function AuthCallback() {
     completeAuth();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (screen !== "join-requested") {
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      return;
+    }
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await apiFetch<{ status?: string } | null>("/api/employer/company/join-request/me");
+        const status = res?.data?.status;
+        if (status === "ACCEPTED") {
+          clearInterval(pollRef.current!); pollRef.current = null;
+          toast({ type: "success", message: "Request approved!", description: "Please log in again to access your employer dashboard." });
+          router.push("/login?reason=role_upgraded");
+        } else if (status === "REJECTED") {
+          clearInterval(pollRef.current!); pollRef.current = null;
+          toast({ type: "error", message: "Request declined", description: "Your join request was not approved. You can continue as a job seeker." });
+          router.push("/dashboard");
+        } else if (status === "EXPIRED") {
+          clearInterval(pollRef.current!); pollRef.current = null;
+          toast({ type: "error", message: "Request expired", description: "Your join request was not reviewed in time. Continue as a job seeker." });
+          router.push("/dashboard");
+        }
+      } catch {
+        // network hiccup — retry next tick
+      }
+    }, 10000);
+    return () => { if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; } };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen]);
 
   async function handleRequestToJoin() {
     setLoading(true);

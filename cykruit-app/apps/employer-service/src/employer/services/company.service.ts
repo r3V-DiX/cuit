@@ -591,10 +591,16 @@ export class CompanyService {
         });
         if (!employer) return null;
 
-        return this.prisma.employerJoinRequest.findUnique({
+        const req = await this.prisma.employerJoinRequest.findUnique({
             where: { employerId_requesterId: { employerId: employer.id, requesterId: userId } },
             select: { id: true, status: true, createdAt: true, expiresAt: true },
         });
+        if (!req) return null;
+        // Surface expiry so frontend can show correct state without a separate cron
+        if (req.status === 'PENDING' && req.expiresAt && req.expiresAt < new Date()) {
+            return { ...req, status: 'EXPIRED' as const };
+        }
+        return req;
     }
 
     // ── Private helpers ──────────────────────────────────────────
