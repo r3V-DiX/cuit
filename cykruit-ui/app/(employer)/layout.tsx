@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import EmployerSidebar from "@/components/employer/EmployerSidebar";
-import { KycProvider, type KycStatus } from "@/lib/employer-context";
+import { KycProvider, type KycStatus, type EmployerMemberRole } from "@/lib/employer-context";
 import { SubscriptionBanner } from "@/components/employer/SubscriptionBanner";
 import { AnnouncementBanner, type AnnouncementItem } from "@/components/ui/AnnouncementBanner";
 
@@ -84,6 +84,27 @@ async function getAnnouncements(): Promise<AnnouncementItem[]> {
   }
 }
 
+async function getMemberRole(fwdHeaders: Record<string, string>): Promise<EmployerMemberRole | null> {
+  if (!fwdHeaders.Cookie) return null;
+  const urls = Array.from(new Set([EMPLOYER_URL, "http://employer-service:4004", "http://gateway:5000", "http://127.0.0.1:4004"]));
+  for (const baseUrl of urls) {
+    try {
+      const res = await fetch(`${baseUrl}/employer/team/my-role`, {
+        headers: fwdHeaders,
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const body = await res.json();
+        const role = body?.data?.role ?? null;
+        return role as EmployerMemberRole | null;
+      }
+    } catch {
+      // try next fallback URL
+    }
+  }
+  return null;
+}
+
 async function getKycData(fwdHeaders: Record<string, string>): Promise<{ status: KycStatus; rejectionReason?: string }> {
   if (!fwdHeaders.Cookie) return { status: "not_submitted" };
   const urls = Array.from(new Set([EMPLOYER_URL, "http://employer-service:4004", "http://gateway:5000", "http://127.0.0.1:4004"]));
@@ -117,22 +138,23 @@ export default async function EmployerLayout({
   children: React.ReactNode;
 }) {
   const fwdHeaders = await buildForwardHeaders();
-
-  const [user, kycData, subscriptionStatus, announcements] = await Promise.all([
-    getSessionUser(fwdHeaders),
-    getKycData(fwdHeaders),
-    getSubscriptionStatus(fwdHeaders),
-    getAnnouncements(),
-  ]);
+  const user = await getSessionUser(fwdHeaders);
 
   if (!user || user.role !== "EMPLOYER") {
     redirect("/login?next=/employer/dashboard");
   }
 
+  const [kycData, subscriptionStatus, announcements, memberRole] = await Promise.all([
+    getKycData(fwdHeaders),
+    getSubscriptionStatus(fwdHeaders),
+    getAnnouncements(),
+    getMemberRole(fwdHeaders),
+  ]);
+
   const isExpired = subscriptionStatus === "EXPIRED" || subscriptionStatus === "CANCELLED";
 
   return (
-    <KycProvider initialStatus={kycData.status} initialRejectionReason={kycData.rejectionReason}>
+    <KycProvider initialStatus={kycData.status} initialRejectionReason={kycData.rejectionReason} initialEmployerRole={memberRole}>
       <div className="flex h-screen bg-slate-50 overflow-hidden">
         <EmployerSidebar />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

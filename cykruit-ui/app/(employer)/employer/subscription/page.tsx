@@ -6,9 +6,9 @@ import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
 import { apiFetch, authHeaders } from "@/lib/api";
-import { useKycStatus } from "@/lib/employer-context";
+import { useKycContext } from "@/lib/employer-context";
 import {
-  CreditCard, Check, Zap, Building2, Shield, Clock,
+  CreditCard, Check, Zap, Building2, Shield, ShieldAlert, Clock,
   AlertTriangle, Download, ExternalLink, ChevronRight, Star,
   TrendingUp, Users, Briefcase, RefreshCw, XCircle, Loader2,
 } from "lucide-react";
@@ -133,7 +133,8 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const kycStatus = useKycStatus();
+  const { status: kycStatusRaw, employerRole } = useKycContext();
+  const kycStatus = kycStatusRaw;
   const isKycVerified = kycStatus === "verified";
 
   useEffect(() => {
@@ -211,6 +212,23 @@ export default function SubscriptionPage() {
     { id: "plans",    label: "Change Plan"    },
     { id: "history",  label: "Billing History"},
   ] as const;
+
+  if (employerRole !== null && employerRole !== "OWNER") {
+    return (
+      <>
+        <EmployerTopbar title="Subscription" />
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 flex items-center justify-center">
+          <div className="text-center max-w-sm">
+            <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center mx-auto mb-4">
+              <ShieldAlert className="w-7 h-7 text-rose-500" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-900 mb-2">Access Restricted</h2>
+            <p className="text-sm text-slate-500">Only the company Owner can manage billing and subscription.</p>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   if (loading) {
     return (

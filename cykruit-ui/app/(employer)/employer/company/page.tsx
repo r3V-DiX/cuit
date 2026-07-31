@@ -72,7 +72,7 @@ export default function CompanyProfilePage() {
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
   const { toast } = useToast();
-  const { status: kycCtx, rejectionReason: kycRejectionReason } = useKycContext();
+  const { status: kycCtx, rejectionReason: kycRejectionReason, employerRole } = useKycContext();
   const kycStatus =
     kycCtx === "verified"      ? "APPROVED"     :
     kycCtx === "pending"       ? "PENDING"      :
@@ -266,6 +266,23 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
   const completedChecks = COMPLETION_CHECKS.filter((c) => fieldValues[c.key]).length;
   const pct             = Math.round((completedChecks / totalChecks) * 100);
   const canPostJob      = pct >= 50;
+
+  if (employerRole !== null && employerRole !== "OWNER") {
+    return (
+      <>
+        <EmployerTopbar title="Company Profile" />
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 flex items-center justify-center">
+          <div className="text-center max-w-sm">
+            <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center mx-auto mb-4">
+              <ShieldAlert className="w-7 h-7 text-rose-500" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-900 mb-2">Access Restricted</h2>
+            <p className="text-sm text-slate-500">Only the company Owner can manage the company profile.</p>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   if (loading) {
     return (

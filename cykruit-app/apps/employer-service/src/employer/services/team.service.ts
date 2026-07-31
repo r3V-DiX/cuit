@@ -68,6 +68,11 @@ export class TeamService {
         return this.teamRepository.findMembers(employer.id);
     }
 
+    async getMyRole(userId: string): Promise<{ role: string | null }> {
+        const member = await this.teamRepository.findMyMembership(userId);
+        return { role: member?.role ?? null };
+    }
+
     // ── Invite Member ─────────────────────────────────────────────
 
     async inviteMember(userId: string, dto: InviteMemberDto, ipAddress?: string, userAgent?: string) {

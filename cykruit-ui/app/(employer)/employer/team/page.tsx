@@ -638,9 +638,12 @@ export default function TeamPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {[
-                      ["Post & manage jobs",       true,  true,  true,  false],
+                      ["Post & create jobs",       true,  true,  true,  false],
+                      ["Publish & delete jobs",    true,  true,  false, false],
                       ["Review applications",      true,  true,  true,  true ],
+                      ["View all applications",    true,  true,  true,  false],
                       ["Invite team members",      true,  true,  false, false],
+                      ["Remove team members",      true,  true,  false, false],
                       ["Change member roles",      true,  false, false, false],
                       ["Company profile & KYC",    true,  false, false, false],
                       ["Billing & subscription",   true,  false, false, false],

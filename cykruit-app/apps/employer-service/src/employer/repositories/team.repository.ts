@@ -79,6 +79,14 @@ export class TeamRepository {
         });
     }
 
+    async findMyMembership(userId: string) {
+        return this.prisma.employerMember.findFirst({
+            where: { userId },
+            select: { role: true },
+            orderBy: { createdAt: 'asc' },
+        });
+    }
+
     // ── Member Mutations ──────────────────────────────────────────
 
     private static readonly MEMBER_SELECT = {

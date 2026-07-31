@@ -14,7 +14,7 @@ export interface PermissionContext {
 
 export type PermissionResult = 'GRANTED' | 'DENIED';
 
-// Permissions only SEEKER can use (exact action strings, no prefix trick)
+// Permissions only SEEKER can use
 const SEEKER_ONLY_ACTIONS = new Set([
     'seekers:read_profile',
     'seekers:read_contact',
@@ -23,7 +23,7 @@ const SEEKER_ONLY_ACTIONS = new Set([
     'messages:read',
 ]);
 
-// Permissions only EMPLOYER/ADMIN can use (exact action strings)
+// Permissions only EMPLOYER can use
 const EMPLOYER_ONLY_ACTIONS = new Set([
     'jobs:read',
     'jobs:create',
@@ -41,39 +41,39 @@ const EMPLOYER_ONLY_ACTIONS = new Set([
     'applications:update_status',
     'applications:add_note',
     'applications:read_all',
+    'subscription:read',
+    'subscription:manage',
 ]);
 
-// Permissions granted to OWNER only
+// OWNER only
 const OWNER_ONLY_ACTIONS = new Set([
     'company:change_role',
     'company:transfer_owner',
+    'company:update',
+    'company:submit_kyc',
+    'subscription:read',
+    'subscription:manage',
 ]);
 
-// Permissions granted to OWNER + HIRING_MANAGER
+// OWNER + HIRING_MANAGER
 const MANAGER_ACTIONS = new Set([
     'company:invite_member',
     'company:remove_member',
-    'applications:read_all',
+    'jobs:delete',
+    'jobs:publish',
 ]);
 
-// Permissions granted to OWNER + HIRING_MANAGER + RECRUITER
+// OWNER + HIRING_MANAGER + RECRUITER
 const RECRUITER_ACTIONS = new Set([
     'jobs:create',
     'jobs:update',
-    'jobs:delete',
-    'jobs:publish',
     'jobs:close',
     'applications:update_status',
     'applications:add_note',
+    'applications:read_all',
 ]);
 
-// Permissions granted to OWNER + HIRING_MANAGER only
-const MANAGER_EXCLUSIVE_ACTIONS = new Set([
-    'company:update',
-    'company:submit_kyc',
-]);
-
-// Permissions granted to ALL members including VIEWER
+// ALL members including VIEWER
 const ALL_MEMBER_ACTIONS = new Set([
     'company:read',
     'company:view_activity',
@@ -140,7 +140,6 @@ export class PermissionsService {
             // HIRING_MANAGER+
             if (role === 'HIRING_MANAGER' || role === 'OWNER') {
                 MANAGER_ACTIONS.forEach(p => granted.add(p));
-                MANAGER_EXCLUSIVE_ACTIONS.forEach(p => granted.add(p));
             }
 
             // OWNER only

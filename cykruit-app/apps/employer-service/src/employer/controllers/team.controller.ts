@@ -49,6 +49,18 @@ export class TeamController {
     }
 
     /**
+     * GET /employer/team/my-role
+     * Returns the current user's EmployerMemberRole within their company.
+     * Used by the frontend layout to gate nav items server-side.
+     */
+    @Get('my-role')
+    @SkipKycCheck()
+    @RequirePermission(ACTIONS.COMPANY.READ)
+    getMyRole(@CurrentUser() user: User) {
+        return this.teamService.getMyRole(user.id);
+    }
+
+    /**
      * POST /employer/team/invite
      * Sends an email invitation to join the company. OWNER or HIRING_MANAGER only.
      */

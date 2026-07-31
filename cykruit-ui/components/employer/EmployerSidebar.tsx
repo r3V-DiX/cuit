@@ -12,6 +12,7 @@ import { useModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders } from "@/lib/api";
 import { broadcastLogout, subscribeAuthSync } from "@/lib/auth-sync";
+import { useEmployerRole } from "@/lib/employer-context";
 
 const navItems = [
   { label: "Dashboard",     href: "/employer/dashboard",     icon: LayoutDashboard },
@@ -37,6 +38,8 @@ export default function EmployerSidebar() {
   const router = useRouter();
   const { openModal } = useModal();
   const { toast } = useToast();
+  const employerRole = useEmployerRole();
+  const OWNER_ONLY_HREFS = new Set(["/employer/company", "/employer/subscription"]);
 
   useEffect(() => {
     function updateCounts() {
@@ -44,7 +47,7 @@ export default function EmployerSidebar() {
         const msgs = localStorage.getItem("cykruit_messages");
         if (msgs) {
           const parsed = JSON.parse(msgs);
-          const count = parsed.reduce((sum: number, c: any) => sum + (c.employerUnread || 0), 0);
+          const count = parsed.reduce((sum: number, c: { employerUnread?: number }) => sum + (c.employerUnread || 0), 0);
           setUnreadMsgs(count);
         } else {
           setUnreadMsgs(0);
@@ -57,7 +60,7 @@ export default function EmployerSidebar() {
         const notifs = localStorage.getItem("cykruit_employer_notifications");
         if (notifs) {
           const parsed = JSON.parse(notifs);
-          const count = parsed.filter((n: any) => !n.read).length;
+          const count = parsed.filter((n: { read?: boolean }) => !n.read).length;
           setUnreadNotifs(count);
         } else {
           setUnreadNotifs(0);
@@ -121,8 +124,8 @@ export default function EmployerSidebar() {
           broadcastLogout();
           toast({ type: "success", message: "Logged out successfully" });
           router.push("/login");
-        } catch (err: any) {
-          toast({ type: "error", message: err.message });
+        } catch (err: unknown) {
+          toast({ type: "error", message: err instanceof Error ? err.message : "Sign out failed" });
         }
       },
     });
@@ -167,7 +170,7 @@ export default function EmployerSidebar() {
 
         {/* Nav */}
         <nav className="flex-1 py-4 px-2 flex flex-col gap-0.5 overflow-y-auto">
-          {navItems.map(({ label, href, icon: Icon }) => {
+          {navItems.filter(item => !OWNER_ONLY_HREFS.has(item.href) || employerRole === "OWNER").map(({ label, href, icon: Icon }) => {
             const active =
               pathname === href ||
               (href !== "/employer/dashboard" && pathname.startsWith(href));
