@@ -82,32 +82,26 @@ export const employerInviteTemplate = (
     </table>
 
     <!-- Full-width CTA button -->
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:16px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:8px;">
       <tr>
-        <td align="center" style="background-color:${COLORS.ACCENT};border-radius:10px;">
+        <td style="border-radius:12px;background-color:${COLORS.ACCENT};">
           <!--[if mso]>
-          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${inviteUrl}" style="height:54px;v-text-anchor:middle;width:100%;" arcsize="9%" stroke="f" fillcolor="${COLORS.ACCENT}">
+          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${inviteUrl}" style="height:60px;v-text-anchor:middle;width:100%;" arcsize="7%" stroke="f" fillcolor="${COLORS.ACCENT}">
             <w:anchorlock/>
-            <center style="color:#ffffff;font-family:${TYPOGRAPHY.FONT_FAMILY};font-size:16px;font-weight:700;padding:16px 32px;">
+            <center style="color:#ffffff;font-family:${TYPOGRAPHY.FONT_FAMILY};font-size:18px;font-weight:700;letter-spacing:0.3px;">
               Accept Invitation →
             </center>
           </v:roundrect>
           <![endif]-->
           <!--[if !mso]><!-->
           <a href="${inviteUrl}"
-             style="display:block;width:100%;padding:16px 32px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;font-family:${TYPOGRAPHY.FONT_FAMILY};border-radius:10px;background-color:${COLORS.ACCENT};text-align:center;box-sizing:border-box;">
+             style="display:block;padding:22px 32px;font-size:18px;font-weight:700;color:#ffffff;text-decoration:none;font-family:${TYPOGRAPHY.FONT_FAMILY};border-radius:12px;text-align:center;letter-spacing:0.3px;">
             Accept Invitation &rarr;
           </a>
           <!--<![endif]-->
         </td>
       </tr>
     </table>
-
-    <!-- Fallback link -->
-    <p style="margin:16px 0 0;font-size:${TYPOGRAPHY.SMALL_SIZE};color:${COLORS.MUTED_LIGHTER};font-family:${TYPOGRAPHY.FONT_FAMILY};word-break:break-all;">
-      Or copy this link into your browser:<br/>
-      <a href="${inviteUrl}" style="color:${COLORS.ACCENT};text-decoration:underline;">${inviteUrl}</a>
-    </p>
     `,
     `${inviterName} invited you to join ${companyName} on Cykruit`,
   );
