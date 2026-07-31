@@ -77,6 +77,7 @@ export class CompanyController {
     }
 
     @Post('logo')
+    @HttpCode(HttpStatus.CREATED)
     @RequirePermission(ACTIONS.COMPANY.UPDATE)
     @UseInterceptors(FileInterceptor('file'))
     uploadLogo(
@@ -95,6 +96,7 @@ export class CompanyController {
     }
 
     @Post('banner')
+    @HttpCode(HttpStatus.CREATED)
     @RequirePermission(ACTIONS.COMPANY.UPDATE)
     @UseInterceptors(FileInterceptor('file'))
     uploadBanner(
@@ -113,24 +115,28 @@ export class CompanyController {
     }
 
     @Post('locations')
+    @HttpCode(HttpStatus.CREATED)
     @RequirePermission(ACTIONS.COMPANY.UPDATE)
     addOfficeLocation(@CurrentUser() user: User, @Body() dto: AddOfficeLocationDto) {
         return this.companyService.addOfficeLocation(user.id, dto);
     }
 
     @Delete('locations/:id')
+    @HttpCode(HttpStatus.NO_CONTENT)
     @RequirePermission(ACTIONS.COMPANY.UPDATE)
     removeOfficeLocation(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
         return this.companyService.removeOfficeLocation(user.id, id);
     }
 
     @Post('benefits')
+    @HttpCode(HttpStatus.CREATED)
     @RequirePermission(ACTIONS.COMPANY.UPDATE)
     addBenefit(@CurrentUser() user: User, @Body() dto: AddCompanyBenefitDto) {
         return this.companyService.addBenefit(user.id, dto);
     }
 
     @Delete('benefits/:id')
+    @HttpCode(HttpStatus.NO_CONTENT)
     @RequirePermission(ACTIONS.COMPANY.UPDATE)
     removeBenefit(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string) {
         return this.companyService.removeBenefit(user.id, id);

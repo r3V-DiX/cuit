@@ -13,7 +13,6 @@ import {
     UseGuards,
     HttpCode,
     HttpStatus,
-    BadRequestException,
     ParseUUIDPipe,
 } from '@nestjs/common';
 import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
@@ -22,7 +21,7 @@ import type { User } from '@prisma/client';
 import { UserRole } from '@prisma/client';
 import type { Request } from 'express';
 import { JobsService } from '../services/jobs.service';
-import { CreateJobDto, UpdateJobDto, CloseJobDto, JobListQueryDto } from '../dto/job.dto';
+import { CreateJobDto, UpdateJobDto, CloseJobDto, JobListQueryDto, ImproveDescriptionDto, SuggestSkillsDto } from '../dto/job.dto';
 import { KycVerifiedGuard } from '../guards/kyc-verified.guard';
 
 @Controller('employer/jobs')
@@ -63,13 +62,10 @@ export class JobsController {
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.JOBS.CREATE)
     improveDescription(
-        @CurrentUser() user: User, 
-        @Body() body: { title: string, description: string, jobType?: string, experienceLevel?: string }
+        @CurrentUser() user: User,
+        @Body() dto: ImproveDescriptionDto,
     ) {
-        if (!body.title || !body.description) {
-            throw new BadRequestException('Title and description are required');
-        }
-        return this.jobsService.improveDescription(user.id, body.title, body.description, body.jobType, body.experienceLevel);
+        return this.jobsService.improveDescription(user.id, dto.title, dto.description, dto.jobType, dto.experienceLevel);
     }
 
     // ── POST /employer/jobs/suggest-skills ──────────────────────────────────
@@ -78,13 +74,10 @@ export class JobsController {
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.JOBS.CREATE)
     suggestSkills(
-        @CurrentUser() user: User, 
-        @Body() body: { title: string, description: string }
+        @CurrentUser() user: User,
+        @Body() dto: SuggestSkillsDto,
     ) {
-        if (!body.title || !body.description) {
-            throw new BadRequestException('Title and description are required');
-        }
-        return this.jobsService.suggestSkills(user.id, body.title, body.description);
+        return this.jobsService.suggestSkills(user.id, dto.title, dto.description);
     }
 
     // ── POST /employer/jobs ─────────────────────────────────────────────────
@@ -135,6 +128,7 @@ export class JobsController {
     // ── DELETE /employer/jobs/:id ───────────────────────────────────────────
 
     @Delete(':id')
+    @HttpCode(HttpStatus.NO_CONTENT)
     @RequirePermission(ACTIONS.JOBS.DELETE)
     remove(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
         return this.jobsService.delete(user.id, id, req.ip, req.headers['user-agent']);

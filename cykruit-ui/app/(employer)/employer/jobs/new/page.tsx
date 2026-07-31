@@ -235,7 +235,7 @@ export default function PostJobPage() {
       const res = await fetch("/api/ai/jobs/suggest-skills", {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ title: title.trim(), description: description.trim() || title.trim() }),
       });
       if (res.ok) {
@@ -251,6 +251,7 @@ export default function PostJobPage() {
         toast({ type: "error", message: "Failed to generate skill tags" });
       }
     } catch (e) {
+      console.error('[AI suggest-skills]', e);
       toast({ type: "error", message: "Error generating skill tags" });
     } finally {
       setTagsGenerating(false);
@@ -267,7 +268,7 @@ export default function PostJobPage() {
       const res = await fetch("/api/ai/jobs/generate-questions", {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ title: title.trim(), description: description.trim() || undefined }),
       });
       if (res.ok) {
@@ -290,6 +291,7 @@ export default function PostJobPage() {
         toast({ type: "error", message: "Failed to generate screening questions" });
       }
     } catch (e) {
+      console.error('[AI generate-questions]', e);
       toast({ type: "error", message: "Error generating screening questions" });
     } finally {
       setSqGenerating(false);
@@ -523,7 +525,7 @@ export default function PostJobPage() {
                         setIsInferring(true);
                         try {
                           const res = await fetch("/api/ai/jobs/infer-domain", {
-                            method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                            method: "POST", credentials: "include", headers: authHeaders(),
                             body: JSON.stringify({ title }),
                           });
                           if (res.ok) {
@@ -535,6 +537,7 @@ export default function PostJobPage() {
                             if (inferred) setDomain(inferred);
                           }
                         } catch (e) {
+                          console.error('[AI infer-domain]', e);
                           const inferred = inferDomain(title);
                           if (inferred) setDomain(inferred);
                         } finally {
@@ -580,7 +583,7 @@ export default function PostJobPage() {
                     try {
                       const prompt = `Job Title: ${title}\nDomain: ${domain}\nExperience Level: ${level}\nJob Type: ${type}\nWork Mode: ${remote}`;
                       const res = await fetch("/api/ai/job-description/generate", {
-                        method: "POST", credentials: "include", headers: { "Content-Type": "application/json" },
+                        method: "POST", credentials: "include", headers: authHeaders(),
                         body: JSON.stringify({ prompt }),
                       });
                       if (res.ok) {

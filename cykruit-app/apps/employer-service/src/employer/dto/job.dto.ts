@@ -141,6 +141,38 @@ export class CreateJobDto {
     isFeatured?: boolean;
 }
 
+// ── AI Assist ─────────────────────────────────────────────────────────────────
+
+export class ImproveDescriptionDto {
+    @IsString()
+    @MaxLength(200)
+    title: string;
+
+    @IsString()
+    @MaxLength(5000)
+    description: string;
+
+    @IsOptional()
+    @IsString()
+    @MaxLength(100)
+    jobType?: string;
+
+    @IsOptional()
+    @IsString()
+    @MaxLength(100)
+    experienceLevel?: string;
+}
+
+export class SuggestSkillsDto {
+    @IsString()
+    @MaxLength(200)
+    title: string;
+
+    @IsString()
+    @MaxLength(5000)
+    description: string;
+}
+
 // ── Update ────────────────────────────────────────────────────────────────────
 
 export class UpdateJobDto {

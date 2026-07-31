@@ -133,6 +133,7 @@ export class TeamController {
      * Revokes a pending invite by immediately expiring it. OWNER or HIRING_MANAGER only.
      */
     @Delete('invites/:tokenId')
+    @HttpCode(HttpStatus.NO_CONTENT)
     @RequirePermission(ACTIONS.COMPANY.INVITE_MEMBER)
     revokeInvite(
         @CurrentUser() user: User,
@@ -146,6 +147,7 @@ export class TeamController {
      * Removes a member from the company. OWNER or HIRING_MANAGER only.
      */
     @Delete(':memberId')
+    @HttpCode(HttpStatus.NO_CONTENT)
     @RequirePermission(ACTIONS.COMPANY.REMOVE_MEMBER)
     removeMember(
         @CurrentUser() user: User,

@@ -11,6 +11,7 @@ import {
 import { ActivityLogSkeleton, AuthLogSkeleton } from "@/components/ui/skeletons/ActivityLogSkeleton";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
+import { KycGate } from "@/components/employer/KycGate";
 
 type Tab = "system" | "auth";
 
@@ -231,7 +232,7 @@ export default function ActivityPage() {
   return (
     <>
       <EmployerTopbar title="Activity" />
-
+      <KycGate>
       <div className="flex-1 overflow-y-auto">
         <div className="px-4 sm:px-6 py-6 sm:py-8 space-y-6">
 
@@ -469,6 +470,7 @@ export default function ActivityPage() {
 
         </div>
       </div>
+      </KycGate>
     </>
   );
 }
