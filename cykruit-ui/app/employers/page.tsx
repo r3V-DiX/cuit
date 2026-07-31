@@ -1,8 +1,17 @@
+import type { Metadata } from "next";
 import {
   Shield, CheckCircle, ArrowRight, Terminal, Zap, Users,
   BarChart3, MessageSquare, Brain, Clock, Lock, TrendingUp,
   Star, Building2
 } from "lucide-react";
+
+export const metadata: Metadata = {
+  title: "Hire Cybersecurity Talent",
+  description:
+    "Post jobs and connect with verified cybersecurity professionals. AI-powered candidate matching, resume access, and team collaboration tools.",
+  alternates: { canonical: "/employers" },
+  openGraph: { url: "/employers" },
+};
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import Button from "@/components/ui/Button";

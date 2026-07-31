@@ -2,7 +2,16 @@ import {
   Shield, Target, Zap, ArrowRight, Terminal,
   Globe, Heart, CheckCircle
 } from "lucide-react";
+import type { Metadata } from "next";
 import Navbar from "@/components/layout/Navbar";
+
+export const metadata: Metadata = {
+  title: "About Cykruit",
+  description:
+    "Cykruit is the cybersecurity-focused job platform connecting security professionals with top employers. Learn about our mission and team.",
+  alternates: { canonical: "/about" },
+  openGraph: { url: "/about" },
+};
 import Footer from "@/components/layout/Footer";
 import Button from "@/components/ui/Button";
 

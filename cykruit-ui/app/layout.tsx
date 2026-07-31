@@ -20,9 +20,32 @@ const shareTechMono = Share_Tech_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cykruit — Cybersecurity Jobs Platform",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://cykruit.com"),
+  title: {
+    default: "Cykruit — Cybersecurity Jobs Platform",
+    template: "%s | Cykruit",
+  },
   description:
     "The job platform built for cybersecurity professionals. Find your next security role or hire top infosec talent.",
+  openGraph: {
+    type: "website",
+    siteName: "Cykruit",
+    title: "Cykruit — Cybersecurity Jobs Platform",
+    description:
+      "The job platform built for cybersecurity professionals. Find your next security role or hire top infosec talent.",
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Cykruit — Cybersecurity Jobs Platform",
+    description:
+      "The job platform built for cybersecurity professionals. Find your next security role or hire top infosec talent.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
 };
 
 export default async function RootLayout({

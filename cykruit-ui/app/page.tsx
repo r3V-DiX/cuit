@@ -1,4 +1,13 @@
+import type { Metadata } from "next";
 import HeroSection from "@/components/landing/HeroSection";
+
+export const metadata: Metadata = {
+  title: "Cykruit — Cybersecurity Jobs Platform",
+  description:
+    "Browse thousands of cybersecurity jobs. Find roles in penetration testing, SOC, threat intelligence, cloud security and more.",
+  alternates: { canonical: "/" },
+  openGraph: { url: "/" },
+};
 import FeaturedJobsSection, { FeaturedJob } from "@/components/landing/FeaturedJobsSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import FeaturesSection from "@/components/landing/FeaturesSection";
