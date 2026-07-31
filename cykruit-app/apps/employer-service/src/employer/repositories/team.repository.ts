@@ -94,7 +94,7 @@ export class TeamRepository {
         employerId: true,
         userId: true,
         role: true,
-        joinedAt: true,
+        createdAt: true,
     } as const;
 
     async addMember(

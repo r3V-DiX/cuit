@@ -156,19 +156,27 @@ export default function TeamPage() {
     } finally { setInviting(false); }
   }
 
-  async function handleRoleChange(memberId: string, newRole: MemberRole) {
-    try {
-      await apiFetch("/api/employer/team/role", {
-        method: "PATCH",
-        headers: authHeaders(),
-        body: JSON.stringify({ memberId, newRole }),
-      });
-      toast({ type: "success", message: "Role updated" });
-      setOpenMenu(null);
-      load();
-    } catch (err: unknown) {
-      toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to update role") });
-    }
+  function handleRoleChange(memberId: string, newRole: MemberRole, memberName: string) {
+    setOpenMenu(null);
+    openModal({
+      variant: "info",
+      title: "Change role?",
+      description: `Change ${memberName}'s role to ${ROLE_META[newRole].label}? This takes effect immediately.`,
+      confirmLabel: "Change Role",
+      onConfirm: async () => {
+        try {
+          await apiFetch("/api/employer/team/role", {
+            method: "PATCH",
+            headers: authHeaders(),
+            body: JSON.stringify({ memberId, newRole }),
+          });
+          toast({ type: "success", message: "Role updated" });
+          load();
+        } catch (err: unknown) {
+          toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to update role") });
+        }
+      },
+    });
   }
 
   function confirmRemove(member: Member) {
@@ -420,7 +428,7 @@ export default function TeamPage() {
                                     <>
                                       <p className="px-3 pt-1.5 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Change Role</p>
                                       {ASSIGNABLE_ROLES.map((r) => (
-                                        <button key={r} onClick={() => handleRoleChange(member.id, r)}
+                                        <button key={r} onClick={() => handleRoleChange(member.id, r, fullName)}
                                           className={`w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-slate-50 transition-colors ${member.role === r ? "font-semibold text-blue-700" : "text-slate-700"}`}>
                                           {ROLE_META[r].icon} {ROLE_META[r].label}
                                           {member.role === r && <span className="ml-auto text-blue-600">✓</span>}
