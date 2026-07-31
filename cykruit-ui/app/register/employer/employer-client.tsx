@@ -180,12 +180,12 @@ export default function EmployerClient() {
           router.push("/login?reason=role_upgraded");
         } else if (status === "REJECTED") {
           clearInterval(pollRef.current!); pollRef.current = null;
-          toast({ type: "error", message: "Request declined", description: "Your join request was not approved. You can continue as a job seeker." });
-          setStep("info");
+          toast({ type: "error", message: "Request declined", description: "Your join request was not approved. You can browse jobs as a seeker." });
+          router.push("/dashboard");
         } else if (status === "EXPIRED") {
           clearInterval(pollRef.current!); pollRef.current = null;
-          toast({ type: "error", message: "Request expired", description: "Your join request was not reviewed in time. You can register again or continue as a job seeker." });
-          setStep("info");
+          toast({ type: "error", message: "Request expired", description: "Your join request was not reviewed in time. You can browse jobs as a seeker." });
+          router.push("/dashboard");
         }
       } catch {
         // network hiccup — retry next tick
