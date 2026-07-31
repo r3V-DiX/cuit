@@ -526,26 +526,50 @@ export default function EmployerClient() {
                 </div>
 
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  Your email domain is already associated with this company. Request to join their team — once the owner approves, you'll have full employer access.
+                  Your email domain is associated with this company. Choose one path — this decision locks in your role.
                 </p>
 
-                <button
-                  type="button"
-                  onClick={handleRequestToJoin}
-                  disabled={loading}
-                  className="w-full h-11 rounded-xl bg-linear-to-r from-violet-500 to-violet-600 text-white text-base font-semibold hover:from-violet-400 hover:to-violet-500 shadow-md shadow-violet-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {loading ? <Spinner /> : <>Request to join {domainCompany.companyName} <ArrowRight className="w-4 h-4" /></>}
-                </button>
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-violet-200 bg-violet-50/50 p-4 space-y-3">
+                    <div className="flex items-start gap-2.5">
+                      <Building2 className="w-4 h-4 text-violet-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">Join as Employer</p>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                          Once the owner approves your request, your account becomes an Employer account. You'll no longer be able to apply to jobs as a candidate.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRequestToJoin}
+                      disabled={loading}
+                      className="w-full h-10 rounded-lg bg-linear-to-r from-violet-500 to-violet-600 text-white text-sm font-semibold hover:from-violet-400 hover:to-violet-500 shadow-sm shadow-violet-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {loading ? <Spinner /> : <>Request to join {domainCompany.companyName} <ArrowRight className="w-4 h-4" /></>}
+                    </button>
+                  </div>
 
-                <button
-                  type="button"
-                  onClick={handleSwitchToSeeker}
-                  disabled={loading}
-                  className="w-full h-10 rounded-xl border border-slate-200 text-slate-500 text-sm font-medium hover:bg-slate-50 hover:text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Continue as job seeker instead
-                </button>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                    <div className="flex items-start gap-2.5">
+                      <Users className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">Continue as Job Seeker</p>
+                        <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                          You'll browse and apply to jobs as a candidate. To join this company later, a team member must send you a direct invite.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSwitchToSeeker}
+                      disabled={loading}
+                      className="w-full h-10 rounded-lg border border-slate-200 text-slate-600 text-sm font-medium hover:bg-white hover:border-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Continue as job seeker
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -570,20 +594,23 @@ export default function EmployerClient() {
                   has been sent to their team administrator. You'll be notified once it's reviewed.
                 </p>
 
-                <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
+                <div className="rounded-xl border border-amber-100 bg-amber-50 p-4 space-y-1">
+                  <p className="text-xs font-semibold text-amber-800">What happens next?</p>
                   <p className="text-xs text-amber-700 leading-relaxed">
-                    Once approved you'll receive a notification and can log in as an employer. Until then, you can browse jobs as a seeker.
+                    The team owner will receive a notification. Once approved, your role becomes Employer and you'll be asked to log in again.
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={handleSwitchToSeeker}
-                  disabled={loading}
-                  className="w-full h-11 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 hover:text-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {loading ? <Spinner /> : "Continue as job seeker instead"}
-                </button>
+                <div className="flex items-center justify-center pt-1">
+                  <button
+                    type="button"
+                    onClick={handleSwitchToSeeker}
+                    disabled={loading}
+                    className="text-xs text-rose-500 hover:text-rose-600 underline underline-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? "Cancelling..." : "Cancel my request and continue as job seeker"}
+                  </button>
+                </div>
               </div>
             )}
 

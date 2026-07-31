@@ -523,7 +523,11 @@ export class CompanyService {
             throw new NotFoundException('Join request not found.');
         }
         if (joinRequest.status !== 'PENDING') {
-            throw new ConflictException(`Join request is already ${joinRequest.status.toLowerCase()}.`);
+            const msg =
+                joinRequest.status === 'REJECTED' && joinRequest.resolvedBy === null
+                    ? 'This request was withdrawn by the user and can no longer be accepted.'
+                    : `Join request is already ${joinRequest.status.toLowerCase()}.`;
+            throw new ConflictException(msg);
         }
 
         await this.prisma.$transaction(async (tx) => {
