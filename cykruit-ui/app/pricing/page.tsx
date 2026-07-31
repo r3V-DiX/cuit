@@ -10,20 +10,23 @@ export const metadata: Metadata = {
 };
 
 async function getPackages(): Promise<PricingPackage[]> {
-  const SUBS_URL = process.env.SUBS_SERVICE_URL || "http://127.0.0.1:4008";
-  try {
-    const res = await fetch(`${SUBS_URL}/subscriptions/packages`, {
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return [];
-    const body = await res.json();
-    const raw = body?.data;
-    // Don't cache an empty response — service may have been temporarily down
-    if (!Array.isArray(raw) || raw.length === 0) return [];
-    return raw;
-  } catch {
-    return [];
+  const primary = process.env.SUBS_SERVICE_URL || "http://127.0.0.1:4008";
+  const urls = Array.from(new Set([primary, "http://subscription-service:4008", "http://gateway:5000", "http://127.0.0.1:4008"]));
+  for (const base of urls) {
+    try {
+      const res = await fetch(`${base}/subscriptions/packages`, {
+        next: { revalidate: 3600 },
+      });
+      if (!res.ok) continue;
+      const body = await res.json();
+      const raw = body?.data;
+      if (!Array.isArray(raw) || raw.length === 0) continue;
+      return raw;
+    } catch {
+      // try next fallback
+    }
   }
+  return [];
 }
 
 export default async function PricingPage() {
