@@ -1,8 +1,7 @@
 /* Hallmark · component: email-employer-invite · genre: modern-minimal */
 
 import { baseTemplate } from "./base.template";
-import { cyberButton } from "./cyber-button.template";
-import { COLORS, TYPOGRAPHY } from "./colors";
+import { COLORS, TYPOGRAPHY, SPACING } from "./colors";
 
 export const employerInviteTemplate = (
   inviteeName: string,
@@ -15,32 +14,24 @@ export const employerInviteTemplate = (
 ): string =>
   baseTemplate(
     `
-    <div style="text-align:left;margin-bottom:24px;">
-      ${
-        companyLogo
-          ? `<img src="${companyLogo}" alt="${companyName}" style="max-height:48px;border-radius:8px;margin-bottom:16px;display:block;" />`
-          : ""
-      }
-      <h1 style="margin:0 0 8px;font-size:22px;font-weight:${TYPOGRAPHY.HEADING_WEIGHT};color:${COLORS.INK};letter-spacing:${TYPOGRAPHY.HEADING_LETTERSPACING};">You are invited</h1>
-      <p style="margin:0;font-size:${TYPOGRAPHY.META_SIZE};color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};letter-spacing:${TYPOGRAPHY.META_LETTERSPACING};text-transform:${TYPOGRAPHY.META_UPPERCASE};">Team access granted</p>
-    </div>
-
-    <p style="margin:0 0 24px;color:${COLORS.BODY};font-size:${TYPOGRAPHY.BODY_SIZE};line-height:${TYPOGRAPHY.BODY_LINEHEIGHT};">
-      ${inviterName} invited you to join the ${companyName} hiring team on Cykruit as a ${assignedRole}.
-    </p>
-
+    <!-- Company header -->
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px;">
       <tr>
-        <td style="background:${COLORS.CANVAS};border:1px solid ${COLORS.PAPER_BORDER};border-radius:8px;padding:18px 22px;">
+        <td style="background:${COLORS.ACCENT_LIGHT};border:1px solid ${COLORS.ACCENT_BORDER};border-radius:12px;padding:20px 24px;">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr>
-              <td style="padding:6px 0;font-size:13px;color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};border-bottom:1px solid ${COLORS.PAPER_BORDER};">
-                <span style="color:${COLORS.MUTED};">Company:</span> &nbsp; <strong style="color:${COLORS.INK};">${companyName}</strong>
+              <td style="vertical-align:middle;">
+                ${
+                  companyLogo
+                    ? `<img src="${companyLogo}" alt="${companyName}" style="height:44px;border-radius:8px;display:block;" />`
+                    : `<div style="display:inline-block;width:44px;height:44px;border-radius:10px;background:${COLORS.ACCENT};text-align:center;line-height:44px;font-size:20px;font-weight:700;color:#ffffff;font-family:${TYPOGRAPHY.FONT_FAMILY};">${companyName.charAt(0).toUpperCase()}</div>`
+                }
               </td>
             </tr>
             <tr>
-              <td style="padding:6px 0;font-size:13px;color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};">
-                <span style="color:${COLORS.MUTED};">Role:</span> &nbsp; <strong style="color:${COLORS.ACCENT};">${assignedRole}</strong>
+              <td style="padding-top:12px;">
+                <p style="margin:0;font-size:18px;font-weight:${TYPOGRAPHY.HEADING_WEIGHT};color:${COLORS.INK};letter-spacing:${TYPOGRAPHY.HEADING_LETTERSPACING};">${companyName}</p>
+                <p style="margin:4px 0 0;font-size:12px;color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};letter-spacing:0.3px;">has invited you to join their hiring team</p>
               </td>
             </tr>
           </table>
@@ -48,17 +39,75 @@ export const employerInviteTemplate = (
       </tr>
     </table>
 
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+    <!-- Greeting -->
+    <p style="margin:0 0 8px;font-size:20px;font-weight:${TYPOGRAPHY.HEADING_WEIGHT};color:${COLORS.INK};letter-spacing:${TYPOGRAPHY.HEADING_LETTERSPACING};">
+      You're invited, ${inviteeName.split(" ")[0]}!
+    </p>
+    <p style="margin:0 0 24px;color:${COLORS.BODY};font-size:${TYPOGRAPHY.BODY_SIZE};line-height:${TYPOGRAPHY.BODY_LINEHEIGHT};">
+      <strong style="color:${COLORS.INK};">${inviterName}</strong> invited you to join <strong style="color:${COLORS.INK};">${companyName}</strong> on Cykruit as a <strong style="color:${COLORS.ACCENT};">${assignedRole}</strong>.
+    </p>
+
+    <!-- Role info card -->
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:32px;">
       <tr>
-        <td align="left">
-          ${cyberButton("Accept Invitation", inviteUrl)}
+        <td style="background:${COLORS.CANVAS};border:1px solid ${COLORS.PAPER_BORDER};border-radius:10px;padding:16px 20px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+              <td width="50%" style="padding:4px 0;font-size:13px;color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};">
+                <span style="color:${COLORS.MUTED};">Role assigned</span>
+              </td>
+              <td width="50%" style="padding:4px 0;font-size:13px;font-weight:600;color:${COLORS.ACCENT};font-family:${TYPOGRAPHY.FONT_FAMILY};text-align:right;">
+                ${assignedRole}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0;font-size:13px;color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};border-top:1px solid ${COLORS.PAPER_BORDER};">
+                <span>Invited by</span>
+              </td>
+              <td style="padding:4px 0;font-size:13px;font-weight:600;color:${COLORS.INK};font-family:${TYPOGRAPHY.FONT_FAMILY};text-align:right;border-top:1px solid ${COLORS.PAPER_BORDER};">
+                ${inviterName}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0;font-size:13px;color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};border-top:1px solid ${COLORS.PAPER_BORDER};">
+                <span>Expires in</span>
+              </td>
+              <td style="padding:4px 0;font-size:13px;font-weight:600;color:${COLORS.INK};font-family:${TYPOGRAPHY.FONT_FAMILY};text-align:right;border-top:1px solid ${COLORS.PAPER_BORDER};">
+                ${expiresInHours} hours
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
     </table>
 
-    <p style="margin:24px 0 0;font-size:${TYPOGRAPHY.SMALL_SIZE};color:${COLORS.MUTED_LIGHTER};font-family:${TYPOGRAPHY.FONT_FAMILY};">
-      This invitation link will expire in ${expiresInHours} hours.
+    <!-- Full-width CTA button -->
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:16px;">
+      <tr>
+        <td align="center" style="background-color:${COLORS.ACCENT};border-radius:10px;">
+          <!--[if mso]>
+          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="${inviteUrl}" style="height:54px;v-text-anchor:middle;width:100%;" arcsize="9%" stroke="f" fillcolor="${COLORS.ACCENT}">
+            <w:anchorlock/>
+            <center style="color:#ffffff;font-family:${TYPOGRAPHY.FONT_FAMILY};font-size:16px;font-weight:700;padding:16px 32px;">
+              Accept Invitation →
+            </center>
+          </v:roundrect>
+          <![endif]-->
+          <!--[if !mso]><!-->
+          <a href="${inviteUrl}"
+             style="display:block;width:100%;padding:16px 32px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;font-family:${TYPOGRAPHY.FONT_FAMILY};border-radius:10px;background-color:${COLORS.ACCENT};text-align:center;box-sizing:border-box;">
+            Accept Invitation &rarr;
+          </a>
+          <!--<![endif]-->
+        </td>
+      </tr>
+    </table>
+
+    <!-- Fallback link -->
+    <p style="margin:16px 0 0;font-size:${TYPOGRAPHY.SMALL_SIZE};color:${COLORS.MUTED_LIGHTER};font-family:${TYPOGRAPHY.FONT_FAMILY};word-break:break-all;">
+      Or copy this link into your browser:<br/>
+      <a href="${inviteUrl}" style="color:${COLORS.ACCENT};text-decoration:underline;">${inviteUrl}</a>
     </p>
     `,
-    "You're invited to join the team",
+    `${inviterName} invited you to join ${companyName} on Cykruit`,
   );

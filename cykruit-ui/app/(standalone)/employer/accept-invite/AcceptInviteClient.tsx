@@ -25,7 +25,7 @@ const ROLE_LABELS: Record<string, string> = {
   VIEWER: "Viewer",
 };
 
-export default function AcceptInvitePage() {
+export default function AcceptInviteClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
@@ -36,7 +36,6 @@ export default function AcceptInvitePage() {
 
   const token = searchParams.get("token") ?? "";
 
-  // On mount: fetch preview only — do NOT accept yet
   useEffect(() => {
     if (!token) {
       setErrorMsg("No invite token found in the URL.");
@@ -76,8 +75,6 @@ export default function AcceptInvitePage() {
       });
       setStage("success");
       toast({ type: "success", message: "You've joined the team!" });
-      // Role upgraded: sessions were revoked — must re-login to get EMPLOYER cookie.
-      // No upgrade: session is still valid, go straight to dashboard.
       setTimeout(
         () => router.replace(preview?.requiresRoleUpgrade ? "/login?reason=role_upgraded" : "/employer/dashboard"),
         2000,
@@ -95,7 +92,6 @@ export default function AcceptInvitePage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="flex justify-center mb-8">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
@@ -107,7 +103,6 @@ export default function AcceptInvitePage() {
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/60 p-8 text-center">
 
-          {/* Loading preview */}
           {stage === "loading" && (
             <>
               <div className="w-14 h-14 rounded-2xl bg-violet-50 border border-violet-100 flex items-center justify-center mx-auto mb-4">
@@ -118,7 +113,6 @@ export default function AcceptInvitePage() {
             </>
           )}
 
-          {/* Confirmation screen */}
           {stage === "confirm" && preview && (
             <>
               <div className="w-14 h-14 rounded-2xl bg-violet-50 border border-violet-100 flex items-center justify-center mx-auto mb-4">
@@ -157,14 +151,14 @@ export default function AcceptInvitePage() {
               <div className="flex flex-col gap-2">
                 <button
                   onClick={handleAccept}
-                  className="w-full h-11 rounded-xl bg-violet-500 text-white text-sm font-semibold hover:bg-violet-600 active:bg-violet-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full h-12 rounded-xl bg-violet-500 text-white text-base font-semibold hover:bg-violet-600 active:bg-violet-700 transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-violet-500/20"
                 >
-                  <Users className="w-4 h-4" />
+                  <Users className="w-5 h-5" />
                   {preview.requiresRoleUpgrade ? "Accept & Upgrade Account" : "Accept & Join Team"}
                 </button>
                 <Link
                   href={preview?.requiresRoleUpgrade ? "/jobs" : "/employer/dashboard"}
-                  className="w-full h-10 rounded-xl border border-slate-200 text-slate-600 text-sm hover:bg-slate-50 transition-colors flex items-center justify-center"
+                  className="w-full h-11 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center"
                 >
                   Decline
                 </Link>
@@ -172,7 +166,6 @@ export default function AcceptInvitePage() {
             </>
           )}
 
-          {/* Accepting in progress */}
           {stage === "accepting" && (
             <>
               <div className="w-14 h-14 rounded-2xl bg-violet-50 border border-violet-100 flex items-center justify-center mx-auto mb-4">
@@ -183,7 +176,6 @@ export default function AcceptInvitePage() {
             </>
           )}
 
-          {/* Success */}
           {stage === "success" && (
             <>
               <div className="w-14 h-14 rounded-2xl bg-green-50 border border-green-100 flex items-center justify-center mx-auto mb-4">
@@ -202,7 +194,6 @@ export default function AcceptInvitePage() {
             </>
           )}
 
-          {/* Error */}
           {stage === "error" && (
             <>
               <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center mx-auto mb-4">
@@ -213,13 +204,13 @@ export default function AcceptInvitePage() {
               <div className="flex flex-col gap-2">
                 <Link
                   href="/employer/dashboard"
-                  className="w-full h-10 rounded-xl bg-violet-500 text-white text-sm font-semibold hover:bg-violet-600 transition-colors flex items-center justify-center"
+                  className="w-full h-11 rounded-xl bg-violet-500 text-white text-sm font-semibold hover:bg-violet-600 transition-colors flex items-center justify-center"
                 >
                   Go to Dashboard
                 </Link>
                 <Link
                   href="/login"
-                  className="w-full h-10 rounded-xl border border-slate-200 text-slate-600 text-sm hover:bg-slate-50 transition-colors flex items-center justify-center"
+                  className="w-full h-11 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors flex items-center justify-center"
                 >
                   Sign in to a different account
                 </Link>
