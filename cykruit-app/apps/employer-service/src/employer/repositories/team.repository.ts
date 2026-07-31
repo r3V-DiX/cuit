@@ -149,6 +149,7 @@ export class TeamRepository {
         expiresAt: Date,
         employerId: string,
         invitedEmail: string,
+        role: string,
     ) {
         return this.prisma.token.create({
             data: {
@@ -157,8 +158,43 @@ export class TeamRepository {
                 type: TokenType.EMPLOYER_INVITE,
                 expiresAt,
                 employerId,
-                metadata: { invitedEmail },
+                metadata: { invitedEmail, role },
             },
+        });
+    }
+
+    async getInvites(employerId: string) {
+        return this.prisma.token.findMany({
+            where: { employerId, type: TokenType.EMPLOYER_INVITE },
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+            select: {
+                id: true,
+                metadata: true,
+                createdAt: true,
+                expiresAt: true,
+                usedAt: true,
+                user: {
+                    select: {
+                        firstName: true,
+                        lastName: true,
+                        email: true,
+                    },
+                },
+            },
+        });
+    }
+
+    async findInviteById(tokenId: string, employerId: string) {
+        return this.prisma.token.findFirst({
+            where: { id: tokenId, employerId, type: TokenType.EMPLOYER_INVITE },
+        });
+    }
+
+    async expireInvite(tokenId: string) {
+        return this.prisma.token.update({
+            where: { id: tokenId },
+            data: { expiresAt: new Date() },
         });
     }
 

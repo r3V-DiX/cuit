@@ -126,7 +126,7 @@ export class TeamService {
         const hashedToken = this.hashService.hashToken(rawToken);
 
         const expiresAt = new Date(Date.now() + INVITE_TOKEN_TTL_MS);
-        await this.teamRepository.createInviteToken(userId, hashedToken, expiresAt, employer.id, dto.email);
+        await this.teamRepository.createInviteToken(userId, hashedToken, expiresAt, employer.id, dto.email, dto.role);
 
         // Fetch inviter details for the email.
         const inviterUser = await this.prisma.user.findUnique({
@@ -544,6 +544,71 @@ export class TeamService {
         });
 
         return this.teamRepository.findMembers(employer.id);
+    }
+
+    // ── Get Invites ───────────────────────────────────────────────
+
+    async getInvites(userId: string) {
+        const employer = await this.requireEmployer(userId);
+
+        const member = await this.teamRepository.findMember(employer.id, userId);
+        if (!member || !CAN_INVITE.has(member.role)) {
+            throw new ForbiddenException(
+                'Only OWNER or HIRING_MANAGER can view invitations.',
+            );
+        }
+
+        const tokens = await this.teamRepository.getInvites(employer.id);
+        const now = new Date();
+
+        return tokens.map((token) => {
+            const meta = token.metadata as { invitedEmail?: string; role?: string } | null;
+            return {
+                id: token.id,
+                invitedEmail: meta?.invitedEmail ?? '',
+                role: meta?.role ?? 'RECRUITER',
+                invitedBy: token.user
+                    ? `${token.user.firstName} ${token.user.lastName}`
+                    : '',
+                createdAt: token.createdAt,
+                expiresAt: token.expiresAt,
+                status: token.usedAt
+                    ? 'ACCEPTED'
+                    : token.expiresAt < now
+                      ? 'EXPIRED'
+                      : 'PENDING',
+            };
+        });
+    }
+
+    // ── Revoke Invite ─────────────────────────────────────────────
+
+    async revokeInvite(userId: string, tokenId: string) {
+        const employer = await this.requireEmployer(userId);
+
+        const member = await this.teamRepository.findMember(employer.id, userId);
+        if (!member || !CAN_INVITE.has(member.role)) {
+            throw new ForbiddenException(
+                'Only OWNER or HIRING_MANAGER can revoke invitations.',
+            );
+        }
+
+        const token = await this.teamRepository.findInviteById(tokenId, employer.id);
+        if (!token) {
+            throw new NotFoundException('Invitation not found.');
+        }
+
+        if (token.usedAt != null) {
+            throw new BadRequestException('Invitation has already been accepted.');
+        }
+
+        if (token.expiresAt < new Date()) {
+            throw new BadRequestException('Invitation has already expired.');
+        }
+
+        await this.teamRepository.expireInvite(tokenId);
+
+        return { message: 'Invitation revoked successfully.' };
     }
 
     // ── Private Helpers ───────────────────────────────────────────

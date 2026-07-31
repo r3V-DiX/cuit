@@ -106,6 +106,30 @@ export class TeamController {
     }
 
     /**
+     * GET /employer/team/invites
+     * Returns all invite tokens for the authenticated user's company (last 50, newest first).
+     * OWNER or HIRING_MANAGER only.
+     */
+    @Get('invites')
+    @RequirePermission(ACTIONS.COMPANY.INVITE_MEMBER)
+    getInvites(@CurrentUser() user: User) {
+        return this.teamService.getInvites(user.id);
+    }
+
+    /**
+     * DELETE /employer/team/invites/:tokenId
+     * Revokes a pending invite by immediately expiring it. OWNER or HIRING_MANAGER only.
+     */
+    @Delete('invites/:tokenId')
+    @RequirePermission(ACTIONS.COMPANY.INVITE_MEMBER)
+    revokeInvite(
+        @CurrentUser() user: User,
+        @Param('tokenId', ParseUUIDPipe) tokenId: string,
+    ) {
+        return this.teamService.revokeInvite(user.id, tokenId);
+    }
+
+    /**
      * DELETE /employer/team/:memberId
      * Removes a member from the company. OWNER or HIRING_MANAGER only.
      */

@@ -48,6 +48,16 @@ interface JoinRequest {
   };
 }
 
+interface InviteRow {
+  id: string;
+  invitedEmail: string;
+  role: string;
+  invitedBy: string;
+  createdAt: string;
+  expiresAt: string;
+  status: "PENDING" | "ACCEPTED" | "EXPIRED";
+}
+
 const ROLE_META: Record<MemberRole, { label: string; color: string; icon: React.ReactNode; desc: string }> = {
   OWNER:          { label: "Owner",           color: "text-yellow-700 bg-yellow-50 border-yellow-200",  icon: <Crown className="w-3 h-3" />,    desc: "Full access — billing, team, jobs, settings" },
   HIRING_MANAGER: { label: "Hiring Manager",  color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Briefcase className="w-3 h-3" />, desc: "Manage jobs, applications, invite members" },
@@ -60,8 +70,10 @@ const ASSIGNABLE_ROLES: MemberRole[] = ["HIRING_MANAGER", "RECRUITER", "VIEWER"]
 export default function TeamPage() {
   const [members, setMembers]         = useState<Member[]>([]);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [invites, setInvites]         = useState<InviteRow[]>([]);
   const [loading, setLoading]         = useState(false);
   const [resolving, setResolving]     = useState<string | null>(null);
+  const [revoking, setRevoking]       = useState<string | null>(null);
   const [myRole,  setMyRole]          = useState<MemberRole | null>(null);
   const [myUserId, setMyUserId]       = useState<string | null>(null);
   const [openMenu, setOpenMenu]       = useState<string | null>(null);
@@ -97,6 +109,12 @@ export default function TeamPage() {
         try {
           const jrRes = await apiFetch<JoinRequest[]>("/api/employer/company/join-requests");
           setJoinRequests(jrRes.data ?? []);
+        } catch {
+          // non-critical
+        }
+        try {
+          const invRes = await apiFetch<InviteRow[]>("/api/employer/team/invites");
+          setInvites(invRes.data ?? []);
         } catch {
           // non-critical
         }
@@ -173,6 +191,30 @@ export default function TeamPage() {
     });
   }
 
+  async function handleRevokeInvite(tokenId: string, email: string) {
+    openModal({
+      variant: "danger",
+      title: "Revoke invite?",
+      description: `The invitation to ${email} will be cancelled.`,
+      confirmLabel: "Revoke",
+      onConfirm: async () => {
+        setRevoking(tokenId);
+        try {
+          await apiFetch(`/api/employer/team/invites/${tokenId}`, {
+            method: "DELETE",
+            headers: authHeaders(),
+          });
+          toast({ type: "success", message: "Invite revoked" });
+          load();
+        } catch (err: unknown) {
+          toast({ type: "error", message: (err instanceof Error ? err.message : "Failed to revoke invite") });
+        } finally {
+          setRevoking(null);
+        }
+      },
+    });
+  }
+
   async function handleResolveRequest(joinRequestId: string, status: "ACCEPTED" | "REJECTED") {
     setResolving(joinRequestId);
     try {
@@ -197,6 +239,7 @@ export default function TeamPage() {
   const canInvite = canManage;
   const canChangeRole = myRole === "OWNER";
   const pendingCount = joinRequests.filter((r) => r.status === "PENDING").length;
+  const pendingInviteCount = invites.filter((inv) => inv.status === "PENDING").length;
 
   return (
     <>
@@ -282,6 +325,75 @@ export default function TeamPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Pending Invites section — OWNER/HIRING_MANAGER only */}
+          {canManage && invites.length > 0 && (
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-semibold text-slate-700">Sent Invites</span>
+                  {pendingInviteCount > 0 && (
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold">
+                      {pendingInviteCount} pending
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <ul className="divide-y divide-slate-100">
+                {invites.map((inv) => {
+                  const initial = inv.invitedEmail[0].toUpperCase();
+                  const isPending = inv.status === "PENDING";
+                  const isRevoking = revoking === inv.id;
+                  const inviteRole = inv.role as MemberRole;
+                  const rm = ROLE_META[inviteRole] ?? ROLE_META["VIEWER"];
+
+                  return (
+                    <li key={inv.id} className="flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-4 flex-wrap sm:flex-nowrap">
+                      <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 text-blue-700 font-bold text-sm">
+                        {initial}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 truncate">{inv.invitedEmail}</p>
+                        <p className="text-xs text-slate-400 truncate">Invited by {inv.invitedBy}</p>
+                      </div>
+
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-semibold shrink-0 ${rm.color}`}>
+                        {rm.icon} {rm.label}
+                      </span>
+
+                      {isPending ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-700 text-[11px] font-semibold shrink-0">
+                          <Clock className="w-3 h-3" /> Pending
+                        </span>
+                      ) : inv.status === "ACCEPTED" ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-green-200 bg-green-50 text-green-700 text-[11px] font-semibold shrink-0">
+                          <CheckCircle2 className="w-3 h-3" /> Accepted
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-500 text-[11px] font-semibold shrink-0">
+                          <XCircle className="w-3 h-3" /> Expired
+                        </span>
+                      )}
+
+                      {isPending && (
+                        <button
+                          onClick={() => handleRevokeInvite(inv.id, inv.invitedEmail)}
+                          disabled={isRevoking}
+                          className="h-8 px-3 rounded-lg border border-rose-200 text-rose-600 text-xs font-semibold hover:bg-rose-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5 shrink-0"
+                        >
+                          {isRevoking ? <Loader2 className="w-3 h-3 animate-spin" /> : <XCircle className="w-3 h-3" />}
+                          Revoke
+                        </button>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
           )}
 
