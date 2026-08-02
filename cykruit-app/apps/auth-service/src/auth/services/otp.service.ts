@@ -112,13 +112,13 @@ export class OtpService {
       role = user.role;
     }
 
-    // Flow gate: login requires an existing ACTIVE account; register requires no account yet
+    // Flow gate: login requires an existing ACTIVE account; register requires no account yet.
+    // Generic response for login+no-account to prevent account enumeration.
     if (flow === "login") {
       if (!user) {
-        throw new BadRequestException({
-          code: "ACCOUNT_NOT_FOUND",
-          message: "No account found with this email. Please register first.",
-        });
+        // Simulate timing parity — do not reveal whether the account exists.
+        await new Promise<void>((r) => setTimeout(r, 200));
+        return { message: `OTP sent to your email. It expires in 10 minutes.` };
       }
       if (user.status === AccountStatus.PENDING) {
         throw new BadRequestException({
@@ -276,17 +276,15 @@ export class OtpService {
       });
     }
 
-    if (user.status === AccountStatus.SUSPENDED) {
-      throw new UnauthorizedException({ code: "ACCOUNT_SUSPENDED", message: "Account suspended." });
-    }
-    if (user.status === AccountStatus.DELETED) {
-      throw new UnauthorizedException({ code: "ACCOUNT_DELETED", message: "Account deleted." });
-    }
-    if (user.status === AccountStatus.INACTIVE) {
-      throw new UnauthorizedException({ code: "ACCOUNT_INACTIVE", message: "Account deactivated. Contact support to reactivate." });
-    }
-    if (user.status === AccountStatus.PENDING_DELETION) {
-      throw new UnauthorizedException({ code: "ACCOUNT_PENDING_DELETION", message: "Account is scheduled for deletion. Use the cancellation link in your email." });
+    const inactiveStatuses: AccountStatus[] = [
+      AccountStatus.SUSPENDED,
+      AccountStatus.DELETED,
+      AccountStatus.INACTIVE,
+      AccountStatus.PENDING_DELETION,
+    ];
+    if (inactiveStatuses.includes(user.status)) {
+      // Generic — never disclose specific account status to unauthenticated caller.
+      throw new UnauthorizedException({ code: "OTP_INVALID", message: "Invalid or expired OTP." });
     }
 
     const tokenRecord = await this.prisma.token.findFirst({

@@ -427,13 +427,26 @@ export class JobsService {
             throw new BadRequestException(JobErrorCodes.INVALID_JOB_STATUS);
         }
 
-        // Submitting moves the job to PENDING — it will count towards active limit once approved.
-        // However, guard against already-pending + approved slots exceeding the cap.
-        await this.assertWithinActiveJobLimit(employer.id);
+        // Fetch limits outside the TX (read-only, cached — no contention risk).
+        const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
 
-        const submitted = await this.jobsRepository.updateStatus(jobId, JobStatus.PENDING, {
-            // Clear previous rejection reason when resubmitting
-            rejectionReason: null,
+        // Atomically check the active-job count and update status in one TX.
+        // Prevents two concurrent submits from both passing the count check.
+        const submitted = await this.prisma.$transaction(async (tx) => {
+            const activeCount = await tx.job.count({
+                where: {
+                    employerId: employer.id,
+                    status: { in: [JobStatus.APPROVED, JobStatus.PENDING] },
+                },
+            });
+            if (activeCount >= limits.maxActiveJobs) {
+                throw new BadRequestException(JobErrorCodes.JOB_LIMIT_REACHED);
+            }
+            return tx.job.update({
+                where: { id: jobId },
+                data: { status: JobStatus.PENDING, rejectionReason: null },
+                include: this.jobsRepository.getDetailInclude(),
+            });
         });
 
         this.auditService.logAction({

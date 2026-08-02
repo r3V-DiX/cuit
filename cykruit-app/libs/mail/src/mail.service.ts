@@ -1,5 +1,14 @@
 // libs/mail/mail.service.ts
 import { Injectable, InternalServerErrorException, OnModuleInit } from "@nestjs/common";
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
 import { ConfigService } from "@nestjs/config";
 import { Resend } from "resend";
 import { AppLogger } from "@cykruit/logger";
@@ -389,22 +398,28 @@ export class MailService {
     },
   ): Promise<void> {
     try {
+      const safeName    = escapeHtml(data.fullName);
+      const safeEmail   = escapeHtml(data.email);
+      const safeMessage = escapeHtml(data.message);
+      const safeIp      = escapeHtml(data.ipAddress || 'unknown');
+      const safeUa      = escapeHtml(data.userAgent || 'unknown');
+
       const { error } = await this.resend.emails.send({
         from: `Cykruit <${this.fromEmail}>`,
         replyTo: data.email,
         to,
-        subject: `Contact form: ${data.fullName}`,
+        subject: `Contact form: ${safeName}`,
         html: `
                     <div style="font-family:sans-serif;line-height:1.6;color:#333;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e2e8f0;border-radius:12px;background:#fff;">
                       <h2 style="color:#1B3C8B;margin-top:0;">New Contact Form Submission</h2>
-                      <p><strong>From:</strong> ${data.fullName}</p>
-                      <p><strong>Email:</strong> <a href="mailto:${data.email}" style="color:#1B3C8B;">${data.email}</a></p>
+                      <p><strong>From:</strong> ${safeName}</p>
+                      <p><strong>Email:</strong> <a href="mailto:${safeEmail}" style="color:#1B3C8B;">${safeEmail}</a></p>
                       <p><strong>Message:</strong></p>
-                      <div style="background:#f1f5f9;padding:16px;border-radius:8px;white-space:pre-wrap;border-left:4px solid #1B3C8B;margin:15px 0;">${data.message}</div>
+                      <div style="background:#f1f5f9;padding:16px;border-radius:8px;white-space:pre-wrap;border-left:4px solid #1B3C8B;margin:15px 0;">${safeMessage}</div>
                       <hr style="border:0;border-top:1px solid #e2e8f0;margin:20px 0;"/>
                       <p style="font-size:12px;color:#64748b;margin:0;">
-                        <strong>IP Address:</strong> ${data.ipAddress || "unknown"}<br/>
-                        <strong>User Agent:</strong> ${data.userAgent || "unknown"}
+                        <strong>IP Address:</strong> ${safeIp}<br/>
+                        <strong>User Agent:</strong> ${safeUa}
                       </p>
                     </div>
                 `,

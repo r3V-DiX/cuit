@@ -27,6 +27,10 @@ const JOB_DETAIL_INCLUDE = {
 export class JobsRepository {
     constructor(private readonly prisma: PrismaService) {}
 
+    getDetailInclude() {
+        return JOB_DETAIL_INCLUDE;
+    }
+
     // ── Queries ───────────────────────────────────────────────────────────────
 
     async findByEmployer(

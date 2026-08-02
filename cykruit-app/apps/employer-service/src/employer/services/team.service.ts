@@ -295,10 +295,20 @@ export class TeamService {
             throw new ConflictException('You are already a member of this company.');
         }
 
-        // Atomically: upgrade role if needed + create membership + consume token
-        // + revoke sessions (role change requires fresh login) + cancel any pending
-        // join request for the same employer (invite supersedes it).
+        // Atomically: consume token first (prevents race-condition double-accept),
+        // then upgrade role + create membership + revoke sessions + cancel pending
+        // join request. The token update returns 0 rows if already used — TX aborts.
         const member = await this.prisma.$transaction(async (tx) => {
+            // Claim the token atomically. If a concurrent request already consumed it,
+            // this update matches 0 rows and we throw before any side effects occur.
+            const claimed = await tx.token.updateMany({
+                where: { id: tokenRecord.id, usedAt: null },
+                data: { usedAt: new Date() },
+            });
+            if (claimed.count === 0) {
+                throw new BadRequestException('Invite token is invalid or has already been used.');
+            }
+
             if (roleUpgraded) {
                 await tx.user.update({
                     where: { id: userId },
@@ -318,11 +328,6 @@ export class TeamService {
                     role: targetRole,
                     ...(inviterUserId ? { invitedBy: inviterUserId } : {}),
                 },
-            });
-
-            await tx.token.update({
-                where: { id: tokenRecord.id },
-                data: { usedAt: new Date() },
             });
 
             // Cancel any pending join request for this employer — invite supersedes it.

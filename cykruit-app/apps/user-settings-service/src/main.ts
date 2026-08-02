@@ -163,7 +163,7 @@ async function bootstrap() {
       await redis.ping();
       res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
     } catch (err) {
-      res.status(503).json({ status: 'error', error: String(err) });
+      logger.error('Health check failed', String(err), 'Bootstrap'); res.status(503).json({ status: 'error' });
     }
   });
 

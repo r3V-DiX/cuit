@@ -94,7 +94,7 @@ export class JobsService {
       }
 
       if (searchVector) {
-        const vectorStr = `[${searchVector.join(',')}]`;
+        const vectorStr = `[${searchVector.map(Number).join(',')}]`;
         const searchPattern = `%${dto.search}%`;
         const conditions = [
           Prisma.sql`j.status = 'APPROVED'`,
@@ -119,7 +119,7 @@ export class JobsService {
           )
           SELECT id, count(*) OVER() as total
           FROM filtered
-          ORDER BY embedding <-> ${vectorStr}::vector
+          ORDER BY embedding <-> ${Prisma.sql`${vectorStr}::vector`}
           LIMIT ${limit} OFFSET ${skip}
         `;
 
