@@ -27,6 +27,11 @@ const FREE_LIMITS: EmployerLimits = {
 
 const CACHE_TTL_SECONDS = 120; // 2 minutes
 
+// Bound every Redis command so a slow/down Redis degrades to DB reads instead of
+// hanging the request (previously a disconnected ioredis client queued commands
+// forever, which made limit-checked endpoints time out at the 30s interceptor).
+const REDIS_COMMAND_TIMEOUT_MS = 1000;
+
 @Injectable()
 export class EmployerLimitsService {
     private readonly logger = new Logger(EmployerLimitsService.name);
@@ -50,12 +55,37 @@ export class EmployerLimitsService {
     }
 
     async invalidate(employerId: string): Promise<void> {
-        if (!this.redis) return;
+        if (!this.isRedisReady()) return;
         try {
-            await (this.redis as { del: (key: string) => Promise<unknown> }).del(this.cacheKey(employerId));
+            await this.withTimeout(
+                (this.redis as { del: (key: string) => Promise<unknown> }).del(this.cacheKey(employerId)),
+                undefined,
+            );
         } catch (err) {
             this.logger.warn(`Redis cache invalidation failed for employer ${employerId}: ${String(err)}`);
         }
+    }
+
+    /** True only when the injected ioredis client is currently connected. When
+     *  Redis is down (or was never configured) we skip caching entirely and fall
+     *  back to the DB — issuing a command on a disconnected client would queue
+     *  forever. */
+    private isRedisReady(): boolean {
+        if (!this.redis) return false;
+        const status = (this.redis as { status?: string }).status;
+        return status === 'ready';
+    }
+
+    /** Resolve with `fallback` if `promise` does not settle within the budget —
+     *  never lets a Redis command hang the request. */
+    private withTimeout<T>(promise: Promise<T>, fallback: T): Promise<T> {
+        return new Promise<T>((resolve) => {
+            const timer = setTimeout(() => resolve(fallback), REDIS_COMMAND_TIMEOUT_MS);
+            promise.then(
+                (v) => { clearTimeout(timer); resolve(v); },
+                () => { clearTimeout(timer); resolve(fallback); },
+            );
+        });
     }
 
     private async loadFromDb(employerId: string): Promise<EmployerLimits> {
@@ -123,10 +153,13 @@ export class EmployerLimitsService {
     }
 
     private async getFromCache(employerId: string): Promise<EmployerLimits | null> {
-        if (!this.redis) return null;
+        if (!this.isRedisReady()) return null;
         try {
-            const raw = await (this.redis as { get: (key: string) => Promise<string | null> }).get(
-                this.cacheKey(employerId),
+            const raw = await this.withTimeout(
+                (this.redis as { get: (key: string) => Promise<string | null> }).get(
+                    this.cacheKey(employerId),
+                ),
+                null,
             );
             if (!raw) return null;
             return JSON.parse(raw) as EmployerLimits;
@@ -137,13 +170,16 @@ export class EmployerLimitsService {
     }
 
     private async setInCache(employerId: string, limits: EmployerLimits): Promise<void> {
-        if (!this.redis) return;
+        if (!this.isRedisReady()) return;
         try {
-            await (
-                this.redis as {
-                    setex: (key: string, ttl: number, value: string) => Promise<unknown>;
-                }
-            ).setex(this.cacheKey(employerId), CACHE_TTL_SECONDS, JSON.stringify(limits));
+            await this.withTimeout(
+                (
+                    this.redis as {
+                        setex: (key: string, ttl: number, value: string) => Promise<unknown>;
+                    }
+                ).setex(this.cacheKey(employerId), CACHE_TTL_SECONDS, JSON.stringify(limits)),
+                undefined,
+            );
         } catch (err) {
             this.logger.warn(`Redis cache write failed for employer ${employerId}: ${String(err)}`);
         }

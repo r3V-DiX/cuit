@@ -17,6 +17,8 @@ const TOKEN_SEPARATOR = ".";
 @Injectable()
 export class CsrfGuard implements CanActivate {
   private readonly secret: string;
+  /** Cookie whose value must equal the `x-csrf-token` header (true double-submit). */
+  private readonly cookieName: string;
 
   constructor(
     private readonly reflector: Reflector,
@@ -30,6 +32,10 @@ export class CsrfGuard implements CanActivate {
     this.secret = createHmac("sha256", keyMaterial)
       .update("csrf-token-v1")
       .digest("hex");
+    // Main services issue `csrf_token` (CookieConfig.COOKIE_NAMES.CSRF); the
+    // admin console issues `admin_csrf_token`. Overridable per deployment.
+    this.cookieName =
+      this.configService.get<string>("CSRF_COOKIE_NAME") || "csrf_token";
   }
 
   canActivate(context: ExecutionContext): boolean {
@@ -55,6 +61,21 @@ export class CsrfGuard implements CanActivate {
       throw new ForbiddenException({
         code: "CSRF_TOKEN_INVALID",
         message: "CSRF token is invalid or has expired.",
+      });
+    }
+
+    // True double-submit: the header token must also match the csrf cookie the
+    // server issued for this browser. This binds the token to the client that
+    // received the cookie — a token forged from the secret, or one minted for a
+    // different session/browser, no longer passes even though its signature is
+    // valid. Both frontends read the cookie fresh per request, so this holds.
+    const cookieToken = (request.cookies ?? {})[this.cookieName] as
+      | string
+      | undefined;
+    if (!cookieToken || cookieToken !== token) {
+      throw new ForbiddenException({
+        code: "CSRF_TOKEN_MISMATCH",
+        message: "CSRF token does not match the session cookie.",
       });
     }
 

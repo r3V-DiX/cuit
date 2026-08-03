@@ -1,6 +1,7 @@
 // apps/subscription-service/src/main.ts
 
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { PrismaService } from '@cykruit/prisma';
 import type { Redis } from 'ioredis';
@@ -20,7 +21,6 @@ import {
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import compression from 'compression';
-import express from 'express';
 
 function flattenValidationErrors(errors: ValidationError[]): string[] {
     const result: string[] = [];
@@ -36,7 +36,7 @@ function flattenValidationErrors(errors: ValidationError[]): string[] {
 }
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule, {
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
         bufferLogs: true,
         cors: false,
         rawBody: true,
@@ -76,8 +76,11 @@ async function bootstrap() {
         exposedHeaders: ['Set-Cookie'],
     });
 
-    app.use(express.json({ limit: '256kb' }));
-    app.use(express.urlencoded({ extended: true, limit: '256kb' }));
+    // Use Nest's body parsers (NOT manual express.json/urlencoded) so that
+    // req.rawBody stays populated — the Razorpay webhook handler depends on it.
+    // https://docs.nestjs.com/techniques/body-parsing#raw-body-support
+    app.useBodyParser('json', { limit: '256kb' });
+    app.useBodyParser('urlencoded', { extended: true, limit: '256kb' });
     app.use(cookieParser());
     app.use(compression());
 

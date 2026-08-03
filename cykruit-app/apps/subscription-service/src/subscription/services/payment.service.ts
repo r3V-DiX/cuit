@@ -414,6 +414,25 @@ export class PaymentService {
             return;
         }
 
+        // Defense-in-depth: the amount/currency on the captured payment must match
+        // the order we priced server-side. A mismatched (or forged) webhook payload
+        // must never activate a subscription at a different price.
+        const capturedAmount = Number(paymentEntity?.['amount']);
+        const capturedCurrency = paymentEntity?.['currency'] as string | undefined;
+        if (
+            !Number.isFinite(capturedAmount) ||
+            capturedAmount !== order.totalAmountPaise ||
+            capturedCurrency !== order.currency
+        ) {
+            this.logger.warn(
+                `payment.captured amount/currency mismatch — razorpayOrderId=${razorpayOrderId} ` +
+                    `expected ${order.totalAmountPaise} ${order.currency}, got ${capturedAmount} ${capturedCurrency}. ` +
+                    `Subscription NOT activated.`,
+                'PaymentService',
+            );
+            return;
+        }
+
         const pkg = await this.subRepo.findPackageById(order.packageId);
         if (!pkg) {
             this.logger.error(

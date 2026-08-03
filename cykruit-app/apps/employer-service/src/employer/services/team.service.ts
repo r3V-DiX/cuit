@@ -145,19 +145,28 @@ export class TeamService {
         const appUrl = this.configService.get<string>('APP_URL') ?? 'http://localhost:3000';
         const inviteUrl = `${appUrl}/employer/accept-invite?token=${encodeURIComponent(rawToken)}`;
 
-        // Send invite email — non-throwing; logged inside MailService.
-        await this.mailService.sendEmployerInvite(
-            dto.email,
-            {
-                inviteeName: 'Hiring Professional',
-                inviterName,
-                companyName: employer.companyName,
-                companyLogo: employer.companyLogo || null,
-                assignedRole: dto.role === EmployerMemberRole.HIRING_MANAGER ? 'Hiring Manager' : 'Recruiter',
-                inviteUrl,
-                expiresInHours: 168,
-            }
-        );
+        // Send invite email — best-effort. The invite token row already exists,
+        // so an email failure must not surface as a 500 (the inviter would retry
+        // and create a duplicate invite, and the existing invite would be hidden).
+        try {
+            await this.mailService.sendEmployerInvite(
+                dto.email,
+                {
+                    inviteeName: 'Hiring Professional',
+                    inviterName,
+                    companyName: employer.companyName,
+                    companyLogo: employer.companyLogo || null,
+                    assignedRole: dto.role === EmployerMemberRole.HIRING_MANAGER ? 'Hiring Manager' : 'Recruiter',
+                    inviteUrl,
+                    expiresInHours: 168,
+                }
+            );
+        } catch (err) {
+            this.logger.warn(
+                `Invite email to ${dto.email} failed (invite is still active): ${String(err)}`,
+                TeamService.name,
+            );
+        }
 
         // Publish event for in-app notification if invitee has an account
         this.eventPublisher.publish(
