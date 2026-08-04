@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { useToast } from "@/components/ui/Toast";
@@ -123,7 +124,9 @@ function UsageBar({ used, limit, color }: { used: number; limit: number; color: 
 export default function SubscriptionPage() {
   const { toast } = useToast();
   const { openModal } = useModal();
-  const [tab, setTab] = useState<"overview" | "plans" | "history">("overview");
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") === "plans" ? "plans" : "overview";
+  const [tab, setTab] = useState<"overview" | "plans" | "history">(initialTab);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
   const [sub, setSub] = useState<MySubscription | null>(null);

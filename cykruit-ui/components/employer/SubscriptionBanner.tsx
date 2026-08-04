@@ -18,7 +18,7 @@ export function SubscriptionBanner({ status }: Props) {
           : "Your subscription has been cancelled. Access is limited to the free plan."}
       </span>
       <Link
-        href="/employer/subscription"
+        href="/employer/subscription?tab=plans"
         className="ml-auto shrink-0 font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-700"
       >
         Renew Plan
