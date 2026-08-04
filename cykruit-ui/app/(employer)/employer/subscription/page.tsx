@@ -104,7 +104,7 @@ function UsageBar({ used, limit, color }: { used: number; limit: number; color: 
   const warn = pct >= 80;
   return (
     <div>
-      <div className="flex justify-between text-xs mb-1.5">
+      <div className="flex justify-between text-xs mb-1.5" aria-label={`${used} of ${limit} used, ${Math.round(pct)}%`}>
         <span className="text-slate-500">{used} / {limit}</span>
         <span className={warn ? "text-amber-600 font-semibold" : "text-slate-400"}>{Math.round(pct)}%</span>
       </div>
