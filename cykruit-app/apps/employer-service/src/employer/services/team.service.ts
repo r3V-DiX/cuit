@@ -142,7 +142,15 @@ export class TeamService {
             ? `${inviterUser.firstName} ${inviterUser.lastName}`
             : 'A team member';
 
-        const appUrl = this.configService.get<string>('APP_URL') ?? 'http://localhost:3000';
+        // Robust APP_URL resolution: `??` only catches null/undefined, so an
+        // APP_URL that is empty or a bare "http://" slips through and produces a
+        // broken "http:///employer/accept-invite" link in the invite email. Fall
+        // back unless the value is a real absolute http(s) URL, then strip any
+        // trailing slash so joining with "/employer/..." never double-slashes.
+        const rawAppUrl = this.configService.get<string>('APP_URL') || '';
+        const appUrl = /^https?:\/\/.+/.test(rawAppUrl)
+            ? rawAppUrl.replace(/\/+$/, '')
+            : 'http://localhost:3000';
         const inviteUrl = `${appUrl}/employer/accept-invite?token=${encodeURIComponent(rawToken)}`;
 
         // Send invite email — best-effort. The invite token row already exists,

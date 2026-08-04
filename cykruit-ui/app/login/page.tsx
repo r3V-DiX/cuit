@@ -7,6 +7,7 @@ import { Shield, ArrowRight, ChevronLeft, Mail, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, authHeaders, ApiError } from "@/lib/api";
 import { broadcastLogin } from "@/lib/auth-sync";
+import GuestGuard from "@/components/GuestGuard";
 
 // ── Background decorations (reused) ──────────────────────────────────────────
 
@@ -469,7 +470,9 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense>
-      <LoginForm />
+      <GuestGuard>
+        <LoginForm />
+      </GuestGuard>
     </Suspense>
   );
 }

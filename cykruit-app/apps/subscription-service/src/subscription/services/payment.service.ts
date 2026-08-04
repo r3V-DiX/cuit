@@ -125,16 +125,47 @@ export class PaymentService {
         const gstPaise = Math.round(discountedBasePaise * GST_RATE);
         const totalPaise = discountedBasePaise + gstPaise;
 
-        const rzOrder = await this.razorpay.orders.create({
-            amount: totalPaise,
-            currency: 'INR',
-            receipt: `sub_${employerId.slice(0, 8)}_${Date.now()}`,
-            notes: {
-                employerId,
-                packageId: dto.packageId,
-                billingCycle: dto.billingCycle,
-            },
-        });
+        // ── Razorpay order creation ─────────────────────────────────────────
+        // The razorpay SDK rejects with a plain object (not an Error instance)
+        // when the API returns a non-2xx response. Left unhandled, that object
+        // falls through to GlobalExceptionFilter's generic catch branch, which
+        // only reads `.message` off real Error instances — so it gets logged
+        // as "Unexpected error: Unknown" with zero diagnostic value. Catch it
+        // here explicitly so both the logs and the client response carry the
+        // real reason (bad keys, amount below minimum, etc).
+        let rzOrder: { id: string };
+        try {
+            if (totalPaise < 100) {
+                // Razorpay requires a minimum order amount of ₹1 (100 paise).
+                // A 100%-off coupon or misconfigured discount can drive this to 0.
+                throw new BadRequestException(
+                    'Order amount is too low to process after discount. Please contact support.',
+                );
+            }
+
+            rzOrder = await this.razorpay.orders.create({
+                amount: totalPaise,
+                currency: 'INR',
+                receipt: `sub_${employerId.slice(0, 8)}_${Date.now()}`,
+                notes: {
+                    employerId,
+                    packageId: dto.packageId,
+                    billingCycle: dto.billingCycle,
+                },
+            });
+        } catch (err: unknown) {
+            if (err instanceof BadRequestException) throw err;
+
+            const rzError = err as { statusCode?: number; error?: { code?: string; description?: string } };
+            this.logger.error(
+                `Razorpay order creation failed: ${JSON.stringify(rzError?.error ?? rzError ?? err)}`,
+                undefined,
+                'PaymentService',
+            );
+            throw new BadRequestException(
+                rzError?.error?.description || 'Payment gateway rejected the order. Please try again.',
+            );
+        }
 
         const order = await this.payRepo.createOrder({
             employerId,

@@ -43,8 +43,13 @@ export class MailService {
 
     this.resend = new Resend(resendApiKey);
     this.fromEmail = emailFrom;
-    this.frontendUrl =
-      this.configService.get<string>("APP_URL") ?? "http://localhost:3000";
+    // Robust APP_URL resolution — `??` only catches null/undefined, so an empty
+    // or bare "http://" value would produce broken links in emails. Fall back
+    // unless the value is a real absolute http(s) URL, then strip trailing slash.
+    const rawAppUrl = this.configService.get<string>("APP_URL") || "";
+    this.frontendUrl = /^https?:\/\/.+/.test(rawAppUrl)
+      ? rawAppUrl.replace(/\/+$/, "")
+      : "http://localhost:3000";
     this.isDev = this.configService.get<string>("NODE_ENV") !== "production";
   }
 
