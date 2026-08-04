@@ -264,10 +264,17 @@ export class SubscriptionRepository {
         });
     }
 
-    /** Bulk flip status to EXPIRED by ID. */
+    /** Bulk flip status to EXPIRED by ID.
+     *  Self-conditional: re-checks status + expiresAt at write time so a
+     *  subscription renewed between our SELECT and this UPDATE is not
+     *  clobbered — it silently drops out of the matched set. */
     async expireMany(ids: string[]): Promise<number> {
         const result = await this.prisma.employerSubscription.updateMany({
-            where: { id: { in: ids } },
+            where: {
+                id: { in: ids },
+                status: 'ACTIVE',
+                expiresAt: { lt: new Date() },
+            },
             data: { status: 'EXPIRED' },
         });
         return result.count;

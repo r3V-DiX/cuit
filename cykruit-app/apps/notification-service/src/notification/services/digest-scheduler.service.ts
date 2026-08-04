@@ -13,7 +13,7 @@ export class DigestSchedulerService {
     ) {}
 
     /** Enqueue daily digest at 08:00 UTC every day. */
-    @Cron(CronExpression.EVERY_DAY_AT_8AM)
+    @Cron(CronExpression.EVERY_DAY_AT_8AM, { timeZone: 'UTC' })
     async scheduleDailyDigest(): Promise<void> {
         this.logger.log('Enqueuing daily digest job', 'DigestSchedulerService');
         await this.notificationService.enqueueDailyDigest();

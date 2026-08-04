@@ -23,7 +23,8 @@ const USAGE_REFRESH_TTL_MS = 5 * 60 * 1000; // 5 minutes
  * EmployerSubscription.status may still read ACTIVE even after expiresAt passes
  * because there is no cron to flip it. We detect this at read time.
  */
-function resolveEffectiveStatus(status: string, expiresAt: Date | null): string {
+/** Detect expiry at read time so status stays consistent across the system. */
+export function resolveEffectiveStatus(status: string, expiresAt: Date | null): string {
     if (status === 'ACTIVE' && expiresAt && expiresAt <= new Date()) return 'EXPIRED';
     return status;
 }

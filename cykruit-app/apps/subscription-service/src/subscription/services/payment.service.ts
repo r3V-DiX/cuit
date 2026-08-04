@@ -17,6 +17,7 @@ import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { SubscriptionRepository } from '../repositories/subscription.repository';
 import { PaymentRepository } from '../repositories/payment.repository';
 import { DiscountService } from './discount.service';
+import { resolveEffectiveStatus } from './subscription.service';
 import { EmployerLimitsService } from '@cykruit/subscription';
 import { AuditService } from '@cykruit/audit';
 import { CreateOrderDto, PreviewOrderDto, BillingCycleInput } from '../dto/payment.dto';
@@ -337,9 +338,11 @@ export class PaymentService {
         }
 
         const existing = await this.subRepo.findSubscriptionByEmployer(employerId);
-        // Only skip if there is an active subscription.
-        // CANCELLED or EXPIRED employers should receive the free tier.
-        if (existing && existing.status === 'ACTIVE') return;
+        // Only skip if there is an effectively-active subscription — use
+        // resolveEffectiveStatus so an ACTIVE subscription whose expiresAt has
+        // already passed (but the hourly sweep hasn't flipped it yet) is
+        // correctly treated as eligible for the free tier, not skipped.
+        if (existing && resolveEffectiveStatus(existing.status, existing.expiresAt) === 'ACTIVE') return;
 
         const freePkg = await this.payRepo.findFreePackage();
         if (!freePkg) {
@@ -597,16 +600,25 @@ export class PaymentService {
     }
 
     private computeExpiry(billingCycle: BillingCycle): Date {
+        // Use UTC throughout so expiry is deterministic regardless of the
+        // container's local timezone or DST.  The month-end clamping logic
+        // stays the same (leap-year safe) — only the accessors change.
         const now = new Date();
-        const targetYear  = billingCycle === BillingCycle.YEARLY ? now.getFullYear() + 1 : now.getFullYear();
-        const targetMonth = billingCycle === BillingCycle.YEARLY ? now.getMonth()       : now.getMonth() + 1;
+        const targetYear =
+            billingCycle === BillingCycle.YEARLY
+                ? now.getUTCFullYear() + 1
+                : now.getUTCFullYear();
+        const targetMonth =
+            billingCycle === BillingCycle.YEARLY
+                ? now.getUTCMonth()
+                : now.getUTCMonth() + 1;
         // Clamp day to the last valid day of the target month.
         // e.g. Jan 31 + 1 month → Feb 28/29, not Mar 2.
-        const daysInTarget = new Date(targetYear, targetMonth + 1, 0).getDate();
-        const clampedDay   = Math.min(now.getDate(), daysInTarget);
-        return new Date(
+        const daysInTarget = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate();
+        const clampedDay = Math.min(now.getUTCDate(), daysInTarget);
+        return new Date(Date.UTC(
             targetYear, targetMonth, clampedDay,
-            now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds(),
-        );
+            now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds(), now.getUTCMilliseconds(),
+        ));
     }
 }
