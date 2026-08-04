@@ -40,6 +40,51 @@ function AuthCallback() {
         broadcastLogin(role === "EMPLOYER" ? "EMPLOYER" : "SEEKER");
 
         if (hasDomainMatch && matchedCompany) {
+          // The `domain_match`/`company` query params alone must not decide the
+          // flow — they must be reconciled with the user's CURRENT role and join
+          // request state. Otherwise a returning SEEKER who already chose
+          // "continue as seeker" can revisit this URL, be re-offered the employer
+          // join, and end up as EMPLOYER — bypassing the role lock the screen
+          // promises. The backend also rejects re-requests (see requestToJoin).
+          if (role === "EMPLOYER") {
+            // Already a member — this decision is locked. Route to the employer app.
+            if (isNewUser) {
+              toast({ type: "success", message: "Account created!" });
+            }
+            const es = data?.employerStatus as { hasProfile?: boolean; needsVerification?: boolean } | undefined;
+            if (!es?.hasProfile || es?.needsVerification) {
+              router.push("/kyc/employer");
+              return;
+            }
+            router.push("/employer/dashboard");
+            return;
+          }
+
+          // SEEKER — check whether they already made a decision before re-offering.
+          const jr = await apiFetch<{ status?: string } | null>(
+            "/api/employer/company/join-request/me",
+          ).catch(() => null);
+          const reqStatus = jr?.data?.status;
+
+          if (reqStatus === "PENDING") {
+            // Request already in flight — show the waiting screen, not a re-request.
+            setScreen("join-requested");
+            return;
+          }
+          if (reqStatus === "ACCEPTED") {
+            // Accepted while the session was stale — force a role-upgraded relogin.
+            toast({ type: "info", message: "Your join request was approved", description: "Please log in again to access your employer dashboard." });
+            router.push("/login?reason=role_upgraded");
+            return;
+          }
+          if (reqStatus === "REJECTED") {
+            // They already chose the seeker path (or were declined) — role is locked.
+            toast({ type: "info", message: "Continuing as a job seeker" });
+            router.push("/dashboard");
+            return;
+          }
+
+          // No prior request (or it expired) — legitimate fresh choice.
           if (isNewUser) {
             toast({ type: "success", message: "Account created!" });
           }

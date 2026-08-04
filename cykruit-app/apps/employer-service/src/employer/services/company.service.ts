@@ -443,6 +443,20 @@ export class CompanyService {
             throw new ConflictException('You already have a pending join request for this company.');
         }
 
+        // Role lock — the domain-match screen promises "this decision locks in
+        // your role". A prior request that reached a terminal REJECTED state —
+        // either withdrawn by the user via "continue as seeker" (resolvedBy = null)
+        // or declined by the owner — must block re-requesting. Without this, the
+        // upsert below would silently reactivate the old request and a user could
+        // flip-flop seeker → employer forever by revisiting the callback URL.
+        if (existing && existing.status === JoinRequestStatus.REJECTED) {
+            throw new ConflictException(
+                existing.resolvedBy === null
+                    ? 'You previously chose to continue as a job seeker. To join this company you must be invited by its owner.'
+                    : 'Your previous request to join this company was declined. To join you must be invited by its owner.',
+            );
+        }
+
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         const joinRequest = await this.prisma.employerJoinRequest.upsert({
             where: { employerId_requesterId: { employerId: employer.id, requesterId: userId } },
