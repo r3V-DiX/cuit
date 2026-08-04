@@ -224,7 +224,6 @@ export class DomainEventProcessor {
             case DomainEventType.TEAM_INVITE_SENT: {
                 const p = event.payload as any;
                 if (p.invitedUserId) {
-                    const contact = await this.userContact(p.invitedUserId);
                     await this.notificationService.emit({
                         userId: p.invitedUserId,
                         type: NotificationType.SYSTEM_ANNOUNCEMENT,
@@ -233,10 +232,13 @@ export class DomainEventProcessor {
                         actionUrl: `/employer/accept-invite?token=${p.inviteToken}`,
                         relatedEntityType: 'Employer',
                         relatedEntityId: p.employerId,
-                        deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
-                        sendEmail: true,
-                        userEmail: contact?.email,
-                        firstName: contact?.firstName,
+                        // In-app notification only — employer-service already sends
+                        // the authoritative invite email (with the accept link).
+                        // Emailing a second "New notification from Cykruit" here
+                        // duplicated the invite and carried a broken relative
+                        // actionUrl in the email body.
+                        deliveredVia: [DeliveryChannel.WEBSOCKET],
+                        sendEmail: false,
                     });
                 }
                 break;
