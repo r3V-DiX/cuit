@@ -38,7 +38,16 @@ export class OAuthController {
     private readonly logger: AppLogger,
     private readonly configService: ConfigService,
   ) {
-    this.appUrl = this.configService.get<string>('APP_URL') ?? 'http://localhost:3000';
+    this.appUrl = this.resolveAppUrl(this.configService.get<string>('APP_URL'));
+  }
+
+  /** Robust APP_URL resolution — `??` only catches null/undefined, so an empty
+   *  or bare "http://" value produced a broken "http:///auth/callback" redirect
+   *  after Google OAuth. Fall back unless the value is a real absolute http(s)
+   *  URL, then strip any trailing slash. */
+  private resolveAppUrl(raw?: string): string {
+    const value = raw || '';
+    return /^https?:\/\/.+/.test(value) ? value.replace(/\/+$/, '') : 'http://localhost:3000';
   }
 
   // ── Google ──────────────────────────────────────────────────
