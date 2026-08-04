@@ -4,16 +4,30 @@ import type { NextRequest } from "next/server";
 const SESSION_COOKIE = "session_token";
 const ROLE_COOKIE    = "user_role";
 
-function buildCsp(nonce: string): string {
+// Razorpay's checkout.js injects <style> tags and inline style="..." attributes
+// directly into the page DOM (not loaded from checkout.razorpay.com), so domain
+// whitelisting in style-src does not cover them. Once a nonce-source is present
+// in style-src, browsers ignore 'unsafe-inline' as a fallback — so there is no
+// way to keep a nonce-based style-src AND let Razorpay's injected styles apply.
+// We relax style-src (drop the nonce, allow 'unsafe-inline') ONLY on the
+// checkout route where Razorpay's widget actually runs. Every other route keeps
+// the strict nonce-based CSP.
+const RAZORPAY_CHECKOUT_PATH = "/employer/subscription/checkout";
+
+function buildCsp(nonce: string, relaxedStyles: boolean): string {
   const isDev = process.env.NODE_ENV === "development";
+  const styleSrc = relaxedStyles
+    ? `style-src 'self' 'unsafe-inline' https://checkout.razorpay.com`
+    : `style-src 'self' 'nonce-${nonce}' https://checkout.razorpay.com`;
+
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' https://checkout.razorpay.com${isDev ? " 'unsafe-eval'" : ""}`,
-    `style-src 'self' 'nonce-${nonce}' https://checkout.razorpay.com`,
+    styleSrc,
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     // 'self' covers wss://<same-host> for WebSocket — no explicit WS origin needed
-    `connect-src 'self' http://127.0.0.1:* http://localhost:* https://api.razorpay.com https://checkout.razorpay.com`,
+    `connect-src 'self' http://127.0.0.1:* http://localhost:* https://api.razorpay.com https://checkout.razorpay.com https://lumberjack.razorpay.com`,
     "frame-src https://api.razorpay.com https://checkout.razorpay.com",
     "frame-ancestors 'none'",
   ].join("; ");
@@ -101,8 +115,10 @@ export function proxy(request: NextRequest) {
     request: { headers: new Headers(request.headers) },
   });
 
+  const relaxedStyles = pathname === RAZORPAY_CHECKOUT_PATH || pathname.startsWith(RAZORPAY_CHECKOUT_PATH + "/");
+
   response.headers.set("x-nonce", nonce);
-  response.headers.set("Content-Security-Policy", buildCsp(nonce));
+  response.headers.set("Content-Security-Policy", buildCsp(nonce, relaxedStyles));
   return response;
 }
 
