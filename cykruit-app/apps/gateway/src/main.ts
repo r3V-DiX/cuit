@@ -88,7 +88,14 @@ app.use('/employer', proxy(SERVICES.employer));
 app.use('/seeker', proxy(SERVICES.seeker));
 app.use('/public', proxy(SERVICES.public));
 app.use('/notifications', proxy(SERVICES.notification));
-app.use('/subscriptions', proxy(SERVICES.subscription));
+// NOTE: express strips the '/subscriptions' mount prefix from req.url before the
+// proxy middleware ever sees it. subscription-service's controllers are declared
+// as @Controller('subscriptions'), so the prefix must be re-added here — same
+// pattern as the /auth route above. Without this, every request (including
+// Razorpay's external webhook) arrives at subscription-service missing the
+// prefix and 404s, even though internal BFF calls that hit the service
+// directly (bypassing this gateway) work fine.
+app.use('/subscriptions', proxy(SERVICES.subscription, { '^/': '/subscriptions/' }));
 
 // WebSocket upgrade forwarded to notification-service
 const wsProxy = createProxyMiddleware({
