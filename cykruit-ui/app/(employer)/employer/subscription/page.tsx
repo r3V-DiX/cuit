@@ -281,13 +281,14 @@ export default function SubscriptionPage() {
           </Link>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-5 items-start">
+        <div className="space-y-5">
 
-          {/* Tab sidebar */}
-          <div className="w-full md:w-48 md:shrink-0 bg-white rounded-2xl border border-slate-200 p-2 flex flex-row md:flex-col gap-0.5 overflow-x-auto md:sticky md:top-6">
+          {/* Tabs — full-width horizontal bar. Each tab grows to fill the width
+              evenly; on narrow screens they wrap before the labels ever clip. */}
+          <div className="w-full bg-white rounded-2xl border border-slate-200 p-2 flex flex-wrap gap-1">
             {TABS.map(({ id, label }) => (
               <button key={id} onClick={() => setTab(id)}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-all shrink-0 whitespace-nowrap border cursor-pointer ${
+                className={`flex-1 min-w-[140px] flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap border cursor-pointer ${
                   tab === id ? "bg-blue-50 text-blue-700 border-blue-100" : "text-slate-500 hover:text-slate-900 hover:bg-slate-50 border-transparent"
                 }`}
               >
@@ -296,7 +297,7 @@ export default function SubscriptionPage() {
             ))}
           </div>
 
-          <div className="flex-1 min-w-0 space-y-4">
+          <div className="min-w-0 space-y-4">
 
             {/* ══ OVERVIEW ══ */}
             {tab === "overview" && (
