@@ -144,7 +144,16 @@ function EmployerSubscriptionsPageContent() {
                 {
                   key: 'status',
                   header: 'Status',
-                  render: (s) => <StatusBadge status={s.status} />,
+                  render: (s) => (
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={s.effectiveStatus ?? s.status} />
+                      {s.cancelAtPeriodEnd && s.expiresAt && (
+                        <span className="text-[10px] font-medium text-amber-600">
+                          cancels {format(new Date(s.expiresAt), 'MMM d')}
+                        </span>
+                      )}
+                    </div>
+                  ),
                 },
                 {
                   key: 'period',

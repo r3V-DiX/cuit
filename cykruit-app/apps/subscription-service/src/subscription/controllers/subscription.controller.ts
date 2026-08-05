@@ -33,11 +33,19 @@ export class EmployerSubscriptionController {
         return this.subscriptionService.getMyUsage(user.id);
     }
 
-    /** POST /subscriptions/cancel — employer self-cancels their active plan */
+    /** POST /subscriptions/cancel — employer self-cancels their active plan (cancel-at-period-end) */
     @Post('cancel')
     @UseGuards(CsrfGuard)
     @HttpCode(HttpStatus.OK)
     cancelMySubscription(@CurrentUser() user: User) {
         return this.subscriptionService.cancelMySubscription(user.id);
+    }
+
+    /** POST /subscriptions/resume — employer re-activates a cancelled-at-period-end plan */
+    @Post('resume')
+    @UseGuards(CsrfGuard)
+    @HttpCode(HttpStatus.OK)
+    resumeMySubscription(@CurrentUser() user: User) {
+        return this.subscriptionService.resumeMySubscription(user.id);
     }
 }

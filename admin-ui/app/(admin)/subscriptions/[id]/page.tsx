@@ -17,8 +17,6 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import AssignSubscriptionForm from '../_components/assign-subscription-form';
 
-const STATUSES = ['ACTIVE', 'EXPIRED', 'CANCELLED'] as const;
-
 function paise(n: number) {
   return '₹' + (n / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 });
 }
@@ -40,6 +38,8 @@ export default function SubscriptionDetailPage({ params }: { params: Promise<{ i
 
   const canManage = has(ACTIONS.SUBSCRIPTIONS.MANAGE);
   const refresh = useCallback(() => setReloadKey((k) => k + 1), []);
+  const effectiveStatus = sub?.effectiveStatus ?? sub?.status ?? null;
+  const isFlagCancelled = sub?.cancelAtPeriodEnd === true;
 
   useEffect(() => {
     async function loadSub() {
@@ -67,20 +67,24 @@ export default function SubscriptionDetailPage({ params }: { params: Promise<{ i
       .finally(() => setOrdersLoading(false));
   }, [sub?.employerId]);
 
-  const handleStatusChange = (newStatus: string) => {
+  const handleAction = (
+    label: string,
+    payload: { status: string; cancelAtPeriodEnd?: boolean },
+    variant: 'success' | 'danger' = 'danger',
+  ) => {
     if (!sub) return;
     openModal({
-      title: `Set status to ${newStatus}?`,
-      description: `The subscription for "${sub.employer?.companyName ?? sub.employerId}" will be marked ${newStatus}.`,
-      variant: newStatus === 'ACTIVE' ? 'success' : 'danger',
-      confirmLabel: `Set ${newStatus}`,
+      title: label,
+      description: `The subscription for "${sub.employer?.companyName ?? sub.employerId}" will be updated.`,
+      variant,
+      confirmLabel: label,
       onConfirm: async () => {
         try {
-          await api.patch(`/api/admin/subscriptions/${id}/status`, { status: newStatus });
-          toast({ type: 'success', message: `Subscription marked ${newStatus}.` });
+          await api.patch(`/api/admin/subscriptions/${id}/status`, payload);
+          toast({ type: 'success', message: `${label} — subscription updated.` });
           refresh();
         } catch (err) {
-          toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to update status' });
+          toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to update subscription' });
         }
       },
     });
@@ -172,7 +176,7 @@ export default function SubscriptionDetailPage({ params }: { params: Promise<{ i
                         )}
                       </p>
                       <div className="mt-2">
-                        <StatusBadge status={sub.status} />
+                        <StatusBadge status={effectiveStatus ?? sub.status} />
                       </div>
                     </div>
                   </div>
@@ -197,19 +201,72 @@ export default function SubscriptionDetailPage({ params }: { params: Promise<{ i
                         Refresh Usage
                       </button>
                     )}
-                    {canManage &&
-                      STATUSES.filter((s) => s !== sub.status).map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => handleStatusChange(s)}
-                          className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
-                        >
-                          Set {s}
-                        </button>
-                      ))}
+                    {canManage && effectiveStatus === 'ACTIVE' && sub.expiresAt && (
+                      <button
+                        onClick={() =>
+                          handleAction(
+                            `Cancel (until ${format(new Date(sub.expiresAt!), 'MMM d')})`,
+                            { status: 'ACTIVE', cancelAtPeriodEnd: true },
+                          )
+                        }
+                        className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100"
+                      >
+                        Cancel (until {format(new Date(sub.expiresAt), 'MMM d')})
+                      </button>
+                    )}
+                    {canManage && isFlagCancelled && (
+                      <button
+                        onClick={() => handleAction('Resume plan', { status: 'ACTIVE' }, 'success')}
+                        className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+                      >
+                        Resume plan
+                      </button>
+                    )}
+                    {canManage && (effectiveStatus === 'ACTIVE' || isFlagCancelled) && (
+                      <button
+                        onClick={() => handleAction('Cancel immediately', { status: 'CANCELLED' })}
+                        className="rounded-xl border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                      >
+                        Cancel immediately
+                      </button>
+                    )}
+                    {canManage && effectiveStatus !== 'EXPIRED' && (
+                      <button
+                        onClick={() => handleAction('Mark expired', { status: 'EXPIRED' })}
+                        className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+                      >
+                        Mark expired
+                      </button>
+                    )}
+                    {canManage && (effectiveStatus === 'EXPIRED' || (effectiveStatus === 'CANCELLED' && !isFlagCancelled)) && (
+                      <button
+                        onClick={() => handleAction('Reactivate', { status: 'ACTIVE' }, 'success')}
+                        className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+                      >
+                        Reactivate
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
+
+              {isFlagCancelled && sub.expiresAt && (
+                <div className="border-t border-amber-100 bg-amber-50 px-6 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-amber-800">
+                        Plan cancelled — paid access continues until {format(new Date(sub.expiresAt), 'MMM d, yyyy')}
+                      </p>
+                      <p className="mt-0.5 text-xs text-amber-600">
+                        The employer keeps full plan features until this date, then drops to Free tier.
+                        {sub.cancelRequestedAt && (
+                          <> Cancellation requested {format(new Date(sub.cancelRequestedAt), 'MMM d, yyyy HH:mm')}.</>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-6 p-6 lg:grid-cols-4">
                 <div>

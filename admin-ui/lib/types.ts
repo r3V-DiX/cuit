@@ -208,6 +208,11 @@ export interface EmployerSubscription {
   employerId: string;
   packageId: string;
   status: SubscriptionStatus;
+  /** Server-computed display status — ACTIVE+flag → CANCELLED, ACTIVE+past-expiry → EXPIRED */
+  effectiveStatus?: SubscriptionStatus;
+  /** Cancel-at-period-end: still entitled until expiresAt, then drops to Free. */
+  cancelAtPeriodEnd?: boolean;
+  cancelRequestedAt?: string;
   billingCycle?: BillingCycle;
   startedAt: string;
   expiresAt?: string;

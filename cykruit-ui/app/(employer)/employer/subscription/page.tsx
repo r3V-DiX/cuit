@@ -32,6 +32,7 @@ interface SubPackage {
 interface MySubscription {
   hasSubscription: boolean;
   effectiveStatus?: string;
+  cancelAtPeriodEnd?: boolean;
   id?: string;
   packageId?: string;
   billingCycle?: string;
@@ -136,6 +137,7 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [resuming, setResuming] = useState(false);
   const { status: kycStatusRaw, employerRole } = useKycContext();
   const kycStatus = kycStatusRaw;
   const isKycVerified = kycStatus === "verified";
@@ -199,12 +201,37 @@ export default function SubscriptionPage() {
             headers: authHeaders(),
           });
           toast({ type: "success", message: "Subscription cancelled", description: `Access continues until ${planRenewsAt}.` });
-          setSub((prev) => prev ? { ...prev, effectiveStatus: "CANCELLED" } : prev);
+          setSub((prev) => prev ? { ...prev, effectiveStatus: "CANCELLED", cancelAtPeriodEnd: true } : prev);
         } catch (err: unknown) {
           const msg = err instanceof Error ? err.message : "Failed to cancel subscription";
           toast({ type: "error", message: msg });
         } finally {
           setCancelling(false);
+        }
+      },
+    });
+  }
+
+  function handleResumePlan() {
+    openModal({
+      variant: "default",
+      title: "Resume subscription?",
+      description: `Your ${planName} plan will stay active beyond ${planRenewsAt} and renew normally.`,
+      confirmLabel: "Yes, resume plan",
+      onConfirm: async () => {
+        setResuming(true);
+        try {
+          await apiFetch("/api/subscriptions/resume", {
+            method: "POST",
+            headers: authHeaders(),
+          });
+          toast({ type: "success", message: "Subscription resumed", description: "Your plan is active again." });
+          setSub((prev) => prev ? { ...prev, effectiveStatus: "ACTIVE", cancelAtPeriodEnd: false } : prev);
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : "Failed to resume subscription";
+          toast({ type: "error", message: msg });
+        } finally {
+          setResuming(false);
         }
       },
     });
@@ -468,6 +495,27 @@ export default function SubscriptionPage() {
                       >
                         {cancelling ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
                         {cancelling ? "Cancelling…" : "Cancel Plan"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {sub?.hasSubscription && sub?.cancelAtPeriodEnd === true && planStatus === "CANCELLED" && !isFreePlan && (
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-700">Resume subscription</p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          You cancelled your {planName} plan. It stays active until {planRenewsAt} — resume to keep it running past that date.
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleResumePlan}
+                        disabled={resuming}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >
+                        {resuming ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                        {resuming ? "Resuming…" : "Resume Plan"}
                       </button>
                     </div>
                   </div>

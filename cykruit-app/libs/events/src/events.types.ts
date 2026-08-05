@@ -30,6 +30,7 @@ export enum DomainEventType {
     SUBSCRIPTION_PAYMENT_CAPTURED = 'subscription.payment_captured',  // razorpay payment confirmed
     SUBSCRIPTION_RENEWED          = 'subscription.renewed',           // plan renewed after payment
     SUBSCRIPTION_CANCELLED        = 'subscription.cancelled',         // employer or admin cancelled plan
+    SUBSCRIPTION_RESUMED          = 'subscription.resumed',           // cancelled-at-period-end plan re-activated
 
     // ── Employer ─────────────────────────────────────────────────────────────
     EMPLOYER_SETUP_COMPLETE       = 'employer.setup_complete',         // employer finished company setup
@@ -171,6 +172,14 @@ export interface SubscriptionCancelledPayload {
     packageName: string;
 }
 
+export interface SubscriptionResumedPayload {
+    subscriptionId: string;
+    employerId: string;
+    employerUserId: string;
+    packageName: string;
+    expiresAt: string;
+}
+
 export interface EmployerSetupCompletePayload {
     employerId: string;
     userId: string;
@@ -222,6 +231,7 @@ export type DomainEventPayloadMap = {
     [DomainEventType.SUBSCRIPTION_PAYMENT_CAPTURED]:  SubscriptionPaymentCapturedPayload;
     [DomainEventType.SUBSCRIPTION_RENEWED]:           SubscriptionRenewedPayload;
     [DomainEventType.SUBSCRIPTION_CANCELLED]:         SubscriptionCancelledPayload;
+    [DomainEventType.SUBSCRIPTION_RESUMED]:           SubscriptionResumedPayload;
     [DomainEventType.EMPLOYER_SETUP_COMPLETE]:        EmployerSetupCompletePayload;
     [DomainEventType.TEAM_INVITE_ACCEPTED]:           TeamInviteAcceptedPayload;
     [DomainEventType.JOIN_REQUEST_RECEIVED]:          JoinRequestReceivedPayload;

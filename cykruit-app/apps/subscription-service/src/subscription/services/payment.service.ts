@@ -17,7 +17,7 @@ import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { SubscriptionRepository } from '../repositories/subscription.repository';
 import { PaymentRepository } from '../repositories/payment.repository';
 import { DiscountService } from './discount.service';
-import { resolveEffectiveStatus } from './subscription.service';
+import { isSubscriptionEntitled } from './subscription.service';
 import { EmployerLimitsService } from '@cykruit/subscription';
 import { AuditService } from '@cykruit/audit';
 import { CreateOrderDto, PreviewOrderDto, BillingCycleInput } from '../dto/payment.dto';
@@ -338,11 +338,12 @@ export class PaymentService {
         }
 
         const existing = await this.subRepo.findSubscriptionByEmployer(employerId);
-        // Only skip if there is an effectively-active subscription — use
-        // resolveEffectiveStatus so an ACTIVE subscription whose expiresAt has
-        // already passed (but the hourly sweep hasn't flipped it yet) is
-        // correctly treated as eligible for the free tier, not skipped.
-        if (existing && resolveEffectiveStatus(existing.status, existing.expiresAt) === 'ACTIVE') return;
+        // Only skip if the employer is currently entitled to a plan — entitlement is
+        // status + expiry based (isSubscriptionEntitled), NOT effectiveStatus, so a
+        // cancel-at-period-end plan (displayed as CANCELLED) is never clobbered by
+        // free-tier activation. An ACTIVE plan whose expiresAt already passed (but the
+        // hourly sweep hasn't flipped it yet) is correctly treated as eligible.
+        if (existing && isSubscriptionEntitled(existing.status, existing.expiresAt)) return;
 
         const freePkg = await this.payRepo.findFreePackage();
         if (!freePkg) {
@@ -489,6 +490,8 @@ export class PaymentService {
                     startedAt: new Date(),
                     expiresAt,
                     billingCycle: order.billingCycle as BillingCycle,
+                    cancelAtPeriodEnd: false,
+                    cancelRequestedAt: null,
                 },
                 update: {
                     packageId: order.packageId,
@@ -496,6 +499,9 @@ export class PaymentService {
                     startedAt: new Date(),
                     expiresAt,
                     billingCycle: order.billingCycle as BillingCycle,
+                    // A fresh payment always reactivates — clears any pending cancellation.
+                    cancelAtPeriodEnd: false,
+                    cancelRequestedAt: null,
                 },
                 select: { id: true },
             });

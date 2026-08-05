@@ -96,8 +96,16 @@ export class SubscriptionRepository {
                 currentActiveJobs: 0,
                 currentTeamMembers: 0,
                 usedFeaturedJobSlots: 0,
+                cancelAtPeriodEnd: false,
+                cancelRequestedAt: null,
             },
-            update: { packageId, status },
+            update: {
+                packageId,
+                status,
+                // Assigning always clears a pending cancel-at-period-end
+                cancelAtPeriodEnd: false,
+                cancelRequestedAt: null,
+            },
             include: { package: true },
         });
     }
@@ -161,21 +169,40 @@ export class SubscriptionRepository {
         });
     }
 
-    async updateSubscriptionStatus(id: string, status: string) {
+    async updateSubscriptionStatus(id: string, status: string, cancelAtPeriodEnd?: boolean) {
         const existing = await this.prisma.employerSubscription.findUnique({
             where: { id },
-            select: { id: true, status: true },
+            select: { id: true, status: true, cancelAtPeriodEnd: true },
         });
         if (!existing) throw new NotFoundException('Subscription not found');
 
-        // Prevent re-activating an already-ACTIVE subscription to avoid quota reset abuse
-        if (existing.status === 'ACTIVE' && status === 'ACTIVE') {
+        // Admin "cancel at period end" (polite, mirrors the employer self-cancel): keep
+        // status ACTIVE so paid access continues until expiry, record the request.
+        if (cancelAtPeriodEnd === true) {
+            if (existing.cancelAtPeriodEnd) {
+                throw new BadRequestException('Subscription is already cancelled (at period end)');
+            }
+            return this.prisma.employerSubscription.update({
+                where: { id },
+                data: { status: 'ACTIVE', cancelAtPeriodEnd: true, cancelRequestedAt: new Date() },
+                include: { package: true },
+            });
+        }
+
+        // Admin status override is authoritative (distinct from the polite at-period-end):
+        // - CANCELLED = HARD cancel — status is no longer ACTIVE so entitlement is off
+        //   immediately (Free-tier limits apply at once). No grace period.
+        // - EXPIRED   = immediate revoke with time-based semantics.
+        // - ACTIVE    = reactivate; clears a pending cancel-at-period-end flag.
+        // Re-activating an already-ACTIVE plan is blocked to prevent quota-reset abuse,
+        // but resuming from a cancel-at-period-end state IS allowed.
+        if (existing.status === 'ACTIVE' && !existing.cancelAtPeriodEnd && status === 'ACTIVE') {
             throw new BadRequestException('Subscription is already ACTIVE');
         }
 
         return this.prisma.employerSubscription.update({
             where: { id },
-            data: { status },
+            data: { status, cancelAtPeriodEnd: false, cancelRequestedAt: null },
             include: { package: true },
         });
     }

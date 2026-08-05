@@ -34,6 +34,8 @@ const SUBSCRIPTION_SELECT = {
     billingCycle: true,
     startedAt: true,
     expiresAt: true,
+    cancelAtPeriodEnd: true,
+    cancelRequestedAt: true,
     currentActiveJobs: true,
     currentTeamMembers: true,
     usedFeaturedJobSlots: true,
@@ -201,12 +203,18 @@ export class SubscriptionRepository {
                 status: 'ACTIVE',
                 startedAt: new Date(),
                 expiresAt: expiresAt ?? null,
+                cancelAtPeriodEnd: false,
+                cancelRequestedAt: null,
             },
             update: {
                 packageId,
                 status: 'ACTIVE',
                 startedAt: new Date(),
                 expiresAt: expiresAt ?? null,
+                // Assigning/reactivating always clears a pending cancel-at-period-end
+                // so the plan renews normally from this point.
+                cancelAtPeriodEnd: false,
+                cancelRequestedAt: null,
                 // Reset featured slot counter on plan change — the new plan has its own
                 // slot allowance and the old count no longer represents reality.
                 // currentActiveJobs / currentTeamMembers are NOT reset here — they are
@@ -221,6 +229,25 @@ export class SubscriptionRepository {
         return this.prisma.employerSubscription.update({
             where: { id },
             data: { status },
+            select: SUBSCRIPTION_SELECT,
+        });
+    }
+
+    /** Flag a plan as cancel-at-period-end. Status stays ACTIVE so paid entitlement
+     *  continues until expiresAt; the expiry sweep later flips it to EXPIRED. */
+    async markCancelledAtPeriodEnd(id: string) {
+        return this.prisma.employerSubscription.update({
+            where: { id },
+            data: { cancelAtPeriodEnd: true, cancelRequestedAt: new Date() },
+            select: SUBSCRIPTION_SELECT,
+        });
+    }
+
+    /** Clear a pending cancel-at-period-end — employer changes their mind before expiry. */
+    async resumeSubscription(id: string) {
+        return this.prisma.employerSubscription.update({
+            where: { id },
+            data: { cancelAtPeriodEnd: false, cancelRequestedAt: null },
             select: SUBSCRIPTION_SELECT,
         });
     }

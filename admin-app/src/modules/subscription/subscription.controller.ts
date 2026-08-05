@@ -128,6 +128,6 @@ export class SubscriptionController {
     @HttpCode(HttpStatus.OK)
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.MANAGE)
     updateStatus(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateSubscriptionStatusDto) {
-        return this.subscriptionService.updateSubscriptionStatus(admin.id, id, dto.status);
+        return this.subscriptionService.updateSubscriptionStatus(admin.id, id, dto.status, dto.cancelAtPeriodEnd);
     }
 }

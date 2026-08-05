@@ -1,6 +1,6 @@
 // admin-app/src/admin/services/subscription.service.ts
 
-import { Injectable, Inject, Optional } from '@nestjs/common';
+import { Injectable, Inject, Optional, BadRequestException } from '@nestjs/common';
 import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 import {
     CreatePackageDto,
@@ -10,6 +10,18 @@ import {
 } from './dto/subscription.dto';
 import { SubscriptionRepository } from './subscription.repository';
 import { AdminAuditLogger } from '../../common';
+
+/**
+ * Resolve the display status for the admin console — MUST stay in sync with
+ * cykruit-app/apps/subscription-service/src/subscription/services/subscription.service.ts
+ * (resolveEffectiveStatus / isSubscriptionEntitled). A cancel-at-period-end plan keeps
+ * status ACTIVE (entitled until expiry) but displays as CANCELLED.
+ */
+function resolveEffectiveStatus(status: string, expiresAt: Date | null, cancelAtPeriodEnd = false): string {
+    if (status === 'ACTIVE' && expiresAt && expiresAt <= new Date()) return 'EXPIRED';
+    if (status === 'ACTIVE' && cancelAtPeriodEnd) return 'CANCELLED';
+    return status;
+}
 
 @Injectable()
 export class SubscriptionService {
@@ -102,11 +114,20 @@ export class SubscriptionService {
     // ── Employer subscriptions ────────────────────────────────────────────────
 
     async listSubscriptions(query: SubscriptionListQueryDto) {
-        return this.repository.findAllSubscriptions(query);
+        const { items, pagination } = await this.repository.findAllSubscriptions(query);
+        return {
+            pagination,
+            items: items.map((s) => ({
+                ...s,
+                effectiveStatus: resolveEffectiveStatus(s.status, s.expiresAt, s.cancelAtPeriodEnd),
+            })),
+        };
     }
 
     async getSubscriptionById(id: string) {
-        return this.repository.findSubscriptionById(id);
+        const sub = await this.repository.findSubscriptionById(id);
+        if (!sub) return null;
+        return { ...sub, effectiveStatus: resolveEffectiveStatus(sub.status, sub.expiresAt, sub.cancelAtPeriodEnd) };
     }
 
     async assignSubscription(adminId: string, dto: AssignSubscriptionDto) {
@@ -125,7 +146,9 @@ export class SubscriptionService {
     }
 
     async getEmployerSubscription(employerId: string) {
-        return this.repository.findSubscriptionByEmployer(employerId);
+        const sub = await this.repository.findSubscriptionByEmployer(employerId);
+        if (!sub) return null;
+        return { ...sub, effectiveStatus: resolveEffectiveStatus(sub.status, sub.expiresAt, sub.cancelAtPeriodEnd) };
     }
 
     async listPaymentOrders(query: { employerId?: string; page?: number; limit?: number }) {
@@ -150,8 +173,13 @@ export class SubscriptionService {
         return result;
     }
 
-    async updateSubscriptionStatus(adminId: string, id: string, status: string) {
-        const result = await this.repository.updateSubscriptionStatus(id, status);
+    async updateSubscriptionStatus(adminId: string, id: string, status: string, cancelAtPeriodEnd?: boolean) {
+        // cancelAtPeriodEnd is a polite "keep access until expiry" — it only makes sense
+        // for an active plan. A hard status override (CANCELLED/EXPIRED) is what revokes.
+        if (cancelAtPeriodEnd === true && status !== 'ACTIVE') {
+            throw new BadRequestException('cancelAtPeriodEnd requires status ACTIVE');
+        }
+        const result = await this.repository.updateSubscriptionStatus(id, status, cancelAtPeriodEnd);
         await this.invalidateLimitsCache(result.employerId);
         this.auditLogger.log({
             adminId,
@@ -161,7 +189,7 @@ export class SubscriptionService {
             resourceId: id,
             riskLevel: 'HIGH',
             result: 'SUCCESS',
-            metadata: { newStatus: status },
+            metadata: { newStatus: status, cancelAtPeriodEnd: cancelAtPeriodEnd ?? false },
         });
         return result;
     }

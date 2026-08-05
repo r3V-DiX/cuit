@@ -2136,6 +2136,12 @@ model EmployerSubscription {
     startedAt    DateTime      @default(now())
     expiresAt    DateTime?
 
+    // Cancel-at-period-end: when true the plan keeps its paid entitlement until
+    // expiresAt, then the hourly sweep flips it to EXPIRED. Status stays ACTIVE
+    // so entitlement checks are unchanged — cancellation only means "do not renew".
+    cancelAtPeriodEnd Boolean  @default(false)
+    cancelRequestedAt DateTime?
+
     // Cached usage counters — refreshed periodically, not authoritative for hard limits
     currentActiveJobs    Int @default(0)
     currentTeamMembers   Int @default(0)

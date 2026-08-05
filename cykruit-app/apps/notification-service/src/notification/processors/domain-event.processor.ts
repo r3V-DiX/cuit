@@ -381,6 +381,28 @@ export class DomainEventProcessor {
                 break;
             }
 
+            case DomainEventType.SUBSCRIPTION_RESUMED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                const expiry = p.expiresAt
+                    ? new Date(p.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                    : '';
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.PLATFORM_ANNOUNCEMENT,
+                    title: 'Subscription Resumed',
+                    message: `Your ${p.packageName} plan has been resumed${expiry ? ` and stays active until ${expiry}` : ''}.`,
+                    actionUrl: `/employer/subscription`,
+                    relatedEntityType: 'EmployerSubscription',
+                    relatedEntityId: p.subscriptionId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
             case DomainEventType.JOIN_REQUEST_RESOLVED: {
                 const p = event.payload as any;
                 const contact = await this.userContact(p.requesterUserId);
