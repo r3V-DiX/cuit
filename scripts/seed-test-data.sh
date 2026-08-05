@@ -71,13 +71,13 @@ GROWTH_PKG_ID=$(run_sql "SELECT id FROM subscription_packages WHERE name='Growth
 info "Free: $FREE_PKG_ID | Growth: $GROWTH_PKG_ID"
 
 # ── 4. Rivedix employer ────────────────────────────────────────────────────────
-step "Creating Rivedix employer (yograj.hukumdar@rivedix.com)..."
-RIVEDIX_USER_ID=$(run_sql "SELECT id FROM users WHERE email='yograj.hukumdar@rivedix.com' LIMIT 1;")
+step "Creating Rivedix employer (trainer@rivedix.com)..."
+RIVEDIX_USER_ID=$(run_sql "SELECT id FROM users WHERE email='trainer@rivedix.com' LIMIT 1;")
 
 if [ -z "$RIVEDIX_USER_ID" ]; then
   RIVEDIX_USER_ID=$(run_sql "
     INSERT INTO users (id, email, password, \"firstName\", \"lastName\", role, status, \"isEmailVerified\", \"emailVerifiedAt\", \"createdAt\", \"updatedAt\")
-    VALUES (gen_random_uuid(), 'yograj.hukumdar@rivedix.com', '$RIVEDIX_HASH', 'Yograj', 'Hukumdar', 'EMPLOYER', 'ACTIVE', true, now(), now(), now())
+    VALUES (gen_random_uuid(), 'trainer@rivedix.com', '$RIVEDIX_HASH', 'Yograj', 'Hukumdar', 'EMPLOYER', 'ACTIVE', true, now(), now(), now())
     RETURNING id;")
   info "Created user: $RIVEDIX_USER_ID"
 else
@@ -290,7 +290,7 @@ echo "================================================"
 echo "   Seed Complete"
 echo "================================================"
 echo ""
-echo "  RIVEDIX (yograj.hukumdar@rivedix.com)"
+echo "  RIVEDIX (trainer@rivedix.com)"
 echo "    Password: Rivedix@2025!"
 echo "    Subscription: Free"
 echo "    Jobs: Penetration Tester, Cyber GRC Analyst"
