@@ -15,13 +15,13 @@ export function SubscriptionBanner({ status }: Props) {
       <span>
         {isExpired
           ? "Your subscription has expired. Job posting and AI features are limited."
-          : "Your subscription has been cancelled. Access is limited to the free plan."}
+          : "Your plan has been cancelled. You'll keep access until the end of your current billing period."}
       </span>
       <Link
-        href="/employer/subscription?tab=plans"
+        href={isExpired ? "/employer/subscription?tab=plans" : "/employer/subscription"}
         className="ml-auto shrink-0 font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-700"
       >
-        Renew Plan
+        {isExpired ? "Renew Plan" : "Manage Plan"}
       </Link>
     </div>
   );

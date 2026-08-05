@@ -62,7 +62,9 @@ async function getSubscriptionStatus(fwdHeaders: Record<string, string>): Promis
       if (res.ok) {
         const body = await res.json();
         const data = body?.data ?? body;
-        return data?.status ?? null;
+        // Use the server-computed display status: a cancel-at-period-end plan keeps raw
+        // status ACTIVE but must still surface the "cancelled" banner.
+        return data?.effectiveStatus ?? data?.status ?? null;
       }
     } catch {
       // try next fallback URL
