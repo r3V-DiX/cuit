@@ -11,6 +11,7 @@ import {
     IsBoolean,
     MaxLength,
     MinLength,
+    Matches,
     Min,
     Max,
     ValidateIf,
@@ -61,6 +62,9 @@ export class CreateJobDto {
     @IsString()
     @MinLength(1)
     @MaxLength(100)
+    @Matches(/^(?=.*[A-Za-z])[A-Za-z0-9 .,'&()+\/#-]+$/, {
+      message: "jobTitle must contain at least one letter and only valid characters",
+    })
     jobTitle: string;
 
     @IsOptional()
@@ -146,6 +150,9 @@ export class CreateJobDto {
 export class ImproveDescriptionDto {
     @IsString()
     @MaxLength(200)
+    @Matches(/^(?=.*[A-Za-z])[A-Za-z0-9 .,'&()+\/#-]+$/, {
+      message: "title must contain at least one letter and only valid characters",
+    })
     title: string;
 
     @IsString()
@@ -166,6 +173,9 @@ export class ImproveDescriptionDto {
 export class SuggestSkillsDto {
     @IsString()
     @MaxLength(200)
+    @Matches(/^(?=.*[A-Za-z])[A-Za-z0-9 .,'&()+\/#-]+$/, {
+      message: "title must contain at least one letter and only valid characters",
+    })
     title: string;
 
     @IsString()
@@ -180,6 +190,9 @@ export class UpdateJobDto {
     @IsString()
     @MinLength(1)
     @MaxLength(100)
+    @Matches(/^(?=.*[A-Za-z])[A-Za-z0-9 .,'&()+\/#-]+$/, {
+      message: "jobTitle must contain at least one letter and only valid characters",
+    })
     jobTitle?: string;
 
     @IsOptional()

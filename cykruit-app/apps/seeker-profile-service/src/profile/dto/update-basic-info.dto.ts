@@ -6,6 +6,7 @@ import {
   IsUrl,
   IsUUID,
   MaxLength,
+  Matches,
   ValidateNested,
   IsObject,
 } from "class-validator";
@@ -20,7 +21,11 @@ class LocationDataDto {
 export class UpdateBasicInfoDto {
   @IsOptional() @IsString() @MaxLength(100) firstName?: string;
   @IsOptional() @IsString() @MaxLength(100) lastName?: string;
-  @IsOptional() @IsString() @MaxLength(150) title?: string;
+  @IsOptional() @IsString() @MaxLength(150)
+  @Matches(/^$|^(?=.*[A-Za-z])[A-Za-z0-9 .,'&()+\/#-]+$/, {
+    message: "title must contain at least one letter and only valid characters",
+  })
+  title?: string;
   @IsOptional() @IsString() @MaxLength(20) phone?: string;
   @IsOptional() @IsUUID() locationId?: string;
   @IsOptional()

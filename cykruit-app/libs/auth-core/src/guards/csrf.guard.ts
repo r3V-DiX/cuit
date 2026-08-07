@@ -51,17 +51,13 @@ export class CsrfGuard implements CanActivate {
 
     const token = request.headers[CSRF_HEADER] as string;
     if (!token) {
-      throw new ForbiddenException({
-        code: "CSRF_TOKEN_MISSING",
-        message: "CSRF token is required for this request.",
-      });
+      // Generic message — do not expose internal CSRF mechanism to the client.
+      throw new ForbiddenException("Invalid request. Please try again.");
     }
 
     if (!this.verifyToken(token)) {
-      throw new ForbiddenException({
-        code: "CSRF_TOKEN_INVALID",
-        message: "CSRF token is invalid or has expired.",
-      });
+      // Generic message — do not expose internal CSRF mechanism to the client.
+      throw new ForbiddenException("Invalid request. Please try again.");
     }
 
     // True double-submit: the header token must also match the csrf cookie the
@@ -73,10 +69,8 @@ export class CsrfGuard implements CanActivate {
       | string
       | undefined;
     if (!cookieToken || cookieToken !== token) {
-      throw new ForbiddenException({
-        code: "CSRF_TOKEN_MISMATCH",
-        message: "CSRF token does not match the session cookie.",
-      });
+      // Generic message — do not expose internal CSRF mechanism to the client.
+      throw new ForbiddenException("Invalid request. Please try again.");
     }
 
     return true;
