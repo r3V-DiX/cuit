@@ -2,10 +2,6 @@
 
 ## Interaction Protocol
 
-- **IMPORTANT (hook-enforced):** Never perform a global search or grep across the codebase to find context.
-  Follow import paths from the entry file — trace dependencies like a developer would.
-- Ask for the entry file path first. From there, navigate via imports only.
-- **IMPORTANT (hook-enforced):** Never glob, search, or guess paths. Never say "searching for {X}".
 - **YOU MUST** output a numbered plan before executing any task, and wait for
   a positive response before proceeding.
 - **IMPORTANT: Never auto-continue after a plan.** Stop and wait.
