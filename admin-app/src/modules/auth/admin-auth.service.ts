@@ -1,14 +1,19 @@
 // admin-app/src/admin/auth/admin-auth.service.ts
-// Console auth against the Admin model (admins + admin_sessions).
-// Opaque session token: raw value goes to the cookie, SHA-256 hash to the DB
-// (same hashToken/generateRawToken utils the main auth-service uses).
+// Console auth against the Admin model (admins + admin_sessions + admin_tokens).
+// OTP-based: a 6-digit code is emailed, hashed (SHA-256) and stored on AdminToken;
+// verification issues the same opaque session token the console has always used
+// (raw value to the cookie, SHA-256 hash to the DB — hashToken/generateRawToken
+// from @cykruit/auth-core, shared with the main app's session flow).
 
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { randomInt, createHash, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '@cykruit/prisma';
 import { generateRawToken, hashToken, resolveSessionExpiry } from '@cykruit/auth-core';
-import { compare } from 'bcryptjs';
+import { MailService } from '@cykruit/mail';
+import { getPolicyInt } from '@cykruit/policy-config';
 import type { Admin } from '@prisma/client';
-import { AdminLoginDto } from './dto/admin-login.dto';
+import { RequestAdminOtpDto } from './dto/request-admin-otp.dto';
+import { VerifyAdminOtpDto } from './dto/verify-admin-otp.dto';
 import { AdminAuthAuditLogger } from '../../common';
 
 export interface AdminLoginResult {
@@ -17,24 +22,77 @@ export interface AdminLoginResult {
     expiresAt: Date;
 }
 
+function generateOtp(): string {
+    return String(randomInt(100000, 1000000));
+}
+
+function hashOtp(otp: string): string {
+    return createHash('sha256').update(otp).digest('hex');
+}
+
 @Injectable()
 export class AdminAuthService {
     constructor(
         private readonly prisma: PrismaService,
+        private readonly mailService: MailService,
         private readonly authAuditLogger: AdminAuthAuditLogger,
     ) {}
 
     private static readonly MAX_FAILED_ATTEMPTS = 5;
     private static readonly LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
-    async login(
-        dto: AdminLoginDto,
+    async requestOtp(dto: RequestAdminOtpDto, ipAddress?: string, userAgent?: string): Promise<{ message: string }> {
+        const otpExpiryMinutes = await getPolicyInt('otp_expiry_minutes', 10);
+        const genericMessage = `If an account exists, an OTP has been sent. It expires in ${otpExpiryMinutes} minutes.`;
+
+        const admin = await this.prisma.admin.findUnique({ where: { email: dto.email } });
+
+        // Never reveal whether the email matches an active admin.
+        if (!admin || !admin.isActive) {
+            await new Promise<void>((resolve) => setTimeout(resolve, 200));
+            return { message: genericMessage };
+        }
+
+        await this.prisma.adminToken.updateMany({
+            where: { adminId: admin.id, usedAt: null },
+            data: { usedAt: new Date() },
+        });
+
+        const otp = generateOtp();
+        const expiresAt = new Date(Date.now() + otpExpiryMinutes * 60_000);
+
+        await this.prisma.adminToken.create({
+            data: { adminId: admin.id, token: hashOtp(otp), expiresAt },
+        });
+
+        this.authAuditLogger.log({
+            action: 'ADMIN_OTP_REQUESTED',
+            status: 'SUCCESS',
+            adminId: admin.id,
+            ipAddress,
+            userAgent,
+        });
+
+        // Don't block the response on the outbound email API call.
+        this.mailService
+            .sendOtp(admin.email, {
+                firstName: admin.firstName,
+                otp,
+                expiresInMinutes: otpExpiryMinutes,
+                purpose: 'admin-login',
+            })
+            .catch(() => undefined);
+
+        return { message: genericMessage };
+    }
+
+    async verifyOtp(
+        dto: VerifyAdminOtpDto,
         ipAddress?: string,
         userAgent?: string,
     ): Promise<AdminLoginResult> {
         const admin = await this.prisma.admin.findUnique({ where: { email: dto.email } });
 
-        // Generic error on every failure path — never reveal which part failed
         if (!admin || !admin.isActive) {
             this.authAuditLogger.log({
                 action: 'ADMIN_LOGIN_FAILURE',
@@ -44,10 +102,9 @@ export class AdminAuthService {
                 userAgent,
                 metadata: { email: dto.email, reason: !admin ? 'not_found' : 'inactive' },
             });
-            throw new UnauthorizedException('Invalid credentials');
+            throw new UnauthorizedException('Invalid or expired OTP.');
         }
 
-        // Account lockout check
         if (admin.lockedUntil && admin.lockedUntil > new Date()) {
             this.authAuditLogger.log({
                 action: 'ADMIN_LOGIN_FAILURE',
@@ -60,8 +117,18 @@ export class AdminAuthService {
             throw new UnauthorizedException('Account temporarily locked. Try again later.');
         }
 
-        const passwordValid = await compare(dto.password, admin.password);
-        if (!passwordValid) {
+        const tokenRecord = await this.prisma.adminToken.findFirst({
+            where: { adminId: admin.id, usedAt: null, expiresAt: { gt: new Date() } },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        const expectedHash = tokenRecord ? hashOtp(dto.otp) : null;
+        const otpMatches =
+            !!tokenRecord &&
+            !!expectedHash &&
+            timingSafeEqual(Buffer.from(tokenRecord.token, 'hex'), Buffer.from(expectedHash, 'hex'));
+
+        if (!otpMatches) {
             const newCount = admin.failedLoginAttempts + 1;
             const shouldLock = newCount >= AdminAuthService.MAX_FAILED_ATTEMPTS;
             await this.prisma.admin.update({
@@ -79,9 +146,13 @@ export class AdminAuthService {
                 adminId: admin.id,
                 ipAddress,
                 userAgent,
-                metadata: { email: dto.email, reason: 'bad_password', attempt: newCount, locked: shouldLock },
+                metadata: { email: dto.email, reason: 'bad_otp', attempt: newCount, locked: shouldLock },
             });
-            throw new UnauthorizedException('Invalid credentials');
+            if (shouldLock) {
+                throw new UnauthorizedException('Account temporarily locked. Try again later.');
+            }
+            const remaining = AdminAuthService.MAX_FAILED_ATTEMPTS - newCount;
+            throw new UnauthorizedException(`Incorrect OTP. ${remaining} attempt(s) remaining.`);
         }
 
         const rememberMe = dto.rememberMe ?? false;
@@ -89,6 +160,10 @@ export class AdminAuthService {
         const expiresAt = await resolveSessionExpiry(rememberMe);
 
         await this.prisma.$transaction([
+            this.prisma.adminToken.update({
+                where: { id: tokenRecord.id },
+                data: { usedAt: new Date() },
+            }),
             this.prisma.adminSession.create({
                 data: {
                     adminId: admin.id,
@@ -141,7 +216,6 @@ export class AdminAuthService {
                     select: {
                         id: true,
                         email: true,
-                        password: true,
                         firstName: true,
                         lastName: true,
                         phone: true,

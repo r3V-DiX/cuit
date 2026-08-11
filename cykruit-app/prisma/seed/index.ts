@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcryptjs';
 import { seedLocations } from './locations.seed';
 import { seedSkills } from './skills.seed';
 import { seedCertifications } from './certifications.seed';
@@ -14,7 +13,6 @@ import { seedSuggestions } from './suggestions.seed';
 const prisma = new PrismaClient();
 
 const BOOTSTRAP_EMAIL = process.env.RBAC_BOOTSTRAP_ADMIN_EMAIL ?? 'admin@cykruit.com';
-const BOOTSTRAP_PASSWORD = process.env.RBAC_BOOTSTRAP_ADMIN_PASSWORD ?? 'Rivedix@2025';
 
 async function ensureBootstrapAdmin(): Promise<void> {
     const existing = await prisma.admin.findUnique({ where: { email: BOOTSTRAP_EMAIL } });
@@ -22,17 +20,15 @@ async function ensureBootstrapAdmin(): Promise<void> {
         console.log(`✅ Bootstrap admin already exists (${BOOTSTRAP_EMAIL})`);
         return;
     }
-    const passwordHash = await bcrypt.hash(BOOTSTRAP_PASSWORD, 12);
     await prisma.admin.create({
         data: {
             email: BOOTSTRAP_EMAIL,
-            password: passwordHash,
             firstName: 'System',
             lastName: 'Admin',
             isActive: true,
         },
     });
-    console.log(`✅ Created bootstrap admin: ${BOOTSTRAP_EMAIL}`);
+    console.log(`✅ Created bootstrap admin: ${BOOTSTRAP_EMAIL} — sign in via email + OTP`);
 }
 
 async function main() {

@@ -1823,7 +1823,6 @@ model EmployerSettings {
 model Admin {
     id        String @id @default(uuid()) @db.Uuid // ✅ ADD @db.Uuid here
     email     String @unique
-    password  String
     firstName String
     lastName  String
 
@@ -1846,6 +1845,7 @@ model Admin {
     authAuditLogs       AdminAuthAuditLog[]
     verificationReviews EmployerVerification[] @relation("VerificationReviewer")
     sessions            AdminSession[]
+    otpTokens           AdminToken[]
     roleAssignments     AdminRoleAssignment[]
     permissionOverrides AdminPermissionOverride[]
     sentInvites         AdminInvite[]              @relation("AdminInviter")
@@ -1875,6 +1875,21 @@ model AdminSession {
     @@index([adminId])
     @@index([expiresAt])
     @@map("admin_sessions")
+}
+
+model AdminToken {
+    id        String    @id @default(uuid())
+    token     String    @unique
+    adminId   String    @db.Uuid
+    expiresAt DateTime
+    usedAt    DateTime?
+    createdAt DateTime  @default(now())
+
+    admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+    @@index([adminId])
+    @@index([expiresAt])
+    @@map("admin_tokens")
 }
 
 model AdminAuditLog {

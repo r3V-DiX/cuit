@@ -2,17 +2,17 @@
 
 // admin-ui/app/accept-invite/page.tsx
 // Public page — outside the (admin) route group, no PermissionsProvider/sidebar.
-// Reads ?token= from the invite email link, sets a password, and the backend
-// creates the Admin row + session in one step (see admin-invite-accept.controller.ts).
+// Reads ?token= from the invite email link and activates the Admin row (see
+// admin-invite-accept.controller.ts). No password is set — the admin signs in
+// afterward via email + OTP, same as everyone else.
 //
 // Flow:
 //  1. POST /api/admin/admins/invite/accept
-//  2. GET /api/admin/me — resolved RBAC context (stored in sessionStorage for (admin)/layout)
-//  3. router.replace('/dashboard')
+//  2. router.replace(`/login?email=...&activated=1`)
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Shield, Eye, EyeOff, ArrowRight, AlertCircle, Activity } from 'lucide-react';
+import { Shield, ArrowRight, AlertCircle, Activity } from 'lucide-react';
 import { api, ApiError } from '@/lib';
 
 function AcceptInvitePageContent() {
@@ -22,9 +22,6 @@ function AcceptInvitePageContent() {
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -36,39 +33,16 @@ function AcceptInvitePageContent() {
       setError('This invite link is missing its token.');
       return;
     }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
 
     setLoading(true);
     try {
-      // Step 1 — Accept invite (creates the Admin row + session)
-      await api.post('/api/admin/admins/invite/accept', {
+      const result = await api.post<{ admin: { email: string } }>('/api/admin/admins/invite/accept', {
         token,
-        password,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
       });
 
-      // Step 2 — Load RBAC permissions into sessionStorage for (admin)/layout
-      try {
-        const adminMeRes = await fetch('/api/admin/me');
-        if (adminMeRes.ok) {
-          const adminMeBody = (await adminMeRes.json()) as {
-            success: boolean;
-            data?: unknown;
-          };
-          if (adminMeBody.success && adminMeBody.data) {
-            sessionStorage.setItem('admin_permissions', JSON.stringify(adminMeBody.data));
-          }
-        }
-      } catch {
-        // Non-fatal — (admin)/layout will refetch
-      }
-
-      // Step 3 — Navigate
-      router.replace('/dashboard');
+      router.replace(`/login?email=${encodeURIComponent(result.admin.email)}&activated=1`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to accept invite.');
     } finally {
@@ -113,8 +87,9 @@ function AcceptInvitePageContent() {
 
             <h2 className="mb-1 text-xl font-bold text-slate-900">Set up your account</h2>
             <p className="mb-6 text-sm text-slate-500">
-              You&apos;ve been invited to the Cykruit admin console. Set your name and
-              password to activate your account.
+              You&apos;ve been invited to the Cykruit admin console. Set your name to
+              activate your account, then sign in with a one-time code sent to
+              your email.
             </p>
 
             {!token && (
@@ -157,48 +132,6 @@ function AcceptInvitePageContent() {
                     className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-900 placeholder-slate-400 transition-all focus:border-blue-400 focus:bg-white focus:outline-none"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-widest text-slate-400">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    autoComplete="new-password"
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pr-11 pl-4 font-mono text-sm text-slate-900 placeholder-slate-400 transition-all focus:border-blue-400 focus:bg-white focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute top-1/2 right-3.5 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-600"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-widest text-slate-400">
-                  Confirm password
-                </label>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  minLength={8}
-                  autoComplete="new-password"
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-mono text-sm text-slate-900 placeholder-slate-400 transition-all focus:border-blue-400 focus:bg-white focus:outline-none"
-                />
               </div>
 
               <button

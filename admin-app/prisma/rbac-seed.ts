@@ -7,7 +7,6 @@
 
 import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-import { hash } from 'bcryptjs';
 import {
     ALL_ACTIONS,
     PERMISSION_DESCRIPTIONS,
@@ -18,7 +17,6 @@ import {
 } from '../src/common/rbac/permissions.registry';
 
 const prisma = new PrismaClient();
-const BCRYPT_SALT_ROUNDS = 10;
 
 async function seedPermissions(): Promise<Map<Action, string>> {
     const idByAction = new Map<Action, string>();
@@ -86,22 +84,14 @@ async function bootstrapSuperAdmin(roleIdByName: Map<string, string>): Promise<v
 
     let admin = await prisma.admin.findUnique({ where: { email } });
     if (!admin) {
-        const password = process.env.RBAC_BOOTSTRAP_ADMIN_PASSWORD;
-        if (!password) {
-            throw new Error(
-                `Bootstrap admin "${email}" not found and RBAC_BOOTSTRAP_ADMIN_PASSWORD is not set — cannot create it`,
-            );
-        }
-
         admin = await prisma.admin.create({
             data: {
                 email,
-                password: await hash(password, BCRYPT_SALT_ROUNDS),
                 firstName: 'Super',
                 lastName: 'Admin',
             },
         });
-        console.log(`✔ Bootstrap admin "${email}" created`);
+        console.log(`✔ Bootstrap admin "${email}" created — sign in via email + OTP`);
     }
 
     const roleId = roleIdByName.get(SUPER_ADMIN_ROLE);

@@ -39,24 +39,25 @@ function getCsrfToken(): string | undefined {
 
 async function request<T>(
   url: string,
-  init: RequestInit = {},
+  init: RequestInit & { skipAuthRedirect?: boolean } = {},
   isRetry: boolean = false,
 ): Promise<T> {
+  const { skipAuthRedirect, ...fetchInit } = init;
   const csrfToken =
-    init.method && MUTATION_METHODS.has(init.method) ? getCsrfToken() : undefined;
+    fetchInit.method && MUTATION_METHODS.has(fetchInit.method) ? getCsrfToken() : undefined;
 
   const res = await fetch(url, {
-    ...init,
+    ...fetchInit,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
-      ...(init.headers as Record<string, string>),
+      ...(fetchInit.headers as Record<string, string>),
     },
   });
 
   if (res.status === 401) {
-    if (typeof window !== 'undefined') {
+    if (!skipAuthRedirect && typeof window !== 'undefined') {
       window.location.href = '/login';
     }
     throw new ApiError('Unauthorized', 401);
@@ -98,7 +99,7 @@ export const api = {
     return request<T>(url, { ...init, method: 'GET' });
   },
 
-  post<T>(url: string, body?: unknown, init?: RequestInit): Promise<T> {
+  post<T>(url: string, body?: unknown, init?: RequestInit & { skipAuthRedirect?: boolean }): Promise<T> {
     return request<T>(url, {
       ...init,
       method: 'POST',

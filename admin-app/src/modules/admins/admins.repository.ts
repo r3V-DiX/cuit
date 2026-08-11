@@ -110,17 +110,14 @@ export class AdminsRepository {
 
     async acceptInvite(
         invite: { id: string; email: string; roleId: string | null; invitedBy: string },
-        admin: { firstName: string; lastName: string; hashedPassword: string },
-        session: { hashedToken: string; expiresAt: Date; ipAddress?: string; userAgent?: string },
+        admin: { firstName: string; lastName: string },
     ) {
         return this.prisma.$transaction(async (tx) => {
             const created = await tx.admin.create({
                 data: {
                     email: invite.email,
-                    password: admin.hashedPassword,
                     firstName: admin.firstName,
                     lastName: admin.lastName,
-                    lastLogin: new Date(),
                 },
                 select: ADMIN_LIST_SELECT,
             });
@@ -130,16 +127,6 @@ export class AdminsRepository {
                     data: { adminId: created.id, roleId: invite.roleId, assignedBy: invite.invitedBy },
                 });
             }
-
-            await tx.adminSession.create({
-                data: {
-                    adminId: created.id,
-                    token: session.hashedToken,
-                    expiresAt: session.expiresAt,
-                    ipAddress: session.ipAddress,
-                    userAgent: session.userAgent,
-                },
-            });
 
             await tx.adminInvite.update({
                 where: { id: invite.id },

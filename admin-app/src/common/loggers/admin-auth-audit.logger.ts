@@ -9,7 +9,12 @@ import { PrismaService } from '@cykruit/prisma';
 import type { Prisma } from '@prisma/client';
 
 export interface AdminAuthAuditEntry {
-    action: 'ADMIN_LOGIN_SUCCESS' | 'ADMIN_LOGIN_FAILURE' | 'ADMIN_LOGOUT';
+    action:
+        | 'ADMIN_LOGIN_SUCCESS'
+        | 'ADMIN_LOGIN_FAILURE'
+        | 'ADMIN_LOGOUT'
+        | 'ADMIN_OTP_REQUESTED'
+        | 'ADMIN_ACCOUNT_ACTIVATED';
     status: 'SUCCESS' | 'FAILURE';
     adminId?: string;
     ipAddress?: string;

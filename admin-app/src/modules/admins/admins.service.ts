@@ -9,9 +9,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Prisma } from '@prisma/client';
-import { generateRawToken, hashToken, resolveSessionExpiry } from '@cykruit/auth-core';
+import { generateRawToken, hashToken } from '@cykruit/auth-core';
 import { MailService } from '@cykruit/mail';
-import { hash } from 'bcryptjs';
 import { AdminsRepository } from './admins.repository';
 import { AdminAuditLogger } from '../../common';
 import { AdminAuthAuditLogger } from '../../common';
@@ -19,7 +18,6 @@ import { isProtectedRootAdmin } from '../../common';
 import { AcceptInviteDto, AdminListQueryDto, InviteAdminDto } from './dto/admins.dto';
 
 const INVITE_TTL_HOURS = 48;
-const BCRYPT_SALT_ROUNDS = 10;
 
 @Injectable()
 export class AdminsService {
@@ -89,15 +87,10 @@ export class AdminsService {
             throw new BadRequestException('Invite token has expired. Ask a super admin to resend it.');
         }
 
-        const hashedPassword = await hash(dto.password, BCRYPT_SALT_ROUNDS);
-        const rawToken = generateRawToken();
-        const expiresAt = await resolveSessionExpiry(false);
-
-        const admin = await this.repo.acceptInvite(
-            invite,
-            { firstName: dto.firstName, lastName: dto.lastName, hashedPassword },
-            { hashedToken: hashToken(rawToken), expiresAt, ipAddress, userAgent },
-        );
+        const admin = await this.repo.acceptInvite(invite, {
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+        });
 
         this.auditLogger.log({
             adminId: admin.id,
@@ -109,17 +102,15 @@ export class AdminsService {
             result: 'SUCCESS',
         });
 
-        // Accepting an invite logs the admin in immediately — record it in the
-        // auth trail the same way a normal login would, or it's invisible there.
         this.authAuditLogger.log({
-            action: 'ADMIN_LOGIN_SUCCESS',
+            action: 'ADMIN_ACCOUNT_ACTIVATED',
             status: 'SUCCESS',
             adminId: admin.id,
             ipAddress,
             userAgent,
         });
 
-        return { admin, rawToken, expiresAt };
+        return { admin };
     }
 
     async deactivate(currentAdminId: string, id: string) {

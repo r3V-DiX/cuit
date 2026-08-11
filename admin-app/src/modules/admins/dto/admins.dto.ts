@@ -26,9 +26,6 @@ export class AcceptInviteDto {
     @IsString()
     token: string;
 
-    @IsString() @MinLength(8) @MaxLength(72)
-    password: string;
-
     @IsString() @MinLength(1) @MaxLength(100)
     firstName: string;
 
