@@ -5,7 +5,7 @@
 // (raw value to the cookie, SHA-256 hash to the DB — hashToken/generateRawToken
 // from @cykruit/auth-core, shared with the main app's session flow).
 
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { randomInt, createHash, timingSafeEqual } from 'node:crypto';
 import { PrismaService } from '@cykruit/prisma';
 import { generateRawToken, hashToken, resolveSessionExpiry } from '@cykruit/auth-core';
@@ -43,14 +43,19 @@ export class AdminAuthService {
 
     async requestOtp(dto: RequestAdminOtpDto, ipAddress?: string, userAgent?: string): Promise<{ message: string }> {
         const otpExpiryMinutes = await getPolicyInt('otp_expiry_minutes', 10);
-        const genericMessage = `If an account exists, an OTP has been sent. It expires in ${otpExpiryMinutes} minutes.`;
 
         const admin = await this.prisma.admin.findUnique({ where: { email: dto.email } });
 
-        // Never reveal whether the email matches an active admin.
         if (!admin || !admin.isActive) {
-            await new Promise<void>((resolve) => setTimeout(resolve, 200));
-            return { message: genericMessage };
+            this.authAuditLogger.log({
+                action: 'ADMIN_OTP_REQUEST_FAILED',
+                status: 'FAILURE',
+                adminId: admin?.id,
+                ipAddress,
+                userAgent,
+                metadata: { email: dto.email, reason: !admin ? 'not_found' : 'inactive' },
+            });
+            throw new NotFoundException('No admin account found for this email.');
         }
 
         await this.prisma.adminToken.updateMany({
@@ -81,9 +86,19 @@ export class AdminAuthService {
                 expiresInMinutes: otpExpiryMinutes,
                 purpose: 'admin-login',
             })
-            .catch(() => undefined);
+            .catch((err: unknown) => {
+                const message = err instanceof Error ? err.message : String(err);
+                this.authAuditLogger.log({
+                    action: 'ADMIN_OTP_REQUEST_FAILED',
+                    status: 'FAILURE',
+                    adminId: admin.id,
+                    ipAddress,
+                    userAgent,
+                    metadata: { email: dto.email, reason: 'mail_send_failed', error: message },
+                });
+            });
 
-        return { message: genericMessage };
+        return { message: `OTP sent to your email. It expires in ${otpExpiryMinutes} minutes.` };
     }
 
     async verifyOtp(

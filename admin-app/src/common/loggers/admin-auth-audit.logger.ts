@@ -14,6 +14,7 @@ export interface AdminAuthAuditEntry {
         | 'ADMIN_LOGIN_FAILURE'
         | 'ADMIN_LOGOUT'
         | 'ADMIN_OTP_REQUESTED'
+        | 'ADMIN_OTP_REQUEST_FAILED'
         | 'ADMIN_ACCOUNT_ACTIVATED';
     status: 'SUCCESS' | 'FAILURE';
     adminId?: string;
