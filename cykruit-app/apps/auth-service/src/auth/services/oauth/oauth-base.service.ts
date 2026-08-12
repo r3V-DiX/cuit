@@ -171,12 +171,16 @@ export class OAuthBaseService {
           where: { id: existingProvider.id },
           data: { lastUsedAt: new Date() },
         });
-        if (!user.profileImage && profile.profileImage) {
-          await tx.user.update({
-            where: { id: user.id },
-            data: { profileImage: profile.profileImage },
-          });
-        }
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            lastLogin: new Date(),
+            lastLoginIp: ipAddress,
+            ...(!user.profileImage && profile.profileImage
+              ? { profileImage: profile.profileImage }
+              : {}),
+          },
+        });
       });
 
       const sessionToken = await this.sessionService.createSession(
@@ -222,7 +226,11 @@ export class OAuthBaseService {
         });
 
       const linkedUser = await this.prisma.$transaction(async (tx) => {
-        const userUpdateData: Record<string, unknown> = { isEmailVerified: true };
+        const userUpdateData: Record<string, unknown> = {
+          isEmailVerified: true,
+          lastLogin: new Date(),
+          lastLoginIp: ipAddress,
+        };
         if (!existingUserByEmail.profileImage && profile.profileImage) {
           userUpdateData.profileImage = profile.profileImage;
         }
@@ -314,6 +322,8 @@ export class OAuthBaseService {
           password: "",
           role: effectiveRole,
           status: AccountStatus.ACTIVE,
+          lastLogin: new Date(),
+          lastLoginIp: ipAddress,
         },
       });
 
