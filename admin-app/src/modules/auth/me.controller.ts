@@ -3,10 +3,10 @@
 // (docs/admin-ui/BACKEND-SCHEMA-admin-ui.md §4.1). No @RequirePermission —
 // every authenticated admin may read their own permission set.
 
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import type { Admin } from '@prisma/client';
 import { SkipRateLimit } from '@cykruit/rate-limit';
-import { AdminAuthGuard } from './admin-auth.guard';
+import { AdminAuthGuard, type AdminRequest } from './admin-auth.guard';
 import { CurrentAdmin } from './current-admin.decorator';
 import { PermissionsService } from '../../common';
 
@@ -17,7 +17,7 @@ export class MeController {
 
     @Get()
     @SkipRateLimit({ global: true })
-    async me(@CurrentAdmin() admin: Admin) {
+    async me(@CurrentAdmin() admin: Admin, @Req() req: AdminRequest) {
         const resolved = await this.permissionsService.resolveUserPermissions(admin.id);
 
         return {
@@ -30,6 +30,7 @@ export class MeController {
             roles: resolved.roles,
             isSuperAdmin: resolved.isSuperAdmin,
             permissions: [...resolved.permissions].sort(),
+            sessionExpiresAt: req.sessionExpiresAt,
         };
     }
 }

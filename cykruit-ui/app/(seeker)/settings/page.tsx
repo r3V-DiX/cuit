@@ -10,7 +10,6 @@ import {
   AlertTriangle, Smartphone, ChevronDown as ChevronDownIcon,
 } from "lucide-react";
 import { SessionsPanel } from "@/components/settings/SessionsPanel";
-import { useSessionGuard } from "@/lib/use-session-guard";
 import { LocationSelect, LocationValue } from "@/components/ui/LocationSelect";
 import { SettingsPageSkeleton } from "@/components/ui/skeletons/PageSkeletons";
 
@@ -79,7 +78,6 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("account");
   const [loadingSettings, setLoadingSettings] = useState(true);
-  useSessionGuard();
 
   // ── Auth method ──
   const [linkedProviders, setLinkedProviders] = useState<string[]>([]);

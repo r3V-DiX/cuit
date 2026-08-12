@@ -19,6 +19,7 @@ interface PermissionsContextValue {
   roles: string[];
   isSuperAdmin: boolean;
   permissions: string[];
+  sessionExpiresAt: string | null;
   loading: boolean;
   loaded: boolean;
   has: (action: string) => boolean;
@@ -30,6 +31,7 @@ const PermissionsContext = createContext<PermissionsContextValue>({
   roles: [],
   isSuperAdmin: false,
   permissions: [],
+  sessionExpiresAt: null,
   loading: false,
   loaded: false,
   has: () => false,
@@ -60,6 +62,9 @@ export function PermissionsProvider({
   const [permissions, setPermissions] = useState<string[]>(
     initialData?.permissions ?? [],
   );
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<string | null>(
+    initialData?.sessionExpiresAt ?? null,
+  );
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(!!initialData);
 
@@ -73,6 +78,7 @@ export function PermissionsProvider({
         setRoles([]);
         setIsSuperAdmin(false);
         setPermissions([]);
+        setSessionExpiresAt(null);
         return;
       }
       const body = (await res.json()) as { success: boolean; data: AdminMe };
@@ -81,6 +87,7 @@ export function PermissionsProvider({
         setRoles(body.data.roles);
         setIsSuperAdmin(body.data.isSuperAdmin);
         setPermissions(body.data.permissions);
+        setSessionExpiresAt(body.data.sessionExpiresAt ?? null);
       }
     } catch {
       // Network error — leave existing state
@@ -106,7 +113,7 @@ export function PermissionsProvider({
 
   return (
     <PermissionsContext.Provider
-      value={{ user, roles, isSuperAdmin, permissions, loading, loaded, has, refresh }}
+      value={{ user, roles, isSuperAdmin, permissions, sessionExpiresAt, loading, loaded, has, refresh }}
     >
       {children}
     </PermissionsContext.Provider>

@@ -18,7 +18,7 @@ import { AdminAuthService } from './admin-auth.service';
 export const ADMIN_SESSION_COOKIE = 'admin_session_token';
 export const CSRF_COOKIE = 'admin_csrf_token';
 
-export type AdminRequest = Request & { admin?: Admin };
+export type AdminRequest = Request & { admin?: Admin; sessionExpiresAt?: Date };
 
 @Injectable()
 export class AdminAuthGuard implements CanActivate {
@@ -36,7 +36,9 @@ export class AdminAuthGuard implements CanActivate {
             throw new UnauthorizedException('Authentication required');
         }
 
-        req.admin = await this.adminAuthService.validateSession(rawToken);
+        const { admin, expiresAt } = await this.adminAuthService.validateSession(rawToken);
+        req.admin = admin;
+        req.sessionExpiresAt = expiresAt;
 
         // Sliding-window CSRF refresh — the signed token's own HMAC expiry stays
         // short, but renewing the cookie on every authenticated request means it

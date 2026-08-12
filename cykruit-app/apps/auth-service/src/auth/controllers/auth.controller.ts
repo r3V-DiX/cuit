@@ -105,8 +105,10 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @SkipRateLimit({ global: true })
   @HttpCode(HttpStatus.OK)
-  async getCurrentUser(@CurrentUser() user: User) {
-    return this.authService.getCurrentUser(user.id);
+  async getCurrentUser(@CurrentUser() user: User, @Req() req: Request) {
+    const profile = await this.authService.getCurrentUser(user.id);
+    const sessionExpiresAt = (req as Request & { sessionExpiresAt?: Date }).sessionExpiresAt;
+    return { ...profile, sessionExpiresAt };
   }
 
   @Get("ws-token")

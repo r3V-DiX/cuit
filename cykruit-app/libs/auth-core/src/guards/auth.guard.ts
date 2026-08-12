@@ -56,7 +56,7 @@ export class AuthGuard implements CanActivate {
       const userAgent =
         request.headers["user-agent"]?.substring(0, 255) || "unknown";
 
-      const { user, newToken, rememberMe } = await this.sessionValidator.validateSession(
+      const { user, newToken, rememberMe, expiresAt } = await this.sessionValidator.validateSession(
         sessionToken,
         ipAddress,
         userAgent,
@@ -85,6 +85,7 @@ export class AuthGuard implements CanActivate {
       }
 
       request["user"] = user;
+      request["sessionExpiresAt"] = expiresAt;
       return true;
     } catch (error) {
       response.clearCookie(

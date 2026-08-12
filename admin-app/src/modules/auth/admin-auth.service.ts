@@ -220,8 +220,8 @@ export class AdminAuthService {
         };
     }
 
-    /** Validates a raw session token and returns the active Admin. */
-    async validateSession(rawToken: string): Promise<Admin> {
+    /** Validates a raw session token and returns the active Admin + session expiry. */
+    async validateSession(rawToken: string): Promise<{ admin: Admin; expiresAt: Date }> {
         const session = await this.prisma.adminSession.findUnique({
             where: { token: hashToken(rawToken) },
             select: {
@@ -265,7 +265,7 @@ export class AdminAuthService {
             .update({ where: { id: session.id }, data: { lastActivity: new Date() } })
             .catch(() => undefined);
 
-        return session.admin;
+        return { admin: session.admin, expiresAt: session.expiresAt };
     }
 
     async logout(rawToken: string, ipAddress?: string, userAgent?: string): Promise<void> {

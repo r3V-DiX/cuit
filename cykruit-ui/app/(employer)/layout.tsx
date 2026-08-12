@@ -4,6 +4,7 @@ import EmployerSidebar from "@/components/employer/EmployerSidebar";
 import { KycProvider, type KycStatus, type EmployerMemberRole } from "@/lib/employer-context";
 import { SubscriptionBanner } from "@/components/employer/SubscriptionBanner";
 import { AnnouncementBanner, type AnnouncementItem } from "@/components/ui/AnnouncementBanner";
+import { SessionGuardMount } from "@/components/auth/SessionGuardMount";
 
 const AUTH_URL         = process.env.AUTH_SERVICE_URL         || "http://127.0.0.1:4001";
 const EMPLOYER_URL     = process.env.EMPLOYER_SERVICE_URL     || "http://127.0.0.1:4004";
@@ -158,6 +159,7 @@ export default async function EmployerLayout({
   return (
     <KycProvider initialStatus={kycData.status} initialRejectionReason={kycData.rejectionReason} initialEmployerRole={memberRole}>
       <div className="flex h-screen bg-slate-50 overflow-hidden">
+        <SessionGuardMount />
         <EmployerSidebar />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <AnnouncementBanner announcements={announcements} />

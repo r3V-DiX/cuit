@@ -38,6 +38,7 @@ import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
 import { usePermissions } from '@/lib/permissions-context';
 import { ACTIONS } from '@/lib';
+import { getCsrfToken } from '@/lib/api';
 
 interface NavItem {
   label: string;
@@ -217,8 +218,10 @@ export default function AdminSidebar() {
 
   async function handleSignOut() {
     try {
+      const csrf = getCsrfToken();
       await fetch('/api/admin/auth/logout', {
         method: 'POST',
+        headers: csrf ? { 'x-csrf-token': csrf } : {},
       });
     } catch {
       // redirect regardless

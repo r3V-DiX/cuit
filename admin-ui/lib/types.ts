@@ -522,6 +522,7 @@ export interface AdminMe {
   roles: string[];
   isSuperAdmin: boolean;
   permissions: string[];
+  sessionExpiresAt?: string;
 }
 
 export interface DashboardStats {

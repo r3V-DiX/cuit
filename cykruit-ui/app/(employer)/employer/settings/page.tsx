@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { apiFetch, authHeaders } from "@/lib/api";
 import { SessionsPanel } from "@/components/settings/SessionsPanel";
-import { useSessionGuard } from "@/lib/use-session-guard";
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const inputCls     = "w-full h-10 px-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:border-blue-400 focus:bg-white transition-all placeholder:text-slate-400";
@@ -103,7 +102,6 @@ export default function EmployerSettingsPage() {
   const { openModal } = useModal();
   const [tab, setTab]= useState("account");
   const [loading, setLoading] = useState(true);
-  useSessionGuard();
 
   // Account
   const [locked, setLocked] = useState({ name: "", email: "" });

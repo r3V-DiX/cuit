@@ -122,7 +122,7 @@ export class SharedSessionValidator implements ISessionValidator {
         where: { id: session.id },
         data: { lastActivity: new Date(), ipAddress },
       });
-      return { user, rememberMe: session.rememberMe };
+      return { user, rememberMe: session.rememberMe, expiresAt: session.expiresAt };
     }
 
     // ── Rotation, with a grace-period overlap on the token being replaced ──
@@ -136,7 +136,7 @@ export class SharedSessionValidator implements ISessionValidator {
         where: { id: session.id },
         data: { lastActivity: new Date(), ipAddress },
       });
-      return { user, rememberMe: session.rememberMe };
+      return { user, rememberMe: session.rememberMe, expiresAt: session.expiresAt };
     }
 
     const rawNewToken = generateRawToken(64);
@@ -164,6 +164,6 @@ export class SharedSessionValidator implements ISessionValidator {
       sessionId: session.id,
     });
 
-    return { user, newToken: rawNewToken, rememberMe: session.rememberMe };
+    return { user, newToken: rawNewToken, rememberMe: session.rememberMe, expiresAt: newExpiry };
   }
 }
