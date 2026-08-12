@@ -4,6 +4,11 @@
   "version": "1.0.0",
   "description": "Cykruit Admin Backend — NestJS, maps to admin-api.cykruit.com",
   "license": "MIT",
+  "overrides": {
+    "bull": {
+      "uuid": "^11.1.1"
+    }
+  },
   "scripts": {
     "start": "ts-node -r ./tsconfig-paths-bootstrap.js src/main.ts",
     "start:dev": "ts-node-dev --respawn -r ./tsconfig-paths-bootstrap.js src/main.ts",
