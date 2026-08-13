@@ -167,7 +167,7 @@ jobs:
             type=raw,value=${{ matrix.tag_prefix }}-prod-${{ github.run_number }}
 
       - name: 🚀 Build and Push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./cykruit-app
           file: ${{ matrix.dockerfile }}
