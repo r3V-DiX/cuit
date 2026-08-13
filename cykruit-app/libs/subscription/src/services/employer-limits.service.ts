@@ -1,5 +1,6 @@
 import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
+import { findFreePackage } from '../utils/free-package';
 
 export interface EmployerLimits {
     maxActiveJobs: number;
@@ -13,7 +14,7 @@ export interface EmployerLimits {
     prioritySupportEnabled: boolean;
 }
 
-const FREE_LIMITS: EmployerLimits = {
+export const FREE_LIMITS: EmployerLimits = {
     maxActiveJobs: 1,
     maxTeamMembers: 2,
     featuredJobSlots: 0,
@@ -117,10 +118,8 @@ export class EmployerLimitsService {
             (sub.expiresAt === null || sub.expiresAt > now);
 
         if (!isActive || !sub?.package) {
-            // Fallback: read Free plan values from DB so admin changes are respected
-            const freePkg = await this.prisma.subscriptionPackage.findFirst({
-                where: { name: 'Free', isActive: true },
-            });
+            // Use shared resolver — single source of truth for the Free package
+            const freePkg = await findFreePackage(this.prisma);
             if (freePkg) return this.fromPackage(freePkg);
             return FREE_LIMITS;
         }

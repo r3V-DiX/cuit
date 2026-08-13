@@ -22,6 +22,12 @@ interface SubPackage {
   priceYearly?: string | null;
 }
 
+interface MySubscription {
+  expiresAt: string | null;
+  effectiveStatus: string;
+  packageName: string;
+}
+
 function pkgFeatures(p: SubPackage): string[] {
   const f: string[] = [
     `${p.maxActiveJobs} active job listings`,
@@ -45,6 +51,10 @@ function inr(paise: number) {
   return "₹" + Math.round(paise / 100).toLocaleString("en-IN");
 }
 
+function fmt(d: Date) {
+  return d.toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" });
+}
+
 function SuccessContent() {
   const params     = useSearchParams();
   const packageId  = params.get("packageId") ?? "";
@@ -53,6 +63,7 @@ function SuccessContent() {
   const amount     = parseInt(params.get("amount") || "0", 10);
 
   const [pkg, setPkg] = useState<SubPackage | null>(null);
+  const [sub, setSub] = useState<MySubscription | null>(null);
 
   useEffect(() => {
     apiFetch<SubPackage[]>("/api/subscriptions/packages")
@@ -70,16 +81,19 @@ function SuccessContent() {
       .catch(() => undefined);
   }, [packageId, planParam]);
 
-  const planName     = pkg?.name ?? planParam ?? "Your plan";
+  // Fetch the authoritative subscription data (including expiresAt from backend)
+  useEffect(() => {
+    apiFetch<MySubscription>("/api/subscriptions/my")
+      .then((res) => {
+        if (res.data) setSub(res.data);
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const planName     = pkg?.name ?? planParam ?? sub?.packageName ?? "Your plan";
   const planFeatures = pkg ? pkgFeatures(pkg) : [];
   const planIcon     = pkgIcon(planName);
-
-  const today    = new Date();
-  const renewsOn = new Date(today);
-  if (billing === "yearly") renewsOn.setFullYear(renewsOn.getFullYear() + 1);
-  else renewsOn.setMonth(renewsOn.getMonth() + 1);
-
-  const fmt = (d: Date) => d.toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" });
+  const renewsOn     = sub?.expiresAt ? new Date(sub.expiresAt) : null;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -130,7 +144,9 @@ function SuccessContent() {
                   {planIcon}
                   <div>
                     <p className="text-sm font-bold text-slate-900">{planName} Plan</p>
-                    <p className="text-xs text-slate-400 capitalize">{billing} billing · Renews {fmt(renewsOn)}</p>
+                    <p className="text-xs text-slate-400 capitalize">
+                      {billing} billing{renewsOn ? ` · Renews ${fmt(renewsOn)}` : ''}
+                    </p>
                   </div>
                 </div>
                 {amount > 0 && (

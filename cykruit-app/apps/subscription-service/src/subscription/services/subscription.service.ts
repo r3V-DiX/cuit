@@ -12,6 +12,7 @@ import { SubscriptionListQueryDto } from '../dto/query.dto';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { AuditService } from '@cykruit/audit';
 import { AppLogger } from '@cykruit/logger';
+import { FREE_LIMITS } from '@cykruit/subscription';
 
 /** Minimum ms between auto-refresh writes to avoid write-on-every-read under load. */
 const USAGE_REFRESH_TTL_MS = 5 * 60 * 1000; // 5 minutes
@@ -230,7 +231,7 @@ export class SubscriptionService {
         // to Free-tier limits so the UI never shows a dead plan's limits as available.
         const isActive = isSubscriptionEntitled(source.status, source.expiresAt);
         const freePkg = !isActive ? await this.payRepo.findFreePackage() : null;
-        const limits = freePkg ?? source.package;
+        const limits = freePkg ?? FREE_LIMITS;
 
         return {
             hasSubscription: true,

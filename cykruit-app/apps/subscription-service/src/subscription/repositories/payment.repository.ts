@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { BillingCycle, PaymentOrderStatus, PaymentStatus, Prisma } from '@prisma/client';
+import { findFreePackage } from '@cykruit/subscription';
 
 const ORDER_SELECT = {
     id: true,
@@ -103,26 +104,7 @@ export class PaymentRepository {
     }
 
     async findFreePackage() {
-        return this.prisma.subscriptionPackage.findFirst({
-            where: {
-                isActive: true,
-                priceMonthly: null,
-                priceYearly: null,
-            },
-            select: {
-                id: true,
-                name: true,
-                maxActiveJobs: true,
-                maxTeamMembers: true,
-                featuredJobSlots: true,
-                aiScoringEnabled: true,
-                jobPostingPeriodDays: true,
-                resumeViewEnabled: true,
-                canExportApplicants: true,
-                analyticsEnabled: true,
-                prioritySupportEnabled: true,
-            },
-        });
+        return findFreePackage(this.prisma);
     }
 
     /** Return an existing non-expired CREATED order for the same employer+package+cycle (idempotency). */

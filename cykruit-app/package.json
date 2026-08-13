@@ -56,7 +56,8 @@
     "lint": "eslint \"{apps,libs}/**/*.ts\" --fix",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "migration:lite-seed": "tsx prisma/migration/seed/lite-seed.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed/index.ts"

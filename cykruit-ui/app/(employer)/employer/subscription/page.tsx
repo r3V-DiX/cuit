@@ -553,7 +553,7 @@ export default function SubscriptionPage() {
                     const currentPrice = packages.find(p => p.id === planPackageId || p.name === planName);
                     const currentPriceVal = currentPrice?.priceMonthly ? Number(currentPrice.priceMonthly) : 0;
                     const annualSaving = pkg.priceMonthly && pkg.priceYearly
-                      ? Math.round((Number(pkg.priceMonthly) - Number(pkg.priceYearly)) * 12)
+                      ? Math.round(Number(pkg.priceMonthly) * 12 - Number(pkg.priceYearly))
                       : 0;
 
                     return (
@@ -579,7 +579,7 @@ export default function SubscriptionPage() {
                             <span className="text-2xl font-bold text-slate-900">
                               {isEnterprise ? "Custom" : price != null ? `₹${price.toLocaleString("en-IN")}` : "Free"}
                             </span>
-                            {!isEnterprise && price != null && <span className="text-xs text-slate-400 mb-1">/mo</span>}
+                            {!isEnterprise && price != null && <span className="text-xs text-slate-400 mb-1">{billingCycle === "yearly" ? "/yr" : "/mo"}</span>}
                           </div>
                           <div className="h-4 mb-4">
                             {billingCycle === "yearly" && annualSaving > 0 && (

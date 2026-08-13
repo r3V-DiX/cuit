@@ -63,8 +63,9 @@ export class DiscountService {
         billingCycle: BillingCycle,
         baseAmountPaise: number,
     ): Promise<DiscountPreview> {
+        const normalizedCode = code.trim().toUpperCase();
         const discount = await this.prisma.discount.findUnique({
-            where: { code },
+            where: { code: normalizedCode },
             select: ACTIVE_DISCOUNT_SELECT,
         });
 
@@ -135,18 +136,30 @@ export class DiscountService {
         orderId: string,
         amountSavedPaise: number,
     ): Promise<void> {
-        // Re-check per-user limit inside the transaction to prevent race condition
-        // where two concurrent checkouts both passed validateCoupon with count=0.
+        // Re-check per-user limit AND total-uses limit inside the transaction to
+        // prevent race conditions where concurrent checkouts both passed validation
+        // with stale counts.
         const discount = await tx.discount.findUnique({
             where: { id: discountId },
-            select: { maxUsesPerUser: true },
+            select: { maxUsesPerUser: true, maxTotalUses: true },
         });
         if (discount) {
-            const currentCount = await tx.discountUsage.count({
-                where: { discountId, employerId },
-            });
-            if (currentCount >= discount.maxUsesPerUser) {
-                throw new BadRequestException('Coupon usage limit reached — coupon already applied by your account');
+            if (discount.maxUsesPerUser !== null) {
+                const perUserCount = await tx.discountUsage.count({
+                    where: { discountId, employerId },
+                });
+                if (perUserCount >= discount.maxUsesPerUser) {
+                    throw new BadRequestException('Coupon usage limit reached — coupon already applied by your account');
+                }
+            }
+
+            if (discount.maxTotalUses !== null) {
+                const totalCount = await tx.discountUsage.count({
+                    where: { discountId },
+                });
+                if (totalCount >= discount.maxTotalUses) {
+                    throw new BadRequestException('Discount usage limit reached — this offer has been fully claimed');
+                }
             }
         }
 

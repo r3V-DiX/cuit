@@ -1,0 +1,18 @@
+# CODEOWNERS
+# Replace the placeholders below with actual GitHub usernames (with the @).
+# Everyone listed on a line is auto-requested as a reviewer when a PR touches
+# matching files.
+#
+# Since the team is small and everyone touches everything, this file lists
+# all team members as owners of the whole repo. You can split this out later
+# per-app (e.g. cykruit-app/ -> backend devs only) once ownership settles.
+
+# Default owners for everything in the repo
+* @teammate1 @teammate2 @teammate3
+
+# Optional: once you want tighter ownership, uncomment and adjust below
+# /cykruit-app/  @teammate1 @teammate2
+# /cykruit-ui/   @teammate3
+# /admin-app/    @teammate1 @teammate2
+# /admin-ui/     @teammate3
+# /.github/      @teammate1

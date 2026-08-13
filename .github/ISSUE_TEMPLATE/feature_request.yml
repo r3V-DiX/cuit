@@ -1,0 +1,43 @@
+name: Feature Request
+description: Suggest a new feature or improvement for cykruit.com
+labels: ["feature"]
+body:
+  - type: dropdown
+    id: app
+    attributes:
+      label: Which app?
+      options:
+        - cykruit-app (backend)
+        - cykruit-ui (frontend)
+        - admin-app (backend)
+        - admin-ui (frontend)
+        - Multiple / Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem does this solve? Who runs into it?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: What do you think should be built?
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How do we know this is done?
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: false
