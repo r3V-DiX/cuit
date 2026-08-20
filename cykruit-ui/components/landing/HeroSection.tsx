@@ -49,42 +49,16 @@ export default function HeroSection() {
       </svg>
 
       {/* Floating blob shapes */}
-      <div
-        className="float-slow absolute top-24 left-12 w-28 h-20 pointer-events-none opacity-40"
-        style={{
-          background: "rgba(59,130,246,0.35)",
-          borderRadius: "60% 40% 70% 30% / 50% 60% 40% 70%",
-          filter: "blur(2px)",
-        }}
-      />
-      <div
-        className="float-fast absolute bottom-32 right-20 w-24 h-32 pointer-events-none opacity-40"
-        style={{
-          background: "rgba(139,92,246,0.35)",
-          borderRadius: "40% 60% 30% 70% / 70% 40% 60% 50%",
-          filter: "blur(2px)",
-        }}
-      />
+      <div className="float-slow absolute top-24 left-12 w-28 h-20 pointer-events-none opacity-40 hero-blob-1" />
+      <div className="float-fast absolute bottom-32 right-20 w-24 h-32 pointer-events-none opacity-40 hero-blob-2" />
 
       {/* Floating glow orbs — scattered at edges */}
-      <div className="float-slow absolute -top-20 -left-20 w-80 h-80 pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(59,130,246,0.28) 0%, transparent 65%)" }}
-      />
-      <div className="float-medium absolute -top-10 -right-10 w-72 h-72 pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(139,92,246,0.26) 0%, transparent 65%)" }}
-      />
-      <div className="float-fast absolute top-1/2 -left-16 w-64 h-64 pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(59,130,246,0.22) 0%, transparent 65%)" }}
-      />
-      <div className="float-slow absolute -bottom-10 left-1/3 w-72 h-72 pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(139,92,246,0.24) 0%, transparent 65%)" }}
-      />
-      <div className="float-medium absolute top-1/3 -right-16 w-64 h-64 pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(6,182,212,0.22) 0%, transparent 65%)" }}
-      />
-      <div className="float-fast absolute -bottom-16 -right-10 w-80 h-80 pointer-events-none"
-        style={{ background: "radial-gradient(circle, rgba(59,130,246,0.20) 0%, transparent 65%)" }}
-      />
+      <div className="float-slow absolute -top-20 -left-20 w-80 h-80 pointer-events-none hero-orb-1" />
+      <div className="float-medium absolute -top-10 -right-10 w-72 h-72 pointer-events-none hero-orb-2" />
+      <div className="float-fast absolute top-1/2 -left-16 w-64 h-64 pointer-events-none hero-orb-3" />
+      <div className="float-slow absolute -bottom-10 left-1/3 w-72 h-72 pointer-events-none hero-orb-4" />
+      <div className="float-medium absolute top-1/3 -right-16 w-64 h-64 pointer-events-none hero-orb-5" />
+      <div className="float-fast absolute -bottom-16 -right-10 w-80 h-80 pointer-events-none hero-orb-6" />
 
       {/* Floating icons */}
       <div className="float-medium absolute top-28 right-16 opacity-20 hidden lg:block">
@@ -120,21 +94,11 @@ export default function HeroSection() {
           <br className="hidden sm:block" />
           <span className="inline-flex items-baseline gap-0">
             <span
-              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-1 mx-1 relative overflow-hidden"
-              style={{
-                background: "repeating-linear-gradient(0deg, #0a0f0a 0px, #0a0f0a 3px, #111a11 3px, #111a11 6px)",
-                fontFamily: "var(--font-terminal), monospace",
-                color: "#22c55e",
-                fontSize: "inherit",
-                fontWeight: 400,
-                letterSpacing: "0.02em",
-                filter: "drop-shadow(0 0 10px rgba(34,197,94,0.4)) drop-shadow(0 0 24px rgba(34,197,94,0.15))",
-              }}
+              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-1 mx-1 relative overflow-hidden terminal-badge terminal-badge-hero"
             >
               CyberSecurity
               <span
-                className="inline-block w-0.75 rounded-sm cursor-blink self-stretch"
-                style={{ background: "#22c55e", marginBottom: "4px" }}
+                className="inline-block w-0.75 rounded-sm cursor-blink self-stretch terminal-cursor-hero"
               />
             </span>
           </span>{" "}

@@ -152,11 +152,7 @@ export default async function EmployersPage() {
           </svg>
 
           {/* Floating blob */}
-          <div className="float-slow absolute top-8 left-12 w-24 h-16 pointer-events-none opacity-25 hidden lg:block" style={{
-            background: "rgba(59,130,246,0.40)",
-            borderRadius: "60% 40% 70% 30% / 50% 60% 40% 70%",
-            filter: "blur(2px)",
-          }} />
+          <div className="float-slow absolute top-8 left-12 w-24 h-16 pointer-events-none opacity-25 hidden lg:block page-hero-blob" />
 
           {/* Corner brackets */}
           <div className="absolute top-5 left-5 w-6 h-6 border-t-2 border-l-2 border-blue-200 pointer-events-none" />
@@ -173,17 +169,10 @@ export default async function EmployersPage() {
                 <h1 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-6 leading-tight tracking-tight">
                   Hire Security Talent{" "}
                   <span
-                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1"
-                    style={{
-                      background: "repeating-linear-gradient(0deg, #0a0f0a 0px, #0a0f0a 3px, #111a11 3px, #111a11 6px)",
-                      fontFamily: "var(--font-terminal), monospace",
-                      color: "#22c55e",
-                      fontWeight: 400,
-                      filter: "drop-shadow(0 0 8px rgba(34,197,94,0.35))",
-                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 terminal-badge terminal-badge-page"
                   >
                     10×
-                    <span className="inline-block w-0.5 h-5 rounded-sm cursor-blink" style={{ background: "#22c55e" }} />
+                    <span className="inline-block w-0.5 h-5 rounded-sm cursor-blink terminal-cursor" />
                   </span>{" "}
                   Faster
                 </h1>
@@ -322,7 +311,7 @@ export default async function EmployersPage() {
             </div>
 
             <div className="relative">
-              <div className="hidden lg:block absolute z-0" style={{ top: "27px", left: "28px", right: "28px", height: "2px" }}>
+              <div className="hidden lg:block absolute z-0 step-line-position">
                 <svg width="100%" height="2" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="stepLineEmp" x1="0" y1="0" x2="100%" y2="0">

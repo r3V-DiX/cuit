@@ -55,14 +55,7 @@ export default function ContactPage() {
       <Navbar />
       <main className="min-h-screen bg-slate-50 pt-16">
         <div className="relative bg-white border-b border-slate-200 overflow-hidden">
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(59,130,246,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.12) 1px, transparent 1px)",
-              backgroundSize: "44px 44px",
-            }}
-          />
+          <div className="absolute inset-0 pointer-events-none bg-grid-md" />
           <div className="absolute top-5 left-5 w-6 h-6 border-t-2 border-l-2 border-blue-200 pointer-events-none" />
           <div className="absolute top-5 right-5 w-6 h-6 border-t-2 border-r-2 border-blue-200 pointer-events-none" />
           <div className="absolute bottom-5 left-5 w-6 h-6 border-b-2 border-l-2 border-blue-200 pointer-events-none" />

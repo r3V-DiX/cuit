@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
+import { useInlineStyle } from "@/lib/use-inline-style";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import { Skeleton } from "@/components/ui/Skeleton";
 
@@ -81,6 +82,13 @@ function UpgradeWall() {
       </Link>
     </div>
   );
+}
+
+// ── Progress bar (width is runtime-computed, applied via CSSOM — see use-inline-style) ──
+
+function ProgressBar({ pct, className }: { pct: number; className: string }) {
+  const ref = useInlineStyle<HTMLDivElement>({ width: `${pct}%` });
+  return <div ref={ref} className={className} />;
 }
 
 // ── Loading skeleton ──────────────────────────────────────────────────────────
@@ -190,10 +198,7 @@ export default function AnalyticsPage() {
                             <span className="text-xs font-bold text-slate-700">{count} <span className="text-slate-400 font-normal">({fraction}%)</span></span>
                           </div>
                           <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                              style={{ width: `${fraction}%` }}
-                            />
+                            <ProgressBar pct={fraction} className="h-full bg-blue-500 rounded-full transition-all duration-500" />
                           </div>
                         </div>
                       );
@@ -237,9 +242,9 @@ export default function AnalyticsPage() {
                           <span className="font-bold text-slate-700">{used} / {max}</span>
                         </div>
                         <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div
+                          <ProgressBar
+                            pct={Math.min(pct(used, max), 100)}
                             className={`h-full rounded-full transition-all duration-500 ${pct(used, max) >= 90 ? "bg-rose-500" : "bg-blue-500"}`}
-                            style={{ width: `${Math.min(pct(used, max), 100)}%` }}
                           />
                         </div>
                       </div>

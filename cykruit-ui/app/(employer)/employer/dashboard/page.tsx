@@ -12,6 +12,7 @@ import { DashboardListSkeleton } from "@/components/ui/skeletons/ListRowSkeleton
 import { Skeleton } from "@/components/ui/Skeleton";
 import { apiFetch } from "@/lib/api";
 import { useKycStatus } from "@/lib/employer-context";
+import { useInlineStyle } from "@/lib/use-inline-style";
 
 type AppStatus = "New" | "Shortlisted" | "Rejected" | "Interview";
 
@@ -77,6 +78,11 @@ interface ApiApplication {
   jobSeeker?: { firstName?: string; lastName?: string };
   status: string;
   appliedAt: string;
+}
+
+function FunnelBar({ pct, color }: { pct: number; color: string }) {
+  const ref = useInlineStyle<HTMLDivElement>({ width: `${pct}%` });
+  return <div ref={ref} className={`h-full rounded-full ${color}`} />;
 }
 
 export default function EmployerDashboardPage() {
@@ -381,7 +387,7 @@ export default function EmployerDashboardPage() {
                         <span className="text-xs font-bold text-slate-900 font-mono">{count}</span>
                       </div>
                       <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+                        <FunnelBar pct={pct} color={color} />
                       </div>
                     </div>
                   ))

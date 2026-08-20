@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
 import { apiFetch, authHeaders } from "@/lib/api";
 import { useKycContext } from "@/lib/employer-context";
+import { useInlineStyle } from "@/lib/use-inline-style";
 import {
   CreditCard, Check, Zap, Building2, Shield, ShieldAlert, Clock,
   AlertTriangle, Download, ExternalLink, ChevronRight, Star,
@@ -104,6 +105,7 @@ function priceLabel(pkg: SubPackage | undefined, billing: string): string {
 function UsageBar({ used, limit, color }: { used: number; limit: number; color: string }) {
   const pct = limit > 0 ? Math.min((used / limit) * 100, 100) : 0;
   const warn = pct >= 80;
+  const barRef = useInlineStyle<HTMLDivElement>({ width: `${pct}%` });
   return (
     <div>
       <div className="flex justify-between text-xs mb-1.5" aria-label={`${used} of ${limit} used, ${Math.round(pct)}%`}>
@@ -112,8 +114,8 @@ function UsageBar({ used, limit, color }: { used: number; limit: number; color: 
       </div>
       <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
         <div
+          ref={barRef}
           className={`h-full rounded-full transition-all ${warn ? "bg-amber-400" : color}`}
-          style={{ width: `${pct}%` }}
         />
       </div>
     </div>

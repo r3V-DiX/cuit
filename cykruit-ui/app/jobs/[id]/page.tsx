@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { use } from "react";
 import { apiFetch, authHeaders, getCsrf, describeError } from "@/lib/api";
+import { useInlineStyle } from "@/lib/use-inline-style";
 
 function formatEnum(value: string): string {
   if (!value) return value;
@@ -37,6 +38,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
   const [isApplied, setIsApplied] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [matchScore, setMatchScore] = useState<number | null>(null);
+  const matchScoreBarRef = useInlineStyle<HTMLDivElement>({ width: `${matchScore ?? 0}%` });
 
   // ── Apply modal state ──────────────────────────────────────────────────────
   const [applyStep, setApplyStep] = useState<ApplyStep>("idle");
@@ -686,7 +688,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     <span className="text-xs text-violet-500 mb-0.5">match with your profile</span>
                   </div>
                   <div className="h-2 bg-violet-200 rounded-full overflow-hidden mb-3">
-                    <div className="h-full bg-violet-500 rounded-full" style={{ width: `${matchScore}%` }} />
+                    <div ref={matchScoreBarRef} className="h-full bg-violet-500 rounded-full" />
                   </div>
                 </div>
               )}

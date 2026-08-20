@@ -20,7 +20,8 @@ import {
   Send,
   X,
 } from "lucide-react";
-       
+import { useInlineStyle } from "@/lib/use-inline-style";
+
 function getGreeting(): string {
   const h = new Date().getHours();
   if (h < 12) return "Good morning";
@@ -58,6 +59,7 @@ const QUICK_LINKS: { label: string; href: string; icon: React.ReactNode }[] = [
 export default function DashboardPage() {
   const [userName, setUserName] = useState("User");
   const [profilePct, setProfilePct] = useState(0);
+  const profilePctBarRef = useInlineStyle<HTMLDivElement>({ width: `${profilePct}%` });
   const [profileChecks, setProfileChecks] = useState<{label: string, done: boolean}[]>([]);
   const [recentApps, setRecentApps] = useState<any[]>([]);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
@@ -224,8 +226,8 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2">
                     <div className="w-28 h-2 rounded-full bg-slate-200 overflow-hidden">
                       <div
+                        ref={profilePctBarRef}
                         className="h-full rounded-full bg-blue-600 transition-all"
-                        style={{ width: `${profilePct}%` }}
                       />
                     </div>
                     <span className="text-xs font-bold text-blue-600 font-mono">{profilePct}%</span>
@@ -408,7 +410,7 @@ export default function DashboardPage() {
                         strokeLinecap="round"
                         strokeDasharray={`${dash} ${circ - dash}`}
                         strokeDashoffset={circ / 4}
-                        style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
+                        className="-rotate-90 origin-center"
                       />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">

@@ -82,8 +82,7 @@ export default function HowItWorksSection() {
         <div className="relative">
           {/* Dashed connector line — now with a blue gradient tint */}
           <div
-            className="hidden lg:block absolute z-0"
-            style={{ top: "27px", left: "28px", right: "28px", height: "2px" }}
+            className="hidden lg:block absolute z-0 step-line-position"
           >
             <svg width="100%" height="2" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
               <defs>

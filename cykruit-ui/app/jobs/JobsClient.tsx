@@ -15,6 +15,7 @@ import { jobTypes, remoteTypes, type Job } from "@/lib/jobs-data";
 import SearchBox from "@/components/ui/SearchBox";
 import { apiFetch } from "@/lib/api";
 import { JobCardSkeletonGrid } from "@/components/ui/skeletons/JobCardSkeleton";
+import { useInlineStyle } from "@/lib/use-inline-style";
 
 const JOBS_PER_PAGE = 9;
 
@@ -414,6 +415,10 @@ function FilterDropdown({
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
+  useInlineStyle(
+    { top: `${pos.top}px`, left: `${pos.left}px`, minWidth: "160px", maxWidth: "280px", maxHeight: "280px", zIndex: 9999 },
+    dropRef,
+  );
   const active = value !== "All";
   const [mounted, setMounted] = useState(false);
 
@@ -450,7 +455,6 @@ function FilterDropdown({
     <div
       ref={dropRef}
       className="fixed bg-white border border-slate-200 rounded-xl shadow-2xl py-1.5 overflow-y-auto"
-      style={{ top: pos.top, left: pos.left, minWidth: 160, maxWidth: 280, maxHeight: 280, zIndex: 9999 }}
     >
       {options.map((opt) => (
         <button

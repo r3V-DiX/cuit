@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { apiFetch, authHeaders, describeError } from "@/lib/api";
 import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
+import { useInlineStyle } from "@/lib/use-inline-style";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
 
@@ -26,6 +27,11 @@ const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode; labe
 };
 
 const STATUS_FLOW: AppStatus[] = ["Under Review", "Shortlisted", "Rejected"];
+
+function DimensionBar({ score, color }: { score: number; color: string }) {
+  const ref = useInlineStyle<HTMLDivElement>({ width: `${score}%` });
+  return <div ref={ref} className={`h-full rounded-full transition-all ${color}`} />;
+}
 
 export default function ApplicantDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -274,7 +280,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                         <span className={`text-xs font-bold font-mono ${d.textColor}`}>{d.score}%</span>
                       </div>
                       <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full transition-all ${d.color}`} style={{ width: `${d.score}%` }} />
+                        <DimensionBar score={d.score} color={d.color} />
                       </div>
                     </div>
                   ))}

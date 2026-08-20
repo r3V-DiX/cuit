@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useCallback, useState, useEffect, useRef } from "react";
 import { CheckCircle2, XCircle, AlertTriangle, Info, X } from "lucide-react";
+import { useInlineStyle } from "@/lib/use-inline-style";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -73,6 +74,9 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
   const duration = toast.duration ?? 4000;
   const [exiting, setExiting] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const progressBarRef = useInlineStyle<HTMLDivElement>({
+    animation: duration > 0 ? `toast-shrink ${duration}ms linear forwards` : undefined,
+  });
 
   const dismiss = useCallback(() => {
     setExiting(true);
@@ -120,8 +124,8 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
       {/* progress bar (only when timed) */}
       {duration > 0 && (
         <div
+          ref={progressBarRef}
           className={`absolute bottom-0 left-0 h-0.5 ${cfg.bar} opacity-30`}
-          style={{ animation: `toast-shrink ${duration}ms linear forwards` }}
         />
       )}
     </div>

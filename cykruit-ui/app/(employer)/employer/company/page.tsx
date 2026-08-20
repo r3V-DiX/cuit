@@ -12,6 +12,7 @@ import { apiFetch, authHeaders, getCsrf } from "@/lib/api";
 import { useToast } from "@/components/ui/Toast";
 import { LocationSelect, LocationValue } from "@/components/ui/LocationSelect";
 import { useKycContext } from "@/lib/employer-context";
+import { useInlineStyle } from "@/lib/use-inline-style";
 
 const INDUSTRIES = [
   { id: "TECHNOLOGY", label: "Technology" },
@@ -266,6 +267,8 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
   const completedChecks = COMPLETION_CHECKS.filter((c) => fieldValues[c.key]).length;
   const pct             = Math.round((completedChecks / totalChecks) * 100);
   const canPostJob      = pct >= 50;
+  const completionBarRef = useInlineStyle<HTMLDivElement>({ width: `${pct}%` });
+  const postGateBarRef   = useInlineStyle<HTMLDivElement>({ width: `${(pct / 50) * 100}%` });
 
   if (employerRole !== null && employerRole !== "OWNER") {
     return (
@@ -500,8 +503,8 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
               </div>
               <div className="h-2 bg-slate-100 rounded-full overflow-hidden mb-3">
                 <div
+                  ref={completionBarRef}
                   className={`h-full rounded-full transition-all duration-500 ${pct >= 50 ? "bg-green-500" : "bg-amber-400"}`}
-                  style={{ width: `${pct}%` }}
                 />
               </div>
               <div className="space-y-2">
@@ -549,7 +552,7 @@ const LOGO_MAX_BYTES = 5 * 1024 * 1024;
                   ) : (
                     <div className="mt-3 flex items-center gap-2">
                       <div className="flex-1 h-1.5 bg-amber-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-amber-400 rounded-full" style={{ width: `${(pct / 50) * 100}%` }} />
+                        <div ref={postGateBarRef} className="h-full bg-amber-400 rounded-full" />
                       </div>
                       <span className="text-[10px] font-mono font-bold text-amber-600">{pct}/50%</span>
                     </div>

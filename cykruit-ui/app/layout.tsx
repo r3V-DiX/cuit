@@ -65,7 +65,7 @@ export default async function RootLayout({
       <head>
         {nonce && <meta name="csp-nonce" content={nonce} />}
       </head>
-      <body className="min-h-full flex flex-col" style={{ fontFamily: "var(--font-sans), Georgia, serif" }}>
+      <body className="min-h-full flex flex-col">
         <Providers nonce={nonce}>{children}</Providers>
       </body>
     </html>
