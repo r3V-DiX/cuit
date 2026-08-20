@@ -231,7 +231,7 @@ export class SubscriptionService {
         // to Free-tier limits so the UI never shows a dead plan's limits as available.
         const isActive = isSubscriptionEntitled(source.status, source.expiresAt);
         const freePkg = !isActive ? await this.payRepo.findFreePackage() : null;
-        const limits = freePkg ?? FREE_LIMITS;
+        const limits = isActive ? source.package : (freePkg ?? FREE_LIMITS);
 
         return {
             hasSubscription: true,
