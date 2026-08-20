@@ -20,5 +20,11 @@ export default registerAs("upload", () => ({
     },
   },
   driver: process.env.UPLOAD_DRIVER || (process.env.NODE_ENV === "development" ? "local" : "s3"),
+  // Local driver stores fileUrl as a bare "/uploads/..." path (no host) — only
+  // seeker-profile-service serves that path statically, on its own port, even
+  // though every service shares the same on-disk uploads/ folder. Consumers
+  // that resolve a stored fileUrl into something a browser can open (e.g.
+  // convertToPresignedUrl) need a real origin to prefix it with.
+  localUploadBaseUrl: process.env.LOCAL_UPLOAD_BASE_URL || "http://localhost:4003",
   defaultMaxSizeInMB: 5,
 }));

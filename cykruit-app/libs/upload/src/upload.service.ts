@@ -25,6 +25,7 @@ export class UploadService {
   private buckets: Record<BucketType, string>;
   private defaultMaxSizeInMB: number;
   private driver: "local" | "s3";
+  private localUploadBaseUrl: string;
 
   private privateBuckets: Set<BucketType> = new Set([
     BucketType.RESUMES,
@@ -49,6 +50,10 @@ export class UploadService {
     this.defaultMaxSizeInMB = this.configService.get(
       "upload.defaultMaxSizeInMB",
       5,
+    );
+    this.localUploadBaseUrl = this.configService.get(
+      "upload.localUploadBaseUrl",
+      "http://localhost:4003",
     );
   }
 
@@ -168,7 +173,14 @@ export class UploadService {
     expiresIn: number = 3600,
   ): Promise<string | null> {
     if (!fileUrl) return null;
-    if (!this.isValidUrl(fileUrl)) return fileUrl;
+    if (!this.isValidUrl(fileUrl)) {
+      // Local driver stores relative "/uploads/..." paths with no host —
+      // resolve against the service that actually serves them statically.
+      if (this.driver === "local" && fileUrl.startsWith("/")) {
+        return `${this.localUploadBaseUrl}${fileUrl}`;
+      }
+      return fileUrl;
+    }
 
     try {
       const bucketType = this.getBucketTypeFromUrlSafe(fileUrl);
