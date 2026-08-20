@@ -19,11 +19,16 @@ function hasSessionCookie(): boolean {
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
-  // Start as true only if a session cookie exists — avoids flash for logged-out visitors
-  const [loading, setLoading] = useState(() => hasSessionCookie());
+  // Always starts true on both server and client — hasSessionCookie() reads
+  // document.cookie, which only exists client-side. Deciding the initial
+  // value from it here (even guarded) makes the client's pre-hydration
+  // render differ from the server's, which is a real hydration mismatch,
+  // not just a cosmetic flash. Resolved for real in the effect below,
+  // which only ever runs client-side after hydration completes.
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!hasSessionCookie()) return;
+    if (!hasSessionCookie()) { setLoading(false); return; }
     fetch("/api/auth/me", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : null))
       .then((result) => {
