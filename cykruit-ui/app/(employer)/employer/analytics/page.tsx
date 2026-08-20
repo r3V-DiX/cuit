@@ -13,21 +13,11 @@ import { Skeleton } from "@/components/ui/Skeleton";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface Job {
+interface TopJob {
   id: string;
   jobTitle: string;
-  status: string;
   viewCount: number;
   applicationCount: number;
-  publishedAt: string | null;
-  createdAt: string;
-}
-
-interface Application {
-  id: string;
-  status: string;
-  createdAt: string;
-  job?: { id: string; jobTitle: string };
 }
 
 interface StatusCounts {
@@ -35,6 +25,15 @@ interface StatusCounts {
   pending: number;
   draft: number;
   closed: number;
+}
+
+interface AnalyticsSummary {
+  totalViews: number;
+  totalApplications: number;
+  conversionRate: number;
+  statusCounts: StatusCounts;
+  applicationStatusBreakdown: Record<string, number>;
+  topJobs: TopJob[];
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -115,9 +114,7 @@ function AnalyticsSkeleton() {
 
 export default function AnalyticsPage() {
   const { limits, usage, loading: limitsLoading } = useSubscriptionLimits();
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [statusCounts, setStatusCounts] = useState<StatusCounts | null>(null);
+  const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   const analyticsEnabled = limits?.analyticsEnabled ?? false;
@@ -126,35 +123,20 @@ export default function AnalyticsPage() {
     if (limitsLoading) return;
     if (!analyticsEnabled) { setLoading(false); return; }
 
-    Promise.all([
-      apiFetch<{ items: Job[] }>("/api/employer/jobs?limit=100"),
-      apiFetch<{ items: Application[] }>("/api/employer/applications?limit=500"),
-      apiFetch<StatusCounts>("/api/employer/jobs/counts"),
-    ])
-      .then(([jobsRes, appsRes, countsRes]) => {
-        setJobs(jobsRes.data?.items ?? []);
-        setApplications(appsRes.data?.items ?? []);
-        setStatusCounts(countsRes.data ?? null);
-      })
+    apiFetch<AnalyticsSummary>("/api/employer/analytics")
+      .then((res) => setSummary(res.data ?? null))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [analyticsEnabled, limitsLoading]);
 
   // ── Derived stats ────────────────────────────────────────────────────────
 
-  const totalViews = jobs.reduce((s, j) => s + (j.viewCount ?? 0), 0);
-  const totalApps = applications.length;
-  const conversionRate = totalViews > 0 ? ((totalApps / totalViews) * 100).toFixed(1) : "0.0";
-
-  const appStatusTotals = applications.reduce<Record<string, number>>((acc, a) => {
-    acc[a.status] = (acc[a.status] ?? 0) + 1;
-    return acc;
-  }, {});
-
-  const topJobs = [...jobs]
-    .filter((j) => j.status === "APPROVED")
-    .sort((a, b) => b.applicationCount - a.applicationCount)
-    .slice(0, 8);
+  const totalViews = summary?.totalViews ?? 0;
+  const totalApps = summary?.totalApplications ?? 0;
+  const conversionRate = (summary?.conversionRate ?? 0).toFixed(1);
+  const appStatusTotals = summary?.applicationStatusBreakdown ?? {};
+  const statusCounts = summary?.statusCounts ?? null;
+  const topJobs = summary?.topJobs ?? [];
 
   return (
     <>

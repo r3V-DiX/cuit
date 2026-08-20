@@ -25,6 +25,7 @@ import { JobsController } from './controllers/jobs.controller';
 import { TeamController } from './controllers/team.controller';
 import { ApplicationsController } from './controllers/applications.controller';
 import { ActivityController } from './controllers/activity.controller';
+import { AnalyticsController } from './controllers/analytics.controller';
 
 // Services
 import { CompanyService } from './services/company.service';
@@ -34,6 +35,7 @@ import { TeamService } from './services/team.service';
 import { EmployerApplicationsService } from './services/applications.service';
 import { JobExpiryService } from './services/job-expiry.service';
 import { ActivityService } from './services/activity.service';
+import { AnalyticsService } from './services/analytics.service';
 
 // Repositories
 import { CompanyRepository } from './repositories/company.repository';
@@ -78,6 +80,7 @@ import { KycVerifiedGuard } from './guards/kyc-verified.guard';
         TeamController,
         ApplicationsController,
         ActivityController,
+        AnalyticsController,
     ],
     providers: [
         {
@@ -98,6 +101,7 @@ import { KycVerifiedGuard } from './guards/kyc-verified.guard';
         JobExpiryService,
         ActivityService,
         ActivityRepository,
+        AnalyticsService,
         KycVerifiedGuard,
     ],
     exports: [CompanyService],
