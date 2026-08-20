@@ -138,6 +138,10 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - name: 🔐 Configure AWS Credentials (staging deploy role)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -145,14 +149,7 @@ jobs:
           aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
 
       - name: 🚀 Deploy admin-ui to staging EC2
-        run: |
-          SHORT_SHA=${GITHUB_SHA::7}
-          aws ssm send-command \
-            --targets "Key=tag:Name,Values=cykruit-v2-app-server-staging" \
-            --document-name "AWS-RunShellScript" \
-            --comment "cykruit-v2 staging: deploy admin-ui ($SHORT_SHA)" \
-            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh staging admin-ui $SHORT_SHA\"]" \
-            --region ${{ vars.AWS_REGION || 'ap-south-1' }}
+        run: bash ./scripts/deploy.sh staging dispatch admin-ui "${GITHUB_SHA::7}"
 
   deploy-prod:
     needs: build-prod
@@ -164,6 +161,10 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
       - name: 🔐 Configure AWS Credentials (prod deploy role)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -171,11 +172,4 @@ jobs:
           aws-region: ${{ vars.AWS_REGION || 'ap-south-1' }}
 
       - name: 🚀 Deploy admin-ui to prod EC2
-        run: |
-          SHORT_SHA=${GITHUB_SHA::7}
-          aws ssm send-command \
-            --targets "Key=tag:Name,Values=cykruit-v2-app-server-prod" \
-            --document-name "AWS-RunShellScript" \
-            --comment "cykruit-v2 prod: deploy admin-ui ($SHORT_SHA)" \
-            --parameters "commands=[\"/opt/cykruit-v2/deploy.sh prod admin-ui $SHORT_SHA\"]" \
-            --region ${{ vars.AWS_REGION || 'ap-south-1' }}
+        run: bash ./scripts/deploy.sh prod dispatch admin-ui "${GITHUB_SHA::7}"

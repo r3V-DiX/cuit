@@ -11,6 +11,62 @@ warn()  { echo -e "${YELLOW}[WARN]${NC}  $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 step()  { echo -e "${BLUE}[STEP]${NC}  $*"; }
 
+# ── Dispatch mode: deploy.sh <env> dispatch <target> <tag> ────────────────────
+# Runs on the CI runner, not the EC2 box (so it must come before the root
+# check and DEPLOY_DIR/box-local setup below, neither of which apply here).
+# Fires the real deploy.sh — this same file, already on the box at
+# /opt/cykruit-v2/deploy.sh — via SSM Run Command, then polls for the actual result.
+# `aws ssm send-command` on its own only confirms AWS *accepted* the request,
+# never that the command succeeded on the box — every CI workflow used to call
+# it directly and treat that acceptance as success, so a real migrate/deploy
+# failure on the box still showed green in GitHub Actions.
+if [ "${2:-}" = "dispatch" ]; then
+  ENV="$1"; TARGET="$3"; TAG="${4:-latest}"
+  [ "$ENV" = "staging" ] || [ "$ENV" = "prod" ] || { error "dispatch: env must be staging or prod, got '$ENV'"; exit 1; }
+  INSTANCE_TAG="cykruit-v2-app-server-${ENV}"
+
+  INSTANCE_ID=$(aws ec2 describe-instances --region ap-south-1 \
+    --filters "Name=tag:Name,Values=${INSTANCE_TAG}" "Name=instance-state-name,Values=running" \
+    --query "Reservations[0].Instances[0].InstanceId" --output text)
+  [ -n "$INSTANCE_ID" ] && [ "$INSTANCE_ID" != "None" ] || { error "dispatch: no running instance tagged Name=${INSTANCE_TAG}"; exit 1; }
+
+  step "Dispatching ${ENV}: ${TARGET} (${TAG}) to ${INSTANCE_ID}..."
+  CMD_ID=$(aws ssm send-command --region ap-south-1 \
+    --instance-ids "$INSTANCE_ID" \
+    --document-name "AWS-RunShellScript" \
+    --comment "cykruit-v2 ${ENV}: ${TARGET} (${TAG})" \
+    --parameters "commands=[\"/opt/cykruit-v2/deploy.sh ${ENV} ${TARGET} ${TAG}\"]" \
+    --query "Command.CommandId" --output text)
+
+  # Poll directly rather than `aws ssm wait command-executed` — that wait
+  # command surfaces a failed terminal status as its own CLI error without the
+  # box's actual output, which is the one thing worth seeing on failure.
+  for _ in $(seq 1 90); do
+    sleep 5
+    STATUS=$(aws ssm get-command-invocation --region ap-south-1 \
+      --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+      --query "Status" --output text 2>/dev/null || echo Pending)
+    case "$STATUS" in
+      Success)
+        info "Dispatch succeeded."
+        exit 0
+        ;;
+      Failed|Cancelled|TimedOut)
+        error "Dispatch ${STATUS} — remote output:"
+        aws ssm get-command-invocation --region ap-south-1 \
+          --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+          --query "StandardOutputContent" --output text >&2
+        aws ssm get-command-invocation --region ap-south-1 \
+          --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" \
+          --query "StandardErrorContent" --output text >&2
+        exit 1
+        ;;
+    esac
+  done
+  error "dispatch: timed out after 7.5 minutes waiting for command ${CMD_ID}"
+  exit 1
+fi
+
 if [ "$EUID" -ne 0 ]; then
   error "Please run as root: sudo bash deploy.sh"
   exit 1
