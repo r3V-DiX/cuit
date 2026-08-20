@@ -10,6 +10,8 @@ import { AuthModule } from './auth';
 import { KycModule } from './kyc';
 import { JobsModule } from './jobs';
 import { UsersModule } from './users';
+import { ResumesModule } from './resumes';
+import { ApplicationsModule } from './applications';
 import { RbacModule } from './rbac';
 import { SubscriptionModule } from './subscription';
 import { AuditModule } from './audit';
@@ -37,6 +39,8 @@ import { SystemHealthModule } from './system-health';
         KycModule,
         JobsModule,
         UsersModule,
+        ResumesModule,
+        ApplicationsModule,
         RbacModule,
         SubscriptionModule,
         AuditModule,

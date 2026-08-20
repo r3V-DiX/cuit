@@ -24,6 +24,8 @@ export type AuditResult = 'SUCCESS' | 'FAILURE' | 'DENIED';
 
 export type SubscriptionStatus = 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
 
+export type ApplicationStatus = 'APPLIED' | 'UNDER_REVIEW' | 'SHORTLISTED' | 'REJECTED' | 'WITHDRAWN';
+
 // ─── Entities ─────────────────────────────────────────────────────────────────
 
 export interface User {
@@ -47,17 +49,171 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   employer?: Employer;
+  jobSeekerProfile?: JobSeekerProfile;
+  applications?: ApplicationSummary[];
 }
 
 export interface Employer {
   id: string;
-  userId: string;
+  userId?: string;
   companyName?: string;
-  companyWebsite?: string;
+  companyType?: string;
   industry?: string;
   companySize?: string;
-  companyType?: string;
   location?: string;
+  slug?: string;
+  companyWebsite?: string;
+  contactEmail?: string;
+  foundedYear?: number;
+  tagline?: string;
+  cultureDescription?: string;
+  companyLogo?: string;
+  companyBanner?: string;
+  about?: string;
+  mission?: string;
+  vision?: string;
+  linkedin?: string;
+  twitter?: string;
+  facebook?: string;
+  instagram?: string;
+  profileCompletion?: number;
+  isVerified?: boolean;
+  verifiedAt?: string;
+  isActive?: boolean;
+  isFlagged?: boolean;
+  createdAt?: string;
+}
+
+export interface Experience {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  employmentType?: string;
+  startDate: string;
+  endDate?: string;
+  current: boolean;
+  description: string;
+  tools: string[];
+  achievements: string[];
+}
+
+export interface Education {
+  id: string;
+  degree: string;
+  fieldOfStudy?: string;
+  instituteName?: string;
+  institute?: { name: string } | null;
+  startDate?: string;
+  endDate?: string;
+  grade?: string;
+  description?: string;
+}
+
+export interface JobSeekerSkillEntry {
+  id: string;
+  proficiency: string;
+  yearsOfExperience?: number;
+  skill: { name: string; category?: { name: string } };
+}
+
+export interface JobSeekerCertificationEntry {
+  id: string;
+  issueDate: string;
+  expiryDate?: string;
+  credentialId?: string;
+  credentialUrl?: string;
+  certification: { name: string };
+}
+
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  technologies: string[];
+  projectUrl?: string;
+  startDate?: string;
+  endDate?: string;
+  current: boolean;
+  highlights: string[];
+}
+
+export interface CTFProfileEntry {
+  id: string;
+  platform: string;
+  username: string;
+  profileUrl: string;
+  rank?: string;
+  points?: number;
+}
+
+export interface Resume {
+  id: string;
+  fileName: string;
+  fileSize: number;
+  fileType: string;
+  uploadedAt: string;
+  profile?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    user?: { id: string; email: string };
+  };
+}
+
+export interface ApplicationSummary {
+  id: string;
+  status: ApplicationStatus;
+  aiScore?: number;
+  appliedAt: string;
+  job?: { id: string; jobTitle?: string; employer?: { id?: string; companyName?: string } };
+  jobSeeker?: { id: string; firstName: string; lastName: string; email: string };
+}
+
+export interface ApplicationStatusHistoryEntry {
+  id: string;
+  oldStatus: ApplicationStatus;
+  newStatus: ApplicationStatus;
+  changedBy: string;
+  reason?: string;
+  changedAt: string;
+}
+
+export interface ApplicationNote {
+  id: string;
+  note: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface ApplicationDetail extends ApplicationSummary {
+  screeningAnswers?: unknown;
+  aiScoreData?: unknown;
+  aiScoredAt?: string;
+  resume?: { id: string; fileName: string } | null;
+  statusHistory: ApplicationStatusHistoryEntry[];
+  notes: ApplicationNote[];
+}
+
+export interface JobSeekerProfile {
+  id: string;
+  title?: string;
+  professionalSummary?: string;
+  location?: { displayName: string } | null;
+  linkedin?: string;
+  github?: string;
+  portfolio?: string;
+  twitter?: string;
+  professionalEmail?: string;
+  availability: string;
+  profileCompletion: number;
+  experiences: Experience[];
+  education: Education[];
+  skills: JobSeekerSkillEntry[];
+  certifications: JobSeekerCertificationEntry[];
+  projects: Project[];
+  ctfProfiles: CTFProfileEntry[];
+  resumes: Resume[];
 }
 
 export interface VerificationStatusHistoryEntry {

@@ -22,6 +22,12 @@ export const ACTIONS = {
         REVIEW: 'jobs:review',
         FEATURE: 'jobs:feature',
     },
+    RESUMES: {
+        VIEW: 'resumes:view',
+    },
+    APPLICATIONS: {
+        VIEW: 'applications:view',
+    },
     SUBSCRIPTIONS: {
         VIEW: 'subscriptions:view',
         MANAGE: 'subscriptions:manage',
@@ -109,6 +115,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Action, string> = {
     'jobs:view': 'View the job moderation queue and job details',
     'jobs:review': 'Approve or reject job postings',
     'jobs:feature': 'Mark or unmark a job as featured on the landing page',
+    'resumes:view': 'List and view the resume library (with presigned file access)',
+    'applications:view': 'List and view job applications',
     'subscriptions:view': 'View subscription packages and employer subscriptions',
     'subscriptions:manage': 'Create/edit/delete packages and manage employer subscriptions',
     'rbac:view': 'View roles, permissions, assignments and overrides',

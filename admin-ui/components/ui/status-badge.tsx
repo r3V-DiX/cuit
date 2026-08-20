@@ -31,17 +31,21 @@ const STATUS_MAP: Record<string, string> = {
   // Amber — pending/in-review
   PENDING: 'bg-amber-50 text-amber-700 border-amber-200',
   UNDER_REVIEW: 'bg-amber-50 text-amber-700 border-amber-200',
+  // Blue — applied/submitted
+  APPLIED: 'bg-blue-50 text-blue-700 border-blue-200',
   // Green — approved/active/success
   APPROVED: 'bg-green-50 text-green-700 border-green-200',
   ACTIVE: 'bg-green-50 text-green-700 border-green-200',
   SUCCESS: 'bg-green-50 text-green-700 border-green-200',
   PUBLISHED: 'bg-green-50 text-green-700 border-green-200',
+  SHORTLISTED: 'bg-green-50 text-green-700 border-green-200',
   // Red — rejected/suspended/failure/denied/cancelled
   REJECTED: 'bg-red-50 text-red-700 border-red-200',
   SUSPENDED: 'bg-red-50 text-red-700 border-red-200',
   FAILURE: 'bg-red-50 text-red-700 border-red-200',
   DENIED: 'bg-red-50 text-red-700 border-red-200',
   CANCELLED: 'bg-red-50 text-red-700 border-red-200',
+  WITHDRAWN: 'bg-red-50 text-red-700 border-red-200',
   // Slate — draft/inactive/closed/expired/deleted
   DRAFT: 'bg-slate-100 text-slate-600 border-slate-200',
   INACTIVE: 'bg-slate-100 text-slate-600 border-slate-200',

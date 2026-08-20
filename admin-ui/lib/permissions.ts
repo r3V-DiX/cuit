@@ -8,6 +8,8 @@ export const ACTIONS = {
   USERS: { VIEW: 'users:view', SUSPEND: 'users:suspend', DELETE: 'users:delete', UNLOCK: 'users:unlock' },
   KYC: { VIEW: 'kyc:view', REVIEW: 'kyc:review' },
   JOBS: { VIEW: 'jobs:view', REVIEW: 'jobs:review', FEATURE: 'jobs:feature' },
+  RESUMES: { VIEW: 'resumes:view' },
+  APPLICATIONS: { VIEW: 'applications:view' },
   SUBSCRIPTIONS: { VIEW: 'subscriptions:view', MANAGE: 'subscriptions:manage' },
   RBAC: { VIEW: 'rbac:view', MANAGE: 'rbac:manage' },
   AUDIT: { VIEW: 'audit:view' },

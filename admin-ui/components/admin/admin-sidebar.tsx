@@ -33,6 +33,8 @@ import {
   Tag,
   Server,
   Percent,
+  FileText,
+  ClipboardList,
 } from 'lucide-react';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
@@ -115,6 +117,18 @@ export default function AdminSidebar() {
       icon: <Briefcase className="h-5 w-5" />,
       action: ACTIONS.JOBS.VIEW,
       badge: pendingJobs,
+    },
+    {
+      label: 'Resumes',
+      href: '/resumes',
+      icon: <FileText className="h-5 w-5" />,
+      action: ACTIONS.RESUMES.VIEW,
+    },
+    {
+      label: 'Applications',
+      href: '/applications',
+      icon: <ClipboardList className="h-5 w-5" />,
+      action: ACTIONS.APPLICATIONS.VIEW,
     },
     {
       label: 'Subscriptions',
