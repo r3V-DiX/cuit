@@ -219,13 +219,22 @@ export default function AdminSidebar() {
   async function handleSignOut() {
     try {
       const csrf = getCsrfToken();
-      await fetch('/api/admin/auth/logout', {
+      const res = await fetch('/api/admin/auth/logout', {
         method: 'POST',
+        credentials: 'include',
         headers: csrf ? { 'x-csrf-token': csrf } : {},
       });
+      if (!res.ok) {
+        toast({ type: 'error', message: 'Sign out failed — please try again.' });
+        return;
+      }
     } catch {
-      // redirect regardless
+      toast({ type: 'error', message: 'Sign out failed — please try again.' });
+      return;
     }
+    // Backend clears the httpOnly session cookie; clear the readable CSRF
+    // cookie here too so no stale cookie remains client-side either.
+    document.cookie = 'admin_csrf_token=; Max-Age=0; path=/';
     toast({ type: 'info', message: 'You have been signed out.' });
     window.location.href = '/login';
   }

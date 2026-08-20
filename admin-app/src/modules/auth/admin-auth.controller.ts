@@ -25,6 +25,12 @@ import { AdminAuthService } from './admin-auth.service';
 import { AdminAuthGuard, ADMIN_SESSION_COOKIE } from './admin-auth.guard';
 import { RequestAdminOtpDto } from './dto/request-admin-otp.dto';
 import { VerifyAdminOtpDto } from './dto/verify-admin-otp.dto';
+import {
+    getAdminSessionCookieOptions,
+    getAdminClearSessionCookieOptions,
+    getAdminCsrfCookieOptions,
+    getAdminClearCsrfCookieOptions,
+} from './admin-cookie.config';
 
 export const CSRF_COOKIE = 'admin_csrf_token';
 
@@ -62,25 +68,12 @@ export class AdminAuthController {
             req.headers['user-agent'],
         );
 
-        const isProduction =
-            this.configService.get<string>('NODE_ENV') === 'production';
+        const nodeEnv = this.configService.get<string>('NODE_ENV');
 
-        res.cookie(ADMIN_SESSION_COOKIE, rawToken, {
-            httpOnly: true,
-            sameSite: 'lax',
-            secure: isProduction,
-            path: '/',
-            expires: expiresAt,
-        });
+        res.cookie(ADMIN_SESSION_COOKIE, rawToken, getAdminSessionCookieOptions(nodeEnv, expiresAt));
 
         // Readable by the UI (not HttpOnly) so it can send x-csrf-token on mutations
-        res.cookie(CSRF_COOKIE, this.csrfGuard.generateToken(), {
-            httpOnly: false,
-            sameSite: 'lax',
-            secure: isProduction,
-            path: '/',
-            expires: expiresAt,
-        });
+        res.cookie(CSRF_COOKIE, this.csrfGuard.generateToken(), getAdminCsrfCookieOptions(nodeEnv, expiresAt));
 
         return { admin };
     }
@@ -95,8 +88,9 @@ export class AdminAuthController {
             await this.adminAuthService.logout(rawToken, req.ip, req.headers['user-agent']);
         }
 
-        res.clearCookie(ADMIN_SESSION_COOKIE, { path: '/' });
-        res.clearCookie(CSRF_COOKIE, { path: '/' });
+        const nodeEnv = this.configService.get<string>('NODE_ENV');
+        res.clearCookie(ADMIN_SESSION_COOKIE, getAdminClearSessionCookieOptions(nodeEnv));
+        res.clearCookie(CSRF_COOKIE, getAdminClearCsrfCookieOptions(nodeEnv));
         return { message: 'Logged out' };
     }
 }

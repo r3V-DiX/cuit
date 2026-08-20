@@ -14,6 +14,7 @@ import type { Request, Response } from 'express';
 import type { Admin } from '@prisma/client';
 import { CsrfGuard } from '@cykruit/auth-core';
 import { AdminAuthService } from './admin-auth.service';
+import { getAdminCsrfCookieOptions, getAdminClearSessionCookieOptions } from './admin-cookie.config';
 
 export const ADMIN_SESSION_COOKIE = 'admin_session_token';
 export const CSRF_COOKIE = 'admin_csrf_token';
@@ -36,22 +37,28 @@ export class AdminAuthGuard implements CanActivate {
             throw new UnauthorizedException('Authentication required');
         }
 
-        const { admin, expiresAt } = await this.adminAuthService.validateSession(rawToken);
-        req.admin = admin;
-        req.sessionExpiresAt = expiresAt;
-
-        // Sliding-window CSRF refresh — the signed token's own HMAC expiry stays
-        // short, but renewing the cookie on every authenticated request means it
-        // never goes stale for an admin whose session cookie outlives it.
         const res = context.switchToHttp().getResponse<Response>();
-        res.cookie(CSRF_COOKIE, this.csrfGuard.generateToken(), {
-            httpOnly: false,
-            sameSite: 'lax',
-            secure: this.configService.get<string>('NODE_ENV') === 'production',
-            path: '/',
-        });
+        const nodeEnv = this.configService.get<string>('NODE_ENV');
 
-        return true;
+        try {
+            const { admin, expiresAt } = await this.adminAuthService.validateSession(rawToken);
+            req.admin = admin;
+            req.sessionExpiresAt = expiresAt;
+
+            // Sliding-window CSRF refresh — the signed token's own HMAC expiry stays
+            // short, but renewing the cookie on every authenticated request means it
+            // never goes stale for an admin whose session cookie outlives it.
+            res.cookie(CSRF_COOKIE, this.csrfGuard.generateToken(), getAdminCsrfCookieOptions(nodeEnv));
+
+            return true;
+        } catch (error) {
+            // A rejected/expired session cookie must never survive a guarded
+            // request — otherwise it lingers in the browser until its own
+            // expiry even after the admin has explicitly signed out or the
+            // session was revoked server-side.
+            res.clearCookie(ADMIN_SESSION_COOKIE, getAdminClearSessionCookieOptions(nodeEnv));
+            throw error;
+        }
     }
 
     private extractToken(req: AdminRequest): string | undefined {

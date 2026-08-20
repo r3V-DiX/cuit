@@ -15,6 +15,7 @@ import { Suspense, useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Shield, ArrowRight, AlertCircle, Activity, RefreshCw, Mail } from 'lucide-react';
 import { api, ApiError } from '@/lib';
+import { GuestGuard } from '@/components/admin';
 
 // ── OTP digit input (mirrors cykruit-ui's app/login/page.tsx OtpInput) ──────
 
@@ -500,7 +501,9 @@ function LoginPageContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={<div className="flex h-screen items-center justify-center bg-slate-50"><div className="animate-spin text-blue-600"><Activity /></div></div>}>
-      <LoginPageContent />
+      <GuestGuard>
+        <LoginPageContent />
+      </GuestGuard>
     </Suspense>
   );
 }
