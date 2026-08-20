@@ -19,6 +19,7 @@ env:
 jobs:
   # ── Detect which services changed ────────────────────────────────────────────
   detect:
+    if: ${{ !endsWith(github.actor, '[bot]') }}
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.build-matrix.outputs.matrix }}

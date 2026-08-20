@@ -23,6 +23,7 @@ env:
 jobs:
   # ── Single job builds both staging and prod tags (same image, no env-specific args) ──
   build-and-push:
+    if: ${{ !endsWith(github.actor, '[bot]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: staging
