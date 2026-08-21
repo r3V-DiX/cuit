@@ -27,7 +27,6 @@ export default function KycDetailPage({ params }: { params: Promise<{ id: string
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [docUrlLoading, setDocUrlLoading] = useState(false);
 
   useEffect(() => {
     async function loadKyc() {
@@ -81,18 +80,10 @@ export default function KycDetailPage({ params }: { params: Promise<{ id: string
     });
   };
 
-  const handleViewDocument = async () => {
-    setDocUrlLoading(true);
-    try {
-      const fresh = await api.get<EmployerVerification>(`/api/admin/kyc/${id}`);
-      if (fresh.documentUrl) {
-        window.open(fresh.documentUrl, '_blank', 'noreferrer');
-      }
-    } catch {
-      toast({ type: 'error', message: 'Failed to load document link.' });
-    } finally {
-      setDocUrlLoading(false);
-    }
+  const handleViewDocument = () => {
+    // Opens the admin-app's own streaming route directly — the browser
+    // never sees a presigned S3 URL, only this auth-gated admin-app endpoint.
+    window.open(`/api/admin/kyc/${id}/document`, '_blank', 'noreferrer');
   };
 
   const handleReject = () => {
@@ -321,10 +312,9 @@ export default function KycDetailPage({ params }: { params: Promise<{ id: string
                     </p>
                     <button
                       onClick={handleViewDocument}
-                      disabled={docUrlLoading}
-                      className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-50"
+                      className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors"
                     >
-                      {docUrlLoading ? 'Loading...' : 'View Document'}
+                      View Document
                     </button>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 // libs/upload/upload.service.ts
-import { Injectable, BadRequestException } from "@nestjs/common";
+import { Injectable, BadRequestException, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import {
   S3Client,
@@ -11,6 +11,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { v4 as uuidv4 } from "uuid";
 import * as fs from "fs";
 import * as path from "path";
+import { Readable } from "stream";
 import {
   UploadOptions,
   UploadResult,
@@ -18,6 +19,12 @@ import {
   BucketType,
 } from "./types/upload.types";
 import { matchesMagicBytes } from "./magic-bytes";
+
+export interface FileStreamResult {
+  stream: Readable;
+  contentType?: string;
+  contentLength?: number;
+}
 
 @Injectable()
 export class UploadService {
@@ -193,6 +200,51 @@ export class UploadService {
     } catch {
       return fileUrl;
     }
+  }
+
+  /**
+   * Fetches the actual file bytes server-side instead of handing back a
+   * presigned URL — for callers that want to stream a file through their
+   * own authenticated endpoint rather than exposing a bearer-style S3 URL
+   * (with its signature in the query string) directly to the browser.
+   */
+  async getFileStream(fileUrl: string | null | undefined): Promise<FileStreamResult> {
+    if (!fileUrl) throw new NotFoundException("File not found");
+
+    if (this.driver === "local" || !this.isValidUrl(fileUrl)) {
+      // Local driver stores relative "/uploads/..." paths — same resolution
+      // convertToPresignedUrl uses, but fetched server-side here instead of
+      // handed to the browser to resolve.
+      const resolvedUrl = fileUrl.startsWith("/")
+        ? `${this.localUploadBaseUrl}${fileUrl}`
+        : fileUrl;
+      const res = await fetch(resolvedUrl);
+      if (!res.ok || !res.body) throw new NotFoundException("File not found");
+      return {
+        stream: Readable.fromWeb(res.body as import("stream/web").ReadableStream),
+        contentType: res.headers.get("content-type") ?? undefined,
+        contentLength: res.headers.get("content-length")
+          ? Number(res.headers.get("content-length"))
+          : undefined,
+      };
+    }
+
+    const bucketType = this.getBucketTypeFromUrlSafe(fileUrl);
+    if (!bucketType) throw new NotFoundException("File not found");
+    const bucketName = this.buckets[bucketType];
+    const key = this.extractKeyFromUrlSafe(fileUrl);
+    if (!key) throw new NotFoundException("File not found");
+
+    const result = await this.s3Client.send(
+      new GetObjectCommand({ Bucket: bucketName, Key: key }),
+    );
+    if (!result.Body) throw new NotFoundException("File not found");
+
+    return {
+      stream: result.Body as Readable,
+      contentType: result.ContentType,
+      contentLength: result.ContentLength,
+    };
   }
 
   async transformFileUrls<T>(data: T, expiresIn: number = 3600): Promise<T> {

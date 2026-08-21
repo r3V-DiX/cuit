@@ -12,6 +12,7 @@ import {
     HttpCode,
     HttpStatus,
     ParseUUIDPipe,
+    StreamableFile,
 } from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 import { AuthGuard, RolesGuard, CsrfGuard, Roles, CurrentUser } from '@cykruit/auth-core';
@@ -78,6 +79,16 @@ export class ApplicationsController {
         @Param('id', ParseUUIDPipe) id: string,
     ) {
         return this.applicationsService.getOne(user.id, id);
+    }
+
+    // GET /employer/applications/:id/resume — streams the resume file directly
+    @Get('applications/:id/resume')
+    @RequirePermission(ACTIONS.APPLICATIONS.READ_ALL)
+    getResume(
+        @CurrentUser() user: User,
+        @Param('id', ParseUUIDPipe) id: string,
+    ): Promise<StreamableFile> {
+        return this.applicationsService.getResumeStream(user.id, id);
     }
 
     // PATCH /employer/jobs/:jobId/applications/:id/status

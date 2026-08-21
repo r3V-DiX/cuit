@@ -1,6 +1,6 @@
 // admin-app/src/modules/resumes/resumes.controller.ts
 
-import { Controller, Get, Param, Query, UseGuards, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, ParseUUIDPipe, StreamableFile } from '@nestjs/common';
 import { AdminAuthGuard } from '../auth';
 import { PermissionsGuard } from '../../common';
 import { RequirePermission } from '../../common';
@@ -20,10 +20,10 @@ export class ResumesController {
         return this.resumesService.list(query);
     }
 
-    // GET /admin/resumes/:id/view — short-lived presigned URL to the file
+    // GET /admin/resumes/:id/view — streams the file directly
     @Get(':id/view')
     @RequirePermission(ACTIONS.RESUMES.VIEW)
-    getViewUrl(@Param('id', ParseUUIDPipe) id: string) {
-        return this.resumesService.getViewUrl(id);
+    view(@Param('id', ParseUUIDPipe) id: string): Promise<StreamableFile> {
+        return this.resumesService.getFileStream(id);
     }
 }

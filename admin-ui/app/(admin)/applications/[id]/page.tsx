@@ -9,18 +9,15 @@ import type { ApplicationDetail } from '@/lib';
 import { RequirePermission } from '@/components/ui';
 import { NoAccess } from '@/components/ui';
 import { StatusBadge } from '@/components/ui';
-import { useToast } from '@/components/ui';
 import { Skeleton } from '@/components/ui';
 import { ArrowLeft, Briefcase, Calendar, FileText, Sparkles, Eye } from 'lucide-react';
 
 export default function ApplicationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { toast } = useToast();
 
   const [application, setApplication] = useState<ApplicationDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewingResume, setViewingResume] = useState(false);
 
   useEffect(() => {
     async function loadApplication() {
@@ -36,17 +33,11 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
     loadApplication();
   }, [id]);
 
-  const handleViewResume = async () => {
+  const handleViewResume = () => {
     if (!application?.resume) return;
-    setViewingResume(true);
-    try {
-      const { url } = await api.get<{ url: string }>(`/api/admin/resumes/${application.resume.id}/view`);
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch (err) {
-      toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to open resume' });
-    } finally {
-      setViewingResume(false);
-    }
+    // Opens the admin-app's own streaming route directly — the browser
+    // never sees a presigned S3 URL, only this auth-gated admin-app endpoint.
+    window.open(`/api/admin/resumes/${application.resume.id}/view`, '_blank', 'noopener,noreferrer');
   };
 
   if (!loading && error) {
@@ -235,11 +226,10 @@ export default function ApplicationDetailPage({ params }: { params: Promise<{ id
                         </p>
                         <button
                           onClick={handleViewResume}
-                          disabled={viewingResume}
-                          className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline disabled:opacity-50"
+                          className="mt-0.5 flex items-center gap-1 text-xs text-blue-600 hover:underline"
                         >
                           <Eye className="h-3 w-3" />
-                          {viewingResume ? 'Opening…' : 'View resume'}
+                          View resume
                         </button>
                       </div>
                     </div>

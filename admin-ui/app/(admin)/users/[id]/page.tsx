@@ -45,7 +45,6 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [viewingResumeId, setViewingResumeId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadUser() {
@@ -173,16 +172,10 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
     });
   };
 
-  const handleViewResume = async (resumeId: string) => {
-    setViewingResumeId(resumeId);
-    try {
-      const { url } = await api.get<{ url: string }>(`/api/admin/resumes/${resumeId}/view`);
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch (err) {
-      toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to open resume' });
-    } finally {
-      setViewingResumeId(null);
-    }
+  const handleViewResume = (resumeId: string) => {
+    // Opens the admin-app's own streaming route directly — the browser
+    // never sees a presigned S3 URL, only this auth-gated admin-app endpoint.
+    window.open(`/api/admin/resumes/${resumeId}/view`, '_blank', 'noopener,noreferrer');
   };
 
   if (!loading && error) {
@@ -547,11 +540,10 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                             <RequirePermission action={ACTIONS.RESUMES.VIEW}>
                               <button
                                 onClick={() => handleViewResume(r.id)}
-                                disabled={viewingResumeId === r.id}
-                                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
+                                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
                               >
                                 <Eye className="h-3.5 w-3.5" />
-                                {viewingResumeId === r.id ? 'Opening…' : 'View'}
+                                View
                               </button>
                             </RequirePermission>
                           </div>

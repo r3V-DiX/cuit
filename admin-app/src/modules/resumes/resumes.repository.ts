@@ -65,6 +65,6 @@ export class ResumesRepository {
     }
 
     async findFileUrlById(id: string) {
-        return this.prisma.resume.findUnique({ where: { id }, select: { id: true, fileUrl: true } });
+        return this.prisma.resume.findUnique({ where: { id }, select: { id: true, fileUrl: true, fileName: true } });
     }
 }

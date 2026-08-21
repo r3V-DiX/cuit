@@ -11,6 +11,7 @@ import {
     HttpCode,
     HttpStatus,
     ParseUUIDPipe,
+    StreamableFile,
 } from '@nestjs/common';
 import { AdminAuthGuard } from '../auth';
 import { CurrentAdmin } from '../auth';
@@ -38,6 +39,13 @@ export class KycController {
     @RequirePermission(ACTIONS.KYC.VIEW)
     getOne(@Param('id', ParseUUIDPipe) id: string) {
         return this.kycService.getById(id);
+    }
+
+    // GET /admin/kyc/:id/document — streams the uploaded document directly
+    @Get(':id/document')
+    @RequirePermission(ACTIONS.KYC.VIEW)
+    viewDocument(@Param('id', ParseUUIDPipe) id: string): Promise<StreamableFile> {
+        return this.kycService.getDocumentStream(id);
     }
 
     // PATCH /admin/kyc/:id/approve

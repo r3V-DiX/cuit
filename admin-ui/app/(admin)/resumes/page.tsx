@@ -13,7 +13,6 @@ import { PaginationBar } from '@/components/ui';
 import { FilterBar } from '@/components/ui';
 import { SkeletonTable } from '@/components/ui';
 import { EmptyState } from '@/components/ui';
-import { useToast } from '@/components/ui';
 import { FileText, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -26,7 +25,6 @@ function formatFileSize(bytes: number) {
 function ResumesPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { toast } = useToast();
 
   const page = parseInt(searchParams.get('page') ?? '1', 10);
   const q = searchParams.get('q') ?? '';
@@ -34,7 +32,6 @@ function ResumesPageContent() {
   const [data, setData] = useState<PaginatedResponse<Resume> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewingId, setViewingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadResumes() {
@@ -62,16 +59,11 @@ function ResumesPageContent() {
     router.push(`?${params.toString()}`);
   };
 
-  const handleView = async (resume: Resume) => {
-    setViewingId(resume.id);
-    try {
-      const { url } = await api.get<{ url: string }>(`/api/admin/resumes/${resume.id}/view`);
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch (err) {
-      toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to open resume' });
-    } finally {
-      setViewingId(null);
-    }
+  const handleView = (resume: Resume) => {
+    // Opens the admin-app's own streaming route directly — the browser
+    // never sees a presigned S3 URL (with its signature in the query
+    // string), only this auth-gated admin-app endpoint.
+    window.open(`/api/admin/resumes/${resume.id}/view`, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -142,11 +134,10 @@ function ResumesPageContent() {
                         e.stopPropagation();
                         handleView(r);
                       }}
-                      disabled={viewingId === r.id}
-                      className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
+                      className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
                     >
                       <Eye className="h-3.5 w-3.5" />
-                      {viewingId === r.id ? 'Opening…' : 'View'}
+                      View
                     </button>
                   ),
                 },

@@ -174,7 +174,7 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
               </button>
               {app.resume && limits?.resumeViewEnabled && (
                 <a
-                  href={app.resume.fileUrl}
+                  href={`/api/employer/applications/${id}/resume`}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 transition-colors"

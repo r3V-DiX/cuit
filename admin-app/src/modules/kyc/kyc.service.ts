@@ -1,6 +1,6 @@
 // admin-app/src/admin/services/kyc.service.ts
 
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, StreamableFile } from '@nestjs/common';
 import { KycRepository } from './kyc.repository';
 import { KycListQueryDto, ApproveKycDto, RejectKycDto } from './dto/kyc.dto';
 import { AdminAuditLogger } from '../../common';
@@ -68,6 +68,20 @@ export class KycService {
         const record = await this.kycRepository.findById(id);
         if (!record) throw new NotFoundException('KYC record not found');
         return this.enrichForClient(record);
+    }
+
+    // Streams the document through this endpoint instead of handing back a
+    // presigned URL — see resumes.service.ts's getFileStream for why.
+    async getDocumentStream(id: string): Promise<StreamableFile> {
+        const record = await this.kycRepository.findById(id);
+        if (!record) throw new NotFoundException('KYC record not found');
+
+        const { stream, contentType, contentLength } = await this.uploadService.getFileStream(record.documentUrl);
+        return new StreamableFile(stream, {
+            type: contentType ?? 'application/octet-stream',
+            disposition: `inline; filename="${record.documentFileName ?? 'document'}"`,
+            length: contentLength,
+        });
     }
 
     async approve(id: string, adminId: string, dto: ApproveKycDto) {

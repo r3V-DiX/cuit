@@ -5,11 +5,13 @@ import {
     NotFoundException,
     BadRequestException,
     ForbiddenException,
+    StreamableFile,
 } from '@nestjs/common';
 import { ApplicationStatus } from '@prisma/client';
 import { EventPublisher, DomainEventType } from '@cykruit/events';
 import { AuditService } from '@cykruit/audit';
 import { EmployerLimitsService } from '@cykruit/subscription';
+import { UploadService } from '@cykruit/upload';
 import { CompanyRepository } from '../repositories/company.repository';
 import { JobsRepository } from '../repositories/jobs.repository';
 import { EmployerApplicationsRepository } from '../repositories/applications.repository';
@@ -37,6 +39,7 @@ export class EmployerApplicationsService {
         private readonly eventPublisher: EventPublisher,
         private readonly auditService: AuditService,
         private readonly employerLimitsService: EmployerLimitsService,
+        private readonly uploadService: UploadService,
     ) {}
 
     private async resolveEmployer(userId: string) {
@@ -123,6 +126,31 @@ export class EmployerApplicationsService {
         const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
         const redacted = await this.redactResume(application, limits.resumeViewEnabled);
         return this.redactAiFields(redacted, limits.aiScoringEnabled);
+    }
+
+    // Streams the resume file through this endpoint instead of exposing the
+    // stored fileUrl directly to the browser — resume.fileUrl was previously
+    // never presigned at all here (RESUMES is a private bucket, so opening it
+    // raw would 403 in prod), and even presigned it would put a bearer-style
+    // S3 URL in the browser's address bar. Same pattern as admin-app's
+    // resumes.service.ts.
+    async getResumeStream(userId: string, applicationId: string): Promise<StreamableFile> {
+        const employer = await this.resolveEmployer(userId);
+
+        const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
+        if (!limits.resumeViewEnabled) {
+            throw new ForbiddenException('Resume viewing is not available on your current plan.');
+        }
+
+        const application = await this.applicationsRepo.findByIdAndEmployer(applicationId, employer.id);
+        if (!application?.resume) throw new NotFoundException('Resume not found');
+
+        const { stream, contentType, contentLength } = await this.uploadService.getFileStream(application.resume.fileUrl);
+        return new StreamableFile(stream, {
+            type: contentType ?? 'application/octet-stream',
+            disposition: `inline; filename="${application.resume.fileName ?? 'resume.pdf'}"`,
+            length: contentLength,
+        });
     }
 
     async exportForJob(userId: string, jobId: string) {
