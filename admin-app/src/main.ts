@@ -7,6 +7,7 @@
 import 'dotenv/config';
 
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { PrismaService } from '@cykruit/prisma';
 import type { Redis } from 'ioredis';
@@ -41,10 +42,13 @@ function flattenValidationErrors(errors: ValidationError[]): string[] {
 }
 
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule, {
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, {
         bufferLogs: true,
         cors: false,
     });
+
+    // 1 trusted hop in prod: Nginx proxies directly to this service (no gateway in front).
+    app.set('trust proxy', 1);
 
     const logger = app.get(AppLogger);
     const contextService = app.get(RequestContextService);

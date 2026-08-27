@@ -42,6 +42,9 @@ async function bootstrap() {
         rawBody: true,
     });
 
+    // 2 trusted hops in prod: Nginx, then the gateway's http-proxy-middleware (xfwd).
+    app.set('trust proxy', 2);
+
     const logger = app.get(AppLogger);
     const contextService = app.get(RequestContextService);
     const responseBuilder = app.get(ResponseBuilder);

@@ -1,30 +1,13 @@
 import {
   Injectable,
-  Inject,
   ExecutionContext,
   HttpException,
   HttpStatus,
 } from "@nestjs/common";
 import { ThrottlerGuard, ThrottlerException } from "@nestjs/throttler";
-import { Reflector } from "@nestjs/core";
-import { ThrottlerStorage } from "@nestjs/throttler";
 
 @Injectable()
 export class RateLimitGuard extends ThrottlerGuard {
-  private readonly trustedProxyCount: number;
-
-  constructor(
-    @Inject('THROTTLER:MODULE_OPTIONS') options: any,
-    @Inject(ThrottlerStorage) storageService: ThrottlerStorage,
-    @Inject(Reflector) reflector: Reflector,
-  ) {
-    super(options, storageService, reflector);
-    // Default 1: Nginx sits in front of all services in prod.
-    const raw = process.env.TRUSTED_PROXY_COUNT ?? "1";
-    const parsed = parseInt(raw, 10);
-    this.trustedProxyCount = isNaN(parsed) || parsed < 0 ? 1 : parsed;
-  }
-
   protected async shouldSkip(context: ExecutionContext): Promise<boolean> {
     // Explicit skip decorator always wins.
     const skipMetadata = this.reflector.getAllAndOverride<
@@ -57,44 +40,9 @@ export class RateLimitGuard extends ThrottlerGuard {
   protected async getTracker(req: Record<string, any>): Promise<string> {
     const userId = req.user?.id ?? req.admin?.id;
     if (userId) return `u:${userId}`;
-    const ip = this.extractRealIp(req);
-    return `ip:${ip}`;
-  }
-
-  private extractRealIp(req: Record<string, any>): string {
-    const forwarded = req.headers?.["x-forwarded-for"];
-    if (forwarded && typeof forwarded === "string") {
-      const ips = forwarded
-        .split(",")
-        .map((s: string) => s.trim())
-        .filter((s: string) => s.length > 0);
-
-      // XFF builds left→right: [client, proxy1, proxy2, ...].
-      // Strip trustedProxyCount rightmost entries (trusted infrastructure).
-      // The leftmost remaining entry is the real client IP.
-      const untrustedCount = ips.length - this.trustedProxyCount;
-      const clientIndex = Math.max(0, untrustedCount - 1);
-      const candidate = ips[clientIndex];
-      if (candidate && this.isValidIpFormat(candidate)) {
-        return this.normalizeIp(candidate);
-      }
-    }
-
     const socketIp: string = req.ip ?? req.socket?.remoteAddress ?? "unknown";
-    return this.normalizeIp(socketIp);
-  }
-
-  private normalizeIp(ip: string): string {
-    if (!ip) return "unknown";
-    if (ip.startsWith("::ffff:")) return ip.slice(7);
-    return ip;
-  }
-
-  private isValidIpFormat(ip: string): boolean {
-    if (!ip) return false;
-    const ipv4 = /^(\d{1,3}\.){3}\d{1,3}$/;
-    const ipv6 = /^[0-9a-fA-F:]+$/;
-    return ipv4.test(ip) || ipv6.test(ip);
+    const ip = socketIp.startsWith("::ffff:") ? socketIp.slice(7) : socketIp;
+    return `ip:${ip}`;
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

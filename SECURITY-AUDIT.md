@@ -18,7 +18,7 @@
 | auth-4 | MEDIUM | No rate limit on `POST /auth/reset-password` | `@RateLimit({ reset_password: { ttl: 15min, limit: 10 } })` added |
 | auth-5 | MEDIUM | No rate limit on `GET /auth/check-verification` | `@RateLimit({ check_verification: { ttl: 1min, limit: 20 } })` added |
 | auth-6 | LOW | Auth logs contain PII — user email logged in 5 places in auth.service | Replaced with `uid=<id>` |
-| auth-7 | LOW | IP extraction in AuthGuard ignores `TRUSTED_PROXY_COUNT` — rate limit bypass possible behind proxy | `extractIp()` now reads `TRUSTED_PROXY_COUNT` env var |
+| auth-7 | LOW | IP extraction in AuthGuard ignored real client IP, collapsing to the gateway's internal Docker IP behind the proxy chain (`TRUSTED_PROXY_COUNT` env var it depended on defaulted to 0, unset in prod) | Replaced the hand-rolled `TRUSTED_PROXY_COUNT` parsing (and the two other independent copies in `RequestContextMiddleware` and `RateLimitGuard`) with Express's native `trust proxy` setting, configured per service in `main.ts` (2 hops behind the gateway, 1 for admin-app); `extractIp()`/`getTracker()` now just read `req.ip` |
 
 ### API & Input Validation
 
@@ -29,6 +29,7 @@
 | api-4 | MEDIUM | Job search `sortBy` accepts arbitrary strings — potential injection vector | Replaced `@IsString()` with `@IsIn(['recent', 'relevance'])` |
 | api-6 | MEDIUM | Public job search endpoints unauthenticated with no rate limit — open to scraping | `@RateLimit({ public_search: { ttl: 1min, limit: 60 } })` on `getJobs()` and `getJobBySlug()` |
 | api-7 | LOW | Request body limits set to 10 MB on all services — DoS vector | auth/seeker/public: `64kb`; employer: `512kb` |
+| api-5 | LOW | `TRUSTED_PROXY_COUNT=0` in `.env` — rate limit IP tracking collapsed to the gateway's Docker IP in production | Same fix as auth-7: `RateLimitGuard.getTracker()` now reads `req.ip`, backed by `trust proxy` in each service's `main.ts`; `TRUSTED_PROXY_COUNT` env var removed entirely |
 
 ### Frontend / UI
 
@@ -67,7 +68,6 @@
 | ws-4 | HIGH | WS JWT has no revocation — stays live for full TCP connection lifetime after session revoke | DB/Redis jti blocklist or short-TTL hashed token store |
 | data-2 | MEDIUM | File validators trust client-supplied MIME type — no magic byte check | `npm install file-type` in employer-service and seeker-profile-service |
 | api-2 / auth-8 | MEDIUM | All microservices bind `0.0.0.0` — exposed on all interfaces inside Docker | Set `HOST=127.0.0.1` default in docker-compose; add firewall rules |
-| api-5 | LOW | `TRUSTED_PROXY_COUNT=0` in `.env` — rate limit IP tracking collapses to proxy IP in production | Set `TRUSTED_PROXY_COUNT=1` in production `.env` |
 
 ---
 
