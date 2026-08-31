@@ -196,6 +196,7 @@ services:
     ports: ["3000:3000"]
     environment:
       PUBLIC_SERVICE_URL: http://public-service:4006
+      NEXT_PUBLIC_GA_ID: ${NEXT_PUBLIC_GA_ID}
   admin-ui:
     image: 443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-admin-ui:${ENV}-${ADMIN_UI_TAG:-latest}
     restart: unless-stopped
