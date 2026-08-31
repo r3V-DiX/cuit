@@ -276,17 +276,21 @@ export default function EmailComposer({
         customEmails: recipientType === 'CUSTOM_LIST' ? parsedCustomEmails : undefined,
       };
 
-      const res = await api.post<{ campaignId: string; totalRecipients: number; message: string }>(
+      const res = await api.post<{ campaignId?: string; totalRecipients?: number; status?: string }>(
         '/api/admin/emails/send',
         payload,
       );
 
       toast({
         type: 'success',
-        message: res.message || 'Campaign successfully queued for delivery.',
+        message: 'Campaign successfully queued for delivery.',
       });
 
-      router.push(`/emails/${res.campaignId}`);
+      if (res?.campaignId) {
+        router.push(`/emails/${res.campaignId}`);
+      } else {
+        router.push('/emails');
+      }
     } catch (err: unknown) {
       toast({
         type: 'error',

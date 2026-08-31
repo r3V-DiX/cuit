@@ -80,7 +80,9 @@ export class EmailsService {
         });
 
         return {
-            success: true,
+            data: {
+                toEmail: dto.toEmail,
+            },
             message: `Test email sent to ${dto.toEmail}`,
         };
     }
@@ -141,9 +143,11 @@ export class EmailsService {
         });
 
         return {
-            campaignId: campaign.id,
-            totalRecipients: recipients.length,
-            status: EmailCampaignStatus.QUEUED,
+            data: {
+                campaignId: campaign.id,
+                totalRecipients: recipients.length,
+                status: EmailCampaignStatus.QUEUED,
+            },
             message: `Email campaign queued for ${recipients.length} recipients.`,
         };
     }
