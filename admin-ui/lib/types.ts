@@ -821,3 +821,32 @@ export interface AdminEmailCampaign {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface Blog {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt?: string | null;
+  content?: string | null;
+  category?: string | null;
+  coverImage?: string | null;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminBlogsResponse {
+  items: Blog[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  metrics?: {
+    total: number;
+    published: number;
+    drafts: number;
+    categories: number;
+  };
+}

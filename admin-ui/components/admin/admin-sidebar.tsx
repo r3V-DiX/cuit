@@ -36,6 +36,7 @@ import {
   FileText,
   ClipboardList,
   SendHorizontal,
+  BookOpen,
 } from 'lucide-react';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
@@ -202,6 +203,12 @@ export default function AdminSidebar() {
       href: '/emails',
       icon: <SendHorizontal className="h-5 w-5" />,
       action: ACTIONS.EMAILS.VIEW,
+    },
+    {
+      label: 'Blogs & Articles',
+      href: '/blogs',
+      icon: <BookOpen className="h-5 w-5" />,
+      action: ACTIONS.BLOGS.VIEW,
     },
     {
       label: 'Blacklist',
