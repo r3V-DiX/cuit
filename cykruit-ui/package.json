@@ -24,7 +24,7 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@types/markdown-it": "^14.2.0",
     "@types/node": "^20",
