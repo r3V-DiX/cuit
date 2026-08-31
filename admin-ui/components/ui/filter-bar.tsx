@@ -150,7 +150,7 @@ export default function FilterBar({
             placeholder={searchPlaceholder}
             value={searchParams.get(searchKey) ?? ''}
             onChange={(e) => updateParam(searchKey, e.target.value)}
-            className="h-9 w-56 rounded-xl border border-slate-200 bg-white py-2 pr-3 pl-8 font-mono text-xs text-slate-700 placeholder-slate-400 transition-colors focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-slate-300"
+            className="h-9 w-64 sm:w-80 rounded-xl border border-slate-200 bg-white py-2 pr-3 pl-8 text-xs text-slate-700 placeholder-slate-400 transition-colors focus:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-slate-300"
           />
         </div>
       )}

@@ -309,7 +309,7 @@ function AuditLogsPageContent() {
         {tab === 'audit' ? (
           <FilterBar
             searchKey="q"
-            searchPlaceholder="Search actor email, action or IP..."
+            searchPlaceholder="Search logs..."
             dateRange={{ fromKey: 'from', toKey: 'to' }}
             sort={{ key: 'sortOrder', label: 'Sort', options: SORT_OPTIONS }}
             filters={[
@@ -334,7 +334,7 @@ function AuditLogsPageContent() {
         ) : tab === 'system' ? (
           <FilterBar
             searchKey="q"
-            searchPlaceholder="Search actor email or action..."
+            searchPlaceholder="Search logs..."
             dateRange={{ fromKey: 'from', toKey: 'to' }}
             sort={{
               key: 'sortOrder',
@@ -379,7 +379,7 @@ function AuditLogsPageContent() {
         ) : (
           <FilterBar
             searchKey="q"
-            searchPlaceholder="Search actor email or action..."
+            searchPlaceholder="Search logs..."
             dateRange={{ fromKey: 'from', toKey: 'to' }}
             sort={{
               key: 'sortOrder',
@@ -487,19 +487,25 @@ function AuditLogsPageContent() {
                   },
                   {
                     key: 'details',
-                    header: '',
+                    header: 'Details',
                     className: 'text-right',
                     render: (l) => (
-                      <button
-                        onClick={() => handleViewAuthMetadata(l)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-                        title="View Details"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
+                      <div className="flex justify-end">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewAuthMetadata(l);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          Inspect →
+                        </button>
+                      </div>
                     ),
                   },
                 ]}
+                onRowClick={handleViewAuthMetadata}
               />
               <PaginationBar pagination={authData.pagination} onPageChange={handlePageChange} />
             </div>
@@ -569,19 +575,25 @@ function AuditLogsPageContent() {
                   },
                   {
                     key: 'details',
-                    header: '',
+                    header: 'Details',
                     className: 'text-right',
                     render: (l) => (
-                      <button
-                        onClick={() => handleViewSystemMetadata(l)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-                        title="View Details"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
+                      <div className="flex justify-end">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewSystemMetadata(l);
+                          }}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          Inspect →
+                        </button>
+                      </div>
                     ),
                   },
                 ]}
+                onRowClick={handleViewSystemMetadata}
               />
               <PaginationBar pagination={systemData.pagination} onPageChange={handlePageChange} />
             </div>
@@ -641,19 +653,25 @@ function AuditLogsPageContent() {
                 },
                 {
                   key: 'details',
-                  header: '',
+                  header: 'Details',
                   className: 'text-right',
                   render: (l) => (
-                    <button
-                      onClick={() => handleViewAdminMetadata(l)}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-                      title="View Details"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+                    <div className="flex justify-end">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewAdminMetadata(l);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-50"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        Inspect →
+                      </button>
+                    </div>
                   ),
                 },
               ]}
+              onRowClick={handleViewAdminMetadata}
             />
             <PaginationBar pagination={adminData.pagination} onPageChange={handlePageChange} />
           </div>

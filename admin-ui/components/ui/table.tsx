@@ -46,16 +46,16 @@ export default function Table<T>({
               <tr
                 key={getRowKey(row)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={`transition-colors ${
+                className={`group transition-colors ${
                   onRowClick
-                    ? 'cursor-pointer hover:bg-blue-50/40'
-                    : 'hover:bg-slate-50/60'
+                    ? 'cursor-pointer hover:bg-blue-50/70'
+                    : 'hover:bg-slate-50/80'
                 }`}
               >
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`px-4 py-3 text-slate-700 ${col.className ?? ''}`}
+                    className={`px-4 py-3.5 text-slate-700 ${col.className ?? ''}`}
                   >
                     {col.render(row)}
                   </td>

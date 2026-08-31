@@ -18,6 +18,25 @@ import { Settings2, Save } from 'lucide-react';
 
 const BOOLEAN_VALUES = new Set(['true', 'false']);
 
+const SETTING_LABELS: Record<string, { title: string; description?: string }> = {
+  job_posting_enabled: {
+    title: 'Job Postings',
+    description: 'Allow employers to create and publish new job postings on the platform.',
+  },
+  kyc_required: {
+    title: 'Mandatory KYC Verification',
+    description: 'Require employers to complete identity verification before posting jobs.',
+  },
+  maintenance_mode: {
+    title: 'Platform Maintenance Mode',
+    description: 'Show a temporary maintenance screen to non-admin visitors and users.',
+  },
+  registration_enabled: {
+    title: 'User Registration',
+    description: 'Allow new job seekers and employers to create accounts on the platform.',
+  },
+};
+
 function SettingRow({
   setting,
   onSaved,
@@ -32,6 +51,14 @@ function SettingRow({
 
   const dirty = value !== setting.value;
 
+  const meta = SETTING_LABELS[setting.key] ?? {
+    title: setting.key
+      .split('_')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' '),
+    description: setting.description,
+  };
+
   const save = async (nextValue: string) => {
     setSaving(true);
     try {
@@ -41,7 +68,7 @@ function SettingRow({
       );
       setValue(updated.value);
       onSaved(updated);
-      toast({ type: 'success', message: `${setting.key} updated.` });
+      toast({ type: 'success', message: `${meta.title} setting updated.` });
     } catch (err) {
       toast({
         type: 'error',
@@ -55,10 +82,13 @@ function SettingRow({
   return (
     <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4">
       <div className="min-w-0">
-        <p className="font-mono text-sm font-semibold text-slate-900">{setting.key}</p>
-        {setting.description && (
-          <p className="mt-0.5 text-xs text-slate-500">{setting.description}</p>
-        )}
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-slate-900">{meta.title}</p>
+          <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">
+            {setting.key}
+          </span>
+        </div>
+        <p className="mt-0.5 text-xs text-slate-500">{meta.description || setting.description}</p>
         <p className="mt-1 text-[11px] text-slate-400">
           Last updated {new Date(setting.updatedAt).toLocaleString()}
         </p>

@@ -89,17 +89,26 @@ function PolicyRow({
     }
   };
 
+  const formatPolicyName = (key: string) =>
+    key
+      .split('_')
+      .map((w) => (w.length <= 3 ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)))
+      .join(' ');
+
   return (
     <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4">
       <div className="min-w-0">
-        <p className="font-mono text-sm font-semibold text-slate-900">
-          {policy.key}
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-semibold text-slate-900">{formatPolicyName(policy.key)}</p>
+          <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">
+            {policy.key}
+          </span>
           {policy.unit && (
-            <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-600">
               {policy.unit}
             </span>
           )}
-        </p>
+        </div>
         {policy.description && <p className="mt-0.5 text-xs text-slate-500">{policy.description}</p>}
         <p className="mt-1 text-[11px] text-slate-400">
           Last updated {new Date(policy.updatedAt).toLocaleString()}
@@ -177,7 +186,7 @@ function PoliciesPageContent() {
         <EmptyState
           icon={<SlidersHorizontal className="h-6 w-6" />}
           title="No policies found"
-          description="Run the policy-config seed to create default keys."
+          description="Platform configuration parameters and rate limits will appear here once initialized."
         />
       ) : (
         <div className="space-y-8">

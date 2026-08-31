@@ -95,7 +95,7 @@ function KycPageContent() {
           <EmptyState
             icon={<ShieldCheck className="h-6 w-6" />}
             title="No KYC requests found"
-            description="Adjust your search or filters to find what you're looking for."
+            description={status || q ? "Adjust your search or filters to find what you're looking for." : "No employer identity verification requests are pending review."}
           />
         ) : (
           <div className="space-y-4">
@@ -134,6 +134,18 @@ function KycPageContent() {
                   key: 'status',
                   header: 'Status',
                   render: (k) => <StatusBadge status={k.status} />,
+                },
+                {
+                  key: 'actions',
+                  header: 'Action',
+                  className: 'text-right',
+                  render: (k) => (
+                    <div className="flex justify-end">
+                      <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-blue-600 transition-colors group-hover:border-blue-300 group-hover:bg-blue-50">
+                        {k.status === 'PENDING' || k.status === 'UNDER_REVIEW' ? 'Review →' : 'View Details →'}
+                      </span>
+                    </div>
+                  ),
                 },
               ]}
             />

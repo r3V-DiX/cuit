@@ -12,10 +12,27 @@ const ROUTE_TITLES: Record<string, string> = {
   '/users': 'User Management',
   '/kyc': 'KYC Verification',
   '/jobs': 'Job Moderation',
+  '/resumes': 'Resume Library',
+  '/applications': 'Job Applications',
   '/subscriptions': 'Subscriptions',
-  '/subscriptions/packages': 'Subscription Packages',
+  '/subscriptions/employers': 'Employer Subscriptions',
+  '/subscriptions/payments': 'Payment History',
+  '/discounts': 'Discounts & Coupons',
   '/rbac': 'RBAC Management',
   '/audit-logs': 'Audit Logs',
+  '/testimonials': 'Testimonials',
+  '/contact': 'Contact Submissions',
+  '/reports': 'Content Reports',
+  '/admins': 'Admin Accounts',
+  '/settings': 'Platform Settings',
+  '/policies': 'Policy & Rate Limits',
+  '/announcements': 'Platform Announcements',
+  '/emails': 'Broadcasts & Emails',
+  '/blogs': 'Blogs & Articles',
+  '/blacklist': 'Email & Domain Blacklist',
+  '/suggestions': 'Search Suggestions',
+  '/roles': 'Job Roles & Domains',
+  '/system': 'System Health',
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -29,6 +46,16 @@ function getRoleColor(role: string): string {
   return (
     ROLE_COLORS[role] ?? 'bg-slate-100 text-slate-600 border-slate-200'
   );
+}
+
+function formatPathToTitle(pathname: string): string {
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length === 0) return 'Admin Console';
+  const last = segments[segments.length - 1];
+  return last
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 }
 
 export default function AdminTopbar() {
@@ -69,7 +96,7 @@ export default function AdminTopbar() {
     Object.entries(ROUTE_TITLES)
       .sort((a, b) => b[0].length - a[0].length) // longest match first
       .find(([path]) => pathname === path || pathname.startsWith(path + '/'))
-      ?.[1] ?? 'Admin Console';
+      ?.[1] ?? formatPathToTitle(pathname);
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">

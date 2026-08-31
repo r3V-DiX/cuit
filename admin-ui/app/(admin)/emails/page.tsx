@@ -191,7 +191,7 @@ function CampaignsPageContent() {
       {/* Filter and Search Bar */}
       <FilterBar
         searchKey="q"
-        searchPlaceholder="Search broadcasts by subject or audience segment..."
+        searchPlaceholder="Search broadcasts..."
         filters={[
           {
             key: 'status',

@@ -194,14 +194,22 @@ function RolesPageContent() {
                 { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.isActive ? 'ACTIVE' : 'INACTIVE'} /> },
                 {
                   key: 'createdAt',
-                  header: 'Date',
-                  render: (r) => <span className="text-xs text-slate-500">{new Date(r.createdAt).toLocaleDateString()}</span>,
+                  header: 'Created',
+                  render: (r) => (
+                    <span className="text-sm text-slate-600">
+                      {new Date(r.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
+                  ),
                 },
                 ...(canManage
                   ? [
                       {
                         key: 'actions',
-                        header: '',
+                        header: 'Action',
                         className: 'text-right',
                         render: (r: Role) => (
                           <div className="flex items-center justify-end gap-1">

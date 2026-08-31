@@ -33,18 +33,22 @@ function formatServiceName(name: string) {
 
 function ServiceCard({ service }: { service: ServiceHealth }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className={`h-2.5 w-2.5 rounded-full ${STATUS_DOT[service.status]}`} />
-          <p className="text-sm font-medium text-slate-900">{formatServiceName(service.name)}</p>
+          <p className="text-sm font-semibold text-slate-900">{formatServiceName(service.name)}</p>
         </div>
-        <span className="font-mono text-[10px] uppercase text-slate-400">{STATUS_LABEL[service.status]}</span>
+        <span className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase ${
+          service.status === 'up' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
+        }`}>
+          {STATUS_LABEL[service.status]}
+        </span>
       </div>
-      <p className="mt-2 text-xs text-slate-500">
-        {service.latencyMs !== null ? `${service.latencyMs}ms` : 'No response'}
+      <p className="mt-2 text-xs font-medium text-slate-700">
+        Latency: {service.latencyMs !== null ? `${service.latencyMs}ms` : 'No response'}
       </p>
-      {service.url && <p className="mt-1 truncate font-mono text-[10px] text-slate-400">{service.url}</p>}
+      {service.url && <p className="mt-1 truncate font-mono text-xs text-slate-600">{service.url}</p>}
     </div>
   );
 }

@@ -151,6 +151,18 @@ function UsersPageContent() {
                     </span>
                   ),
                 },
+                {
+                  key: 'actions',
+                  header: 'Action',
+                  className: 'text-right',
+                  render: (u) => (
+                    <div className="flex justify-end">
+                      <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-blue-600 transition-colors group-hover:border-blue-300 group-hover:bg-blue-50">
+                        View Details →
+                      </span>
+                    </div>
+                  ),
+                },
               ]}
             />
             <PaginationBar

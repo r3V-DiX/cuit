@@ -169,7 +169,7 @@ export default function AdminSidebar() {
       action: ACTIONS.CONTACT.VIEW,
     },
     {
-      label: 'Reports',
+      label: 'Content Reports',
       href: '/reports',
       icon: <Flag className="h-5 w-5" />,
       action: ACTIONS.REPORTS.VIEW,

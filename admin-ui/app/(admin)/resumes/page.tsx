@@ -74,7 +74,7 @@ function ResumesPageContent() {
           <p className="text-sm text-slate-500">Browse all resumes uploaded by jobseekers.</p>
         </div>
 
-        <FilterBar searchKey="q" searchPlaceholder="Search file name or seeker..." filters={[]} />
+        <FilterBar searchKey="q" searchPlaceholder="Search resumes or seekers..." filters={[]} />
 
         {error ? (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -86,7 +86,7 @@ function ResumesPageContent() {
           <EmptyState
             icon={<FileText className="h-6 w-6" />}
             title="No resumes found"
-            description="Adjust your search to find what you're looking for."
+            description={q ? "Adjust your search to find what you're looking for." : "No uploaded resumes in the library yet."}
           />
         ) : (
           <div className="space-y-4">

@@ -105,6 +105,25 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     });
   };
 
+  const handleToggleFeatured = async () => {
+    if (!job) return;
+    setActionLoading(true);
+    try {
+      const updated = await api.patch<Job>(`/api/admin/jobs/${id}/feature`, {
+        isFeatured: !job.isFeatured,
+      });
+      setJob(updated);
+      toast({
+        type: 'success',
+        message: updated.isFeatured ? 'Job marked as featured.' : 'Job removed from featured.',
+      });
+    } catch (err) {
+      toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to update featured status' });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (!loading && error) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -130,28 +149,71 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               </h2>
             </div>
           </div>
-          {job && job.status === 'PENDING' && (
-            <RequirePermission action={ACTIONS.JOBS.REVIEW}>
-              <div className="flex gap-2">
-                <Button
-                  variant="danger"
-                  onClick={handleReject}
-                  disabled={actionLoading}
-                  icon={<XCircle className="h-4 w-4" />}
-                >
-                  Reject
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleApprove}
-                  disabled={actionLoading}
-                  className="bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
-                  icon={<CheckCircle className="h-4 w-4" />}
-                >
-                  Approve
-                </Button>
-              </div>
-            </RequirePermission>
+          {job && (
+            <div className="flex items-center gap-2">
+              {job.status === 'PENDING' && (
+                <RequirePermission action={ACTIONS.JOBS.REVIEW}>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="danger"
+                      onClick={handleReject}
+                      disabled={actionLoading}
+                      icon={<XCircle className="h-4 w-4" />}
+                    >
+                      Reject
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={handleApprove}
+                      disabled={actionLoading}
+                      className="bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
+                      icon={<CheckCircle className="h-4 w-4" />}
+                    >
+                      Approve
+                    </Button>
+                  </div>
+                </RequirePermission>
+              )}
+
+              {job.status === 'APPROVED' && (
+                <div className="flex gap-2">
+                  <RequirePermission action={ACTIONS.JOBS.FEATURE}>
+                    <Button
+                      variant="secondary"
+                      onClick={handleToggleFeatured}
+                      disabled={actionLoading}
+                      className={job.isFeatured ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100' : ''}
+                    >
+                      {job.isFeatured ? '★ Featured' : '☆ Make Featured'}
+                    </Button>
+                  </RequirePermission>
+                  <RequirePermission action={ACTIONS.JOBS.REVIEW}>
+                    <Button
+                      variant="danger"
+                      onClick={handleReject}
+                      disabled={actionLoading}
+                      icon={<XCircle className="h-4 w-4" />}
+                    >
+                      Take Down Job
+                    </Button>
+                  </RequirePermission>
+                </div>
+              )}
+
+              {job.status === 'REJECTED' && (
+                <RequirePermission action={ACTIONS.JOBS.REVIEW}>
+                  <Button
+                    variant="primary"
+                    onClick={handleApprove}
+                    disabled={actionLoading}
+                    className="bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20"
+                    icon={<CheckCircle className="h-4 w-4" />}
+                  >
+                    Re-approve Job
+                  </Button>
+                </RequirePermission>
+              )}
+            </div>
           )}
         </div>
 

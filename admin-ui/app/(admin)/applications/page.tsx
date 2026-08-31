@@ -72,7 +72,7 @@ function ApplicationsPageContent() {
 
         <FilterBar
           searchKey="q"
-          searchPlaceholder="Search seeker, job or company..."
+          searchPlaceholder="Search applicants, jobs, or employers..."
           filters={[
             {
               key: 'status',
@@ -98,7 +98,7 @@ function ApplicationsPageContent() {
           <EmptyState
             icon={<ClipboardList className="h-6 w-6" />}
             title="No applications found"
-            description="Adjust your search or filters to find what you're looking for."
+            description={status || q ? "Adjust your search or filters to find what you're looking for." : "No job applications have been submitted across the platform yet."}
           />
         ) : (
           <div className="space-y-4">
@@ -124,7 +124,7 @@ function ApplicationsPageContent() {
                   header: 'Job',
                   render: (a) => (
                     <div>
-                      <p className="text-slate-900">{a.job?.jobTitle ?? '—'}</p>
+                      <p className="text-slate-900 font-medium">{a.job?.jobTitle ?? '—'}</p>
                       <p className="text-xs text-slate-500">{a.job?.employer?.companyName}</p>
                     </div>
                   ),
@@ -132,7 +132,7 @@ function ApplicationsPageContent() {
                 {
                   key: 'aiScore',
                   header: 'AI Score',
-                  render: (a) => <span className="text-slate-600">{a.aiScore ?? '—'}</span>,
+                  render: (a) => <span className="text-slate-600 font-mono text-xs">{a.aiScore !== null && a.aiScore !== undefined ? `${a.aiScore}%` : '—'}</span>,
                 },
                 {
                   key: 'status',
@@ -146,6 +146,18 @@ function ApplicationsPageContent() {
                     <span className="text-sm text-slate-600">
                       {format(new Date(a.appliedAt), 'MMM d, yyyy')}
                     </span>
+                  ),
+                },
+                {
+                  key: 'actions',
+                  header: 'Action',
+                  className: 'text-right',
+                  render: (a) => (
+                    <div className="flex justify-end">
+                      <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-blue-600 transition-colors group-hover:border-blue-300 group-hover:bg-blue-50">
+                        View Details →
+                      </span>
+                    </div>
                   ),
                 },
               ]}

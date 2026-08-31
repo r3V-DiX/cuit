@@ -217,18 +217,26 @@ export default function DashboardPage() {
           ) : (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <ChartCard title="Revenue over time">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenue?.daily ?? []} margin={{ left: -10, right: 10 }}>
-                    <CartesianGrid stroke={GRID_STROKE} vertical={false} />
-                    <XAxis dataKey="date" tickFormatter={formatDateTick} tick={AXIS_TICK} axisLine={false} tickLine={false} />
-                    <YAxis tickFormatter={formatRupees} tick={AXIS_TICK} axisLine={false} tickLine={false} width={56} />
-                    <Tooltip
-                      formatter={(value) => [formatRupees(Number(value)), 'Revenue']}
-                      labelFormatter={(label) => formatDateTick(String(label))}
-                    />
-                    <Area type="monotone" dataKey="revenuePaise" stroke={BLUE} strokeWidth={2} fill={BLUE} fillOpacity={0.1} />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {!revenue?.daily || revenue.daily.length === 0 || revenue.daily.every((d) => d.revenuePaise === 0) ? (
+                  <div className="flex h-full flex-col items-center justify-center text-center">
+                    <CreditCard className="h-8 w-8 text-slate-300 mb-2" />
+                    <p className="text-sm font-semibold text-slate-700">₹0 Total Revenue</p>
+                    <p className="text-xs text-slate-400 mt-0.5">No subscription payments recorded in this period.</p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={revenue?.daily ?? []} margin={{ left: -10, right: 10 }}>
+                      <CartesianGrid stroke={GRID_STROKE} vertical={false} />
+                      <XAxis dataKey="date" tickFormatter={formatDateTick} tick={AXIS_TICK} axisLine={false} tickLine={false} />
+                      <YAxis tickFormatter={formatRupees} tick={AXIS_TICK} axisLine={false} tickLine={false} width={56} />
+                      <Tooltip
+                        formatter={(value) => [formatRupees(Number(value)), 'Revenue']}
+                        labelFormatter={(label) => formatDateTick(String(label))}
+                      />
+                      <Area type="monotone" dataKey="revenuePaise" stroke={BLUE} strokeWidth={2} fill={BLUE} fillOpacity={0.1} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
               </ChartCard>
 
               <ChartCard title="User signups by role">

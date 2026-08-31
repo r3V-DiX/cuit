@@ -128,16 +128,24 @@ function JobsPageContent() {
                 {
                   key: 'type',
                   header: 'Type & Mode',
-                  render: (j) => (
-                    <span className="text-slate-600">
-                      {j.jobType || '—'} / {j.workMode || '—'}
-                    </span>
-                  ),
+                  render: (j) => {
+                    const formatEnum = (str?: string) =>
+                      str ? str.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '—';
+                    return (
+                      <span className="text-slate-600 text-xs font-medium">
+                        {formatEnum(j.jobType)} {j.workMode ? `• ${formatEnum(j.workMode)}` : ''}
+                      </span>
+                    );
+                  },
                 },
                 {
                   key: 'location',
                   header: 'Location',
-                  render: (j) => <span className="text-slate-600">{j.location?.displayName ?? '—'}</span>,
+                  render: (j) => (
+                    <span className="text-slate-600 text-xs">
+                      {j.location?.displayName || j.location?.city ? `${j.location.city}${j.location.country ? `, ${j.location.country}` : ''}` : 'Remote / Unspecified'}
+                    </span>
+                  ),
                 },
                 {
                   key: 'status',
@@ -151,6 +159,18 @@ function JobsPageContent() {
                     <span className="text-sm text-slate-600">
                       {format(new Date(j.createdAt), 'MMM d, yyyy')}
                     </span>
+                  ),
+                },
+                {
+                  key: 'actions',
+                  header: 'Action',
+                  className: 'text-right',
+                  render: (j) => (
+                    <div className="flex justify-end">
+                      <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-blue-600 transition-colors group-hover:border-blue-300 group-hover:bg-blue-50">
+                        {j.status === 'PENDING' ? 'Review →' : 'View →'}
+                      </span>
+                    </div>
                   ),
                 },
               ]}

@@ -160,9 +160,9 @@ export default function PackagesPage() {
                 key: 'price',
                 header: 'Price',
                 render: (p) => (
-                  <div className="font-mono text-xs text-slate-600">
-                    <p>{p.priceMonthly ?? '0'} /mo</p>
-                    <p>{p.priceYearly ?? '0'} /yr</p>
+                  <div className="text-xs font-semibold text-slate-800">
+                    <p>₹{Number(p.priceMonthly ?? 0).toLocaleString('en-IN')} <span className="font-normal text-slate-500">/mo</span></p>
+                    <p>₹{Number(p.priceYearly ?? 0).toLocaleString('en-IN')} <span className="font-normal text-slate-500">/yr</span></p>
                   </div>
                 ),
               },
