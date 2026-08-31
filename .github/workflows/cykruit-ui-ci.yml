@@ -54,7 +54,7 @@ jobs:
             type=raw,value=staging-${{ github.run_number }}
 
       - name: 🚀 Build and Push Docker image — staging
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./cykruit-ui
           file: ./cykruit-ui/Dockerfile
@@ -123,7 +123,7 @@ jobs:
             type=raw,value=prod-${{ github.run_number }}
 
       - name: 🚀 Build and Push Docker image — prod
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./cykruit-ui
           file: ./cykruit-ui/Dockerfile
