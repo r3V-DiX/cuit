@@ -772,3 +772,52 @@ export interface Role {
   createdAt: string;
   updatedAt: string;
 }
+
+// ─── Emails & Broadcasts ───────────────────────────────────────────────────────
+
+export type EmailRecipientType = 'SEGMENT' | 'CUSTOM_LIST';
+
+export type EmailCampaignStatus =
+  | 'QUEUED'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'PARTIALLY_FAILED';
+
+export interface AdminEmailRecipientLog {
+  id: string;
+  campaignId: string;
+  email: string;
+  name?: string | null;
+  status: 'SENT' | 'FAILED';
+  error?: string | null;
+  sentAt?: string | null;
+  createdAt: string;
+}
+
+export interface AdminEmailCampaign {
+  id: string;
+  subject: string;
+  bodyHtml: string;
+  recipientType: EmailRecipientType;
+  segmentTarget?: string | null;
+  totalRecipients: number;
+  sentCount: number;
+  failedCount: number;
+  status: EmailCampaignStatus;
+  errorMessage?: string | null;
+  createdById: string;
+  creator?: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
+  recipientLogs?: AdminEmailRecipientLog[];
+  _count?: {
+    recipientLogs: number;
+  };
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

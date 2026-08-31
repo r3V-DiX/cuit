@@ -26,6 +26,7 @@ export const ACTIONS = {
   EXPORT: { RUN: 'export:run' },
   DOMAINS: { VIEW: 'domains:view', MANAGE: 'domains:manage' },
   ROLES: { VIEW: 'roles:view', MANAGE: 'roles:manage' },
+  EMAILS: { VIEW: 'emails:view', SEND: 'emails:send' },
 } as const;
 
 type ValuesOf<T> = T extends Record<string, infer V>

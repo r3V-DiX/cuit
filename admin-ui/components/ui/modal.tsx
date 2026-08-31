@@ -23,8 +23,8 @@ export interface ModalOptions {
   /** Custom body content — overrides description */
   content?: ReactNode;
   variant?: ModalVariant;
-  /** Panel width — 'md' (default, max-w-md) or 'lg' (max-w-2xl) for content-heavy forms */
-  size?: 'md' | 'lg';
+  /** Panel width — 'md' (default, max-w-md), 'lg' (max-w-2xl), 'xl' (max-w-3xl), '4xl' (max-w-4xl), '5xl' (max-w-5xl) */
+  size?: 'md' | 'lg' | 'xl' | '4xl' | '5xl' | 'full';
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm?: () => void | Promise<void>;
@@ -114,8 +114,18 @@ function ModalDialog({
 
       {/* panel */}
       <div
-        className={`relative w-full max-h-[85vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 ${
-          state.size === 'lg' ? 'max-w-2xl' : 'max-w-md'
+        className={`relative w-full max-h-[88vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 ${
+          state.size === 'full'
+            ? 'max-w-6xl'
+            : state.size === '5xl'
+              ? 'max-w-5xl'
+              : state.size === '4xl'
+                ? 'max-w-4xl'
+                : state.size === 'xl'
+                  ? 'max-w-3xl'
+                  : state.size === 'lg'
+                    ? 'max-w-2xl'
+                    : 'max-w-md'
         }`}
       >
         {/* close */}

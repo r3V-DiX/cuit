@@ -64,6 +64,11 @@ const STATUS_MAP: Record<string, string> = {
   ADMIN: 'bg-blue-50 text-blue-700 border-blue-200',
   EMPLOYER: 'bg-cyan-50 text-cyan-700 border-cyan-200',
   SEEKER: 'bg-slate-100 text-slate-600 border-slate-200',
+  // Email Campaign statuses
+  QUEUED: 'bg-blue-50 text-blue-700 border-blue-200',
+  PROCESSING: 'bg-purple-50 text-purple-700 border-purple-200 animate-pulse',
+  COMPLETED: 'bg-green-50 text-green-700 border-green-200',
+  PARTIALLY_FAILED: 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
 export default function StatusBadge({ status, className = '' }: StatusBadgeProps) {

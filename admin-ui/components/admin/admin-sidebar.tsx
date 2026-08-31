@@ -35,6 +35,7 @@ import {
   Percent,
   FileText,
   ClipboardList,
+  SendHorizontal,
 } from 'lucide-react';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
@@ -195,6 +196,12 @@ export default function AdminSidebar() {
       href: '/announcements',
       icon: <Megaphone className="h-5 w-5" />,
       action: ACTIONS.ANNOUNCEMENTS.MANAGE,
+    },
+    {
+      label: 'Broadcasts & Emails',
+      href: '/emails',
+      icon: <SendHorizontal className="h-5 w-5" />,
+      action: ACTIONS.EMAILS.VIEW,
     },
     {
       label: 'Blacklist',

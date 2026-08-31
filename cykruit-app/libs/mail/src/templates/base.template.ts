@@ -49,7 +49,19 @@ export const baseTemplate = (content: string, preheader = ""): string => `
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
                   <td align="left" style="padding:${SPACING.CARD_PADDING} ${SPACING.CARD_PADDING} 0 ${SPACING.CARD_PADDING};">
-                    <img src="https://www.cykruit.com/white-bg-logo.svg" alt="Cykruit" style="height:40px;display:block;border:none;" />
+                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td style="vertical-align:middle;padding-right:10px;">
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                            <rect width="24" height="24" rx="6" fill="#1B3C8B"/>
+                            <path d="M12 4.5L6.5 7V11.5C6.5 15.1 8.8 18.4 12 19.5C15.2 18.4 17.5 15.1 17.5 11.5V7L12 4.5Z" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                        </td>
+                        <td style="vertical-align:middle;">
+                          <span style="font-family:${TYPOGRAPHY.FONT_FAMILY};font-size:20px;font-weight:800;color:#1B3C8B;letter-spacing:-0.5px;line-height:1;">Cykruit</span>
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
               </table>

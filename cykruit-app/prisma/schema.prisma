@@ -1853,6 +1853,7 @@ model Admin {
     blacklistEntries    Blacklist[]
     searchSuggestions   SearchSuggestion[]
     jobDomains          JobDomain[]
+    emailCampaigns      AdminEmailCampaign[]
 
     @@index([email])
     @@map("admins")
@@ -2697,4 +2698,62 @@ model ContentReport {
     @@index([reporterId])
     @@index([createdAt])
     @@map("content_reports")
+}
+
+// ==========================
+// ADMIN EMAIL CAMPAIGN MODELS
+// ==========================
+
+enum EmailRecipientType {
+    SEGMENT
+    CUSTOM_LIST
+}
+
+enum EmailCampaignStatus {
+    QUEUED
+    PROCESSING
+    COMPLETED
+    FAILED
+    PARTIALLY_FAILED
+}
+
+model AdminEmailCampaign {
+    id              String              @id @default(uuid()) @db.Uuid
+    subject         String
+    bodyHtml        String              @db.Text
+    recipientType   EmailRecipientType  @map("recipient_type")
+    segmentTarget   String?             @map("segment_target") // "ALL", "SEEKER", "EMPLOYER", "ACTIVE"
+    totalRecipients Int                 @default(0) @map("total_recipients")
+    sentCount       Int                 @default(0) @map("sent_count")
+    failedCount     Int                 @default(0) @map("failed_count")
+    status          EmailCampaignStatus @default(QUEUED)
+    errorMessage    String?             @map("error_message") @db.Text
+    createdById     String              @map("created_by_id") @db.Uuid
+    creator         Admin               @relation(fields: [createdById], references: [id])
+    completedAt     DateTime?           @map("completed_at")
+    createdAt       DateTime            @default(now()) @map("created_at")
+    updatedAt       DateTime            @updatedAt @map("updated_at")
+
+    recipientLogs   AdminEmailRecipientLog[]
+
+    @@index([status])
+    @@index([createdById])
+    @@index([createdAt])
+    @@map("admin_email_campaigns")
+}
+
+model AdminEmailRecipientLog {
+    id          String             @id @default(uuid()) @db.Uuid
+    campaignId  String             @map("campaign_id") @db.Uuid
+    campaign    AdminEmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+    email       String
+    name        String?
+    status      String             @default("SENT") // "SENT" | "FAILED"
+    error       String?            @db.Text
+    sentAt      DateTime?          @map("sent_at")
+    createdAt   DateTime           @default(now()) @map("created_at")
+
+    @@index([campaignId])
+    @@index([email])
+    @@map("admin_email_recipient_logs")
 }

@@ -22,6 +22,7 @@ import { employerInviteTemplate } from "./templates/employer-invite.template";
 import { companyJoinRequestTemplate } from "./templates/company-join-request.template";
 import { adminInviteTemplate } from "./templates/admin-invite.template";
 import { jobReviewTemplate } from "./templates/job-review.template";
+import { broadcastTemplate } from "./templates/broadcast.template";
 
 @Injectable()
 export class MailService {
@@ -488,6 +489,81 @@ export class MailService {
         "MailService",
       );
       // Fire-and-forget — don't block job submit on email failure
+    }
+  }
+
+  renderBroadcastTemplate(
+    subject: string,
+    contentHtml: string,
+    variables?: Record<string, string>,
+  ): string {
+    let interpolatedSubject = subject;
+    let interpolatedContent = contentHtml;
+
+    if (variables) {
+      for (const [key, value] of Object.entries(variables)) {
+        const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
+        interpolatedSubject = interpolatedSubject.replace(regex, value ?? "");
+        interpolatedContent = interpolatedContent.replace(regex, value ?? "");
+      }
+    }
+
+    return broadcastTemplate(interpolatedSubject, interpolatedContent);
+  }
+
+  async sendCustomAdminEmail(
+    to: string,
+    data: {
+      subject: string;
+      bodyHtml: string;
+      variables?: Record<string, string>;
+    },
+  ): Promise<void> {
+    try {
+      let interpolatedSubject = data.subject;
+      let interpolatedContent = data.bodyHtml;
+
+      if (data.variables) {
+        for (const [key, value] of Object.entries(data.variables)) {
+          const regex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
+          interpolatedSubject = interpolatedSubject.replace(regex, value ?? "");
+          interpolatedContent = interpolatedContent.replace(regex, value ?? "");
+        }
+      }
+
+      const html = broadcastTemplate(interpolatedSubject, interpolatedContent);
+
+      if (this.isDev) {
+        this.logger.debug(
+          `[DEV] Custom admin email queued for ${to} | Subject: "${interpolatedSubject}"`,
+          "MailService",
+        );
+      }
+
+      const { error } = await this.resend.emails.send({
+        from: `Cykruit <${this.fromEmail}>`,
+        replyTo: "support@cykruit.com",
+        to,
+        subject: interpolatedSubject,
+        html,
+      });
+
+      if (error) throw new Error(error.message);
+      this.logger.log(
+        `Custom admin email sent to ${to} | Subject: "${interpolatedSubject}"`,
+        "MailService",
+      );
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      const stack = err instanceof Error ? err.stack : undefined;
+      this.logger.error(
+        `Failed to send custom admin email to ${to}: ${message}`,
+        stack,
+        "MailService",
+      );
+      throw new InternalServerErrorException(
+        `Failed to send custom email to ${to}: ${message}`,
+      );
     }
   }
 }

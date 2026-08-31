@@ -54,3 +54,5 @@ export const notificationTemplate = (
     ${actionUrl ? cyberButton("View Notification", actionUrl) : ""}
     <p style="font-size:13px;color:#64748b;margin:20px 0 0 0;">Manage notification preferences in your account settings.</p>
   `);
+
+export { broadcastTemplate } from "./broadcast.template";
