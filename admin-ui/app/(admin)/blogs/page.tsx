@@ -4,6 +4,7 @@
 // Hallmark Anti-Slop Blogs Management Dashboard with CRUD & Publication Workflows
 
 import { useState, useEffect, useCallback, useTransition } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib';
 import type { Blog, AdminBlogsResponse } from '@/lib';
 import { usePermissions } from '@/lib/permissions-context';
@@ -128,7 +129,7 @@ export default function BlogsPage() {
   const handleOpenEditor = (blog?: Blog) => {
     openModal({
       title: blog ? 'Edit Blog Article' : 'Compose New Article',
-      size: '5xl',
+      size: 'full',
       content: (
         <BlogEditorModal
           initialBlog={blog}
@@ -173,15 +174,13 @@ export default function BlogsPage() {
           </Button>
 
           {canManage && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => handleOpenEditor()}
-              className="flex items-center space-x-1.5 shadow-sm"
+            <Link
+              href="/blogs/new"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1B3C8B] text-white hover:bg-blue-900 transition shadow-sm"
             >
               <Plus className="h-4 w-4" />
               <span>Create Article</span>
-            </Button>
+            </Link>
           )}
         </div>
       </div>
@@ -364,6 +363,7 @@ export default function BlogsPage() {
                             <img
                               src={blog.coverImage}
                               alt={blog.title}
+                              referrerPolicy="no-referrer"
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -439,7 +439,13 @@ export default function BlogsPage() {
                       <div className="flex items-center justify-end space-x-1.5">
                         {blog.isPublished && (
                           <a
-                            href={`http://localhost:3000/blogs/${blog.slug}`}
+                            href={
+                              typeof window !== 'undefined' &&
+                              (window.location.hostname.includes('admin.cykruit.com') ||
+                                window.location.hostname.includes('cykruit.com'))
+                                ? `https://cykruit.com/blogs/${blog.slug}`
+                                : `http://localhost:3000/blogs/${blog.slug}`
+                            }
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-1.5 rounded-lg text-slate-400 hover:text-blue-900 hover:bg-slate-100 transition"
@@ -451,14 +457,13 @@ export default function BlogsPage() {
 
                         {canManage && (
                           <>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEditor(blog)}
+                            <Link
+                              href={`/blogs/${blog.id}/edit`}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
-                              title="Edit Article"
+                              title="Edit Article (Full Screen)"
                             >
                               <Edit3 className="h-4 w-4" />
-                            </button>
+                            </Link>
                             <button
                               type="button"
                               onClick={() => handleDelete(blog)}

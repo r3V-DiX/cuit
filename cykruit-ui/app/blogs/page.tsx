@@ -247,6 +247,7 @@ function BlogsContent() {
                       <img
                         src={featuredBlog.coverImage}
                         alt={featuredBlog.title}
+                        referrerPolicy="no-referrer"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                     ) : (
@@ -321,6 +322,7 @@ function BlogsContent() {
                       <img
                         src={blog.coverImage}
                         alt={blog.title}
+                        referrerPolicy="no-referrer"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (

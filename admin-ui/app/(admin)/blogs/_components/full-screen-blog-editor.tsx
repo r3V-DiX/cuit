@@ -1,15 +1,18 @@
 'use client';
 
-// admin-ui/app/(admin)/blogs/_components/blog-editor-modal.tsx
-// Hallmark-Grade Dual-Pane Markdown Blog Editor & Live GFM Renderer
+// admin-ui/app/(admin)/blogs/_components/full-screen-blog-editor.tsx
+// Full-Screen Immersive Markdown Blog Editor with Markdown-it Dual-Pane Preview
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/lib';
 import type { Blog } from '@/lib';
 import { Button, useToast } from '@/components/ui';
 import {
   Save,
   Loader2,
+  ArrowLeft,
   Image as ImageIcon,
   Tag,
   FileText,
@@ -36,14 +39,13 @@ import {
   ChevronUp,
   Globe,
   Sparkles,
-  ExternalLink,
+  CheckCircle2,
 } from 'lucide-react';
 import MarkdownIt from 'markdown-it';
 
-interface BlogEditorModalProps {
+interface FullScreenBlogEditorProps {
   initialBlog?: Blog;
-  onSuccess: () => void;
-  onCancel: () => void;
+  blogId?: string;
 }
 
 const PRESET_CATEGORIES = [
@@ -90,7 +92,7 @@ md.renderer.rules.image = function (tokens, idx, options, env, self) {
 
   const isPlaceholder = !src || src.startsWith('IMAGE_URL') || src === '#';
   if (isPlaceholder) {
-    return `<div class="my-4 p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-center text-slate-500 text-xs flex flex-col items-center justify-center gap-1.5"><span class="font-medium text-slate-700">🖼 Image: ${token.content || 'Illustration'}</span><span class="text-[11px] text-slate-400 font-mono">Insert a valid URL in ![alt](https://...) to load image</span></div>`;
+    return `<div class="my-5 p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-center text-slate-500 text-xs flex flex-col items-center justify-center gap-1.5"><span class="font-medium text-slate-700">🖼 Image: ${token.content || 'Illustration'}</span><span class="text-[11px] text-slate-400 font-mono">Insert a valid URL in ![alt](https://...) to load preview</span></div>`;
   }
 
   token.attrPush(['loading', 'lazy']);
@@ -113,25 +115,11 @@ md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
   return defaultLinkRule(tokens, idx, options, env, self);
 };
 
-function parseMarkdownToHtml(raw: string): string {
-  if (!raw || !raw.trim()) return '';
-
-  if (raw.trim().startsWith('<article>') || raw.trim().startsWith('<div>')) {
-    return raw;
-  }
-
-  try {
-    return md.render(raw);
-  } catch {
-    return raw;
-  }
-}
-
-export default function BlogEditorModal({
+export default function FullScreenBlogEditor({
   initialBlog,
-  onSuccess,
-  onCancel,
-}: BlogEditorModalProps) {
+  blogId,
+}: FullScreenBlogEditorProps) {
+  const router = useRouter();
   const { toast } = useToast();
 
   const [title, setTitle] = useState<string>(initialBlog?.title || '');
@@ -143,7 +131,7 @@ export default function BlogEditorModal({
   const [content, setContent] = useState<string>(initialBlog?.content || '');
   const [isPublished, setIsPublished] = useState<boolean>(initialBlog?.isPublished ?? true);
 
-  const [showSettings, setShowSettings] = useState<boolean>(!initialBlog);
+  const [showSettings, setShowSettings] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'split' | 'write' | 'preview'>('split');
   const [submitting, setSubmitting] = useState<boolean>(false);
 
@@ -253,7 +241,12 @@ export default function BlogEditorModal({
   }, [wordCount]);
 
   const renderedHtml = useMemo(() => {
-    return parseMarkdownToHtml(content);
+    if (!content || !content.trim()) return '';
+    try {
+      return md.render(content);
+    } catch {
+      return content;
+    }
   }, [content]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -276,14 +269,15 @@ export default function BlogEditorModal({
     };
 
     try {
-      if (initialBlog) {
-        await api.patch(`/api/admin/blogs/${initialBlog.id}`, payload);
+      const targetId = blogId || initialBlog?.id;
+      if (targetId) {
+        await api.patch(`/api/admin/blogs/${targetId}`, payload);
         toast({ type: 'success', message: 'Article updated successfully.' });
       } else {
         await api.post('/api/admin/blogs', payload);
-        toast({ type: 'success', message: 'Article created successfully.' });
+        toast({ type: 'success', message: 'Article published successfully.' });
       }
-      onSuccess();
+      router.push('/blogs');
     } catch (err: unknown) {
       toast({
         type: 'error',
@@ -295,39 +289,53 @@ export default function BlogEditorModal({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-[82vh] max-h-[82vh] -m-6 bg-slate-50">
-      {/* ── Top Header Toolbar ── */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 flex-shrink-0 space-y-3">
-        {/* Row 1: Title Input & Quick Actions */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <input
-            type="text"
-            required
-            placeholder="Article Title (e.g. Artificial Intelligence in Cyber Risk Management)..."
-            value={title}
-            onChange={handleTitleChange}
-            className="w-full sm:flex-1 text-lg font-bold text-slate-900 placeholder:text-slate-400 bg-transparent border-0 border-b border-transparent hover:border-slate-200 focus:border-blue-600 focus:outline-none py-1 transition"
-          />
-
-          <div className="flex items-center space-x-2 flex-shrink-0">
-            {/* Category domain selector */}
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+    <form onSubmit={handleSubmit} className="flex flex-col h-[calc(100vh-7rem)] min-h-0 bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+      {/* ── Top Header Navigation & Primary Controls ── */}
+      <div className="bg-white border-b border-slate-200 px-6 py-3 flex-shrink-0 space-y-3">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          {/* Back button & Title Input */}
+          <div className="flex items-center space-x-3 w-full lg:flex-1">
+            <Link
+              href="/blogs"
+              className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 hover:text-slate-900 transition flex-shrink-0"
+              title="Back to Blog List"
             >
-              {PRESET_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
 
-            {/* Toggle Metadata Settings Drawer */}
+            <input
+              type="text"
+              required
+              placeholder="Article Title (e.g. Artificial Intelligence in Risk Management)..."
+              value={title}
+              onChange={handleTitleChange}
+              className="w-full text-xl sm:text-2xl font-bold text-slate-900 placeholder:text-slate-300 bg-transparent border-0 border-b-2 border-transparent hover:border-slate-200 focus:border-blue-600 focus:outline-none py-1 transition tracking-tight"
+            />
+          </div>
+
+          {/* Right Action Bar */}
+          <div className="flex items-center space-x-3 flex-shrink-0 self-end lg:self-center">
+            {/* Category domain selector */}
+            <div className="flex items-center space-x-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+              <Tag className="h-3.5 w-3.5 text-slate-400" />
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="text-xs font-semibold bg-transparent text-slate-700 focus:outline-none cursor-pointer"
+              >
+                {PRESET_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Collapsible Settings Button */}
             <button
               type="button"
               onClick={() => setShowSettings(!showSettings)}
-              className={`flex items-center space-x-1 px-3 py-1.5 text-xs font-semibold rounded-lg border transition ${
+              className={`flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition ${
                 showSettings || coverImage || excerpt
                   ? 'bg-blue-50 text-blue-800 border-blue-200'
                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -337,35 +345,61 @@ export default function BlogEditorModal({
               <span>Settings</span>
               {showSettings ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
+
+            {/* Publication Toggle */}
+            <label className="hidden sm:flex items-center space-x-2 cursor-pointer select-none bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+              <input
+                type="checkbox"
+                checked={isPublished}
+                onChange={(e) => setIsPublished(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-blue-800 focus:ring-blue-600"
+              />
+              <span className="text-xs font-semibold text-slate-800">
+                {isPublished ? 'Published Live' : 'Draft'}
+              </span>
+            </label>
+
+            {/* Save & Publish Action */}
+            <Button type="submit" variant="primary" disabled={submitting} className="flex items-center space-x-1.5 shadow-sm">
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              <span>{initialBlog || blogId ? 'Update Article' : 'Publish Article'}</span>
+            </Button>
           </div>
         </div>
 
         {/* Collapsible Metadata Drawer (Slug, Cover URL, Excerpt) */}
         {showSettings && (
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-3 text-xs">
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-3 text-xs animate-in fade-in duration-200">
             {/* Slug */}
             <div className="md:col-span-4 space-y-1">
               <label className="font-bold text-slate-700 flex items-center justify-between">
-                <span>Slug Path</span>
+                <span>URL Slug Path</span>
                 <span className="text-[10px] text-slate-400 font-normal">/blogs/slug</span>
               </label>
-              <input
-                type="text"
-                placeholder="custom-url-slug"
-                value={slug}
-                onChange={(e) => {
-                  setSlugManuallyEdited(true);
-                  setSlug(e.target.value);
-                }}
-                className="w-full px-3 py-1.5 font-mono text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
-              />
+              <div className="flex items-center rounded-lg border border-slate-300 px-3 bg-white focus-within:ring-2 focus-within:ring-blue-600">
+                <span className="text-xs text-slate-400 font-mono">/blogs/</span>
+                <input
+                  type="text"
+                  placeholder="custom-article-slug"
+                  value={slug}
+                  onChange={(e) => {
+                    setSlugManuallyEdited(true);
+                    setSlug(e.target.value);
+                  }}
+                  className="w-full py-1.5 pl-1 font-mono text-xs bg-transparent focus:outline-none text-slate-800"
+                />
+              </div>
             </div>
 
             {/* Cover Image URL */}
             <div className="md:col-span-8 space-y-1">
               <label className="font-bold text-slate-700 flex items-center space-x-1">
                 <ImageIcon className="h-3.5 w-3.5 text-slate-500" />
-                <span>Cover Image URL (WebP, JPG, PNG)</span>
+                <span>Cover Image URL (WebP, JPG, PNG, Unsplash)</span>
               </label>
               <input
                 type="url"
@@ -378,7 +412,7 @@ export default function BlogEditorModal({
 
             {/* Excerpt */}
             <div className="md:col-span-12 space-y-1">
-              <label className="font-bold text-slate-700">Summary Excerpt (Meta description & card summary)</label>
+              <label className="font-bold text-slate-700">Summary Excerpt (Card summary & SEO Meta description)</label>
               <textarea
                 rows={2}
                 placeholder="A concise 1-2 sentence overview of the article..."
@@ -392,14 +426,14 @@ export default function BlogEditorModal({
       </div>
 
       {/* ── Formatting Toolbar & View Mode Switcher ── */}
-      <div className="bg-white border-b border-slate-200 px-6 py-2 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
+      <div className="bg-slate-50/80 border-b border-slate-200 px-6 py-2 flex flex-wrap items-center justify-between gap-2 flex-shrink-0">
         {/* Markdown Action Buttons */}
         <div className="flex flex-wrap items-center gap-1 text-slate-700">
           <button
             type="button"
             onClick={() => insertSnippet('# ', '\n', 'Heading 1')}
             title="Heading 1"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <Heading1 className="h-4 w-4" />
           </button>
@@ -407,7 +441,7 @@ export default function BlogEditorModal({
             type="button"
             onClick={() => insertSnippet('## ', '\n', 'Heading 2')}
             title="Heading 2"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <Heading2 className="h-4 w-4" />
           </button>
@@ -415,72 +449,72 @@ export default function BlogEditorModal({
             type="button"
             onClick={() => insertSnippet('### ', '\n', 'Heading 3')}
             title="Heading 3"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <Heading3 className="h-4 w-4" />
           </button>
 
-          <div className="h-4 w-px bg-slate-200 mx-1" />
+          <div className="h-4 w-px bg-slate-300 mx-1" />
 
           <button
             type="button"
             onClick={() => insertSnippet('**', '**', 'bold text')}
-            title="Bold"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            title="Bold (**text**)"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <Bold className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={() => insertSnippet('*', '*', 'italic text')}
-            title="Italic"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            title="Italic (*text*)"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <Italic className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={() => insertSnippet('~~', '~~', 'strikethrough')}
-            title="Strikethrough"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            title="Strikethrough (~~text~~)"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <Strikethrough className="h-4 w-4" />
           </button>
 
-          <div className="h-4 w-px bg-slate-200 mx-1" />
+          <div className="h-4 w-px bg-slate-300 mx-1" />
 
           <button
             type="button"
             onClick={() => insertSnippet('`', '`', 'code')}
-            title="Inline Code"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            title="Inline Code (`code`)"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <Code className="h-4 w-4" />
           </button>
           <button
             type="button"
-            onClick={() => insertSnippet('```typescript\n', '\n```', 'console.log("code block");')}
-            title="Code Block"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            onClick={() => insertSnippet('```typescript\n', '\n```', 'console.log("Infosec code");')}
+            title="Code Block (```lang...)"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <FileCode className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={() => insertSnippet('> ', '\n', 'Blockquote')}
-            title="Blockquote"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            title="Blockquote (> quote)"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <Quote className="h-4 w-4" />
           </button>
 
-          <div className="h-4 w-px bg-slate-200 mx-1" />
+          <div className="h-4 w-px bg-slate-300 mx-1" />
 
           <button
             type="button"
             onClick={() => insertSnippet('* ', '\n', 'List item')}
             title="Bullet List (* item)"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <List className="h-4 w-4" />
           </button>
@@ -488,23 +522,23 @@ export default function BlogEditorModal({
             type="button"
             onClick={() => insertSnippet('1. ', '\n', 'Ordered item')}
             title="Numbered List (1. item)"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <ListOrdered className="h-4 w-4" />
           </button>
           <button
             type="button"
-            onClick={() => insertSnippet('[', '](https://example.com)', 'link title')}
-            title="Hyperlink"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            onClick={() => insertSnippet('[', '](https://cykruit.com)', 'Link Title')}
+            title="Hyperlink ([text](url))"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <Link2 className="h-4 w-4" />
           </button>
           <button
             type="button"
-            onClick={() => insertSnippet('![', '](https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800)', 'Image Alt')}
-            title="Insert Image"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            onClick={() => insertSnippet('![', '](https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800)', 'Illustration Alt')}
+            title="Insert Image (![alt](url))"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <ImageIcon className="h-4 w-4" />
           </button>
@@ -512,12 +546,12 @@ export default function BlogEditorModal({
             type="button"
             onClick={() => insertSnippet('\n---\n\n', '', '')}
             title="Horizontal Rule (---)"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-700 transition"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-700 transition"
           >
             <Minus className="h-4 w-4" />
           </button>
 
-          <div className="h-4 w-px bg-slate-200 mx-1" />
+          <div className="h-4 w-px bg-slate-300 mx-1" />
 
           {/* Undo / Redo */}
           <button
@@ -525,7 +559,7 @@ export default function BlogEditorModal({
             onClick={handleUndo}
             disabled={history.past.length === 0}
             title="Undo (Ctrl+Z)"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-500 disabled:opacity-30 transition"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-600 disabled:opacity-30 transition"
           >
             <Undo2 className="h-4 w-4" />
           </button>
@@ -534,18 +568,18 @@ export default function BlogEditorModal({
             onClick={handleRedo}
             disabled={history.future.length === 0}
             title="Redo (Ctrl+Y)"
-            className="p-1.5 hover:bg-slate-100 rounded text-slate-500 disabled:opacity-30 transition"
+            className="p-1.5 hover:bg-white hover:shadow-2xs rounded-lg text-slate-600 disabled:opacity-30 transition"
           >
             <Redo2 className="h-4 w-4" />
           </button>
         </div>
 
         {/* View Mode Switcher (Split / Write / Preview) */}
-        <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-semibold text-slate-600">
+        <div className="flex items-center bg-slate-200/70 p-0.5 rounded-xl text-xs font-semibold text-slate-600">
           <button
             type="button"
             onClick={() => setViewMode('split')}
-            className={`flex items-center space-x-1.5 px-3 py-1 rounded-md transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg transition ${
               viewMode === 'split' ? 'bg-white text-blue-900 shadow-2xs' : 'hover:text-slate-900'
             }`}
           >
@@ -555,7 +589,7 @@ export default function BlogEditorModal({
           <button
             type="button"
             onClick={() => setViewMode('write')}
-            className={`flex items-center space-x-1.5 px-3 py-1 rounded-md transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg transition ${
               viewMode === 'write' ? 'bg-white text-blue-900 shadow-2xs' : 'hover:text-slate-900'
             }`}
           >
@@ -565,7 +599,7 @@ export default function BlogEditorModal({
           <button
             type="button"
             onClick={() => setViewMode('preview')}
-            className={`flex items-center space-x-1.5 px-3 py-1 rounded-md transition ${
+            className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg transition ${
               viewMode === 'preview' ? 'bg-white text-blue-900 shadow-2xs' : 'hover:text-slate-900'
             }`}
           >
@@ -580,13 +614,13 @@ export default function BlogEditorModal({
         {/* Left Pane: Markdown Editor */}
         {(viewMode === 'split' || viewMode === 'write') && (
           <div
-            className={`h-full flex flex-col border-r border-slate-200 ${
+            className={`h-full min-h-0 flex flex-col overflow-hidden border-r border-slate-200 ${
               viewMode === 'write' ? 'md:col-span-2' : ''
             }`}
           >
-            <div className="px-4 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono uppercase tracking-wider">
-              <span>Markdown Source</span>
-              <span>UTF-8 / GFM</span>
+            <div className="px-6 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono uppercase tracking-wider flex-shrink-0">
+              <span>Markdown Source Editor</span>
+              <span>Markdown-it GFM</span>
             </div>
             <textarea
               ref={textareaRef}
@@ -594,7 +628,7 @@ export default function BlogEditorModal({
               onChange={handleTextareaChange}
               onKeyDown={handleTextareaKeyDown}
               placeholder="Paste or write your Markdown content here...&#10;&#10;# Article Title&#10;&#10;Traditionally, **People, Process, and Technology** are considered the key components...&#10;&#10;## Risk Considerations&#10;* Maker-checker controls&#10;* Segregation of duties&#10;&#10;1. **Privacy and security risks**&#10;   AI systems can process large amounts of data.&#10;&#10;![Illustration](https://...)"
-              className="flex-1 w-full p-6 text-sm font-mono text-slate-800 bg-white focus:outline-none resize-none leading-relaxed overflow-y-auto"
+              className="flex-1 min-h-0 w-full p-8 text-sm font-mono text-slate-800 bg-white focus:outline-none resize-none leading-relaxed overflow-y-auto"
             />
           </div>
         )}
@@ -602,19 +636,22 @@ export default function BlogEditorModal({
         {/* Right Pane: Live Rendered GFM Preview */}
         {(viewMode === 'split' || viewMode === 'preview') && (
           <div
-            className={`h-full flex flex-col bg-slate-50/50 ${
+            className={`h-full min-h-0 flex flex-col overflow-hidden bg-slate-50/40 ${
               viewMode === 'preview' ? 'md:col-span-2' : ''
             }`}
           >
-            <div className="px-4 py-1.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono uppercase tracking-wider">
+            <div className="px-6 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[11px] text-slate-400 font-mono uppercase tracking-wider flex-shrink-0">
               <span>Live Rendered Preview</span>
-              <span className="text-emerald-600 font-semibold">● Real-time</span>
+              <span className="text-emerald-600 font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live Sync
+              </span>
             </div>
 
-            <div className="flex-1 p-6 sm:p-8 overflow-y-auto bg-white">
+            <div className="flex-1 min-h-0 p-8 sm:p-12 overflow-y-auto bg-white">
               {/* Cover Image Preview Banner */}
               {coverImage && (
-                <div className="mb-6 rounded-xl overflow-hidden border border-slate-200 shadow-xs max-h-56 bg-slate-900">
+                <div className="mb-8 rounded-2xl overflow-hidden border border-slate-200 shadow-xs max-h-72 bg-slate-900">
                   <img
                     src={coverImage}
                     alt="Article Cover Preview"
@@ -625,27 +662,27 @@ export default function BlogEditorModal({
               )}
 
               {/* Title & Category Header in Preview */}
-              <div className="mb-6 pb-4 border-b border-slate-100">
-                <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+              <div className="mb-8 pb-6 border-b border-slate-100">
+                <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
                   {category}
                 </span>
-                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-2 mb-1 leading-tight">
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-3 mb-2 leading-tight tracking-tight">
                   {title || 'Untitled Article'}
                 </h1>
                 {excerpt && (
-                  <p className="text-xs text-slate-600 italic border-l-4 border-blue-600 pl-3 py-1 mt-3 bg-slate-50 rounded-r-md">
+                  <p className="text-sm text-slate-600 italic border-l-4 border-blue-600 pl-4 py-1.5 mt-4 bg-slate-50 rounded-r-lg leading-relaxed">
                     {excerpt}
                   </p>
                 )}
               </div>
 
-              {/* Rendered HTML Content */}
+              {/* Rendered Markdown-it Content */}
               <div
                 className="markdown-rendered-content"
                 dangerouslySetInnerHTML={{
                   __html:
                     renderedHtml ||
-                    '<p style="color:#94a3b8;font-style:italic;">No article content written yet. Start typing in the editor on the left.</p>',
+                    '<p style="color:#94a3b8;font-style:italic;">No article content written yet. Start typing in the Markdown editor on the left.</p>',
                 }}
               />
             </div>
@@ -653,45 +690,20 @@ export default function BlogEditorModal({
         )}
       </div>
 
-      {/* ── Footer Bar ── */}
-      <div className="bg-white border-t border-slate-200 px-6 py-3 flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
-        {/* Word count & read time */}
-        <div className="flex items-center space-x-3 text-xs text-slate-500 font-medium">
+      {/* ── Bottom Status Bar ── */}
+      <div className="bg-slate-50 border-t border-slate-200 px-6 py-2 flex items-center justify-between text-xs text-slate-500 font-medium flex-shrink-0">
+        <div className="flex items-center space-x-3">
           <span className="font-mono">{wordCount} words</span>
           <span>•</span>
           <span>~{readingTime} min read</span>
           <span>•</span>
-          <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px] font-mono">
-            GFM Supported
+          <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px] font-mono border border-emerald-100">
+            Markdown-it Enabled
           </span>
         </div>
 
-        <div className="flex items-center space-x-4">
-          {/* Publication Toggle */}
-          <label className="flex items-center space-x-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={isPublished}
-              onChange={(e) => setIsPublished(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-blue-800 focus:ring-blue-600"
-            />
-            <span className="text-xs font-semibold text-slate-800">
-              {isPublished ? 'Publish Live' : 'Save as Draft'}
-            </span>
-          </label>
-
-          <Button type="button" variant="secondary" onClick={onCancel} disabled={submitting}>
-            Cancel
-          </Button>
-
-          <Button type="submit" variant="primary" disabled={submitting} className="flex items-center space-x-1.5">
-            {submitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            <span>{initialBlog ? 'Update Article' : 'Save & Publish'}</span>
-          </Button>
+        <div className="flex items-center space-x-2 text-[11px] text-slate-400">
+          <span>Auto-saving draft locally</span>
         </div>
       </div>
     </form>

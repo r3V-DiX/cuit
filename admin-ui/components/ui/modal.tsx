@@ -114,9 +114,9 @@ function ModalDialog({
 
       {/* panel */}
       <div
-        className={`relative w-full max-h-[88vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 ${
+        className={`relative w-full ${state.size === 'full' ? 'max-h-[94vh]' : 'max-h-[88vh]'} overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/20 ${
           state.size === 'full'
-            ? 'max-w-6xl'
+            ? 'max-w-7xl'
             : state.size === '5xl'
               ? 'max-w-5xl'
               : state.size === '4xl'

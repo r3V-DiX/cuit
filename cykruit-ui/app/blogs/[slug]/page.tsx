@@ -19,6 +19,7 @@ import {
   Bookmark,
 } from "lucide-react";
 import ArticleContentRenderer from "./_components/article-renderer";
+import MarkdownIt from "markdown-it";
 
 interface BlogPostDetail {
   id: string;
@@ -195,13 +196,14 @@ export default async function BlogDetailPage({
               <img
                 src={post.coverImage}
                 alt={post.title}
+                referrerPolicy="no-referrer"
                 className="w-full max-h-[480px] object-cover"
               />
             </div>
           )}
 
           {/* Article Main Body */}
-          <div className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:text-slate-700 prose-p:leading-relaxed prose-p:mb-5 prose-a:text-blue-600 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline prose-code:font-mono prose-code:text-xs prose-code:bg-slate-100 prose-code:text-slate-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-pre:rounded-xl prose-pre:p-4 prose-blockquote:border-l-4 prose-blockquote:border-blue-600 prose-blockquote:bg-blue-50/40 prose-blockquote:py-1 prose-blockquote:px-4 prose-blockquote:rounded-r-lg prose-li:text-slate-700">
+          <div className="markdown-rendered-content">
             {post.content ? (
               <div
                 dangerouslySetInnerHTML={{
@@ -243,76 +245,61 @@ export default async function BlogDetailPage({
   );
 }
 
+const md = new MarkdownIt({
+  html: true,
+  linkify: true,
+  typographer: true,
+  breaks: true,
+});
+
+const defaultImageRule =
+  md.renderer.rules.image ||
+  function (tokens, idx, options, _env, self) {
+    return self.renderToken(tokens, idx, options);
+  };
+
+md.renderer.rules.image = function (tokens, idx, options, env, self) {
+  const token = tokens[idx];
+  const srcIndex = token.attrIndex("src");
+  const rawSrc = srcIndex >= 0 && token.attrs ? token.attrs[srcIndex][1] : "";
+  const src = typeof rawSrc === "string" ? rawSrc : String(rawSrc || "");
+
+  const isPlaceholder = !src || src.startsWith("IMAGE_URL") || src === "#";
+  if (isPlaceholder) {
+    return `<div class="my-5 p-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 text-center text-slate-500 text-xs flex flex-col items-center justify-center gap-1.5"><span class="font-medium text-slate-700">🖼 Image: ${token.content || "Illustration"}</span></div>`;
+  }
+
+  token.attrPush(["loading", "lazy"]);
+  token.attrPush(["referrerpolicy", "no-referrer"]);
+  token.attrPush(["class", "rounded-xl border border-slate-200 shadow-xs my-6 max-w-full h-auto mx-auto"]);
+  return defaultImageRule(tokens, idx, options, env, self);
+};
+
+const defaultLinkRule =
+  md.renderer.rules.link_open ||
+  function (tokens, idx, options, _env, self) {
+    return self.renderToken(tokens, idx, options);
+  };
+
+md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
+  const token = tokens[idx];
+  token.attrPush(["target", "_blank"]);
+  token.attrPush(["rel", "noopener noreferrer"]);
+  token.attrPush(["class", "text-blue-600 font-semibold underline hover:text-blue-800"]);
+  return defaultLinkRule(tokens, idx, options, env, self);
+};
+
 function formatContentToHtml(raw: string): string {
   if (!raw || !raw.trim()) return "";
 
-  // If already full HTML formatted (contains block level html tags), return directly
-  if (raw.includes("<p>") || raw.includes("<h2>") || raw.includes("<h3>") || raw.includes("<div>")) {
+  // If already wrapped in HTML structure from an external WYSIWYG editor
+  if (raw.trim().startsWith("<article>") || raw.trim().startsWith("<div>")) {
     return raw;
   }
 
-  let html = raw;
-
-  // 1. Code blocks: ```lang ... ```
-  html = html.replace(/```([\w]*)\n([\s\S]*?)```/g, (_match, lang, code) => {
-    return `<pre class="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-xs my-4 overflow-x-auto"><code class="language-${lang || "text"}">${escapeHtml(code.trim())}</code></pre>`;
-  });
-
-  // 2. Inline code: `code`
-  html = html.replace(/`([^`]+)`/g, '<code class="bg-slate-100 text-slate-900 px-1.5 py-0.5 rounded text-xs font-mono">$1</code>');
-
-  // 3. Headers: #, ##, ###, ####
-  html = html.replace(/^#### (.*$)/gim, '<h4 class="text-base font-bold text-slate-900 mt-5 mb-2">$1</h4>');
-  html = html.replace(/^### (.*$)/gim, '<h3 class="text-xl font-bold text-slate-900 mt-6 mb-3">$1</h3>');
-  html = html.replace(/^## (.*$)/gim, '<h2 class="text-2xl font-extrabold text-slate-900 mt-8 mb-4 border-b border-slate-100 pb-2">$1</h2>');
-  html = html.replace(/^# (.*$)/gim, '<h1 class="text-3xl font-extrabold text-slate-900 mt-8 mb-4">$1</h1>');
-
-  // 4. Bold & Italic
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900">$1</strong>');
-  html = html.replace(/\*(.*?)\*/g, '<em class="italic text-slate-800">$1</em>');
-
-  // 5. Blockquotes: > quote
-  html = html.replace(/^\> (.*$)/gim, '<blockquote class="border-l-4 border-blue-600 bg-blue-50/50 py-2 px-4 rounded-r-lg text-slate-800 italic my-4">$1</blockquote>');
-
-  // 6. Links & Images
-  html = html.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" class="rounded-xl my-4 max-w-full h-auto" />');
-  html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 font-semibold underline hover:text-blue-800">$1</a>');
-
-  // 7. Bullet Lists & Numbered Lists
-  html = html.replace(/^[\*\-] (.*$)/gim, '<li class="ml-4 list-disc text-slate-700 my-1">$1</li>');
-  html = html.replace(/^\d+\. (.*$)/gim, '<li class="ml-4 list-decimal text-slate-700 my-1">$1</li>');
-
-  // Wrap consecutive <li> tags inside <ul class="list-disc pl-5 my-4 space-y-1"> or <ol>
-  html = html.replace(/(<li class="ml-4 list-disc text-slate-700 my-1">[\s\S]*?<\/li>\n?)+/g, '<ul class="list-disc pl-5 my-4 space-y-1">$&</ul>');
-  html = html.replace(/(<li class="ml-4 list-decimal text-slate-700 my-1">[\s\S]*?<\/li>\n?)+/g, '<ol class="list-decimal pl-5 my-4 space-y-1">$&</ol>');
-
-  // 8. Paragraphs
-  html = html
-    .split(/\n\n+/)
-    .map((block) => {
-      const trimmed = block.trim();
-      if (
-        trimmed.startsWith("<h") ||
-        trimmed.startsWith("<pre") ||
-        trimmed.startsWith("<blockquote") ||
-        trimmed.startsWith("<ul") ||
-        trimmed.startsWith("<ol") ||
-        trimmed.startsWith("<img")
-      ) {
-        return trimmed;
-      }
-      return `<p class="text-slate-700 leading-relaxed mb-4">${trimmed.replace(/\n/g, "<br/>")}</p>`;
-    })
-    .join("\n");
-
-  return html;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+  try {
+    return md.render(raw);
+  } catch {
+    return raw;
+  }
 }
