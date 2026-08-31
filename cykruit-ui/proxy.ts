@@ -22,12 +22,12 @@ function buildCsp(nonce: string, relaxedStyles: boolean): string {
 
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' https://checkout.razorpay.com${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${nonce}' https://checkout.razorpay.com https://www.googletagmanager.com${isDev ? " 'unsafe-eval'" : ""}`,
     styleSrc,
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
     // 'self' covers wss://<same-host> for WebSocket — no explicit WS origin needed
-    `connect-src 'self' http://127.0.0.1:* http://localhost:* https://api.razorpay.com https://checkout.razorpay.com https://lumberjack.razorpay.com`,
+    `connect-src 'self' http://127.0.0.1:* http://localhost:* https://api.razorpay.com https://checkout.razorpay.com https://lumberjack.razorpay.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com`,
     "frame-src https://api.razorpay.com https://checkout.razorpay.com",
     "frame-ancestors 'none'",
   ].join("; ");
