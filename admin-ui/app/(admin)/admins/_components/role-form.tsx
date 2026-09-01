@@ -1,6 +1,6 @@
 'use client';
 
-// admin-ui/app/(admin)/rbac/RoleForm.tsx
+// admin-ui/app/(admin)/admins/_components/role-form.tsx
 // Create-role form rendered inside the Modal's content slot.
 
 import { useState } from 'react';

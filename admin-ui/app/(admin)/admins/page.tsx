@@ -8,7 +8,6 @@ import { api } from '@/lib';
 import { ACTIONS } from '@/lib';
 import { usePermissions } from '@/lib/permissions-context';
 import type { AdminAccount, PaginatedResponse } from '@/lib';
-import { RequirePermission } from '@/components/ui';
 import { NoAccess } from '@/components/ui';
 import { Table } from '@/components/ui';
 import { PaginationBar } from '@/components/ui';
@@ -21,6 +20,10 @@ import { useToast } from '@/components/ui';
 import { ShieldCheck, Shield, Plus, Ban, RotateCcw } from 'lucide-react';
 import InviteAdminForm from './_components/invite-admin-form';
 import PendingInvitesTab from './_components/pending-invites-tab';
+import RolesTab from './_components/roles-tab';
+import PermissionsTab from './_components/permissions-tab';
+
+type PageTab = 'roles' | 'permissions' | 'admins' | 'pending';
 
 function formatDate(value?: string) {
   if (!value) return '—';
@@ -41,14 +44,32 @@ function AdminsPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const [tab, setTab] = useState<'active' | 'pending'>('active');
+  const [tabState, setTab] = useState<PageTab>('admins');
 
   const canManage = has(ACTIONS.ADMINS.MANAGE);
   const canViewRbac = has(ACTIONS.RBAC.VIEW);
+  const canManageRbac = has(ACTIONS.RBAC.MANAGE);
+  const hasAdminsView = has(ACTIONS.ADMINS.VIEW);
   const refresh = useCallback(() => setReloadKey((k) => k + 1), []);
 
+  const availableTabs: { key: PageTab; label: string }[] = [
+    ...(canViewRbac
+      ? [
+          { key: 'roles' as const, label: 'Roles' },
+          { key: 'permissions' as const, label: 'Permissions Map' },
+        ]
+      : []),
+    ...(hasAdminsView
+      ? [
+          { key: 'admins' as const, label: 'Admins' },
+          { key: 'pending' as const, label: 'Pending Invitations' },
+        ]
+      : []),
+  ];
+  const tab = availableTabs.some((t) => t.key === tabState) ? tabState : availableTabs[0]?.key;
+
   useEffect(() => {
-    if (tab !== 'active') return;
+    if (tab !== 'admins') return;
 
     async function loadAdmins() {
       setLoading(true);
@@ -134,17 +155,20 @@ function AdminsPageContent() {
     });
   };
 
+  if (availableTabs.length === 0) {
+    return <NoAccess />;
+  }
+
   return (
-    <RequirePermission action={ACTIONS.ADMINS.VIEW} fallback={<NoAccess />}>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Admins</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Admins &amp; Access</h2>
             <p className="text-sm text-slate-500">
-              Manage admin console accounts and invitations.
+              Manage admin console accounts, invitations, and role-based permissions.
             </p>
           </div>
-          {canManage && (
+          {tab === 'admins' && canManage && (
             <button
               onClick={openInviteForm}
               className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
@@ -156,29 +180,26 @@ function AdminsPageContent() {
         </div>
 
         <div className="flex gap-1 border-b border-slate-200">
-          <button
-            onClick={() => setTab('active')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              tab === 'active'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Admins
-          </button>
-          <button
-            onClick={() => setTab('pending')}
-            className={`px-4 py-2 text-sm font-medium transition-colors ${
-              tab === 'pending'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Pending Invitations
-          </button>
+          {availableTabs.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                tab === t.key
+                  ? 'border-b-2 border-blue-600 text-blue-600'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
         </div>
 
-        {tab === 'pending' ? (
+        {tab === 'roles' ? (
+          <RolesTab canManage={canManageRbac} />
+        ) : tab === 'permissions' ? (
+          <PermissionsTab />
+        ) : tab === 'pending' ? (
           <PendingInvitesTab canManage={canManage} />
         ) : (
           <>
@@ -254,17 +275,18 @@ function AdminsPageContent() {
                   ? [
                       {
                         key: 'actions',
-                        header: '',
+                        header: 'Actions',
                         className: 'text-right',
                         render: (a: AdminAccount) => (
-                          <div className="flex items-center justify-end gap-1">
+                          <div className="flex items-center justify-end gap-2">
                             {canViewRbac && (
                               <Link
                                 href={`/rbac/admins/${a.id}`}
-                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
-                                title="Manage roles"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                                title="View and manage this admin's roles and permission overrides"
                               >
-                                <Shield className="h-4 w-4" />
+                                <Shield className="h-3.5 w-3.5" />
+                                Roles
                               </Link>
                             )}
                             {canManage &&
@@ -273,18 +295,20 @@ function AdminsPageContent() {
                               ) : a.isActive ? (
                                 <button
                                   onClick={() => handleDeactivate(a)}
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
-                                  title="Deactivate"
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                                  title="Deactivate this admin's console access"
                                 >
-                                  <Ban className="h-4 w-4" />
+                                  <Ban className="h-3.5 w-3.5" />
+                                  Deactivate
                                 </button>
                               ) : (
                                 <button
                                   onClick={() => handleReactivate(a)}
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
-                                  title="Reactivate"
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600"
+                                  title="Restore this admin's console access"
                                 >
-                                  <RotateCcw className="h-4 w-4" />
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                  Reactivate
                                 </button>
                               ))}
                           </div>
@@ -299,8 +323,7 @@ function AdminsPageContent() {
         )}
           </>
         )}
-      </div>
-    </RequirePermission>
+    </div>
   );
 }
 

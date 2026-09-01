@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   Briefcase,
   CreditCard,
-  KeyRound,
   ScrollText,
   Quote,
   Shield,
@@ -48,7 +47,8 @@ interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
-  action: string;
+  /** Item is shown if the admin holds this action, or any one of these actions. */
+  action: string | string[];
   badge?: number;
 }
 
@@ -94,18 +94,14 @@ export default function AdminSidebar() {
   }, [has]);
 
   const ALL_NAV_ITEMS: NavItem[] = [
+    // Overview
     {
       label: 'Dashboard',
       href: '/dashboard',
       icon: <LayoutDashboard className="h-5 w-5" />,
       action: ACTIONS.DASHBOARD.VIEW,
     },
-    {
-      label: 'Users',
-      href: '/users',
-      icon: <Users className="h-5 w-5" />,
-      action: ACTIONS.USERS.VIEW,
-    },
+    // Daily action queues — highest-frequency, badge-bearing work items first
     {
       label: 'KYC',
       href: '/kyc',
@@ -121,16 +117,29 @@ export default function AdminSidebar() {
       badge: pendingJobs,
     },
     {
-      label: 'Resumes',
-      href: '/resumes',
-      icon: <FileText className="h-5 w-5" />,
-      action: ACTIONS.RESUMES.VIEW,
+      label: 'Users',
+      href: '/users',
+      icon: <Users className="h-5 w-5" />,
+      action: ACTIONS.USERS.VIEW,
     },
     {
       label: 'Applications',
       href: '/applications',
       icon: <ClipboardList className="h-5 w-5" />,
       action: ACTIONS.APPLICATIONS.VIEW,
+    },
+    {
+      label: 'Content Reports',
+      href: '/reports',
+      icon: <Flag className="h-5 w-5" />,
+      action: ACTIONS.REPORTS.VIEW,
+    },
+    // Core entity/commerce management
+    {
+      label: 'Resumes',
+      href: '/resumes',
+      icon: <FileText className="h-5 w-5" />,
+      action: ACTIONS.RESUMES.VIEW,
     },
     {
       label: 'Subscriptions',
@@ -144,18 +153,7 @@ export default function AdminSidebar() {
       icon: <Percent className="h-5 w-5" />,
       action: ACTIONS.DISCOUNTS.VIEW,
     },
-    {
-      label: 'RBAC',
-      href: '/rbac',
-      icon: <KeyRound className="h-5 w-5" />,
-      action: ACTIONS.RBAC.VIEW,
-    },
-    {
-      label: 'Audit Logs',
-      href: '/audit-logs',
-      icon: <ScrollText className="h-5 w-5" />,
-      action: ACTIONS.AUDIT.VIEW,
-    },
+    // Content & growth — periodic, not daily
     {
       label: 'Testimonials',
       href: '/testimonials',
@@ -163,34 +161,10 @@ export default function AdminSidebar() {
       action: ACTIONS.TESTIMONIALS.VIEW,
     },
     {
-      label: 'Contact',
-      href: '/contact',
-      icon: <Mail className="h-5 w-5" />,
-      action: ACTIONS.CONTACT.VIEW,
-    },
-    {
-      label: 'Content Reports',
-      href: '/reports',
-      icon: <Flag className="h-5 w-5" />,
-      action: ACTIONS.REPORTS.VIEW,
-    },
-    {
-      label: 'Admins',
-      href: '/admins',
-      icon: <UserCog className="h-5 w-5" />,
-      action: ACTIONS.ADMINS.VIEW,
-    },
-    {
-      label: 'Settings',
-      href: '/settings',
-      icon: <Settings2 className="h-5 w-5" />,
-      action: ACTIONS.SETTINGS.MANAGE,
-    },
-    {
-      label: 'Policies',
-      href: '/policies',
-      icon: <SlidersHorizontal className="h-5 w-5" />,
-      action: ACTIONS.POLICIES.MANAGE,
+      label: 'Blogs & Articles',
+      href: '/blogs',
+      icon: <BookOpen className="h-5 w-5" />,
+      action: ACTIONS.BLOGS.VIEW,
     },
     {
       label: 'Announcements',
@@ -205,16 +179,10 @@ export default function AdminSidebar() {
       action: ACTIONS.EMAILS.VIEW,
     },
     {
-      label: 'Blogs & Articles',
-      href: '/blogs',
-      icon: <BookOpen className="h-5 w-5" />,
-      action: ACTIONS.BLOGS.VIEW,
-    },
-    {
-      label: 'Blacklist',
-      href: '/blacklist',
-      icon: <ShieldBan className="h-5 w-5" />,
-      action: ACTIONS.BLACKLIST.MANAGE,
+      label: 'Contact',
+      href: '/contact',
+      icon: <Mail className="h-5 w-5" />,
+      action: ACTIONS.CONTACT.VIEW,
     },
     {
       label: 'Suggestions',
@@ -223,10 +191,35 @@ export default function AdminSidebar() {
       action: ACTIONS.SUGGESTIONS.MANAGE,
     },
     {
+      label: 'Blacklist',
+      href: '/blacklist',
+      icon: <ShieldBan className="h-5 w-5" />,
+      action: ACTIONS.BLACKLIST.MANAGE,
+    },
+    {
       label: 'Job Roles',
       href: '/roles',
       icon: <Tag className="h-5 w-5" />,
       action: ACTIONS.ROLES.MANAGE,
+    },
+    // Administration & governance — lowest frequency, highest stakes, last
+    {
+      label: 'Admins & Access',
+      href: '/admins',
+      icon: <UserCog className="h-5 w-5" />,
+      action: [ACTIONS.ADMINS.VIEW, ACTIONS.RBAC.VIEW],
+    },
+    {
+      label: 'Audit Logs',
+      href: '/audit-logs',
+      icon: <ScrollText className="h-5 w-5" />,
+      action: ACTIONS.AUDIT.VIEW,
+    },
+    {
+      label: 'Policies',
+      href: '/policies',
+      icon: <SlidersHorizontal className="h-5 w-5" />,
+      action: ACTIONS.POLICIES.MANAGE,
     },
     {
       label: 'System Health',
@@ -234,10 +227,18 @@ export default function AdminSidebar() {
       icon: <Server className="h-5 w-5" />,
       action: ACTIONS.DASHBOARD.VIEW,
     },
+    {
+      label: 'Settings',
+      href: '/settings',
+      icon: <Settings2 className="h-5 w-5" />,
+      action: ACTIONS.SETTINGS.MANAGE,
+    },
   ];
 
   // Filter by permissions — items are absent, not disabled
-  const navItems = ALL_NAV_ITEMS.filter((item) => has(item.action));
+  const navItems = ALL_NAV_ITEMS.filter((item) =>
+    Array.isArray(item.action) ? item.action.some(has) : has(item.action),
+  );
 
   function isActive(href: string) {
     if (href === '/dashboard') return pathname === href;

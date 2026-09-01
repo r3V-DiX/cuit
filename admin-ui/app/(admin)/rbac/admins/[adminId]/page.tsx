@@ -195,7 +195,7 @@ export default function AdminRbacPage({ params }: { params: Promise<{ adminId: s
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Link
-            href="/rbac"
+            href="/admins"
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-700"
           >
             <ArrowLeft className="h-4 w-4" />
