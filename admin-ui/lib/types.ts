@@ -282,10 +282,9 @@ export interface Job {
   rejectionReason?: string;
   viewCount: number;
   applicationCount: number;
-  isFeatured: boolean;
+  isFeatured?: boolean;
   expiresAt?: string;
   publishedAt?: string;
-  isFeatured?: boolean;
   createdAt: string;
   employer?: Employer;
 }
