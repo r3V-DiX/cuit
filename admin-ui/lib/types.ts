@@ -282,6 +282,7 @@ export interface Job {
   rejectionReason?: string;
   viewCount: number;
   applicationCount: number;
+  isFeatured: boolean;
   expiresAt?: string;
   publishedAt?: string;
   createdAt: string;
