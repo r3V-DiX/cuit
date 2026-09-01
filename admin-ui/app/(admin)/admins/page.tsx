@@ -3,6 +3,7 @@
 // admin-ui/app/(admin)/admins/page.tsx
 import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/lib';
 import { ACTIONS } from '@/lib';
 import { usePermissions } from '@/lib/permissions-context';
@@ -17,7 +18,7 @@ import { SkeletonTable } from '@/components/ui';
 import { EmptyState } from '@/components/ui';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
-import { ShieldCheck, Plus, Ban, RotateCcw } from 'lucide-react';
+import { ShieldCheck, Shield, Plus, Ban, RotateCcw } from 'lucide-react';
 import InviteAdminForm from './_components/invite-admin-form';
 import PendingInvitesTab from './_components/pending-invites-tab';
 
@@ -43,6 +44,7 @@ function AdminsPageContent() {
   const [tab, setTab] = useState<'active' | 'pending'>('active');
 
   const canManage = has(ACTIONS.ADMINS.MANAGE);
+  const canViewRbac = has(ACTIONS.RBAC.VIEW);
   const refresh = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
@@ -248,18 +250,27 @@ function AdminsPageContent() {
                     <span className="text-slate-600">{formatDate(a.lastLogin)}</span>
                   ),
                 },
-                ...(canManage
+                ...(canManage || canViewRbac
                   ? [
                       {
                         key: 'actions',
                         header: '',
                         className: 'text-right',
-                        render: (a: AdminAccount) =>
-                          a.id === user?.id ? (
-                            <span className="text-xs text-slate-400">You</span>
-                          ) : (
-                            <div className="flex items-center justify-end gap-1">
-                              {a.isActive ? (
+                        render: (a: AdminAccount) => (
+                          <div className="flex items-center justify-end gap-1">
+                            {canViewRbac && (
+                              <Link
+                                href={`/rbac/admins/${a.id}`}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                                title="Manage roles"
+                              >
+                                <Shield className="h-4 w-4" />
+                              </Link>
+                            )}
+                            {canManage &&
+                              (a.id === user?.id ? (
+                                <span className="text-xs text-slate-400">You</span>
+                              ) : a.isActive ? (
                                 <button
                                   onClick={() => handleDeactivate(a)}
                                   className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
@@ -275,9 +286,9 @@ function AdminsPageContent() {
                                 >
                                   <RotateCcw className="h-4 w-4" />
                                 </button>
-                              )}
-                            </div>
-                          ),
+                              ))}
+                          </div>
+                        ),
                       },
                     ]
                   : []),

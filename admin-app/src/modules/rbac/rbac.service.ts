@@ -149,11 +149,7 @@ export class RbacService {
         return this.rbacRepository.findAllPermissions();
     }
 
-    async listAdmins() {
-        return this.rbacRepository.findAllAdmins();
-    }
-
-    async assignAdminRole(actingAdminId: string, dto: AssignAdminRoleDto) {
+async assignAdminRole(actingAdminId: string, dto: AssignAdminRoleDto) {
         if (actingAdminId === dto.adminId) {
             throw new ForbiddenException('You cannot change your own role.');
         }

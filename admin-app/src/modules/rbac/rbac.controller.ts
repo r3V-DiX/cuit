@@ -91,14 +91,6 @@ export class RbacController {
         return this.rbacService.listPermissions();
     }
 
-    // ── Admin accounts ────────────────────────────────────────────────────────
-
-    @Get('admins')
-    @RequirePermission(ACTIONS.RBAC.VIEW)
-    listAdmins() {
-        return this.rbacService.listAdmins();
-    }
-
     // ── Admin role assignments ────────────────────────────────────────────────
 
     @Post('admin-roles')

@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui';
 import { StatusBadge } from '@/components/ui';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
-import { ArrowLeft, Shield, Pencil, Lock, Trash2 } from 'lucide-react';
+import { ArrowLeft, Shield, Pencil, Lock, Trash2, Search } from 'lucide-react';
 import Link from 'next/link';
 
 const inputCls =
@@ -46,6 +46,7 @@ export default function RoleDetailPage({ params }: { params: Promise<{ id: strin
   // Permission matrix state
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [savingPerms, setSavingPerms] = useState(false);
+  const [permQuery, setPermQuery] = useState('');
 
   const canManage = has(ACTIONS.RBAC.MANAGE);
   const isSystemRole = role ? SYSTEM_ROLE_NAMES.includes(role.name) : false;
@@ -154,11 +155,24 @@ export default function RoleDetailPage({ params }: { params: Promise<{ id: strin
   const assignedIds = new Set((role?.permissions ?? []).map((p) => p.permission.id));
   const permsDirty =
     selectedIds.length !== assignedIds.size || selectedIds.some((pid) => !assignedIds.has(pid));
-  const modules = [...new Set(permissions.map((p) => p.module))];
   const canEditPerms = canManage && !isSuperAdmin;
   const roleAssignedPermissions = role?.permissions ?? [];
+
+  const query = permQuery.trim().toLowerCase();
+  const matchesQuery = (p: Permission) =>
+    !query ||
+    p.action.toLowerCase().includes(query) ||
+    p.module.toLowerCase().includes(query) ||
+    (p.description?.toLowerCase().includes(query) ?? false);
+
+  const filteredPermissions = permissions.filter(matchesQuery);
+  const modules = [...new Set(filteredPermissions.map((p) => p.module))];
+
+  const filteredRoleAssignedPermissions = roleAssignedPermissions.filter((p) =>
+    matchesQuery(p.permission),
+  );
   const roleAssignedModules = [
-    ...new Set(roleAssignedPermissions.map((p) => p.permission.module)),
+    ...new Set(filteredRoleAssignedPermissions.map((p) => p.permission.module)),
   ].sort();
 
   return (
@@ -307,36 +321,55 @@ export default function RoleDetailPage({ params }: { params: Promise<{ id: strin
                 )}
               </div>
 
+              <div className="relative mb-4 max-w-xs">
+                <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  value={permQuery}
+                  onChange={(e) => setPermQuery(e.target.value)}
+                  placeholder="Search permissions…"
+                  className={`${inputCls} pl-9`}
+                />
+              </div>
+
               {canEditPerms ? (
-                <div className="space-y-4">
-                  {modules.map((mod) => (
-                    <div key={mod}>
-                      <p className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        {mod}
-                      </p>
-                      <div className="flex flex-wrap gap-x-5 gap-y-2">
-                        {permissions
-                          .filter((p) => p.module === mod)
-                          .map((p) => (
-                            <label
-                              key={p.id}
-                              className="flex items-center gap-1.5 text-sm text-slate-700"
-                              title={p.description}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={selectedIds.includes(p.id)}
-                                onChange={() => togglePermission(p.id)}
-                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <span className="font-mono text-xs">{p.action}</span>
-                            </label>
-                          ))}
+                permissions.length > 0 && filteredPermissions.length === 0 ? (
+                  <p className="text-sm text-slate-500">No permissions match your search.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {modules.map((mod) => (
+                      <div key={mod}>
+                        <p className="mb-1.5 font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          {mod}
+                        </p>
+                        <div className="flex flex-wrap gap-x-5 gap-y-2">
+                          {filteredPermissions
+                            .filter((p) => p.module === mod)
+                            .map((p) => (
+                              <label
+                                key={p.id}
+                                className="flex items-center gap-1.5 text-sm text-slate-700"
+                                title={p.description}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={selectedIds.includes(p.id)}
+                                  onChange={() => togglePermission(p.id)}
+                                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="font-mono text-xs">{p.action}</span>
+                              </label>
+                            ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : roleAssignedPermissions.length > 0 ? (
+                    ))}
+                  </div>
+                )
+              ) : roleAssignedPermissions.length === 0 ? (
+                <p className="text-sm text-slate-500">No permissions assigned.</p>
+              ) : filteredRoleAssignedPermissions.length === 0 ? (
+                <p className="text-sm text-slate-500">No permissions match your search.</p>
+              ) : (
                 <div className="space-y-4">
                   {roleAssignedModules.map((mod) => (
                     <div key={mod}>
@@ -344,7 +377,7 @@ export default function RoleDetailPage({ params }: { params: Promise<{ id: strin
                         {mod}
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        {roleAssignedPermissions
+                        {filteredRoleAssignedPermissions
                           .filter((p) => p.permission.module === mod)
                           .map((p) => (
                             <span
@@ -359,8 +392,6 @@ export default function RoleDetailPage({ params }: { params: Promise<{ id: strin
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-sm text-slate-500">No permissions assigned.</p>
               )}
             </div>
           </div>

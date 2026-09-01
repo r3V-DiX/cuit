@@ -97,26 +97,7 @@ export class RbacRepository {
         });
     }
 
-    // ── Admin accounts (for the assignment UI) ────────────────────────────────
-
-    async findAllAdmins() {
-        return this.prisma.admin.findMany({
-            orderBy: { createdAt: 'asc' },
-            select: {
-                id: true,
-                email: true,
-                firstName: true,
-                lastName: true,
-                isActive: true,
-                lastLogin: true,
-                roleAssignments: {
-                    select: { id: true, role: { select: { id: true, name: true } } },
-                },
-            },
-        });
-    }
-
-    // ── Admin role assignments ────────────────────────────────────────────────
+// ── Admin role assignments ────────────────────────────────────────────────
 
     /** Admins hold exactly one role — assigning a new one replaces any other the admin currently has. */
     async assignAdminRole(adminId: string, roleId: string, assignedBy: string, expiresAt?: Date) {

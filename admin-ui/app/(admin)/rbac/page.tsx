@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { api } from '@/lib';
 import { ACTIONS } from '@/lib';
 import { usePermissions } from '@/lib/permissions-context';
-import type { RbacRole, Permission, AdminAccount } from '@/lib';
+import type { RbacRole, Permission } from '@/lib';
 import { RequirePermission } from '@/components/ui';
 import { NoAccess } from '@/components/ui';
 import { Table } from '@/components/ui';
@@ -14,12 +14,11 @@ import { SkeletonTable } from '@/components/ui';
 import { EmptyState } from '@/components/ui';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
-import { Shield, ShieldAlert, Users, Plus } from 'lucide-react';
+import { Shield, ShieldAlert, Plus } from 'lucide-react';
 import { StatusBadge } from '@/components/ui';
-import { format } from 'date-fns';
 import RoleForm from './_components/role-form';
 
-type RbacTab = 'roles' | 'permissions' | 'admins';
+type RbacTab = 'roles' | 'permissions';
 
 export default function RbacPage() {
   const { has } = usePermissions();
@@ -28,7 +27,6 @@ export default function RbacPage() {
 
   const [roles, setRoles] = useState<RbacRole[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [admins, setAdmins] = useState<AdminAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<RbacTab>('roles');
@@ -42,14 +40,12 @@ export default function RbacPage() {
       setLoading(true);
       setError(null);
       try {
-        const [rolesData, permsData, adminsData] = await Promise.all([
+        const [rolesData, permsData] = await Promise.all([
           api.get<RbacRole[]>('/api/admin/rbac/roles'),
           api.get<Permission[]>('/api/admin/rbac/permissions'),
-          api.get<AdminAccount[]>('/api/admin/rbac/admins'),
         ]);
         setRoles(rolesData);
         setPermissions(permsData);
-        setAdmins(adminsData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load RBAC data');
       } finally {
@@ -79,7 +75,6 @@ export default function RbacPage() {
   const TABS: { key: RbacTab; label: string }[] = [
     { key: 'roles', label: 'Roles' },
     { key: 'permissions', label: 'Permissions Map' },
-    { key: 'admins', label: 'Admins' },
   ];
 
   return (
@@ -166,7 +161,7 @@ export default function RbacPage() {
               ]}
             />
           )
-        ) : activeTab === 'permissions' ? (
+        ) : (
           permissions.length === 0 ? (
             <EmptyState
               icon={<ShieldAlert className="h-6 w-6" />}
@@ -204,65 +199,6 @@ export default function RbacPage() {
               ]}
             />
           )
-        ) : admins.length === 0 ? (
-          <EmptyState
-            icon={<Users className="h-6 w-6" />}
-            title="No admins found"
-            description="No admin accounts exist yet."
-          />
-        ) : (
-          <Table
-            data={admins}
-            getRowKey={(a) => a.id}
-            columns={[
-              {
-                key: 'admin',
-                header: 'Admin',
-                render: (a) => (
-                  <Link href={`/rbac/admins/${a.id}`} className="group block">
-                    <p className="font-medium text-slate-900 group-hover:text-blue-600">
-                      {a.firstName} {a.lastName}
-                    </p>
-                    <p className="text-xs text-slate-500">{a.email}</p>
-                  </Link>
-                ),
-              },
-              {
-                key: 'roles',
-                header: 'Roles',
-                render: (a) => (
-                  <div className="flex flex-wrap gap-1">
-                    {a.roleAssignments.length > 0 ? (
-                      a.roleAssignments.map((ra) => (
-                        <span
-                          key={ra.id}
-                          className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 font-mono text-xs text-blue-700"
-                        >
-                          {ra.role.name}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-slate-400">No roles</span>
-                    )}
-                  </div>
-                ),
-              },
-              {
-                key: 'lastLogin',
-                header: 'Last Login',
-                render: (a) => (
-                  <span className="font-mono text-xs text-slate-600">
-                    {a.lastLogin ? format(new Date(a.lastLogin), 'MMM d, yyyy HH:mm') : '—'}
-                  </span>
-                ),
-              },
-              {
-                key: 'status',
-                header: 'Status',
-                render: (a) => <StatusBadge status={a.isActive ? 'ACTIVE' : 'INACTIVE'} />,
-              },
-            ]}
-          />
         )}
       </div>
     </RequirePermission>
