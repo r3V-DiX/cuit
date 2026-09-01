@@ -527,6 +527,18 @@ export interface AdminAccount {
   roleAssignments: { id: string; role: { id: string; name: string } }[];
 }
 
+export type AdminInviteStatus = 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED';
+
+export interface AdminInvite {
+  id: string;
+  email: string;
+  status: AdminInviteStatus;
+  expiresAt: string;
+  createdAt: string;
+  role: { id: string; name: string } | null;
+  inviter: { id: string; firstName: string; lastName: string } | null;
+}
+
 export type ContactFormStatus = 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'SPAM';
 
 export interface ContactForm {

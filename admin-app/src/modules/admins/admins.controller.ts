@@ -43,6 +43,21 @@ export class AdminsController {
         return this.service.invite(admin.id, `${admin.firstName} ${admin.lastName}`, dto);
     }
 
+    // GET /admin/admins/invites
+    @Get('invites')
+    @RequirePermission(ACTIONS.ADMINS.VIEW)
+    listInvites(@Query() query: AdminListQueryDto) {
+        return this.service.listInvites(query);
+    }
+
+    // DELETE /admin/admins/invites/:id — revokes a pending invite (status -> REVOKED)
+    @Delete('invites/:id')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.ADMINS.MANAGE)
+    revokeInvite(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string) {
+        return this.service.revokeInvite(admin.id, id);
+    }
+
     // DELETE /admin/admins/:id — deactivates (soft), never a hard delete
     @Delete(':id')
     @HttpCode(HttpStatus.OK)

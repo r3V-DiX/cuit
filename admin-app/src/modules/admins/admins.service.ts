@@ -39,6 +39,11 @@ export class AdminsService {
             throw new ConflictException('An admin with this email already exists');
         }
 
+        const pendingInvite = await this.repo.findPendingInviteByEmail(dto.email);
+        if (pendingInvite) {
+            throw new ConflictException('An invite is already pending for this email');
+        }
+
         const rawToken = generateRawToken();
         const hashedToken = hashToken(rawToken);
         const expiresAt = new Date(Date.now() + INVITE_TTL_HOURS * 60 * 60 * 1000);
@@ -111,6 +116,32 @@ export class AdminsService {
         });
 
         return { admin };
+    }
+
+    listInvites(query: AdminListQueryDto) {
+        return this.repo.findPendingInvites(query);
+    }
+
+    async revokeInvite(currentAdminId: string, id: string) {
+        const invite = await this.repo.findInviteById(id);
+        if (!invite || invite.status !== 'PENDING') {
+            throw new NotFoundException('Pending invite not found');
+        }
+
+        const revoked = await this.repo.revokeInvite(id);
+
+        this.auditLogger.log({
+            adminId: currentAdminId,
+            action: 'admins:invite-revoke',
+            module: 'admins',
+            resource: 'AdminInvite',
+            resourceId: id,
+            newData: { email: invite.email } as unknown as Prisma.InputJsonValue,
+            riskLevel: 'CRITICAL',
+            result: 'SUCCESS',
+        });
+
+        return revoked;
     }
 
     async deactivate(currentAdminId: string, id: string) {

@@ -29,6 +29,16 @@ const INVITE_SELECT = {
     createdAt: true,
 } satisfies Prisma.AdminInviteSelect;
 
+const INVITE_LIST_SELECT = {
+    id: true,
+    email: true,
+    status: true,
+    expiresAt: true,
+    createdAt: true,
+    role: { select: { id: true, name: true } },
+    inviter: { select: { id: true, firstName: true, lastName: true } },
+} satisfies Prisma.AdminInviteSelect;
+
 @Injectable()
 export class AdminsRepository {
     constructor(private readonly prisma: PrismaService) {}
@@ -105,6 +115,51 @@ export class AdminsRepository {
         return this.prisma.adminInvite.findUnique({
             where: { token: hashedToken },
             select: INVITE_SELECT,
+        });
+    }
+
+    async findPendingInviteByEmail(email: string) {
+        return this.prisma.adminInvite.findFirst({
+            where: { email, status: AdminInviteStatus.PENDING, expiresAt: { gt: new Date() } },
+            select: { id: true },
+        });
+    }
+
+    async findInviteById(id: string) {
+        return this.prisma.adminInvite.findUnique({ where: { id }, select: INVITE_SELECT });
+    }
+
+    async findPendingInvites(query: AdminListQueryDto) {
+        const { page = 1, limit = 20, q } = query;
+        const skip = (page - 1) * limit;
+
+        const where: Prisma.AdminInviteWhereInput = {
+            status: AdminInviteStatus.PENDING,
+            ...(q ? { email: { contains: q, mode: Prisma.QueryMode.insensitive } } : {}),
+        };
+
+        const [items, total] = await this.prisma.$transaction([
+            this.prisma.adminInvite.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { createdAt: 'desc' },
+                select: INVITE_LIST_SELECT,
+            }),
+            this.prisma.adminInvite.count({ where }),
+        ]);
+
+        return {
+            items,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+        };
+    }
+
+    async revokeInvite(id: string) {
+        return this.prisma.adminInvite.update({
+            where: { id },
+            data: { status: AdminInviteStatus.REVOKED },
+            select: INVITE_LIST_SELECT,
         });
     }
 

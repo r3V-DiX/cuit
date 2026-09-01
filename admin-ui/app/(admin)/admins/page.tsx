@@ -19,6 +19,7 @@ import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
 import { ShieldCheck, Plus, Ban, RotateCcw } from 'lucide-react';
 import InviteAdminForm from './_components/invite-admin-form';
+import PendingInvitesTab from './_components/pending-invites-tab';
 
 function formatDate(value?: string) {
   if (!value) return '—';
@@ -39,11 +40,14 @@ function AdminsPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [tab, setTab] = useState<'active' | 'pending'>('active');
 
   const canManage = has(ACTIONS.ADMINS.MANAGE);
   const refresh = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
+    if (tab !== 'active') return;
+
     async function loadAdmins() {
       setLoading(true);
       setError(null);
@@ -63,7 +67,7 @@ function AdminsPageContent() {
       }
     }
     loadAdmins();
-  }, [page, q, reloadKey]);
+  }, [tab, page, q, reloadKey]);
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -149,6 +153,33 @@ function AdminsPageContent() {
           )}
         </div>
 
+        <div className="flex gap-1 border-b border-slate-200">
+          <button
+            onClick={() => setTab('active')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              tab === 'active'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Admins
+          </button>
+          <button
+            onClick={() => setTab('pending')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              tab === 'pending'
+                ? 'border-b-2 border-blue-600 text-blue-600'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Pending Invitations
+          </button>
+        </div>
+
+        {tab === 'pending' ? (
+          <PendingInvitesTab canManage={canManage} />
+        ) : (
+          <>
         <FilterBar searchKey="q" searchPlaceholder="Search name or email..." filters={[]} />
 
         {error ? (
@@ -254,6 +285,8 @@ function AdminsPageContent() {
             />
             <PaginationBar pagination={data.pagination} onPageChange={handlePageChange} />
           </div>
+        )}
+          </>
         )}
       </div>
     </RequirePermission>
