@@ -1,7 +1,7 @@
 'use client';
 
 // admin-ui/app/(admin)/emails/page.tsx
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api, ACTIONS } from '@/lib';
@@ -26,10 +26,14 @@ import {
   Plus,
   Activity,
   Layers,
-  Sparkles,
+  ShieldAlert,
+  Inbox,
+  Radio,
 } from 'lucide-react';
+import { ResendLogsTab } from './_components/resend-logs-tab';
+import { SuppressionsTab } from './_components/suppressions-tab';
 
-function CampaignsPageContent() {
+function CampaignsTabContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { has } = usePermissions();
@@ -41,7 +45,6 @@ function CampaignsPageContent() {
   const [data, setData] = useState<PaginatedResponse<AdminEmailCampaign> | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [reloadKey, setReloadKey] = useState<number>(0);
 
   const canSend = has(ACTIONS.EMAILS.SEND);
 
@@ -66,7 +69,7 @@ function CampaignsPageContent() {
       }
     }
     loadCampaigns();
-  }, [page, status, search, reloadKey]);
+  }, [page, status, search]);
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -81,37 +84,6 @@ function CampaignsPageContent() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-1 border-b border-slate-200/60">
-        <div>
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-lg bg-blue-50 text-[#1B3C8B] border border-blue-100">
-              <SendHorizontal className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900">
-                Email Broadcasts & Campaigns
-              </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Send targeted announcements, newsletter updates, and custom notifications to Cykruit users.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {canSend && (
-          <Link href="/emails/new">
-            <Button
-              variant="primary"
-              className="flex items-center space-x-2 shadow-xs bg-[#1B3C8B] hover:bg-[#142e6d] text-white px-4 py-2 text-xs font-semibold rounded-lg transition"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Compose Broadcast</span>
-            </Button>
-          </Link>
-        )}
-      </div>
-
       {/* Hallmark Tactile Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Campaigns */}
@@ -345,11 +317,105 @@ function CampaignsPageContent() {
   );
 }
 
-export default function CampaignsPage() {
+function EmailsPageContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { has } = usePermissions();
+
+  const currentTab = searchParams.get('tab') || 'logs';
+  const canSend = has(ACTIONS.EMAILS.SEND);
+
+  const handleTabChange = (newTab: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', newTab);
+    router.push(`?${params.toString()}`);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-1 border-b border-slate-200/60">
+        <div>
+          <div className="flex items-center space-x-2.5">
+            <div className="p-2 rounded-lg bg-blue-50 text-[#1B3C8B] border border-blue-100">
+              <SendHorizontal className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900">
+                Email Center & Logs
+              </h1>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Real-time transactional email activity, delivery statuses, campaigns, and suppressions.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {canSend && (
+          <Link href="/emails/new">
+            <Button
+              variant="primary"
+              className="flex items-center space-x-2 shadow-xs bg-[#1B3C8B] hover:bg-[#142e6d] text-white px-4 py-2 text-xs font-semibold rounded-lg transition"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Compose Broadcast</span>
+            </Button>
+          </Link>
+        )}
+      </div>
+
+      {/* Main Tabs Navigation (Resend Style) */}
+      <div className="flex items-center space-x-1 border-b border-slate-200">
+        <button
+          onClick={() => handleTabChange('logs')}
+          className={`flex items-center space-x-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition ${
+            currentTab === 'logs'
+              ? 'border-[#1B3C8B] text-[#1B3C8B] bg-blue-50/50 rounded-t-lg'
+              : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50 rounded-t-lg'
+          }`}
+        >
+          <Radio className="h-4 w-4" />
+          <span>Live Email Logs (Resend)</span>
+        </button>
+
+        <button
+          onClick={() => handleTabChange('campaigns')}
+          className={`flex items-center space-x-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition ${
+            currentTab === 'campaigns'
+              ? 'border-[#1B3C8B] text-[#1B3C8B] bg-blue-50/50 rounded-t-lg'
+              : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50 rounded-t-lg'
+          }`}
+        >
+          <Layers className="h-4 w-4" />
+          <span>Broadcast Campaigns</span>
+        </button>
+
+        <button
+          onClick={() => handleTabChange('suppressions')}
+          className={`flex items-center space-x-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition ${
+            currentTab === 'suppressions'
+              ? 'border-[#1B3C8B] text-[#1B3C8B] bg-blue-50/50 rounded-t-lg'
+              : 'border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-50 rounded-t-lg'
+          }`}
+        >
+          <ShieldAlert className="h-4 w-4" />
+          <span>Suppressions</span>
+        </button>
+      </div>
+
+      {/* Active Tab View */}
+      {currentTab === 'logs' && <ResendLogsTab />}
+      {currentTab === 'campaigns' && <CampaignsTabContent />}
+      {currentTab === 'suppressions' && <SuppressionsTab />}
+    </div>
+  );
+}
+
+export default function EmailsPage() {
   return (
     <RequirePermission action={ACTIONS.EMAILS.VIEW} fallback={<NoAccess />}>
       <Suspense fallback={<SkeletonTable rows={6} />}>
-        <CampaignsPageContent />
+        <EmailsPageContent />
       </Suspense>
     </RequirePermission>
   );

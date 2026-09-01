@@ -34,7 +34,8 @@
       "@cykruit/policy-config": ["../cykruit-app/libs/policy-config/src/index.ts"],
       "@cykruit/blacklist": ["../cykruit-app/libs/blacklist/src/index.ts"],
       "@cykruit/events":     ["../cykruit-app/libs/events/src/index.ts"],
-      "@cykruit/upload":     ["../cykruit-app/libs/upload/src/index.ts"]
+      "@cykruit/upload":     ["../cykruit-app/libs/upload/src/index.ts"],
+      "resend":              ["../cykruit-app/node_modules/resend/dist/index.d.cts"]
     }
   },
   "include": ["src/**/*", "prisma/**/*"],

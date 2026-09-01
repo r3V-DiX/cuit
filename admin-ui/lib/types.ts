@@ -285,6 +285,7 @@ export interface Job {
   isFeatured: boolean;
   expiresAt?: string;
   publishedAt?: string;
+  isFeatured?: boolean;
   createdAt: string;
   employer?: Employer;
 }
@@ -833,6 +834,39 @@ export interface AdminEmailCampaign {
   completedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Resend Transactional Email Logs & Suppressions ───────────────────────────
+
+export interface ResendEmailLogItem {
+  id: string;
+  object?: string;
+  to: string[] | string;
+  from: string;
+  created_at: string;
+  subject: string;
+  html?: string;
+  text?: string;
+  bcc?: string[];
+  cc?: string[];
+  reply_to?: string[];
+  last_event?: 'delivered' | 'sent' | 'bounced' | 'suppressed' | 'complained' | 'delivery_delayed' | string;
+  status?: string;
+}
+
+export interface ResendEmailDetail extends ResendEmailLogItem {
+  html?: string;
+  text?: string;
+  headers?: Record<string, string>;
+  tags?: { name: string; value: string }[];
+}
+
+export interface ResendSuppressionItem {
+  id: string;
+  email: string;
+  reason: string;
+  subject?: string;
+  created_at: string;
 }
 
 export interface Blog {
