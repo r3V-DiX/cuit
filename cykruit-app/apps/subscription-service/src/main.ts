@@ -64,13 +64,18 @@ async function bootstrap() {
             'http://localhost:4000',
         ];
 
+    const isDev = process.env.NODE_ENV !== 'production';
+
     app.enableCors({
         origin: (origin, callback) => {
             if (!origin) return callback(null, true);
-            if (allowedOrigins.includes(origin)) {
+            if (
+                allowedOrigins.includes(origin) ||
+                (isDev && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))
+            ) {
                 callback(null, true);
             } else {
-                callback(new Error('Not allowed by CORS'));
+                callback(null, false);
             }
         },
         credentials: true,

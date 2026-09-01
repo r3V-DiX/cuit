@@ -1,5 +1,4 @@
-/* Hallmark · component: email-notification · genre: modern-minimal */
-
+// libs/mail/src/templates/notification.template.ts
 import { baseTemplate } from "./base.template";
 import { cyberButton } from "./cyber-button.template";
 import { COLORS, TYPOGRAPHY } from "./colors";
@@ -11,20 +10,50 @@ export const notificationTemplate = (
 ): string =>
   baseTemplate(
     `
-    <div style="text-align:left;margin-bottom:24px;">
-      <h1 style="margin:0 0 8px;font-size:22px;font-weight:${TYPOGRAPHY.HEADING_WEIGHT};color:${COLORS.INK};letter-spacing:${TYPOGRAPHY.HEADING_LETTERSPACING};">Notification</h1>
-      ${firstName ? `<p style="margin:0;font-size:${TYPOGRAPHY.META_SIZE};color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};letter-spacing:${TYPOGRAPHY.META_LETTERSPACING};text-transform:${TYPOGRAPHY.META_UPPERCASE};">FOR ${firstName}</p>` : ""}
-    </div>
-
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0">
       <tr>
-        <td style="background:${COLORS.CANVAS};border:1px solid ${COLORS.PAPER_BORDER};border-radius:8px;padding:20px 24px;">
-          <p style="margin:0;color:${COLORS.BODY};font-size:15px;line-height:1.6;">${message}</p>
+        <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:13px;text-align:center;color:${COLORS.BRAND_PRIMARY};font-weight:700;line-height:22px;text-transform:uppercase;letter-spacing:1px;padding-bottom:10px;">
+          SYSTEM NOTIFICATION
+        </td>
+      </tr>
+      <tr>
+        <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:32px;text-align:center;color:${COLORS.INK};font-weight:800;line-height:42px;padding-bottom:12px;">
+          Update on Your <span style="font-family:${TYPOGRAPHY.FONT_SERIF};color:${COLORS.BRAND_PRIMARY};font-style:italic;">Account</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:16px;text-align:center;color:${COLORS.MUTED};font-weight:400;line-height:26px;padding-bottom:28px;">
+          ${firstName ? `Hi ${firstName},` : "Hello,"} here is the latest update regarding your activity on Cykruit.
+        </td>
+      </tr>
+
+      <!-- Message card -->
+      <tr>
+        <td align="center" style="padding-bottom:28px;">
+          <table border="0" cellspacing="0" cellpadding="0" style="margin:0 auto; width: 100%; max-width: 480px; background-color: #ffffff; border: 1px solid ${COLORS.PAPER_BORDER}; border-radius: 10px; padding: 22px;">
+            <tr>
+              <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:15px; color:${COLORS.BODY}; line-height:24px;">
+                ${message}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      ${actionUrl ? `
+      <tr>
+        <td align="center">
+          ${cyberButton("VIEW DETAILS", actionUrl)}
+        </td>
+      </tr>
+      ` : ""}
+      <tr>
+        <td style="padding-top:32px;font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:14px;text-align:center;color:${COLORS.MUTED};font-weight:400;line-height:24px;">
+          You can adjust your notification preferences at any time from your account settings.
         </td>
       </tr>
     </table>
-
-    ${actionUrl ? cyberButton("View details", actionUrl) : ""}
     `,
     message.slice(0, 80)
   );
+

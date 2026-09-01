@@ -1,5 +1,4 @@
-/* Hallmark · component: email-deletion-scheduled · genre: modern-minimal */
-
+// libs/mail/src/templates/account-deletion-scheduled.template.ts
 import { baseTemplate } from "./base.template";
 import { cyberButton } from "./cyber-button.template";
 import { COLORS, TYPOGRAPHY } from "./colors";
@@ -17,27 +16,51 @@ export const accountDeletionScheduledTemplate = (
 
   return baseTemplate(
     `
-    <div style="text-align:left;margin-bottom:24px;">
-      <h1 style="margin:0 0 8px;font-size:22px;font-weight:${TYPOGRAPHY.HEADING_WEIGHT};color:${COLORS.INK};letter-spacing:${TYPOGRAPHY.HEADING_LETTERSPACING};">Account deletion scheduled</h1>
-      <p style="margin:0;font-size:${TYPOGRAPHY.META_SIZE};color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};letter-spacing:${TYPOGRAPHY.META_LETTERSPACING};text-transform:${TYPOGRAPHY.META_UPPERCASE};">Irreversible action pending</p>
-    </div>
-
-    <p style="margin:0 0 24px;color:${COLORS.BODY};font-size:${TYPOGRAPHY.BODY_SIZE};line-height:${TYPOGRAPHY.BODY_LINEHEIGHT};">
-      Your Cykruit account is scheduled for permanent deletion on <strong>${formattedDate}</strong>. All your data will be erased. This action cannot be undone once complete.
-    </p>
-
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0">
       <tr>
-        <td style="background:${COLORS.WARNING_LIGHT};border-left:3px solid ${COLORS.WARNING_BORDER};padding:16px 18px;">
-          <p style="margin:0;font-size:13px;color:${COLORS.WARNING_TEXT};line-height:1.6;">
-            If you changed your mind, simply log in to your account before <strong>${formattedDate}</strong> to cancel the deletion automatically.
-          </p>
+        <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:13px;text-align:center;color:${COLORS.ERROR};font-weight:700;line-height:22px;text-transform:uppercase;letter-spacing:1px;padding-bottom:10px;">
+          DELETION SCHEDULED
+        </td>
+      </tr>
+      <tr>
+        <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:32px;text-align:center;color:${COLORS.INK};font-weight:800;line-height:42px;padding-bottom:12px;">
+          Account Deletion <span style="font-family:${TYPOGRAPHY.FONT_SERIF};color:${COLORS.ERROR};font-style:italic;">Pending</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:16px;text-align:center;color:${COLORS.MUTED};font-weight:400;line-height:26px;padding-bottom:28px;">
+          Your Cykruit account is scheduled to be permanently deleted on <strong>${formattedDate}</strong>. All profiles, application history, and associated records will be erased.
+        </td>
+      </tr>
+
+      <!-- Warning callout -->
+      <tr>
+        <td style="padding-bottom:28px;">
+          <table border="0" cellspacing="0" cellpadding="0" width="100%">
+            <tr>
+              <td style="background-color:${COLORS.WARNING_LIGHT};border:1px solid ${COLORS.WARNING_BORDER};border-radius:8px;padding:16px 20px;text-align:center;">
+                <p style="margin:0;font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:14px;color:${COLORS.WARNING_TEXT};line-height:22px;">
+                  💡 <strong>Changed your mind?</strong> You can automatically cancel this deletion at any point before <strong>${formattedDate}</strong> by logging into your account.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+
+      <tr>
+        <td align="center">
+          ${cyberButton("LOG IN TO CANCEL DELETION", loginUrl)}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding-top:32px;font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:14px;text-align:center;color:${COLORS.MUTED};font-weight:400;line-height:24px;">
+          If you intended to delete your account, no further action is required.
         </td>
       </tr>
     </table>
-
-    ${cyberButton("Log in to cancel", loginUrl)}
     `,
     `Account deletion scheduled for ${formattedDate}`
   );
 };
+

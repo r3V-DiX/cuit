@@ -70,13 +70,19 @@ async function bootstrap() {
             'https://admin.cykruit.com',
         ];
 
+    const isDev = process.env.NODE_ENV !== 'production';
+
     app.enableCors({
         origin: (origin, callback) => {
             if (!origin) return callback(null, true);
-            if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+            if (
+                allowedOrigins.includes(origin) ||
+                allowedOrigins.includes('*') ||
+                (isDev && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))
+            ) {
                 callback(null, true);
             } else {
-                callback(new Error('Not allowed by CORS'));
+                callback(null, false);
             }
         },
         credentials: true,

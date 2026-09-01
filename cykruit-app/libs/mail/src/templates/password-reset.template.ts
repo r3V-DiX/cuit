@@ -1,5 +1,4 @@
-/* Hallmark · component: email-password-reset · genre: modern-minimal */
-
+// libs/mail/src/templates/password-reset.template.ts
 import { baseTemplate } from "./base.template";
 import { cyberButton } from "./cyber-button.template";
 import { COLORS, TYPOGRAPHY } from "./colors";
@@ -7,26 +6,34 @@ import { COLORS, TYPOGRAPHY } from "./colors";
 export const passwordResetTemplate = (resetUrl: string): string =>
   baseTemplate(
     `
-    <div style="text-align:left;margin-bottom:24px;">
-      <h1 style="margin:0 0 8px;font-size:22px;font-weight:${TYPOGRAPHY.HEADING_WEIGHT};color:${COLORS.INK};letter-spacing:${TYPOGRAPHY.HEADING_LETTERSPACING};">Reset password</h1>
-      <p style="margin:0;font-size:${TYPOGRAPHY.META_SIZE};color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};letter-spacing:${TYPOGRAPHY.META_LETTERSPACING};text-transform:${TYPOGRAPHY.META_UPPERCASE};">Account recovery</p>
-    </div>
-
-    <p style="margin:0 0 24px;color:${COLORS.BODY};font-size:${TYPOGRAPHY.BODY_SIZE};line-height:${TYPOGRAPHY.BODY_LINEHEIGHT};">
-      We received a request to reset your password. Use the button below to create a new one. This link expires in 1 hour.
-    </p>
-
-    ${cyberButton("Reset password", resetUrl)}
-
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:28px 0 0;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0">
       <tr>
-        <td style="background:${COLORS.WARNING_LIGHT};border-left:3px solid ${COLORS.WARNING_BORDER};padding:12px 16px;">
-          <p style="margin:0;font-size:13px;color:${COLORS.WARNING_TEXT};line-height:1.5;">
-            If you did not request this, ignore this email. Your password will remain unchanged.
-          </p>
+        <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:13px;text-align:center;color:${COLORS.BRAND_PRIMARY};font-weight:700;line-height:22px;text-transform:uppercase;letter-spacing:1px;padding-bottom:10px;">
+          ACCOUNT RECOVERY
+        </td>
+      </tr>
+      <tr>
+        <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:32px;text-align:center;color:${COLORS.INK};font-weight:800;line-height:42px;padding-bottom:12px;">
+          Reset Your Cykruit <span style="font-family:${TYPOGRAPHY.FONT_SERIF};color:${COLORS.BRAND_PRIMARY};font-style:italic;">Password</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:16px;text-align:center;color:${COLORS.MUTED};font-weight:400;line-height:26px;padding-bottom:28px;">
+          We received a request to reset your password. Click the button below to choose a new password for your account. This link will expire in 1 hour.
+        </td>
+      </tr>
+      <tr>
+        <td align="center">
+          ${cyberButton("RESET PASSWORD", resetUrl)}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding-top:32px;font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:14px;text-align:center;color:${COLORS.MUTED};font-weight:400;line-height:24px;">
+          If you did not request this password reset, you can safely ignore this email. Your account remains secure.
         </td>
       </tr>
     </table>
     `,
     "Reset your Cykruit password"
   );
+

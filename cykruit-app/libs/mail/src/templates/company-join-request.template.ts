@@ -1,5 +1,4 @@
-/* Hallmark · component: email-company-join-request · genre: modern-minimal */
-
+// libs/mail/src/templates/company-join-request.template.ts
 import { baseTemplate } from "./base.template";
 import { cyberButton } from "./cyber-button.template";
 import { COLORS, TYPOGRAPHY } from "./colors";
@@ -13,41 +12,61 @@ export const companyJoinRequestTemplate = (
 ): string =>
   baseTemplate(
     `
-    <div style="text-align:left;margin-bottom:24px;">
-      <h1 style="margin:0 0 8px;font-size:22px;font-weight:${TYPOGRAPHY.HEADING_WEIGHT};color:${COLORS.INK};letter-spacing:${TYPOGRAPHY.HEADING_LETTERSPACING};">Team join request</h1>
-      <p style="margin:0;font-size:${TYPOGRAPHY.META_SIZE};color:${COLORS.MUTED};font-family:${TYPOGRAPHY.FONT_FAMILY};letter-spacing:${TYPOGRAPHY.META_LETTERSPACING};text-transform:${TYPOGRAPHY.META_UPPERCASE};">Action required</p>
-    </div>
-
-    <p style="margin:0 0 24px;color:${COLORS.BODY};font-size:${TYPOGRAPHY.BODY_SIZE};line-height:${TYPOGRAPHY.BODY_LINEHEIGHT};">
-      ${ownerFirstName ? `${ownerFirstName},` : 'A'} new user wants to join the ${companyName} team on Cykruit.
-    </p>
-
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom:28px;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0">
       <tr>
-        <td style="background:${COLORS.CANVAS};border:1px solid ${COLORS.PAPER_BORDER};border-radius:8px;padding:18px 22px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+        <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:13px;text-align:center;color:${COLORS.BRAND_PRIMARY};font-weight:700;line-height:22px;text-transform:uppercase;letter-spacing:1px;padding-bottom:10px;">
+          TEAM JOIN REQUEST
+        </td>
+      </tr>
+      <tr>
+        <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:32px;text-align:center;color:${COLORS.INK};font-weight:800;line-height:42px;padding-bottom:12px;">
+          New Team Member <span style="font-family:${TYPOGRAPHY.FONT_SERIF};color:${COLORS.BRAND_PRIMARY};font-style:italic;">Request</span>
+        </td>
+      </tr>
+      <tr>
+        <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:16px;text-align:center;color:${COLORS.MUTED};font-weight:400;line-height:26px;padding-bottom:28px;">
+          ${ownerFirstName ? `Hi ${ownerFirstName}, a` : "A"} team member has requested access to join <strong>${companyName}</strong> on Cykruit.
+        </td>
+      </tr>
+
+      <!-- Requester card -->
+      <tr>
+        <td align="center" style="padding-bottom:28px;">
+          <table border="0" cellspacing="0" cellpadding="0" style="margin:0 auto; width: 100%; max-width: 440px; background-color: #ffffff; border: 1px solid ${COLORS.PAPER_BORDER}; border-radius: 10px; padding: 20px;">
             <tr>
-              <td style="padding:6px 0;font-size:13px;font-family:${TYPOGRAPHY.FONT_FAMILY};border-bottom:1px solid ${COLORS.PAPER_BORDER};">
-                <span style="color:${COLORS.MUTED};">Name:</span> &nbsp; <strong style="color:${COLORS.INK};">${requesterName}</strong>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:6px 0;font-size:13px;font-family:${TYPOGRAPHY.FONT_FAMILY};">
-                <span style="color:${COLORS.MUTED};">Email:</span> &nbsp; <strong style="color:${COLORS.ACCENT};">${requesterEmail}</strong>
+              <td>
+                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; color:${COLORS.MUTED}; border-bottom: 1px solid #f1f5f9;">Applicant Name</td>
+                    <td align="right" style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; font-weight:700; color:${COLORS.INK}; border-bottom: 1px solid #f1f5f9;">${requesterName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; color:${COLORS.MUTED}; border-bottom: 1px solid #f1f5f9;">Work Email</td>
+                    <td align="right" style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; font-weight:700; color:${COLORS.BRAND_PRIMARY}; border-bottom: 1px solid #f1f5f9;">${requesterEmail}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; color:${COLORS.MUTED};">Organization</td>
+                    <td align="right" style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; font-weight:700; color:${COLORS.INK};">${companyName}</td>
+                  </tr>
+                </table>
               </td>
             </tr>
           </table>
         </td>
       </tr>
-    </table>
 
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
       <tr>
-        <td align="left">
-          ${cyberButton("Review Request", dashboardUrl)}
+        <td align="center">
+          ${cyberButton("REVIEW IN DASHBOARD", dashboardUrl)}
+        </td>
+      </tr>
+      <tr>
+        <td style="padding-top:32px;font-family:${TYPOGRAPHY.FONT_PRIMARY};font-size:14px;text-align:center;color:${COLORS.MUTED};font-weight:400;line-height:24px;">
+          You can approve or decline this request from your employer dashboard settings.
         </td>
       </tr>
     </table>
     `,
-    "Team join request",
+    `${requesterName} wants to join your team on Cykruit`,
   );
+

@@ -29,15 +29,20 @@ const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()) 
     'http://localhost:4000',
 ];
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 app.use(helmet({ frameguard: { action: 'deny' }, noSniff: true }));
 app.use(compression());
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) {
+        if (
+            allowedOrigins.includes(origin) ||
+            (isDev && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))
+        ) {
             return callback(null, true);
         }
-        callback(new Error('Not allowed by CORS'));
+        callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

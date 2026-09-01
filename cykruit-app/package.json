@@ -57,7 +57,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "migration:lite-seed": "tsx prisma/migration/seed/lite-seed.ts"
+    "migration:lite-seed": "tsx prisma/migration/seed/lite-seed.ts",
+    "preview:emails": "npx tsx scripts/generate-email-previews.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed/index.ts"

@@ -1,59 +1,68 @@
-// Hallmark · email color tokens · genre: modern-minimal
-// OKLCH-derived hex values for email-client compatibility.
+// libs/mail/src/templates/colors.ts
 
 export const COLORS = {
   // Canvas (email background)
-  CANVAS: "#f1f5f9",
+  CANVAS: "#ececec",
 
   // Card surface
-  PAPER: "#ffffff",
-  PAPER_BORDER: "#e2e8f0",
+  PAPER: "#f7f7f7",
+  CARD_WHITE: "#ffffff",
+  PAPER_BORDER: "#dbdfe4",
   PAPER_SHADOW: "0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)",
 
   // Text hierarchy
-  INK: "#0f172a",
-  BODY: "#334155",
-  MUTED: "#64748b",
-  MUTED_LIGHTER: "#94a3b8",
+  INK: "#000000",
+  BODY: "#4a5568",
+  MUTED: "#718096",
+  MUTED_LIGHTER: "#a0aec0",
 
-  // Accent (primary CTA)
-  ACCENT: "#2563eb",
-  ACCENT_STRONG: "#1d4ed8",
-  ACCENT_LIGHT: "rgba(37,99,235,0.08)",
-  ACCENT_BORDER: "rgba(37,99,235,0.2)",
+  // Brand / Primary CTA (Cykruit Palette)
+  BRAND_PRIMARY: "#1B3C8B",
+  BRAND_ACCENT: "#2563eb",
+  BRAND_HIGHLIGHT: "#3b82f6",
+  ACCENT: "#1B3C8B",
+  ACCENT_STRONG: "#122a63",
+  ACCENT_LIGHT: "#f0f4ff",
+  ACCENT_BORDER: "#d0ddff",
 
-  // Status
+  // Dark Footer
+  FOOTER_BG: "#000000",
+  FOOTER_TEXT: "#718096",
+  FOOTER_MUTED: "#4a5568",
+
+  // Status & Alerts
   SUCCESS: "#059669",
-  SUCCESS_LIGHT: "rgba(5,150,105,0.08)",
-  SUCCESS_BORDER: "rgba(5,150,105,0.2)",
+  SUCCESS_LIGHT: "#ecfdf5",
+  SUCCESS_BORDER: "#a7f3d0",
   WARNING: "#d97706",
   WARNING_LIGHT: "#fffbeb",
   WARNING_BORDER: "#f59e0b",
   WARNING_TEXT: "#92400e",
   ERROR: "#dc2626",
-  ERROR_LIGHT: "rgba(220,38,38,0.06)",
-  ERROR_BORDER: "rgba(220,38,38,0.15)",
-  ERROR_TEXT: "#7f1d1d",
+  ERROR_LIGHT: "#fef2f2",
+  ERROR_BORDER: "#fecaca",
+  ERROR_TEXT: "#991b1b",
 };
 
 export const TYPOGRAPHY = {
-  FONT_FAMILY:
-    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif',
-  FONT_MONO: '"SF Mono","Fira Code","Cascadia Code",monospace',
-  HEADING_WEIGHT: "700",
-  HEADING_LETTERSPACING: "-0.3px",
-  BODY_SIZE: "15px",
-  BODY_LINEHEIGHT: "1.6",
+  FONT_PRIMARY: "'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  FONT_FAMILY: "'Inter Tight', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+  FONT_SERIF: "'Instrument Serif', Georgia, 'Times New Roman', serif",
+  FONT_MONO: "'SF Mono', 'Fira Code', 'Cascadia Code', monospace",
+  HEADING_WEIGHT: "800",
+  HEADING_LETTERSPACING: "-0.5px",
+  BODY_SIZE: "16px",
+  BODY_LINEHEIGHT: "26px",
   SMALL_SIZE: "12px",
-  SMALL_LINESPACING: "1.5",
-  META_SIZE: "12px",
-  META_LETTERSPACING: "0.5px",
+  SMALL_LINESPACING: "18px",
+  META_SIZE: "13px",
+  META_LETTERSPACING: "0.8px",
   META_UPPERCASE: "uppercase",
 };
 
 export const SPACING = {
-  SECTION_GAP: "32px",
-  CARD_PADDING: "32px",
-  CARD_PADDING_COMPACT: "24px",
-  BUTTON_PADDING: "14px 40px",
+  SECTION_GAP: "24px",
+  CARD_PADDING: "36px",
+  CARD_PADDING_COMPACT: "20px",
+  BUTTON_PADDING: "16px 32px",
 };

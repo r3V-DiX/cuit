@@ -60,32 +60,23 @@ async function bootstrap() {
   app.setGlobalPrefix("public");
 
   const allowedOrigins =
-    process.env.CORS_ORIGIN?.split(",").map((o) => o.trim()) || [];
-
-  if (process.env.NODE_ENV !== "production") {
-    allowedOrigins.push(
+    process.env.CORS_ORIGIN?.split(",").map((o) => o.trim()) || [
       "http://localhost:3000",
       "http://localhost:4000",
-      "http://localhost:4001",
-      "http://localhost:4002",
-      "http://localhost:4003",
-      "http://localhost:4006",
-      "http://127.0.0.1:3000",
-      "http://127.0.0.1:4000",
-      "http://127.0.0.1:4001",
-      "http://127.0.0.1:4002",
-      "http://127.0.0.1:4003",
-      "http://127.0.0.1:4006",
-    );
-  }
+    ];
+
+  const isDev = process.env.NODE_ENV !== "production";
 
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) {
+      if (
+        allowedOrigins.includes(origin) ||
+        (isDev && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin))
+      ) {
         callback(null, true);
       } else {
-        callback(new Error("Not allowed by CORS"));
+        callback(null, false);
       }
     },
     credentials: true,

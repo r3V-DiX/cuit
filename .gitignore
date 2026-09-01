@@ -48,3 +48,6 @@ coverage/
 
 # Docs
 docs/
+
+# Email previews
+email-previews/
