@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 function isPublicPath(pathname: string): boolean {
-  if (pathname === '/login') return true;
+  if (pathname === '/login' || pathname === '/accept-invite') return true;
   if (
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
