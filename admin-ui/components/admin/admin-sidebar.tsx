@@ -31,7 +31,6 @@ import {
   SearchCode,
   Tag,
   Server,
-  Percent,
   FileText,
   ClipboardList,
   SendHorizontal,
@@ -142,16 +141,10 @@ export default function AdminSidebar() {
       action: ACTIONS.RESUMES.VIEW,
     },
     {
-      label: 'Subscriptions',
+      label: 'Subscriptions & Discounts',
       href: '/subscriptions',
       icon: <CreditCard className="h-5 w-5" />,
-      action: ACTIONS.SUBSCRIPTIONS.VIEW,
-    },
-    {
-      label: 'Discounts',
-      href: '/discounts',
-      icon: <Percent className="h-5 w-5" />,
-      action: ACTIONS.DISCOUNTS.VIEW,
+      action: [ACTIONS.SUBSCRIPTIONS.VIEW, ACTIONS.DISCOUNTS.VIEW],
     },
     // Content & growth — periodic, not daily
     {
@@ -228,8 +221,8 @@ export default function AdminSidebar() {
       action: ACTIONS.DASHBOARD.VIEW,
     },
     {
-      label: 'Settings',
-      href: '/settings',
+      label: 'Platform Settings',
+      href: '/platform-settings',
       icon: <Settings2 className="h-5 w-5" />,
       action: ACTIONS.SETTINGS.MANAGE,
     },

@@ -1,6 +1,6 @@
 'use client';
 
-// admin-ui/app/(admin)/discounts/_components/discount-form.tsx
+// admin-ui/app/(admin)/subscriptions/_components/discount-form.tsx
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib';
