@@ -9,11 +9,12 @@ import { AdminAuthController } from './admin-auth.controller';
 import { MeController } from './me.controller';
 import { AdminAuthService } from './admin-auth.service';
 import { AdminAuthGuard } from './admin-auth.guard';
+import { SessionCleanupService } from './session-cleanup.service';
 
 @Global()
 @Module({
     controllers: [AdminAuthController, MeController],
-    providers: [AdminAuthService, AdminAuthGuard],
+    providers: [AdminAuthService, AdminAuthGuard, SessionCleanupService],
     exports: [AdminAuthService, AdminAuthGuard],
 })
 export class AuthModule {}

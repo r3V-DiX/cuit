@@ -4,6 +4,7 @@
 // Page topbar: page title (from route), admin identity, RBAC role pill.
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { usePermissions } from '@/lib/permissions-context';
 
@@ -14,16 +15,13 @@ const ROUTE_TITLES: Record<string, string> = {
   '/jobs': 'Job Moderation',
   '/resumes': 'Resume Library',
   '/applications': 'Job Applications',
-  '/subscriptions': 'Subscriptions',
-  '/subscriptions/employers': 'Employer Subscriptions',
+  '/subscriptions': 'Subscriptions & Discounts',
   '/subscriptions/payments': 'Payment History',
-  '/discounts': 'Discounts & Coupons',
-  '/rbac': 'RBAC Management',
   '/audit-logs': 'Audit Logs',
   '/testimonials': 'Testimonials',
   '/contact': 'Contact Submissions',
   '/reports': 'Content Reports',
-  '/admins': 'Admin Accounts',
+  '/admins': 'Admins & Access',
   '/settings': 'Platform Settings',
   '/policies': 'Policy & Rate Limits',
   '/announcements': 'Platform Announcements',
@@ -33,6 +31,7 @@ const ROUTE_TITLES: Record<string, string> = {
   '/suggestions': 'Search Suggestions',
   '/roles': 'Job Roles & Domains',
   '/system': 'System Health',
+  '/profile': 'My Profile',
 };
 
 const ROLE_COLORS: Record<string, string> = {
@@ -118,7 +117,11 @@ export default function AdminTopbar() {
         ))}
 
         {/* Avatar + name */}
-        <div className="flex items-center gap-2.5">
+        <Link
+          href="/profile"
+          className="flex items-center gap-2.5 rounded-xl px-1.5 py-1 transition-colors hover:bg-slate-50"
+          title="My Profile"
+        >
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-bold text-white shadow-md shadow-blue-500/20">
             {initials || '?'}
           </div>
@@ -126,7 +129,7 @@ export default function AdminTopbar() {
             <p className="text-sm font-semibold text-slate-900">{displayName}</p>
             <p className="text-xs text-slate-500">{displayEmail}</p>
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   );

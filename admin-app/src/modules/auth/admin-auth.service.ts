@@ -7,6 +7,7 @@
 
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { randomInt, createHash, timingSafeEqual } from 'node:crypto';
+import { UAParser } from 'ua-parser-js';
 import { PrismaService } from '@cykruit/prisma';
 import { generateRawToken, hashToken, resolveSessionExpiry } from '@cykruit/auth-core';
 import { MailService } from '@cykruit/mail';
@@ -14,6 +15,7 @@ import { getPolicyInt } from '@cykruit/policy-config';
 import type { Admin } from '@prisma/client';
 import { RequestAdminOtpDto } from './dto/request-admin-otp.dto';
 import { VerifyAdminOtpDto } from './dto/verify-admin-otp.dto';
+import { UpdateOwnProfileDto } from './dto/update-own-profile.dto';
 import { AdminAuthAuditLogger } from '../../common';
 
 export interface AdminLoginResult {
@@ -266,6 +268,74 @@ export class AdminAuthService {
             .catch(() => undefined);
 
         return { admin: session.admin, expiresAt: session.expiresAt };
+    }
+
+    async updateOwnProfile(adminId: string, dto: UpdateOwnProfileDto) {
+        return this.prisma.admin.update({
+            where: { id: adminId },
+            data: dto,
+            select: {
+                id: true,
+                email: true,
+                firstName: true,
+                lastName: true,
+                phone: true,
+                profileImage: true,
+                lastLogin: true,
+                lastLoginIp: true,
+            },
+        });
+    }
+
+    /** Parses a User-Agent string into a display-friendly browser/OS/device label. Mirrors cykruit-app's session.service.ts. */
+    private parseUserAgent(rawUa?: string | null) {
+        if (!rawUa) return { browserName: 'Unknown', osName: 'Unknown', deviceLabel: 'Unknown device' };
+        const p = new UAParser(rawUa);
+        const browser = p.getBrowser().name ?? 'Unknown';
+        const os = p.getOS().name ?? 'Unknown';
+        const device = p.getDevice().model;
+        return {
+            browserName: browser,
+            osName: os,
+            deviceLabel: device ? `${browser} on ${device}` : `${browser} on ${os}`,
+        };
+    }
+
+    async listSessions(adminId: string, currentRawToken?: string) {
+        const currentHash = currentRawToken ? hashToken(currentRawToken) : null;
+
+        const sessions = await this.prisma.adminSession.findMany({
+            where: { adminId, expiresAt: { gt: new Date() } },
+            select: {
+                id: true,
+                token: true,
+                ipAddress: true,
+                userAgent: true,
+                rememberMe: true,
+                createdAt: true,
+                lastActivity: true,
+                expiresAt: true,
+            },
+            orderBy: { lastActivity: 'desc' },
+        });
+
+        return sessions.map(({ token, ...s }) => ({
+            ...s,
+            isCurrent: currentHash ? token === currentHash : false,
+            ...this.parseUserAgent(s.userAgent),
+        }));
+    }
+
+    async revokeSession(adminId: string, sessionId: string, currentRawToken?: string): Promise<{ wasCurrent: boolean }> {
+        const session = await this.prisma.adminSession.findUnique({ where: { id: sessionId } });
+        if (!session || session.adminId !== adminId) {
+            throw new NotFoundException('Session not found');
+        }
+
+        await this.prisma.adminSession.delete({ where: { id: sessionId } });
+
+        const currentHash = currentRawToken ? hashToken(currentRawToken) : null;
+        return { wasCurrent: currentHash ? session.token === currentHash : false };
     }
 
     async logout(rawToken: string, ipAddress?: string, userAgent?: string): Promise<void> {

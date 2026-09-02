@@ -687,11 +687,27 @@ export interface AdminMe {
     email: string;
     firstName: string;
     lastName: string;
+    phone?: string | null;
+    lastLogin?: string | null;
+    lastLoginIp?: string | null;
   };
   roles: string[];
   isSuperAdmin: boolean;
   permissions: string[];
   sessionExpiresAt?: string;
+}
+
+export interface AdminSessionInfo {
+  id: string;
+  ipAddress: string | null;
+  rememberMe: boolean;
+  createdAt: string;
+  lastActivity: string;
+  expiresAt: string;
+  isCurrent: boolean;
+  browserName: string;
+  osName: string;
+  deviceLabel: string;
 }
 
 export interface DashboardStats {

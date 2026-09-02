@@ -2,6 +2,7 @@
 
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { BullModule } from '@nestjs/bull';
 
@@ -48,6 +49,7 @@ import { AdminModule } from './modules/admin.module';
             }),
         }),
 
+        ScheduleModule.forRoot(),
         RequestContextModule,
         LoggerModule,
         PrismaModule,
