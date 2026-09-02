@@ -27,12 +27,21 @@ export const notificationTemplate = (
         </td>
       </tr>
 
-      <!-- Message card -->
+      <!-- Message Card -->
       <tr>
         <td align="center" style="padding-bottom:28px;">
-          <table border="0" cellspacing="0" cellpadding="0" style="margin:0 auto; width: 100%; max-width: 480px; background-color: #ffffff; border: 1px solid ${COLORS.PAPER_BORDER}; border-radius: 10px; padding: 22px;">
+          <table
+            role="presentation"
+            border="0"
+            cellspacing="0"
+            cellpadding="0"
+            width="100%"
+            style="width:100%; max-width:480px; background-color:#ffffff; border:1px solid ${COLORS.PAPER_BORDER}; border-radius:10px;"
+          >
             <tr>
-              <td style="font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:15px; color:${COLORS.BODY}; line-height:24px;">
+              <td
+                style="padding:22px; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:15px; line-height:24px; color:${COLORS.BODY};"
+              >
                 ${message}
               </td>
             </tr>

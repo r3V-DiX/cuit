@@ -34,25 +34,78 @@ export const employerInviteTemplate = (
       <!-- Role Details Box -->
       <tr>
         <td align="center" style="padding-bottom:28px;">
-          <table border="0" cellspacing="0" cellpadding="0" style="margin:0 auto; width: 100%; max-width: 440px; background-color: #ffffff; border: 1px solid ${COLORS.PAPER_BORDER}; border-radius: 10px; padding: 20px;">
+          <table
+            role="presentation"
+            border="0"
+            cellspacing="0"
+            cellpadding="0"
+            width="100%"
+            style="width:100%; max-width:440px; background-color:#ffffff; border:1px solid ${COLORS.PAPER_BORDER}; border-radius:10px;"
+          >
             <tr>
-              <td>
-                <table width="100%" border="0" cellspacing="0" cellpadding="0">
+              <td style="padding:20px;">
+                <table
+                  role="presentation"
+                  border="0"
+                  cellspacing="0"
+                  cellpadding="0"
+                  width="100%"
+                  style="width:100%;"
+                >
                   <tr>
-                    <td style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; color:${COLORS.MUTED}; border-bottom: 1px solid #f1f5f9;">Company</td>
-                    <td align="right" style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; font-weight:700; color:${COLORS.INK}; border-bottom: 1px solid #f1f5f9;">${companyName}</td>
+                    <td
+                      style="padding:6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; line-height:20px; color:${COLORS.MUTED}; border-bottom:1px solid #f1f5f9;"
+                    >
+                      Company
+                    </td>
+                    <td
+                      align="right"
+                      style="padding:6px 0 6px 16px; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; line-height:20px; font-weight:700; color:${COLORS.INK}; border-bottom:1px solid #f1f5f9;"
+                    >
+                      ${companyName}
+                    </td>
                   </tr>
+
                   <tr>
-                    <td style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; color:${COLORS.MUTED}; border-bottom: 1px solid #f1f5f9;">Assigned Role</td>
-                    <td align="right" style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; font-weight:700; color:${COLORS.BRAND_PRIMARY}; border-bottom: 1px solid #f1f5f9;">${assignedRole}</td>
+                    <td
+                      style="padding:6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; line-height:20px; color:${COLORS.MUTED}; border-bottom:1px solid #f1f5f9;"
+                    >
+                      Assigned Role
+                    </td>
+                    <td
+                      align="right"
+                      style="padding:6px 0 6px 16px; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; line-height:20px; font-weight:700; color:${COLORS.BRAND_PRIMARY}; border-bottom:1px solid #f1f5f9;"
+                    >
+                      ${assignedRole}
+                    </td>
                   </tr>
+
                   <tr>
-                    <td style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; color:${COLORS.MUTED}; border-bottom: 1px solid #f1f5f9;">Invited By</td>
-                    <td align="right" style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; font-weight:700; color:${COLORS.INK}; border-bottom: 1px solid #f1f5f9;">${inviterName}</td>
+                    <td
+                      style="padding:6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; line-height:20px; color:${COLORS.MUTED}; border-bottom:1px solid #f1f5f9;"
+                    >
+                      Invited By
+                    </td>
+                    <td
+                      align="right"
+                      style="padding:6px 0 6px 16px; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; line-height:20px; font-weight:700; color:${COLORS.INK}; border-bottom:1px solid #f1f5f9;"
+                    >
+                      ${inviterName}
+                    </td>
                   </tr>
+
                   <tr>
-                    <td style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; color:${COLORS.MUTED};">Expires In</td>
-                    <td align="right" style="padding: 6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; font-weight:700; color:${COLORS.INK};">${expiresInHours} hours</td>
+                    <td
+                      style="padding:6px 0; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; line-height:20px; color:${COLORS.MUTED};"
+                    >
+                      Expires In
+                    </td>
+                    <td
+                      align="right"
+                      style="padding:6px 0 6px 16px; font-family:${TYPOGRAPHY.FONT_PRIMARY}; font-size:14px; line-height:20px; font-weight:700; color:${COLORS.INK};"
+                    >
+                      ${expiresInHours} hours
+                    </td>
                   </tr>
                 </table>
               </td>
@@ -61,7 +114,7 @@ export const employerInviteTemplate = (
         </td>
       </tr>
 
-      <tr>
+      <tr>  
         <td align="center">
           ${cyberButton("ACCEPT INVITATION", inviteUrl)}
         </td>
