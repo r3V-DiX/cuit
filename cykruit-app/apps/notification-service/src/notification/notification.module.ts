@@ -20,6 +20,7 @@ import { DigestSchedulerService } from './services/digest-scheduler.service';
 import { NotificationRepository } from './repositories/notification.repository';
 import { EmailDigestProcessor } from './processors/email-digest.processor';
 import { DomainEventProcessor } from './processors/domain-event.processor';
+import { InvoiceEmailProcessor } from './processors/invoice-email.processor';
 import { NOTIFICATION_QUEUE } from './constants';
 export { NOTIFICATION_QUEUE };
 
@@ -58,6 +59,7 @@ export { NOTIFICATION_QUEUE };
         NotificationRepository,
         EmailDigestProcessor,
         DomainEventProcessor,
+        InvoiceEmailProcessor,
     ],
     exports: [NotificationService],
 })

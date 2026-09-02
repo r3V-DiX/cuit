@@ -13,6 +13,7 @@ import { NotificationType, type NotificationPreference } from '@prisma/client';
 export const NOTIFICATION_JOBS = {
     SEND_EMAIL: 'send-email',
     DAILY_DIGEST: 'daily-digest',
+    SEND_INVOICE_EMAIL: 'send-invoice-email',
 } as const;
 
 // Notification types that always deliver regardless of preferences
@@ -126,6 +127,17 @@ export class NotificationService {
 
         const shouldEmail = input.sendEmail && this.checkEmail(prefs, input.type);
         return this.createAndEmail({ ...input, sendEmail: shouldEmail });
+    }
+
+    /** Enqueue the subscription invoice email for a captured payment order. */
+    async queueInvoiceEmail(input: { orderId: string }) {
+        await this.emailQueue.add(
+            NOTIFICATION_JOBS.SEND_INVOICE_EMAIL,
+            { orderId: input.orderId },
+            { delay: 0, attempts: 3, removeOnComplete: true },
+        ).catch((err) => {
+            console.warn('[NotificationService] Failed to queue invoice email:', err?.message);
+        });
     }
 
     /** Enqueue a daily digest job for all eligible users. Called by cron or scheduler. */

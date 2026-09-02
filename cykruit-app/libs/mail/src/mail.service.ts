@@ -23,6 +23,8 @@ import { companyJoinRequestTemplate } from "./templates/company-join-request.tem
 import { adminInviteTemplate } from "./templates/admin-invite.template";
 import { jobReviewTemplate } from "./templates/job-review.template";
 import { broadcastTemplate } from "./templates/broadcast.template";
+import { subscriptionInvoiceTemplate } from "./templates/subscription-invoice.template";
+import { generateInvoicePdf, InvoicePdfData } from "./invoice/generate-invoice-pdf";
 
 @Injectable()
 export class MailService {
@@ -489,6 +491,57 @@ export class MailService {
         "MailService",
       );
       // Fire-and-forget — don't block job submit on email failure
+    }
+  }
+
+  async sendSubscriptionInvoiceEmail(
+    to: string,
+    data: {
+      firstName: string;
+      packageName: string;
+      billingCycle: string;
+      invoice: InvoicePdfData;
+    },
+  ): Promise<void> {
+    try {
+      const subscriptionUrl = `${this.frontendUrl}/employer/subscription`;
+      const pdfBuffer = await generateInvoicePdf(data.invoice);
+      const totalPaid = data.invoice.currency === 'INR'
+        ? `Rs. ${(data.invoice.totalAmountPaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        : `${data.invoice.currency} ${(data.invoice.totalAmountPaise / 100).toFixed(2)}`;
+
+      const { error } = await this.resend.emails.send({
+        from: `Cykruit <${this.fromEmail}>`,
+        replyTo: "support@cykruit.com",
+        to,
+        subject: `Invoice ${data.invoice.invoiceNumber} — ${data.packageName} plan`,
+        text: `Hi ${data.firstName},\n\nYour payment for the ${data.packageName} plan (${data.billingCycle}) was received. Invoice ${data.invoice.invoiceNumber} for ${totalPaid} is attached.\n\nManage your subscription: ${subscriptionUrl}\n\n-- Cykruit Team`,
+        html: subscriptionInvoiceTemplate({
+          firstName: data.firstName,
+          invoiceNumber: data.invoice.invoiceNumber,
+          packageName: data.packageName,
+          billingCycle: data.billingCycle,
+          totalPaid,
+          subscriptionUrl,
+        }),
+        attachments: [
+          {
+            filename: `${data.invoice.invoiceNumber}.pdf`,
+            content: pdfBuffer,
+          },
+        ],
+      });
+
+      if (error) throw new Error(error.message);
+      this.logger.log(`Subscription invoice email sent to ${to}`, "MailService");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `Failed to send subscription invoice email to ${to}: ${message}`,
+        err instanceof Error ? err.stack : undefined,
+        "MailService",
+      );
+      throw new InternalServerErrorException("Failed to send subscription invoice email");
     }
   }
 

@@ -506,6 +506,18 @@ export class PaymentService {
                 select: { id: true },
             });
 
+            // Sequential per-year invoice number (e.g. INV-2026-000123). The upsert's
+            // increment runs as a single row-locked UPDATE, so concurrent captures
+            // serialize on this row instead of racing on a read-then-write.
+            const year = new Date().getUTCFullYear();
+            const sequence = await tx.invoiceSequence.upsert({
+                where: { year },
+                create: { year, counter: 1 },
+                update: { counter: { increment: 1 } },
+                select: { counter: true },
+            });
+            const invoiceNumber = `INV-${year}-${String(sequence.counter).padStart(6, '0')}`;
+
             await tx.payment.create({
                 data: {
                     orderId: order.id,
@@ -513,6 +525,7 @@ export class PaymentService {
                     razorpaySignature,
                     capturedAt: new Date(),
                     status: 'CAPTURED',
+                    invoiceNumber,
                 },
                 select: { id: true },
             });

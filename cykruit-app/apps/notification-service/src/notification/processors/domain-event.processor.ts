@@ -339,6 +339,7 @@ export class DomainEventProcessor {
                     userEmail: contact?.email,
                     firstName: contact?.firstName,
                 });
+                await this.notificationService.queueInvoiceEmail({ orderId: p.orderId });
                 break;
             }
 
