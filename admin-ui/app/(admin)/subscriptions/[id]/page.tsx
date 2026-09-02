@@ -326,7 +326,7 @@ export default function SubscriptionDetailPage({ params }: { params: Promise<{ i
                   <p className="text-xs text-slate-500 mt-0.5">Razorpay orders placed by this employer.</p>
                 </div>
                 <Link
-                  href={`/subscriptions/payments?employerId=${sub.employerId}`}
+                  href={`/subscriptions?tab=payments&employerId=${sub.employerId}`}
                   className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors"
                 >
                   View all →

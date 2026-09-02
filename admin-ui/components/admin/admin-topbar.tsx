@@ -16,7 +16,6 @@ const ROUTE_TITLES: Record<string, string> = {
   '/resumes': 'Resume Library',
   '/applications': 'Job Applications',
   '/subscriptions': 'Subscriptions & Discounts',
-  '/subscriptions/payments': 'Payment History',
   '/audit-logs': 'Audit Logs',
   '/testimonials': 'Testimonials',
   '/contact': 'Contact Submissions',

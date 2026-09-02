@@ -18,6 +18,7 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
   Menu,
   X,
@@ -42,6 +43,12 @@ import { usePermissions } from '@/lib/permissions-context';
 import { ACTIONS } from '@/lib';
 import { getCsrfToken } from '@/lib/api';
 
+interface NavChild {
+  label: string;
+  /** Tab key this sub-link selects, e.g. /subscriptions?tab=packages */
+  tab: string;
+}
+
 interface NavItem {
   label: string;
   href: string;
@@ -49,9 +56,9 @@ interface NavItem {
   /** Item is shown if the admin holds this action, or any one of these actions. */
   action: string | string[];
   badge?: number;
+  /** This item's page has tabs — show them as collapsible sub-links (?tab=). */
+  children?: NavChild[];
 }
-
-
 
 export default function AdminSidebar() {
   const pathname = usePathname();
@@ -62,6 +69,7 @@ export default function AdminSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [pendingKyc, setPendingKyc] = useState(0);
   const [pendingJobs, setPendingJobs] = useState(0);
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
   // Close mobile overlay on route change
   useEffect(() => {
@@ -145,6 +153,12 @@ export default function AdminSidebar() {
       href: '/subscriptions',
       icon: <CreditCard className="h-5 w-5" />,
       action: [ACTIONS.SUBSCRIPTIONS.VIEW, ACTIONS.DISCOUNTS.VIEW],
+      children: [
+        { label: 'Packages', tab: 'packages' },
+        { label: 'Employer Subscriptions', tab: 'employers' },
+        { label: 'Payment History', tab: 'payments' },
+        { label: 'Discounts', tab: 'discounts' },
+      ],
     },
     // Content & growth — periodic, not daily
     {
@@ -201,12 +215,23 @@ export default function AdminSidebar() {
       href: '/admins',
       icon: <UserCog className="h-5 w-5" />,
       action: [ACTIONS.ADMINS.VIEW, ACTIONS.RBAC.VIEW],
+      children: [
+        { label: 'Roles', tab: 'roles' },
+        { label: 'Permissions Map', tab: 'permissions' },
+        { label: 'Admins', tab: 'admins' },
+        { label: 'Pending Invitations', tab: 'pending' },
+      ],
     },
     {
       label: 'Audit Logs',
       href: '/audit-logs',
       icon: <ScrollText className="h-5 w-5" />,
       action: ACTIONS.AUDIT.VIEW,
+      children: [
+        { label: 'Audit Logs', tab: 'audit' },
+        { label: 'System Logs', tab: 'system' },
+        { label: 'Admin Activity Logs', tab: 'admin' },
+      ],
     },
     {
       label: 'Policies',
@@ -303,14 +328,12 @@ export default function AdminSidebar() {
         <ul className="space-y-0.5">
           {navItems.map((item) => {
             const active = isActive(item.href);
+            const hasChildren = !collapsed && !!item.children?.length;
+            const itemExpanded = expandedItems[item.href] ?? active;
             return (
               <li key={item.href}>
-                <Link
-                  href={item.href}
-                  title={collapsed ? item.label : undefined}
-                  className={`group relative flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                    collapsed ? 'justify-center' : 'gap-3'
-                  } ${
+                <div
+                  className={`group relative flex items-center rounded-xl text-sm font-medium transition-all duration-200 ${
                     active
                       ? 'bg-blue-50 text-blue-700'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
@@ -319,24 +342,56 @@ export default function AdminSidebar() {
                   {active && (
                     <span className="absolute top-1/2 left-0 h-6 w-1 -translate-y-1/2 rounded-r-full bg-blue-500" />
                   )}
-                  <span
-                    className={`shrink-0 ${
-                      active
-                        ? 'text-blue-600'
-                        : 'text-slate-400 group-hover:text-slate-600'
-                    }`}
+                  <Link
+                    href={item.href}
+                    title={collapsed ? item.label : undefined}
+                    className={`flex flex-1 items-center px-3 py-2.5 ${collapsed ? 'justify-center' : 'gap-3'}`}
                   >
-                    {item.icon}
-                  </span>
-                  {!collapsed && <span className="flex-1">{item.label}</span>}
-                  {!collapsed &&
-                    item.badge !== undefined &&
-                    item.badge > 0 && (
+                    <span
+                      className={`shrink-0 ${
+                        active ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'
+                      }`}
+                    >
+                      {item.icon}
+                    </span>
+                    {!collapsed && <span className="flex-1">{item.label}</span>}
+                    {!collapsed && item.badge !== undefined && item.badge > 0 && (
                       <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-500 px-1.5 font-mono text-[10px] font-bold text-white">
                         {item.badge > 99 ? '99+' : item.badge}
                       </span>
                     )}
-                </Link>
+                  </Link>
+                  {hasChildren && (
+                    <button
+                      onClick={() =>
+                        setExpandedItems((prev) => ({ ...prev, [item.href]: !itemExpanded }))
+                      }
+                      className="mr-1.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-200/60 hover:text-slate-600"
+                      aria-expanded={itemExpanded}
+                      aria-label={itemExpanded ? `Collapse ${item.label}` : `Expand ${item.label}`}
+                    >
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                          itemExpanded ? 'rotate-0' : '-rotate-90'
+                        }`}
+                      />
+                    </button>
+                  )}
+                </div>
+                {hasChildren && itemExpanded && (
+                  <ul className="mt-0.5 mb-1 space-y-0.5 border-l border-slate-200 pl-4 ml-5">
+                    {item.children!.map((child) => (
+                      <li key={child.tab}>
+                        <Link
+                          href={`${item.href}?tab=${child.tab}`}
+                          className="block rounded-lg px-3 py-1.5 text-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                        >
+                          {child.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             );
           })}

@@ -44,7 +44,6 @@ function AdminsPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const [tabState, setTab] = useState<PageTab>('admins');
 
   const canManage = has(ACTIONS.ADMINS.MANAGE);
   const canViewRbac = has(ACTIONS.RBAC.VIEW);
@@ -66,7 +65,15 @@ function AdminsPageContent() {
         ]
       : []),
   ];
-  const tab = availableTabs.some((t) => t.key === tabState) ? tabState : availableTabs[0]?.key;
+  const rawTab = searchParams.get('tab');
+  const defaultTab = availableTabs.some((t) => t.key === 'admins') ? 'admins' : availableTabs[0]?.key;
+  const tab = availableTabs.some((t) => t.key === rawTab) ? (rawTab as PageTab) : defaultTab;
+
+  function setTab(key: PageTab) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', key);
+    router.push(`?${params.toString()}`);
+  }
 
   useEffect(() => {
     if (tab !== 'admins') return;
