@@ -10,7 +10,7 @@ import { CommonModule } from '@cykruit/common';
 import { SubscriptionModule as EmployerLimitsModule } from '@cykruit/subscription';
 import { RateLimitModule } from '@cykruit/rate-limit';
 import { LoggerModule } from '@cykruit/logger';
-import { EventsModule } from '@cykruit/events';
+import { EventsModule, EMPLOYER_LIFECYCLE_QUEUE } from '@cykruit/events';
 import { AuditModule } from '@cykruit/audit';
 import { PermissionsModule } from '@cykruit/permissions';
 import { AuthCoreModule, SharedSessionValidator } from '@cykruit/auth-core';
@@ -42,7 +42,7 @@ import { PaymentController } from './controllers/payment.controller';
         PermissionsModule,
         ScheduleModule.forRoot(),
         EventsModule.forPublisher(),
-        EventsModule.forConsumer(),
+        EventsModule.forConsumer(EMPLOYER_LIFECYCLE_QUEUE),
         AuthCoreModule.forRoot({
             sessionValidatorClass: SharedSessionValidator,
             imports: [PrismaModule, ConfigModule],

@@ -8,13 +8,21 @@ import { InjectQueue } from '@nestjs/bull';
 import type { Queue } from 'bull';
 import { randomUUID } from 'crypto';
 import { AppLogger } from '@cykruit/logger';
-import { DOMAIN_EVENTS_QUEUE, DOMAIN_EVENT_JOB } from './events.constants';
+import { DOMAIN_EVENTS_QUEUE, EMPLOYER_LIFECYCLE_QUEUE, DOMAIN_EVENT_JOB } from './events.constants';
 import { DomainEvent, DomainEventType, DomainEventPayloadMap } from './events.types';
+
+// Event types that also need to reach subscription-service's own listener
+// (EmployerEventsProcessor). Kept as an explicit allowlist rather than
+// mirroring every event onto that queue — only this processor listens there.
+const EMPLOYER_LIFECYCLE_EVENT_TYPES: ReadonlySet<DomainEventType> = new Set([
+    DomainEventType.EMPLOYER_SETUP_COMPLETE,
+]);
 
 @Injectable()
 export class EventPublisher {
     constructor(
         @InjectQueue(DOMAIN_EVENTS_QUEUE) private readonly queue: Queue,
+        @InjectQueue(EMPLOYER_LIFECYCLE_QUEUE) private readonly employerLifecycleQueue: Queue,
         private readonly logger: AppLogger,
     ) {}
 
@@ -37,18 +45,31 @@ export class EventPublisher {
             version: 1,
         };
 
+        const jobOptions = {
+            attempts: 5,
+            backoff: { type: 'exponential' as const, delay: 2000 },
+            removeOnComplete: true,
+            removeOnFail: false,
+        };
+
         try {
-            await this.queue.add(DOMAIN_EVENT_JOB, event, {
-                attempts: 5,
-                backoff: { type: 'exponential', delay: 2000 },
-                removeOnComplete: true,
-                removeOnFail: false,
-            });
+            await this.queue.add(DOMAIN_EVENT_JOB, event, jobOptions);
         } catch (err: any) {
             this.logger.warn(
                 `[EventPublisher] Failed to publish event ${type}: ${err?.message}`,
                 'EventPublisher',
             );
+        }
+
+        if (EMPLOYER_LIFECYCLE_EVENT_TYPES.has(type)) {
+            try {
+                await this.employerLifecycleQueue.add(DOMAIN_EVENT_JOB, event, jobOptions);
+            } catch (err: any) {
+                this.logger.warn(
+                    `[EventPublisher] Failed to publish event ${type} to employer-lifecycle queue: ${err?.message}`,
+                    'EventPublisher',
+                );
+            }
         }
     }
 }

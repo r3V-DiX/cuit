@@ -7,7 +7,7 @@ import { BullModule } from '@nestjs/bull';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from '@cykruit/logger';
 import { EventPublisher } from './event-publisher.service';
-import { DOMAIN_EVENTS_QUEUE } from './events.constants';
+import { DOMAIN_EVENTS_QUEUE, EMPLOYER_LIFECYCLE_QUEUE } from './events.constants';
 
 @Module({})
 export class EventsModule {
@@ -33,7 +33,10 @@ export class EventsModule {
                         },
                     }),
                 }),
-                BullModule.registerQueue({ name: DOMAIN_EVENTS_QUEUE }),
+                BullModule.registerQueue(
+                    { name: DOMAIN_EVENTS_QUEUE },
+                    { name: EMPLOYER_LIFECYCLE_QUEUE },
+                ),
             ],
             providers: [EventPublisher],
             exports: [EventPublisher],
@@ -41,14 +44,16 @@ export class EventsModule {
     }
 
     /**
-     * Use in notification-service (the CONSUMER).
-     * Only registers the queue — processor is registered separately.
+     * Use in whichever service CONSUMES a domain-event queue.
+     * Only registers the queue — the actual @Processor is registered separately.
+     * Defaults to DOMAIN_EVENTS_QUEUE (notification-service); pass
+     * EMPLOYER_LIFECYCLE_QUEUE for subscription-service's own listener.
      */
-    static forConsumer(): DynamicModule {
+    static forConsumer(queueName: string = DOMAIN_EVENTS_QUEUE): DynamicModule {
         return {
             module: EventsModule,
             imports: [
-                BullModule.registerQueue({ name: DOMAIN_EVENTS_QUEUE }),
+                BullModule.registerQueue({ name: queueName }),
             ],
             exports: [BullModule],
         };

@@ -3,7 +3,7 @@
 import { Process, Processor } from '@nestjs/bull';
 import type { Job } from 'bull';
 import {
-    DOMAIN_EVENTS_QUEUE,
+    EMPLOYER_LIFECYCLE_QUEUE,
     DOMAIN_EVENT_JOB,
     DomainEvent,
     DomainEventType,
@@ -12,7 +12,7 @@ import {
 import { AppLogger } from '@cykruit/logger';
 import { PaymentService } from '../services/payment.service';
 
-@Processor(DOMAIN_EVENTS_QUEUE)
+@Processor(EMPLOYER_LIFECYCLE_QUEUE)
 export class EmployerEventsProcessor {
     constructor(
         private readonly paymentService: PaymentService,
