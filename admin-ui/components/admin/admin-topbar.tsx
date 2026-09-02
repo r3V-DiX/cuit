@@ -22,7 +22,7 @@ const ROUTE_TITLES: Record<string, string> = {
   '/contact': 'Contact Submissions',
   '/reports': 'Content Reports',
   '/admins': 'Admins & Access',
-  '/settings': 'Platform Settings',
+  '/platform-settings': 'Platform Settings',
   '/policies': 'Policy & Rate Limits',
   '/announcements': 'Platform Announcements',
   '/emails': 'Broadcasts & Emails',
