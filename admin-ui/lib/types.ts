@@ -913,6 +913,37 @@ export interface AdminBlogsResponse {
   };
 }
 
+export interface Event {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string | null;
+  content?: string | null;
+  category?: string | null;
+  location?: string | null;
+  eventDate: string;
+  bannerImage?: string | null;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminEventsResponse {
+  items: Event[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  metrics?: {
+    total: number;
+    published: number;
+    drafts: number;
+    categories: number;
+  };
+}
+
 export interface Ad {
   id: string;
   slotKey: string;
