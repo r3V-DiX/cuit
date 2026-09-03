@@ -1731,7 +1731,10 @@ model GalleryItem {
 model Event {
     id          String   @id @default(uuid())
     title       String
+    slug        String   @unique
     description String?
+    content     String?
+    category    String?
     location    String?
     eventDate   DateTime
     bannerImage String?
