@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@cykruit/prisma";
 import { BlogQueryDto } from "./dto/blog-query.dto";
+import { EventQueryDto } from "./dto/event-query.dto";
 
 @Injectable()
 export class CmsService {
@@ -69,29 +70,68 @@ export class CmsService {
     return post;
   }
 
-  async getUpcomingEvents() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  async getEvents(dto: EventQueryDto) {
+    const page = dto.page || 1;
+    const limit = dto.limit || 10;
+    const skip = (page - 1) * limit;
 
-    return this.prisma.event.findMany({
-      where: {
-        isPublished: true,
-        eventDate: {
-          gte: today,
+    const where: any = {
+      isPublished: true,
+    };
+
+    if (dto.category) {
+      where.category = {
+        equals: dto.category,
+        mode: "insensitive",
+      };
+    }
+
+    const [events, total] = await this.prisma.$transaction([
+      this.prisma.event.findMany({
+        where,
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          description: true,
+          category: true,
+          location: true,
+          eventDate: true,
+          bannerImage: true,
         },
-      },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        location: true,
-        eventDate: true,
-        bannerImage: true,
-      },
-      orderBy: {
-        eventDate: "asc",
+        orderBy: {
+          eventDate: "desc",
+        },
+        skip,
+        take: limit,
+      }),
+      this.prisma.event.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data: events,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
+  }
+
+  async getEventBySlug(slug: string) {
+    const event = await this.prisma.event.findFirst({
+      where: {
+        slug,
+        isPublished: true,
       },
     });
+
+    if (!event) {
+      throw new NotFoundException("Event not found");
+    }
+
+    return event;
   }
 
   async getGalleryItems() {

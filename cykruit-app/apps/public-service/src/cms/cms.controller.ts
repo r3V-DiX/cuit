@@ -17,6 +17,7 @@ import { Public } from "@cykruit/auth-core";
 import { SkipRateLimit } from "@cykruit/rate-limit";
 import { CmsService } from "./cms.service";
 import { BlogQueryDto } from "./dto/blog-query.dto";
+import { EventQueryDto } from "./dto/event-query.dto";
 
 @ApiTags("cms")
 @Controller()
@@ -63,10 +64,38 @@ export class CmsController {
 
   @Get("events")
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Get upcoming events" })
-  @ApiResponse({ status: 200, description: "List of upcoming events." })
-  async getEvents() {
-    return this.cmsService.getUpcomingEvents();
+  @ApiOperation({ summary: "Get paginated events" })
+  @ApiQuery({
+    name: "category",
+    type: String,
+    required: false,
+    description: "Filter by category",
+  })
+  @ApiQuery({
+    name: "page",
+    type: Number,
+    required: false,
+    description: "Page number",
+  })
+  @ApiQuery({
+    name: "limit",
+    type: Number,
+    required: false,
+    description: "Items per page",
+  })
+  @ApiResponse({ status: 200, description: "Paginated list of events." })
+  async getEvents(@Query() query: EventQueryDto) {
+    return this.cmsService.getEvents(query);
+  }
+
+  @Get("events/:slug")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Get full event by slug" })
+  @ApiParam({ name: "slug", type: String, description: "Event slug" })
+  @ApiResponse({ status: 200, description: "Event details." })
+  @ApiResponse({ status: 404, description: "Event not found." })
+  async getEventBySlug(@Param("slug") slug: string) {
+    return this.cmsService.getEventBySlug(slug);
   }
 
   @Get("gallery")
