@@ -34,6 +34,7 @@ import { SystemHealthModule } from './system-health';
 import { EmailsModule } from './emails';
 import { BlogsModule } from './blogs';
 import { AdsModule } from './ads';
+import { EventsModule } from './events';
 
 @Module({
     imports: [
@@ -66,6 +67,7 @@ import { AdsModule } from './ads';
         EmailsModule,
         BlogsModule,
         AdsModule,
+        EventsModule,
     ],
 })
 export class AdminModule {}

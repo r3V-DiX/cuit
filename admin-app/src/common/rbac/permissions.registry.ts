@@ -102,6 +102,10 @@ export const ACTIONS = {
         VIEW: 'ads:view',
         MANAGE: 'ads:manage',
     },
+    EVENTS: {
+        VIEW: 'events:view',
+        MANAGE: 'events:manage',
+    },
 } as const;
 
 type ValuesOf<T> = T extends Record<string, infer V>
@@ -165,6 +169,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Action, string> = {
     'blogs:manage': 'Create, edit, delete, and publish/unpublish blog articles',
     'ads:view': 'List and view ad slots',
     'ads:manage': 'Create, edit, delete, and activate/deactivate ad slots',
+    'events:view': "List and view What's New events/seminars",
+    'events:manage': "Create, edit, delete, and publish/unpublish What's New events/seminars",
 };
 
 /** `module:action` → { module, action } for the Permission table's split columns. */
