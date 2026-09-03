@@ -184,12 +184,6 @@ enum ApplicationType {
     SCREENING // Answer screening questions first
 }
 
-enum QuestionType {
-    SHORT_ANSWER
-    SINGLE_CHOICE
-    MULTIPLE_CHOICE
-}
-
 enum JobStatus {
     DRAFT // Saved as draft
     PENDING // Submitted, awaiting admin approval
@@ -231,20 +225,6 @@ enum EmployerProfileVisibility {
 // ============================================
 // 💬 MESSAGING SYSTEM - COMPLETE IMPLEMENTATION
 // ============================================
-
-// Message Status Enum
-enum MessageStatus {
-    SENT // Message sent to server
-    DELIVERED // Message delivered to recipient's device
-    READ // Message read by recipient
-    FAILED // Message failed to send
-}
-
-// Conversation Type Enum
-enum ConversationType {
-    DIRECT // One-on-one conversation
-    JOB_INQUIRY // Job-specific conversation
-}
 
 // 1.  OAuth Provider enum
 enum OAuthProvider {
@@ -310,7 +290,6 @@ model User {
     conversationParticipants ConversationParticipant[]
     sentMessages             Message[]                 @relation("SentMessages")
     jobViews                 JobView[]
-    companyProfileViews      CompanyProfileView[]
 
     jobSeekerSettings   JobSeekerSettings?
     locationPreferences LocationPreference[]
@@ -318,8 +297,6 @@ model User {
     authAuditLogs       AuthAuditLog[]
     employerMemberships  EmployerMember[]
     joinRequests         EmployerJoinRequest[] @relation("JoinRequests")
-    roleAssignments      UserRoleAssignment[]
-    permissionOverrides  UserPermissionOverride[]
     auditLogs            AuditLog[]
     contentReports       ContentReport[]
 
@@ -533,42 +510,12 @@ model NotificationPreference {
     @@map("notification_preferences")
 }
 
-// 6. NOTIFICATION QUEUE (For email digests - optional if using Bull)
-model NotificationQueue {
-    id     String @id @default(uuid())
-    userId String
-
-    // Queue details
-    jobType        String // 'instant', 'daily_digest', 'weekly_digest'
-    notificationId String // Reference to notification
-
-    // Status
-    status     String @default("pending") // pending, processing, completed, failed
-    attempts   Int    @default(0)
-    maxRetries Int    @default(3)
-
-    // Scheduling
-    scheduledFor DateTime? // For digest emails
-    processedAt  DateTime?
-
-    // Error tracking
-    lastError String?
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    @@index([status])
-    @@index([userId])
-    @@index([scheduledFor])
-    @@map("notification_queue")
-}
 
 // ============================================
 // CONVERSATION MODEL
 // ============================================
 model Conversation {
-    id   String           @id @default(uuid())
-    type ConversationType @default(JOB_INQUIRY)
+    id   String @id @default(uuid())
 
     // Job Context (for job-specific conversations)
     jobId String?
@@ -653,9 +600,6 @@ model Message {
     fileSize     Int? // in bytes
     fileMimeType String?
 
-    // Status tracking
-    status MessageStatus @default(SENT)
-
     // Read tracking
     readBy String[]  @default([]) // Array of user IDs who read this
     readAt DateTime?
@@ -688,7 +632,6 @@ model Message {
     @@index([senderId])
     @@index([createdAt])
     @@index([conversationId, createdAt])
-    @@index([status])
     @@index([replyToId])
     @@map("messages")
 }
@@ -735,7 +678,6 @@ model JobSeekerProfile {
     ctfProfiles    CTFProfile[]
     resumes        Resume[]
     profileViews   ProfileView[] // ✅ ADD THIS
-    resumeEmbedding ResumeEmbedding?
     jobMatches      SeekerJobMatch[]
 
     @@index([userId])
@@ -1151,7 +1093,6 @@ model Employer {
     teamMembers         TeamMember[]
     companyMedia        CompanyMedia[]
     jobs                Job[]
-    companyProfileViews CompanyProfileView[]
     settings            EmployerSettings?
     members             EmployerMember[]
     subscription        EmployerSubscription?
@@ -1624,24 +1565,6 @@ model ProfileView {
 // ============================================
 // COMPANY PROFILE VIEWS (Logged-in users only)
 // ============================================
-model CompanyProfileView {
-    id         String   @id @default(uuid())
-    employerId String
-    viewerId   String
-    viewedAt   DateTime @default(now())
-
-    // Tracking
-    ipAddress String?
-    userAgent String? @db.Text
-
-    employer Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
-    viewer   User     @relation(fields: [viewerId], references: [id], onDelete: Cascade)
-
-    @@unique([employerId, viewerId]) // one view per user per company
-    @@index([employerId])
-    @@index([viewerId])
-    @@map("company_profile_views")
-}
 
 // ContactForm
 model ContactForm {
@@ -2343,18 +2266,6 @@ model DiscountUsage {
 // ==========================
 
 // Cached embedding vector for a seeker's resume (for semantic job matching)
-model ResumeEmbedding {
-    id         String           @id @default(uuid())
-    seekerId   String           @unique
-    seeker     JobSeekerProfile @relation(fields: [seekerId], references: [id], onDelete: Cascade)
-    // vector(1536) — text-embedding-3-small output; stored via raw SQL, not Prisma client
-    embedding  Unsupported("vector(1536)")
-    embeddedAt DateTime         @default(now())
-    updatedAt  DateTime         @updatedAt
-
-    @@index([seekerId])
-    @@map("resume_embeddings")
-}
 
 // Cached seeker ↔ job compatibility score (cosine similarity between embeddings)
 model SeekerJobMatch {
@@ -2405,83 +2316,6 @@ model AuditLog {
 // ==========================
 // RBAC (Permission System)
 // ==========================
-
-model Permission {
-    id          String   @id @default(uuid())
-    module      String
-    action      String
-    description String?
-    isActive    Boolean  @default(true)
-    createdAt   DateTime @default(now())
-
-    rolePermissions     RolePermission[]
-    userOverrides       UserPermissionOverride[]
-
-    @@unique([module, action])
-    @@index([isActive])
-    @@map("permissions")
-}
-
-model RbacRole {
-    id          String   @id @default(uuid())
-    name        String   @unique
-    description String?
-    isActive    Boolean  @default(true)
-    createdAt   DateTime @default(now())
-    updatedAt   DateTime @updatedAt
-
-    permissions  RolePermission[]
-    assignments  UserRoleAssignment[]
-
-    @@map("rbac_roles")
-}
-
-
-model RolePermission {
-    id           String     @id @default(uuid())
-    roleId       String
-    role         RbacRole   @relation(fields: [roleId], references: [id], onDelete: Cascade)
-    permissionId String
-    permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-    @@unique([roleId, permissionId])
-    @@map("role_permissions")
-}
-
-model UserRoleAssignment {
-    id         String    @id @default(uuid())
-    userId     String
-    user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-    roleId     String
-    role       RbacRole  @relation(fields: [roleId], references: [id], onDelete: Cascade)
-    employerId String?
-    expiresAt  DateTime?
-    assignedBy String?
-    createdAt  DateTime  @default(now())
-
-    @@unique([userId, roleId, employerId])
-    @@index([userId])
-    @@index([employerId])
-    @@map("user_role_assignments")
-}
-
-model UserPermissionOverride {
-    id           String     @id @default(uuid())
-    userId       String
-    user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-    permissionId String
-    permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-    employerId   String?
-    grant        Boolean
-    grantedBy    String?
-    reason       String?
-    createdAt    DateTime   @default(now())
-
-    @@unique([userId, permissionId, employerId])
-    @@index([userId])
-    @@index([employerId])
-    @@map("user_permission_overrides")
-}
 
 // ==========================
 // Admin console RBAC — fully separated from the main-app RBAC set above.
