@@ -912,3 +912,30 @@ export interface AdminBlogsResponse {
     categories: number;
   };
 }
+
+export interface Ad {
+  id: string;
+  slotKey: string;
+  imageUrl: string;
+  linkUrl: string;
+  altText: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminAdsResponse {
+  items: Ad[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  metrics?: {
+    total: number;
+    active: number;
+    inactive: number;
+    slots: number;
+  };
+}

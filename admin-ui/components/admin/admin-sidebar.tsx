@@ -36,6 +36,7 @@ import {
   ClipboardList,
   SendHorizontal,
   BookOpen,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
@@ -172,6 +173,12 @@ export default function AdminSidebar() {
       href: '/blogs',
       icon: <BookOpen className="h-5 w-5" />,
       action: ACTIONS.BLOGS.VIEW,
+    },
+    {
+      label: 'Ads',
+      href: '/ads',
+      icon: <ImageIcon className="h-5 w-5" />,
+      action: ACTIONS.ADS.VIEW,
     },
     {
       label: 'Announcements',
