@@ -104,4 +104,23 @@ export class CmsService {
       },
     });
   }
+
+  /** All active ads, keyed by slot — one call covers every AdSlot on a page. */
+  async getActiveAds(): Promise<Record<string, { imageUrl: string; linkUrl: string; altText: string }>> {
+    const ads = await this.prisma.ad.findMany({
+      where: { isActive: true },
+      orderBy: { updatedAt: "desc" },
+      select: { slotKey: true, imageUrl: true, linkUrl: true, altText: true },
+    });
+
+    const bySlot: Record<string, { imageUrl: string; linkUrl: string; altText: string }> = {};
+    for (const ad of ads) {
+      // Already ordered by updatedAt desc, so the first hit per slot is the
+      // most-recently-updated active ad — later duplicates are ignored.
+      if (!bySlot[ad.slotKey]) {
+        bySlot[ad.slotKey] = { imageUrl: ad.imageUrl, linkUrl: ad.linkUrl, altText: ad.altText };
+      }
+    }
+    return bySlot;
+  }
 }

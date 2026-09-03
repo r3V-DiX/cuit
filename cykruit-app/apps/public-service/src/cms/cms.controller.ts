@@ -76,4 +76,12 @@ export class CmsController {
   async getGallery() {
     return this.cmsService.getGalleryItems();
   }
+
+  @Get("ads")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Get all active ads keyed by slot" })
+  @ApiResponse({ status: 200, description: "Map of slotKey to ad creative." })
+  async getAds() {
+    return this.cmsService.getActiveAds();
+  }
 }
