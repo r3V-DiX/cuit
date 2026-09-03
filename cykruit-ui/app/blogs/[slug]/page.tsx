@@ -19,6 +19,7 @@ import {
   Bookmark,
 } from "lucide-react";
 import ArticleContentRenderer from "./_components/article-renderer";
+import AdSlot from "@/components/AdSlot";
 import MarkdownIt from "markdown-it";
 
 interface BlogPostDetail {
@@ -213,6 +214,10 @@ export default async function BlogDetailPage({
             ) : (
               <p className="text-slate-500 italic">No additional content in this article.</p>
             )}
+          </div>
+
+          <div className="mt-10">
+            <AdSlot slotKey="blog-article-end" />
           </div>
 
           {/* ── Author Footer Box ── */}

@@ -3,10 +3,11 @@
 // cykruit-ui/app/blogs/page.tsx
 // Public Cybersecurity Blog Catalog & Insights Directory
 
-import { useState, useEffect, useCallback, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense, Fragment } from "react";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import AdSlot from "@/components/AdSlot";
 import {
   BookOpen,
   Search,
@@ -308,11 +309,13 @@ function BlogsContent() {
               </Link>
             )}
 
+            <AdSlot slotKey="blogs-banner" />
+
             {/* Grid of Remaining / Filtered Articles */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(searchTerm || page > 1 ? filteredBlogs : gridBlogs).map((blog) => (
+              {(searchTerm || page > 1 ? filteredBlogs : gridBlogs).map((blog, i) => (
+                <Fragment key={blog.id}>
                 <Link
-                  key={blog.id}
                   href={`/blogs/${blog.slug}`}
                   className="group flex flex-col bg-white rounded-2xl border border-slate-200 shadow-2xs hover:shadow-md hover:border-blue-200 transition-all duration-200 overflow-hidden"
                 >
@@ -373,6 +376,8 @@ function BlogsContent() {
                     </div>
                   </div>
                 </Link>
+                {(i + 1) % 6 === 0 && <AdSlot slotKey="blogs-grid" />}
+                </Fragment>
               ))}
             </div>
 

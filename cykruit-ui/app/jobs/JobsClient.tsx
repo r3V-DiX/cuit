@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import AdSlot from "@/components/AdSlot";
 import {
   MapPin, Clock, X, ArrowRight, ChevronDown,
   Shield, Terminal, Lock, Bug, Wifi, Eye, Cpu, Crosshair,
@@ -275,8 +276,8 @@ function JobsContent() {
               {paginated.map((job, i) => {
                 const CyberIcon = cyberIcons[i % cyberIcons.length];
                 return (
+                  <Fragment key={job.id}>
                   <Link
-                    key={job.id}
                     href={`/jobs/${job.id}`}
                     className="group relative flex flex-col gap-4 p-5 rounded-2xl bg-white border border-slate-200 border-l-2 border-l-slate-200 shadow-sm hover:border-blue-300 hover:border-l-blue-400 hover:shadow-md hover:shadow-blue-500/8 transition-all duration-200 overflow-hidden"
                   >
@@ -330,6 +331,8 @@ function JobsContent() {
                       </span>
                     </div>
                   </Link>
+                  {(i + 1) % 6 === 0 && <AdSlot slotKey="jobs-grid" />}
+                  </Fragment>
                 );
               })}
             </div>
