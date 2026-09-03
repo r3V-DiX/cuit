@@ -33,6 +33,7 @@ import { RolesModule } from './roles';
 import { SystemHealthModule } from './system-health';
 import { EmailsModule } from './emails';
 import { BlogsModule } from './blogs';
+import { AdsModule } from './ads';
 
 @Module({
     imports: [
@@ -64,6 +65,7 @@ import { BlogsModule } from './blogs';
         SystemHealthModule,
         EmailsModule,
         BlogsModule,
+        AdsModule,
     ],
 })
 export class AdminModule {}

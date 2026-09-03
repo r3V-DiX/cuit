@@ -28,6 +28,7 @@ export const ACTIONS = {
   ROLES: { VIEW: 'roles:view', MANAGE: 'roles:manage' },
   EMAILS: { VIEW: 'emails:view', SEND: 'emails:send' },
   BLOGS: { VIEW: 'blogs:view', MANAGE: 'blogs:manage' },
+  ADS: { VIEW: 'ads:view', MANAGE: 'ads:manage' },
 } as const;
 
 type ValuesOf<T> = T extends Record<string, infer V>
