@@ -1690,6 +1690,20 @@ model Testimonial {
     @@map("testimonials")
 }
 
+model Ad {
+    id        String   @id @default(uuid())
+    slotKey   String
+    imageUrl  String
+    linkUrl   String
+    altText   String
+    isActive  Boolean  @default(true)
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([slotKey, isActive])
+    @@map("ads")
+}
+
 model Blog {
     id          String  @id @default(uuid())
     title       String
