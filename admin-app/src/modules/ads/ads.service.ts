@@ -2,6 +2,7 @@
 
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import { UploadService, UPLOAD_CONFIGS } from '@cykruit/upload';
 import { AdsRepository } from './ads.repository';
 import { AdminAuditLogger } from '../../common';
 import { AdminAdsQueryDto, CreateAdDto, UpdateAdDto } from './dto/ads.dto';
@@ -11,7 +12,13 @@ export class AdsService {
     constructor(
         private readonly repo: AdsRepository,
         private readonly auditLogger: AdminAuditLogger,
+        private readonly uploadService: UploadService,
     ) {}
+
+    async uploadImage(file: Express.Multer.File) {
+        const result = await this.uploadService.uploadFile(file, UPLOAD_CONFIGS.AD_CREATIVE);
+        return { imageUrl: result.fileUrl };
+    }
 
     list(query: AdminAdsQueryDto) {
         return this.repo.findAll(query);

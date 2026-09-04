@@ -10,9 +10,15 @@ import {
     Body,
     Query,
     UseGuards,
+    UseInterceptors,
+    UploadedFile,
+    ParseFilePipe,
+    MaxFileSizeValidator,
+    FileTypeValidator,
     HttpCode,
     HttpStatus,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminAuthGuard } from '../auth';
 import { CurrentAdmin } from '../auth';
 import { PermissionsGuard } from '../../common';
@@ -47,6 +53,25 @@ export class AdsController {
     @RequirePermission(ACTIONS.ADS.MANAGE)
     create(@CurrentAdmin() admin: Admin, @Body() dto: CreateAdDto) {
         return this.service.create(admin.id, dto);
+    }
+
+    // POST /admin/ads/upload
+    @Post('upload')
+    @HttpCode(HttpStatus.CREATED)
+    @RequirePermission(ACTIONS.ADS.MANAGE)
+    @UseInterceptors(FileInterceptor('file'))
+    uploadImage(
+        @UploadedFile(
+            new ParseFilePipe({
+                validators: [
+                    new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+                    new FileTypeValidator({ fileType: /^image\/(jpeg|jpg|png|webp)$/ }),
+                ],
+            }),
+        )
+        file: Express.Multer.File,
+    ) {
+        return this.service.uploadImage(file);
     }
 
     // PATCH /admin/ads/:id

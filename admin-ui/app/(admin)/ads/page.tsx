@@ -247,175 +247,161 @@ export default function AdsPage() {
         </div>
       </div>
 
-      {/* ── Ads Table ── */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-500 space-y-3">
-            <Loader2 className="h-8 w-8 animate-spin text-[#1B3C8B]" />
-            <p className="text-xs font-medium">Loading ads...</p>
+      {/* ── Ads Grid ── */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20 text-slate-500 space-y-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1B3C8B]" />
+          <p className="text-xs font-medium">Loading ads...</p>
+        </div>
+      ) : data.items.length === 0 ? (
+        <div className="text-center py-16 px-4 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+          <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-800 flex items-center justify-center mx-auto mb-3">
+            <Megaphone className="h-6 w-6" />
           </div>
-        ) : data.items.length === 0 ? (
-          <div className="text-center py-16 px-4">
-            <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-800 flex items-center justify-center mx-auto mb-3">
-              <Megaphone className="h-6 w-6" />
+          <h3 className="text-sm font-bold text-slate-900">No ads found</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+            {search || statusFilter !== 'ALL'
+              ? 'Try adjusting your search or status filter.'
+              : 'No ads configured yet. Create one for a page slot.'}
+          </p>
+          {canManage && (
+            <Button size="sm" variant="primary" onClick={() => handleOpenEditor()}>
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Create First Ad
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {data.items.map((ad) => (
+            <div
+              key={ad.id}
+              className="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200"
+            >
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10" />
+
+              <div className="relative aspect-video w-full bg-slate-100 overflow-hidden">
+                {ad.imageUrl ? (
+                  <img
+                    src={ad.imageUrl}
+                    alt={ad.altText}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-300">
+                    <ImageIcon className="h-8 w-8" />
+                  </div>
+                )}
+
+                <div className="absolute top-2 left-2">
+                  <span className="font-mono text-[10px] font-semibold text-white bg-slate-900/70 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                    {ad.slotKey}
+                  </span>
+                </div>
+
+                {canManage && (
+                  <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditor(ad)}
+                      className="p-2 rounded-lg bg-white text-slate-700 hover:bg-slate-100 shadow-sm transition"
+                      title="Edit Ad"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(ad)}
+                      className="p-2 rounded-lg bg-white text-red-600 hover:bg-red-50 shadow-sm transition"
+                      title="Delete Ad"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 space-y-3">
+                <p className="text-sm text-slate-700 font-medium line-clamp-1">{ad.altText}</p>
+
+                <a
+                  href={ad.linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-xs text-blue-700 hover:text-blue-900 truncate"
+                  title={ad.linkUrl}
+                >
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{ad.linkUrl}</span>
+                </a>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleActive(ad)}
+                    disabled={!canManage || togglingId === ad.id}
+                    className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition ${
+                      ad.isActive
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                        : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                    } ${!canManage ? 'cursor-default' : 'cursor-pointer'}`}
+                  >
+                    {togglingId === ad.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin text-slate-600" />
+                    ) : ad.isActive ? (
+                      <CheckCircle2 className="h-3 w-3" />
+                    ) : (
+                      <XCircle className="h-3 w-3" />
+                    )}
+                    <span>{ad.isActive ? 'Active' : 'Inactive'}</span>
+                  </button>
+
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    {new Date(ad.updatedAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </span>
+                </div>
+              </div>
             </div>
-            <h3 className="text-sm font-bold text-slate-900">No ads found</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
-              {search || statusFilter !== 'ALL'
-                ? 'Try adjusting your search or status filter.'
-                : 'No ads configured yet. Create one for a page slot.'}
-            </p>
-            {canManage && (
-              <Button size="sm" variant="primary" onClick={() => handleOpenEditor()}>
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Create First Ad
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[11px]">
-                  <th className="py-3 px-4">Creative</th>
-                  <th className="py-3 px-4">Slot</th>
-                  <th className="py-3 px-4">Link</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Updated</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.items.map((ad) => (
-                  <tr key={ad.id} className="hover:bg-slate-50/60 transition group">
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-14 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center">
-                          {ad.imageUrl ? (
-                            <img
-                              src={ad.imageUrl}
-                              alt={ad.altText}
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <ImageIcon className="h-5 w-5 text-slate-300" />
-                          )}
-                        </div>
-                        <span className="text-slate-600 line-clamp-1 max-w-xs">{ad.altText}</span>
-                      </div>
-                    </td>
+          ))}
+        </div>
+      )}
 
-                    <td className="py-3.5 px-4">
-                      <span className="font-mono text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
-                        {ad.slotKey}
-                      </span>
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <a
-                        href={ad.linkUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 max-w-[220px] truncate"
-                        title={ad.linkUrl}
-                      >
-                        <ExternalLink className="h-3 w-3 shrink-0" />
-                        <span className="truncate">{ad.linkUrl}</span>
-                      </a>
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleActive(ad)}
-                        disabled={!canManage || togglingId === ad.id}
-                        className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition ${
-                          ad.isActive
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-                            : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
-                        } ${!canManage ? 'cursor-default' : 'cursor-pointer'}`}
-                      >
-                        {togglingId === ad.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin text-slate-600" />
-                        ) : ad.isActive ? (
-                          <CheckCircle2 className="h-3 w-3" />
-                        ) : (
-                          <XCircle className="h-3 w-3" />
-                        )}
-                        <span>{ad.isActive ? 'Active' : 'Inactive'}</span>
-                      </button>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">
-                      {new Date(ad.updatedAt).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right">
-                      {canManage && (
-                        <div className="flex items-center justify-end space-x-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditor(ad)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
-                            title="Edit Ad"
-                          >
-                            <Edit3 className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(ad)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
-                            title="Delete Ad"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* ── Pagination ── */}
-        {data.pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50/50 text-xs">
-            <span className="text-slate-500">
-              Showing {(data.pagination.page - 1) * data.pagination.limit + 1} to{' '}
-              {Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} of{' '}
-              {data.pagination.total} ads
+      {/* ── Pagination ── */}
+      {data.pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200/80 bg-white shadow-2xs text-xs">
+          <span className="text-slate-500">
+            Showing {(data.pagination.page - 1) * data.pagination.limit + 1} to{' '}
+            {Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} of{' '}
+            {data.pagination.total} ads
+          </span>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={data.pagination.page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <span className="font-mono px-2 font-medium">
+              {data.pagination.page} / {data.pagination.totalPages}
             </span>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={data.pagination.page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Previous
-              </Button>
-              <span className="font-mono px-2 font-medium">
-                {data.pagination.page} / {data.pagination.totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={data.pagination.page >= data.pagination.totalPages}
-                onClick={() => setPage((p) => Math.min(data.pagination.totalPages, p + 1))}
-              >
-                Next
-              </Button>
-            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={data.pagination.page >= data.pagination.totalPages}
+              onClick={() => setPage((p) => Math.min(data.pagination.totalPages, p + 1))}
+            >
+              Next
+            </Button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
