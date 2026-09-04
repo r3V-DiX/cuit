@@ -22,6 +22,7 @@ import {
     AddOfficeLocationDto,
     AddCompanyBenefitDto,
 } from '../dto/company.dto';
+import { resolveUniqueCompanyPrefix } from '../utils/job-code.util';
 
 @Injectable()
 export class CompanyService {
@@ -50,6 +51,9 @@ export class CompanyService {
         }
 
         const slug = await this.generateUniqueSlug(dto.companyName);
+        const jobCodePrefix = existingCompany?.jobCodePrefix
+            ? existingCompany.jobCodePrefix
+            : await resolveUniqueCompanyPrefix(this.prisma, existingCompany?.id || '', dto.companyName);
 
         const companyData = {
             companyName: dto.companyName,
@@ -58,6 +62,7 @@ export class CompanyService {
             companySize: dto.companySize,
             location: dto.location,
             slug,
+            jobCodePrefix,
             ...(dto.companyWebsite ? { companyWebsite: dto.companyWebsite } : {}),
             ...(dto.contactEmail ? { contactEmail: dto.contactEmail } : {}),
         };
@@ -124,6 +129,13 @@ export class CompanyService {
 
         if (dto.companyName && dto.companyName !== employer.companyName) {
             updateData.slug = await this.generateUniqueSlug(dto.companyName);
+            const hasJobs = await this.prisma.job.findFirst({
+                where: { employerId: employer.id },
+                select: { id: true },
+            });
+            if (!hasJobs) {
+                updateData.jobCodePrefix = await resolveUniqueCompanyPrefix(this.prisma, employer.id, dto.companyName);
+            }
         }
 
         const updated = await this.prisma.$transaction(async (tx) => {

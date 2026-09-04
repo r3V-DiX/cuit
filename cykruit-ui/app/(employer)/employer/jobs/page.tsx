@@ -259,6 +259,7 @@ export default function MyJobsPage() {
                           <Link href={`/employer/jobs/${job.id}`} className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors hover:underline">{job.title}</Link>
                           {job.jobCode && (
                             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                              <span className="text-slate-400 font-normal mr-1">Job ID:</span>
                               {job.jobCode}
                             </span>
                           )}

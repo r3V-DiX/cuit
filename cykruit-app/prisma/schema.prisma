@@ -1039,6 +1039,10 @@ model Employer {
     // Slug for public profile
     slug String @unique
 
+    // Job Code prefix and sequence counter
+    jobCodePrefix     String? @unique @db.VarChar(10)
+    nextJobCodeNumber Int     @default(1)
+
     // ============================================
     // EDITABLE INFO (Can change anytime ✅)
     // ============================================

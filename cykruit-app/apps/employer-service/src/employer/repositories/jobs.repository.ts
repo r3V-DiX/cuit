@@ -95,8 +95,9 @@ export class JobsRepository {
 
     // ── Mutations ─────────────────────────────────────────────────────────────
 
-    async create(data: Prisma.JobCreateInput) {
-        return this.prisma.job.create({
+    async create(data: Prisma.JobCreateInput, tx?: Prisma.TransactionClient) {
+        const client = tx ?? this.prisma;
+        return client.job.create({
             data,
             include: JOB_DETAIL_INCLUDE,
         });

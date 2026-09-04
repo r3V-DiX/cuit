@@ -17,6 +17,7 @@ import { jobTypes, remoteTypes, type Job } from "@/lib/jobs-data";
 import SearchBox from "@/components/ui/SearchBox";
 import { apiFetch } from "@/lib/api";
 import { JobCardSkeletonGrid } from "@/components/ui/skeletons/JobCardSkeleton";
+import JobCard from "@/components/ui/JobCard";
 import { useInlineStyle } from "@/lib/use-inline-style";
 
 const JOBS_PER_PAGE = 9;
@@ -91,7 +92,8 @@ async function fetchJobs(params: {
       durationMonths: job.durationMonths,
       remote: job.workMode,
       description: descSnippet,
-      logo: job.employer?.companyName?.[0] || "C",
+      logo: job.employer?.companyLogo || job.employer?.companyName?.[0] || "C",
+      employer: job.employer,
       accent: "bg-blue-100 text-blue-800",
       posted: new Date(job.publishedAt || Date.now()).toLocaleDateString(),
       tags: job.skills?.map((s: any) => s.name) || [],
@@ -277,77 +279,12 @@ function JobsContent() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {paginated.map((job, i) => {
-                const CyberIcon = cyberIcons[i % cyberIcons.length];
-                return (
-                  <Fragment key={job.id}>
-                  <Link
-                    href={`/jobs/${job.id}`}
-                    className="group relative flex flex-col gap-4 p-5 rounded-2xl bg-white border border-slate-200 border-l-2 border-l-slate-200 shadow-sm hover:border-blue-300 hover:border-l-blue-400 hover:shadow-md hover:shadow-blue-500/8 transition-all duration-200 overflow-hidden"
-                  >
-                    <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-blue-400/0 via-blue-500/60 to-blue-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                    {job.isFeatured && (
-                      <span className="absolute top-3 right-10 flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono bg-amber-50 text-amber-600 border border-amber-200">
-                        ⭐ Featured
-                      </span>
-                    )}
-                    <CyberIcon className={`absolute top-4 right-4 w-5 h-5 text-slate-100 group-hover:text-blue-100 transition-colors ${job.isFeatured ? "opacity-0" : ""}`} />
-
-                    <div className="flex items-center gap-3 pr-6">
-                      <div className={`w-10 h-10 rounded-xl ${job.accent} flex items-center justify-center shrink-0 font-bold text-xs font-mono`}>
-                        {job.logo}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-xs text-slate-400 font-medium font-mono truncate">{job.company}</p>
-                          {job.jobCode && (
-                            <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 border border-slate-200">
-                              {job.jobCode}
-                            </span>
-                          )}
-                        </div>
-                        <h3 className="text-sm font-semibold text-slate-800 leading-snug group-hover:text-blue-600 transition-colors truncate">
-                          {job.title}
-                        </h3>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />{job.location}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        {formatEnum(job.type)}
-                        {job.durationMonths ? ` (${job.durationMonths} mos)` : ""}
-                      </span>
-                    </div>
-
-                    {job.description && (
-                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
-                        {job.description}
-                      </p>
-                    )}
-
-                    <div className="flex flex-wrap gap-1.5">
-                      {job.tags.slice(0, 4).map((tag) => (
-                        <span key={tag} className="px-2.5 py-1 text-[11px] font-mono font-medium text-slate-600 bg-slate-100 rounded-lg">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[11px] text-slate-400 font-mono">{job.posted}</span>
-                      <span className="text-[11px] font-semibold text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 font-mono">
-                        View role <ArrowRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                  </Link>
+              {paginated.map((job, i) => (
+                <Fragment key={job.id}>
+                  <JobCard job={job} href={`/jobs/${job.id}`} />
                   {jobAdPositions.has(i + 1) && <AdSlot slotKey="jobs-grid" />}
-                  </Fragment>
-                );
-              })}
+                </Fragment>
+              ))}
             </div>
           )}
 

@@ -1,6 +1,7 @@
 import { MapPin, Clock, ArrowRight, Terminal, Shield, Lock, Bug, Wifi, Eye } from "lucide-react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+import JobCard from "@/components/ui/JobCard";
 
 const ACCENT_POOL = [
   { accent: "bg-red-100 text-red-700", accentBorder: "group-hover:border-l-red-400", cyberIcon: Terminal },
@@ -41,6 +42,7 @@ export interface FeaturedJob {
   publishedAt?: string;
   employer: {
     companyName: string;
+    companyLogo?: string;
   };
   location?: {
     displayName?: string;
@@ -103,87 +105,17 @@ export default function FeaturedJobsSection({ jobs }: Props) {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {jobs.map((job, i) => {
-              const style = ACCENT_POOL[i % ACCENT_POOL.length];
-              const CyberIcon = style.cyberIcon;
-              const tags = [
-                ...(job.skills?.slice(0, 2).map((s) => s.name) ?? []),
-                ...(job.certifications?.slice(0, 1).map((c) => c.name) ?? []),
-              ].slice(0, 3);
-              const locationLabel = [
-                job.workMode ? formatEnum(job.workMode) : null,
-                job.location?.displayName ?? job.location?.city,
-              ]
-                .filter(Boolean)
-                .join(" • ");
-
-              return (
-                <Link
-                  key={job.id}
-                  href={`/jobs/${job.slug ?? job.id}`}
-                  className={`
-                    group relative flex flex-col gap-4 p-5 rounded-2xl bg-white
-                    border border-slate-200 border-l-2 border-l-slate-200
-                    shadow-sm hover:border-blue-300 hover:shadow-md hover:shadow-blue-500/8
-                    transition-all duration-200 overflow-hidden
-                    ${style.accentBorder}
-                  `}
-                >
-                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-blue-400/0 via-blue-500/60 to-blue-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                  <CyberIcon className="absolute top-4 right-4 w-5 h-5 text-slate-100 group-hover:text-blue-100 transition-colors" />
-
-                  <div className="flex items-center gap-3 pr-6">
-                    <div className={`w-10 h-10 rounded-xl ${style.accent} flex items-center justify-center shrink-0 font-bold text-xs font-mono`}>
-                      {initials(job.employer.companyName)}
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-400 font-medium font-mono">{job.employer.companyName}</p>
-                      <h3 className="text-sm font-semibold text-slate-800 leading-snug group-hover:text-blue-600 transition-colors">
-                        {job.jobTitle}
-                      </h3>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-3 text-xs text-slate-500">
-                    {locationLabel && (
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                        {locationLabel}
-                      </span>
-                    )}
-                    {job.jobType && (
-                      <span className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        {formatEnum(job.jobType)}
-                      </span>
-                    )}
-                  </div>
-
-                  {job.description && (
-                    <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
-                      {job.description}
-                    </p>
-                  )}
-
-                  {tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {tags.map((tag) => (
-                        <span key={tag} className="px-2.5 py-1 text-[11px] font-mono font-medium text-slate-600 bg-slate-100 rounded-lg">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-slate-400 font-mono">{job.publishedAt ? postedAgo(job.publishedAt) : ""}</span>
-                    <span className="text-[11px] font-semibold text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 font-mono">
-                      View role <ArrowRight className="w-3 h-3" />
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
+            {jobs.map((job) => (
+              <JobCard
+                key={job.id}
+                job={{
+                  ...job,
+                  isFeatured: true,
+                  posted: job.publishedAt ? postedAgo(job.publishedAt) : undefined,
+                }}
+                href={`/jobs/${job.slug ?? job.id}`}
+              />
+            ))}
           </div>
         )}
       </div>

@@ -485,6 +485,11 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
       });
     }
 
+    const words = emp.companyName.trim().replace(/[^a-zA-Z0-9]/g, ' ').split(/\s+/).filter(Boolean);
+    const calculatedPrefix = words.length >= 2
+      ? words.map(w => w[0].toUpperCase()).join('').slice(0, 5)
+      : words[0]?.toUpperCase().slice(0, 3) || 'CYK';
+
     // Find or create employer profile — always ensure isVerified=true so re-running
     // seed fixes accounts that were registered via the UI before seeding ran.
     let employer = await prisma.employer.findFirst({ where: { userId: user.id } });
@@ -493,6 +498,7 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
         data: {
           userId: user.id,
           companyName: emp.companyName,
+          jobCodePrefix: calculatedPrefix,
           slug: emp.slug,
           companyType: emp.companyType,
           industry: emp.industry,
@@ -511,10 +517,14 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
           role: 'OWNER',
         },
       });
-    } else if (!employer.isVerified) {
+    } else if (!employer.isVerified || !employer.jobCodePrefix) {
       employer = await prisma.employer.update({
         where: { id: employer.id },
-        data: { isVerified: true, verifiedAt: new Date() },
+        data: {
+          isVerified: true,
+          verifiedAt: new Date(),
+          ...(!employer.jobCodePrefix ? { jobCodePrefix: calculatedPrefix } : {}),
+        },
       });
       console.log(`  ✅ KYC-verified existing employer: ${emp.companyName}`);
     }
@@ -523,26 +533,23 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
     if ('subscriptionPackage' in emp && emp.subscriptionPackage) {
       const pkg = await prisma.subscriptionPackage.findUnique({
         where: { name: emp.subscriptionPackage },
-        select: { id: true },
       });
       if (pkg) {
-        const existingSub = await prisma.employerSubscription.findUnique({
+        await prisma.employerSubscription.upsert({
           where: { employerId: employer.id },
+          create: {
+            employerId: employer.id,
+            packageId: pkg.id,
+            status: 'ACTIVE',
+            startDate: new Date(),
+            endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+            autoRenew: true,
+          },
+          update: {
+            packageId: pkg.id,
+            status: 'ACTIVE',
+          },
         });
-        if (!existingSub) {
-          const expiresAt = new Date();
-          expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-          await prisma.employerSubscription.create({
-            data: {
-              employerId: employer.id,
-              packageId: pkg.id,
-              status: 'ACTIVE',
-              billingCycle: 'YEARLY',
-              expiresAt,
-            },
-          });
-          console.log(`  💳 Created ${emp.subscriptionPackage} subscription for ${emp.companyName}`);
-        }
       }
     }
 
@@ -567,9 +574,16 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
         continue;
       }
 
+      const seq = employer.nextJobCodeNumber;
+      const jobCode = `${employer.jobCodePrefix || calculatedPrefix}-${String(seq).padStart(4, '0')}`;
+      employer = await prisma.employer.update({
+        where: { id: employer.id },
+        data: { nextJobCodeNumber: { increment: 1 } },
+      });
+
       const job = await prisma.job.create({
         data: {
-          jobCode: `CYK-${jt.slug.slice(0, 10).toUpperCase().replace(/[^A-Z0-9]/g, '')}`,
+          jobCode,
           employerId: employer.id,
           jobTitle: jt.jobTitle,
           slug: jt.slug,

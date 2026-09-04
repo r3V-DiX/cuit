@@ -31,12 +31,22 @@ describe('JobsService', () => {
             findByIdAndEmployer: jest.fn(),
             countActive: jest.fn(),
             updateStatus: jest.fn(),
+            getDetailInclude: jest.fn().mockReturnValue({}),
         };
         const mockCompanyRepository = {
             findByMemberId: jest.fn(),
         };
         const mockPrisma = {
             $transaction: jest.fn((cb) => cb(mockPrisma)),
+            employer: {
+                findUnique: jest.fn().mockResolvedValue(null),
+                update: jest.fn().mockResolvedValue({ nextJobCodeNumber: 2 }),
+            },
+            job: {
+                findUnique: jest.fn().mockResolvedValue(null),
+                count: jest.fn().mockResolvedValue(0),
+                update: jest.fn().mockResolvedValue({ id: 'job-1', status: JobStatus.PENDING }),
+            },
             location: {
                 findFirst: jest.fn(),
                 create: jest.fn(),
@@ -103,7 +113,13 @@ describe('JobsService', () => {
                 applicationType: ApplicationType.DIRECT,
             };
 
-            companyRepository.findByMemberId.mockResolvedValue({ id: 'emp-1', slug: 'emp', isVerified: true } as any);
+            companyRepository.findByMemberId.mockResolvedValue({
+                id: 'emp-1',
+                companyName: 'Red Ventures',
+                jobCodePrefix: 'RV',
+                slug: 'emp',
+                isVerified: true,
+            } as any);
             jobsRepository.findBySlug.mockResolvedValue(null);
             
             const mockCreatedJob = { id: 'job-1', jobTitle: 'Software Engineer', status: JobStatus.DRAFT };
@@ -112,11 +128,54 @@ describe('JobsService', () => {
             const result = await service.create(userId, dto);
 
             expect(result).toEqual(mockCreatedJob);
-            expect(jobsRepository.create).toHaveBeenCalledWith(expect.objectContaining({
-                jobTitle: 'Software Engineer',
-                status: JobStatus.DRAFT,
-            }));
+            expect(jobsRepository.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    jobTitle: 'Software Engineer',
+                    jobCode: 'RV-0001',
+                    status: JobStatus.DRAFT,
+                }),
+                expect.anything(),
+            );
             expect(auditService.logAction).toHaveBeenCalled();
+        });
+
+        it('should generate and persist prefix if employer.jobCodePrefix is null', async () => {
+            const userId = 'user-1';
+            const dto = {
+                jobTitle: 'Frontend Engineer',
+                jobType: 'FULL_TIME' as any,
+                workMode: 'REMOTE' as any,
+                experienceLevel: 'MID' as any,
+                applicationType: ApplicationType.DIRECT,
+            };
+
+            companyRepository.findByMemberId.mockResolvedValue({
+                id: 'emp-2',
+                companyName: 'Google',
+                jobCodePrefix: null,
+                slug: 'google',
+                isVerified: true,
+            } as any);
+            prisma.employer.findUnique.mockResolvedValue(null);
+            prisma.employer.update.mockResolvedValue({ nextJobCodeNumber: 2 });
+            jobsRepository.findBySlug.mockResolvedValue(null);
+            jobsRepository.create.mockResolvedValue({ id: 'job-2' } as any);
+
+            await service.create(userId, dto);
+
+            // Should have set prefix GOO
+            expect(prisma.employer.update).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: { id: 'emp-2' },
+                    data: { jobCodePrefix: 'GOO' },
+                }),
+            );
+            expect(jobsRepository.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    jobCode: 'GOO-0001',
+                }),
+                expect.anything(),
+            );
         });
 
         it('should throw ForbiddenException if employer is not verified', async () => {
@@ -142,15 +201,19 @@ describe('JobsService', () => {
             companyRepository.findByMemberId.mockResolvedValue({ id: 'emp-1', isVerified: true, companyName: 'Corp' } as any);
             jobsRepository.findByIdAndEmployer.mockResolvedValue({ id: jobId, status: JobStatus.DRAFT, jobTitle: 'Dev' } as any);
             employerLimitsService.resolveForEmployer.mockResolvedValue({ maxActiveJobs: 5 } as any);
-            jobsRepository.countActive.mockResolvedValue(1);
+            prisma.job.count.mockResolvedValue(1);
             
             const mockSubmittedJob = { id: jobId, status: JobStatus.PENDING, jobTitle: 'Dev', jobType: 'FULL_TIME', workMode: 'REMOTE' };
-            jobsRepository.updateStatus.mockResolvedValue(mockSubmittedJob as any);
+            prisma.job.update.mockResolvedValue(mockSubmittedJob as any);
 
             const result = await service.submit(userId, jobId);
 
             expect(result.status).toBe(JobStatus.PENDING);
-            expect(jobsRepository.updateStatus).toHaveBeenCalledWith(jobId, JobStatus.PENDING, { rejectionReason: null });
+            expect(prisma.job.update).toHaveBeenCalledWith({
+                where: { id: jobId },
+                data: { status: JobStatus.PENDING, rejectionReason: null },
+                include: {},
+            });
             expect(auditService.logAction).toHaveBeenCalled();
         });
 
@@ -158,7 +221,7 @@ describe('JobsService', () => {
             companyRepository.findByMemberId.mockResolvedValue({ id: 'emp-1', isVerified: true } as any);
             jobsRepository.findByIdAndEmployer.mockResolvedValue({ id: 'job-1', status: JobStatus.DRAFT } as any);
             employerLimitsService.resolveForEmployer.mockResolvedValue({ maxActiveJobs: 2 } as any);
-            jobsRepository.countActive.mockResolvedValue(2);
+            prisma.job.count.mockResolvedValue(2);
 
             await expect(service.submit('user-1', 'job-1')).rejects.toThrow(BadRequestException);
             await expect(service.submit('user-1', 'job-1')).rejects.toThrow(JobErrorCodes.JOB_LIMIT_REACHED);

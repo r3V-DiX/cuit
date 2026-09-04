@@ -324,6 +324,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                   <h1 className="text-lg font-bold text-slate-900">{job.title}</h1>
                   {job.jobCode && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                      <span className="text-slate-400 font-normal mr-1">Job ID:</span>
                       {job.jobCode}
                     </span>
                   )}

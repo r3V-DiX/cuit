@@ -74,7 +74,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             durationMonths: d.durationMonths,
             remote: d.workMode,
             description: d.description || "",
-            logo: d.employer?.companyName?.[0] || "C",
+            logo: d.employer?.companyLogo || d.employer?.companyName?.[0] || "C",
             slug: d.slug,
             accent: "bg-blue-100 text-blue-800",
             posted: new Date(d.publishedAt || Date.now()).toLocaleDateString(),
@@ -521,14 +521,20 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <span className="text-slate-700 font-semibold truncate">{job.title}</span>
             </div>
             <div className="flex flex-col sm:flex-row sm:items-start gap-5">
-              <div className={`w-14 h-14 rounded-2xl ${job.accent} flex items-center justify-center shrink-0 font-bold text-sm font-mono shadow-sm`}>
-                {job.logo}
+              <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200/90 flex items-center justify-center shrink-0 font-bold text-base font-mono shadow-xs overflow-hidden">
+                {job.logo && (job.logo.startsWith("http") || job.logo.startsWith("/")) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={job.logo} alt={job.company} className="w-10 h-10 object-contain" />
+                ) : (
+                  <span className="text-slate-800">{job.logo ? job.logo.slice(0, 2).toUpperCase() : "C"}</span>
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 flex-wrap">
                   <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight">{job.title}</h1>
                   {job.jobCode && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                      <span className="text-slate-400 font-normal mr-1">Job ID:</span>
                       {job.jobCode}
                     </span>
                   )}

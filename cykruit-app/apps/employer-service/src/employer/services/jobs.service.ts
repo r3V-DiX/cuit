@@ -21,6 +21,7 @@ import { MailService } from '@cykruit/mail';
 import { JobsRepository } from '../repositories/jobs.repository';
 import { CompanyRepository } from '../repositories/company.repository';
 import { CreateJobDto, UpdateJobDto, CloseJobDto, JobListQueryDto } from '../dto/job.dto';
+import { formatJobCode, resolveUniqueCompanyPrefix } from '../utils/job-code.util';
 
 @Injectable()
 export class JobsService {
@@ -48,21 +49,44 @@ export class JobsService {
         return employer;
     }
 
-    /** Generate unique human-readable job code (e.g. CYK-XXXXXX) */
-    private async generateUniqueJobCode(): Promise<string> {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        for (let attempt = 0; attempt < 5; attempt++) {
-            let code = 'CYK-';
-            for (let i = 0; i < 6; i++) {
-                code += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            const existing = await this.prisma.job.findUnique({
+    // company name shortform - incremental value 
+    // ex: RV-0001
+    /** Generate unique human-readable job code (e.g. RV-0001) */
+    private async generateUniqueJobCode(
+        employer: { id: string; companyName: string; jobCodePrefix?: string | null },
+        tx?: Prisma.TransactionClient,
+    ): Promise<string> {
+        const client = tx ?? this.prisma;
+
+        let prefix = employer.jobCodePrefix;
+        if (!prefix) {
+            prefix = await resolveUniqueCompanyPrefix(client, employer.id, employer.companyName);
+            await client.employer.update({
+                where: { id: employer.id },
+                data: { jobCodePrefix: prefix },
+            });
+        }
+
+        while (true) {
+            const updated = await client.employer.update({
+                where: { id: employer.id },
+                data: {
+                    nextJobCodeNumber: { increment: 1 },
+                },
+                select: {
+                    nextJobCodeNumber: true,
+                },
+            });
+
+            const assignedNum = updated.nextJobCodeNumber - 1;
+            const code = formatJobCode(prefix, assignedNum);
+
+            const existing = await client.job.findUnique({
                 where: { jobCode: code },
                 select: { id: true },
             });
             if (!existing) return code;
         }
-        return `CYK-${Date.now().toString(36).toUpperCase()}`;
     }
 
     /** Resolve employer and assert it is verified. Throws 403 if not verified. */
@@ -256,11 +280,11 @@ export class JobsService {
         }
 
         const slug = await this.generateUniqueSlug(dto.jobTitle, employer.slug);
-        const jobCode = await this.generateUniqueJobCode();
         const resolvedLocationId = await this.resolveLocation(dto.location) || dto.locationId;
         const duration = dto.durationMonths ?? dto.contractDuration;
 
         const job = await this.prisma.$transaction(async (tx) => {
+            const jobCode = await this.generateUniqueJobCode(employer, tx);
             const created = await this.jobsRepository.create({
                 employer: { connect: { id: employer.id } },
                 jobCode,
@@ -292,7 +316,7 @@ export class JobsService {
                 ...(dto.niceToHave !== undefined
                     ? { niceToHave: dto.niceToHave as unknown as Prisma.InputJsonValue }
                     : {}),
-            });
+            }, tx);
 
             if (dto.skillNames && dto.skillNames.length > 0) {
                 const skills = await tx.skill.findMany({

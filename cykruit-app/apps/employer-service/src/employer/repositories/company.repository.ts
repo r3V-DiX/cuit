@@ -58,6 +58,7 @@ export class CompanyRepository {
         companySize: CompanySize;
         location: string;
         slug: string;
+        jobCodePrefix?: string;
         companyWebsite?: string;
         contactEmail?: string;
     }) {
