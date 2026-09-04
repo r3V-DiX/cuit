@@ -1,14 +1,16 @@
 import jobsJson from "@/public/data/jobs.json";
 
 export type Job = {
-  id: number;
+  id: number | string;
+  jobCode?: string;
   title: string;
   company: string;
   logo: string;
   accent: string;
   location: string;
-  remote: "Remote" | "Hybrid" | "On-site";
-  type: "Full-time" | "Contract" | "Part-time";
+  remote: "Remote" | "Hybrid" | "On-site" | string;
+  type: "Full-time" | "Contract" | "Part-time" | "Internship" | string;
+  durationMonths?: number;
   domain: string;
   tags: string[];
   posted: string;
@@ -52,5 +54,5 @@ export function inferDomain(title: string): string {
   return "";
 }
 
-export const jobTypes = ["All", "Full-time", "Contract", "Part-time"];
+export const jobTypes = ["All", "Full-time", "Contract", "Part-time", "Internship"];
 export const remoteTypes = ["All", "Remote", "Hybrid", "On-site"];

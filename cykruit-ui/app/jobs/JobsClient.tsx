@@ -82,17 +82,19 @@ async function fetchJobs(params: {
       const descSnippet = introEnd > 0 ? rawDesc.slice(0, introEnd).trim() : rawDesc.trim();
       return {
       id: job.id,
+      jobCode: job.jobCode || "",
       title: job.jobTitle,
       company: job.employer?.companyName || "Unknown Company",
       location: job.location?.displayName || "Remote",
       type: job.jobType,
+      durationMonths: job.durationMonths,
       remote: job.workMode,
       description: descSnippet,
       logo: job.employer?.companyName?.[0] || "C",
       accent: "bg-blue-100 text-blue-800",
       posted: new Date(job.publishedAt || Date.now()).toLocaleDateString(),
       tags: job.skills?.map((s: any) => s.name) || [],
-      domain: job.role?.name || "Cybersecurity",
+      domain: job.domain?.name || job.role?.name || "Cybersecurity",
       isFeatured: job.isFeatured ?? false,
       }; });
     return { data: mapped, total: r.total || result.data?.total || mapped.length, totalPages: r.totalPages || result.data?.totalPages || 1 };
@@ -294,7 +296,14 @@ function JobsContent() {
                         {job.logo}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs text-slate-400 font-medium font-mono truncate">{job.company}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-xs text-slate-400 font-medium font-mono truncate">{job.company}</p>
+                          {job.jobCode && (
+                            <span className="text-[10px] font-mono font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                              {job.jobCode}
+                            </span>
+                          )}
+                        </div>
                         <h3 className="text-sm font-semibold text-slate-800 leading-snug group-hover:text-blue-600 transition-colors truncate">
                           {job.title}
                         </h3>
@@ -306,7 +315,9 @@ function JobsContent() {
                         <MapPin className="w-3.5 h-3.5 text-slate-400" />{job.location}
                       </span>
                       <span className="flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />{formatEnum(job.type)}
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        {formatEnum(job.type)}
+                        {job.durationMonths ? ` (${job.durationMonths} mos)` : ""}
                       </span>
                     </div>
 

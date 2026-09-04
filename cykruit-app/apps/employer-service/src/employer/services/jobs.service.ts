@@ -48,6 +48,23 @@ export class JobsService {
         return employer;
     }
 
+    /** Generate unique human-readable job code (e.g. CYK-XXXXXX) */
+    private async generateUniqueJobCode(): Promise<string> {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        for (let attempt = 0; attempt < 5; attempt++) {
+            let code = 'CYK-';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            const existing = await this.prisma.job.findUnique({
+                where: { jobCode: code },
+                select: { id: true },
+            });
+            if (!existing) return code;
+        }
+        return `CYK-${Date.now().toString(36).toUpperCase()}`;
+    }
+
     /** Resolve employer and assert it is verified. Throws 403 if not verified. */
     private async resolveVerifiedEmployer(userId: string) {
         const employer = await this.resolveEmployer(userId);
@@ -239,11 +256,14 @@ export class JobsService {
         }
 
         const slug = await this.generateUniqueSlug(dto.jobTitle, employer.slug);
+        const jobCode = await this.generateUniqueJobCode();
         const resolvedLocationId = await this.resolveLocation(dto.location) || dto.locationId;
+        const duration = dto.durationMonths ?? dto.contractDuration;
 
         const job = await this.prisma.$transaction(async (tx) => {
             const created = await this.jobsRepository.create({
                 employer: { connect: { id: employer.id } },
+                jobCode,
                 slug,
                 jobTitle: dto.jobTitle,
                 jobType: dto.jobType,
@@ -252,6 +272,7 @@ export class JobsService {
                 applicationType: dto.applicationType,
                 status: JobStatus.DRAFT,
                 isFeatured: dto.isFeatured ?? false,
+                ...(dto.domainId ? { domain: { connect: { id: dto.domainId } } } : {}),
                 ...(dto.roleId ? { role: { connect: { id: dto.roleId } } } : {}),
                 ...(resolvedLocationId ? { location: { connect: { id: resolvedLocationId } } } : {}),
                 ...(dto.description !== undefined ? { description: dto.description } : {}),
@@ -259,8 +280,8 @@ export class JobsService {
                 ...(dto.screeningQuestions !== undefined
                     ? { screeningQuestions: dto.screeningQuestions as unknown as Prisma.InputJsonValue }
                     : {}),
-                ...(dto.contractDuration !== undefined
-                    ? { contractDuration: dto.contractDuration }
+                ...(duration !== undefined
+                    ? { durationMonths: duration }
                     : {}),
                 ...(dto.requirements !== undefined
                     ? { requirements: dto.requirements as unknown as Prisma.InputJsonValue }
@@ -339,8 +360,11 @@ export class JobsService {
                     ...(dto.screeningQuestions !== undefined
                         ? { screeningQuestions: dto.screeningQuestions as unknown as Prisma.InputJsonValue }
                         : {}),
-                    ...(dto.contractDuration !== undefined
-                        ? { contractDuration: dto.contractDuration }
+                    ...((dto.durationMonths !== undefined || dto.contractDuration !== undefined)
+                        ? { durationMonths: dto.durationMonths ?? dto.contractDuration }
+                        : {}),
+                    ...(dto.domainId !== undefined
+                        ? { domain: dto.domainId ? { connect: { id: dto.domainId } } : { disconnect: true } }
                         : {}),
                     ...(dto.requirements !== undefined
                         ? { requirements: dto.requirements as unknown as Prisma.InputJsonValue }
@@ -370,6 +394,7 @@ export class JobsService {
                     skills: { include: { skill: true } },
                     certifications: { include: { certification: true } },
                     role: true,
+                    domain: true,
                     location: true,
                 },
             });

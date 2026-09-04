@@ -71,6 +71,10 @@ export class CreateJobDto {
     @IsUUID()
     roleId?: string;
 
+    @IsOptional()
+    @IsUUID()
+    domainId?: string;
+
     @IsEnum(JobType)
     jobType: JobType;
 
@@ -113,10 +117,18 @@ export class CreateJobDto {
     @Type(() => ScreeningQuestionDto)
     screeningQuestions?: ScreeningQuestionDto[];
 
-    /** Only meaningful for CONTRACT jobType. */
+    /** Meaningful for CONTRACT and INTERNSHIP jobType. */
     @IsOptional()
     @IsInt()
     @Min(1)
+    @Max(60)
+    durationMonths?: number;
+
+    /** Backwards-compatibility alias for durationMonths */
+    @IsOptional()
+    @IsInt()
+    @Min(1)
+    @Max(60)
     contractDuration?: number;
 
     @IsOptional()
@@ -200,6 +212,10 @@ export class UpdateJobDto {
     roleId?: string;
 
     @IsOptional()
+    @IsUUID()
+    domainId?: string;
+
+    @IsOptional()
     @IsEnum(JobType)
     jobType?: JobType;
 
@@ -244,6 +260,13 @@ export class UpdateJobDto {
     @IsOptional()
     @IsInt()
     @Min(1)
+    @Max(60)
+    durationMonths?: number;
+
+    @IsOptional()
+    @IsInt()
+    @Min(1)
+    @Max(60)
     contractDuration?: number;
 
     @IsOptional()

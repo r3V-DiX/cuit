@@ -15,7 +15,7 @@ import { LocationSelect, LocationValue } from "@/components/ui/LocationSelect";
 
 const JOB_TYPES    = ["Full-time", "Part-time", "Contract", "Internship"];
 const REMOTE_TYPES = ["Remote", "On-site", "Hybrid"];
-const LEVELS       = ["Junior (0–2 yrs)", "Mid-level (2–5 yrs)", "Senior (5+ yrs)"];
+const LEVELS       = ["Associate (0–2 yrs)", "Mid-level (2–5 yrs)", "Senior (5+ yrs)", "Executive (15+ yrs)"];
 
 const DESC_MIN = 50;
 
@@ -172,8 +172,11 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
   const [niceToHave, setNice]           = useState<string[]>([""]);
   const [tags, setTags]               = useState<string[]>([]);
 
-  // Read-only display fields
-  const [domainDisplay, setDomainDisplay] = useState("");
+  // Domain selection state
+  const [domainId, setDomainId]         = useState("");
+  const [domainsList, setDomainsList]   = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [loadingDomains, setLoadingDomains] = useState(false);
+  const [durationMonths, setDurationMonths] = useState<number | "">("");
 
   const [location, setLocation] = useState<LocationValue>({ city: "", state: "", country: "" });
 
@@ -186,16 +189,23 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [jobResult, companyResult] = await Promise.all([
+        const [jobResult, companyResult, domainsResult] = await Promise.all([
           apiFetch(`/api/employer/jobs/${id}`),
           apiFetch(`/api/employer/company/me`).catch(() => null),
+          fetch("/api/domains").then(r => r.ok ? r.json() : []).catch(() => []),
         ]);
+
+        const dList = Array.isArray(domainsResult) ? domainsResult : (domainsResult?.data ?? []);
+        if (dList.length > 0) setDomainsList(dList);
 
         const rawJob = (jobResult.data || jobResult) as Record<string, unknown>;
         if (rawJob && rawJob.id) {
           setInitialJob(rawJob);
           setTitle((rawJob.jobTitle as string) || "");
-          setDomainDisplay((rawJob as { role?: { name?: string } }).role?.name || "");
+          const existingDomainId = (rawJob.domainId as string) || (rawJob.domain as { id?: string })?.id || "";
+          setDomainId(existingDomainId);
+          const existingDuration = (rawJob.durationMonths as number) ?? (rawJob.contractDuration as number) ?? "";
+          setDurationMonths(existingDuration);
 
           const typeBackToDisplay: Record<string, string> = {
             "FULL_TIME": "Full-time",
@@ -213,9 +223,11 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
           setRemote(modeBackToDisplay[(rawJob.workMode as string) || ""] || "Remote");
 
           const levelBackToDisplay: Record<string, string> = {
-            "ENTRY":  "Junior (0–2 yrs)",
-            "MID":    "Mid-level (2–5 yrs)",
-            "SENIOR": "Senior (5+ yrs)",
+            "ASSOCIATE": "Associate (0–2 yrs)",
+            "ENTRY":     "Associate (0–2 yrs)",
+            "MID":       "Mid-level (2–5 yrs)",
+            "SENIOR":    "Senior (5+ yrs)",
+            "EXECUTIVE": "Executive (15+ yrs)",
           };
           setLevel(levelBackToDisplay[(rawJob.experienceLevel as string) || ""] || "Mid-level (2–5 yrs)");
 
@@ -290,6 +302,10 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
       toast({ type: "error", message: `Description needs at least ${DESC_MIN} characters` });
       return;
     }
+    if ((type === "Contract" || type === "Internship") && (!durationMonths || Number(durationMonths) < 1)) {
+      toast({ type: "error", message: `Please specify duration in months for ${type.toLowerCase()} listings` });
+      return;
+    }
     setSaving(true);
     try {
       const typeMap: Record<string, string> = {
@@ -304,9 +320,11 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
         "Hybrid":  "HYBRID",
       };
       const levelMap: Record<string, string> = {
-        "Junior (0–2 yrs)":    "ENTRY",
+        "Associate (0–2 yrs)": "ASSOCIATE",
+        "Junior (0–2 yrs)":    "ASSOCIATE",
         "Mid-level (2–5 yrs)": "MID",
         "Senior (5+ yrs)":     "SENIOR",
+        "Executive (15+ yrs)": "EXECUTIVE",
       };
 
       await apiFetch(`/api/employer/jobs/${id}`, {
@@ -314,7 +332,9 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
         headers: authHeaders(),
         body: JSON.stringify({
           jobTitle:        title.trim(),
+          domainId:        domainId || null,
           jobType:         typeMap[type],
+          durationMonths:  (type === "Contract" || type === "Internship") && typeof durationMonths === "number" ? durationMonths : null,
           workMode:        modeMap[remote],
           experienceLevel: levelMap[level],
           description:     description.trim() || undefined,
@@ -393,18 +413,53 @@ export default function JobEditPage({ params }: { params: Promise<{ id: string }
                   <TextField label="Job Title" value={title} onChange={setTitle} placeholder="e.g. Senior Penetration Tester" />
                 </div>
 
-                {domainDisplay && (
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-slate-700">Domain</label>
-                    <div className="h-10 px-3.5 rounded-xl bg-slate-100 border border-slate-200 flex items-center text-sm text-slate-500 select-none">
-                      {domainDisplay}
-                    </div>
-                    <p className="text-[10px] font-mono text-slate-400">Managed via job category — contact support to change</p>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Domain</label>
+                  <div className="relative">
+                    <select
+                      value={domainId}
+                      onChange={(e) => setDomainId(e.target.value)}
+                      className="w-full appearance-none bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 pr-8 cursor-pointer"
+                    >
+                      <option value="">{loadingDomains ? "Loading domains..." : "Select domain…"}</option>
+                      {domainsList.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                   </div>
-                )}
+                  <p className="text-[10px] font-mono text-slate-400">Select the functional domain for this role</p>
+                </div>
 
                 <SelectField label="Experience Level" value={level} onChange={setLevel} options={LEVELS} />
                 <SelectField label="Job Type" value={type} onChange={setType} options={JOB_TYPES} />
+                {(type === "Contract" || type === "Internship") && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-slate-700">
+                      Duration (Months)<span className="text-rose-500 ml-0.5">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={1}
+                        max={60}
+                        value={durationMonths}
+                        onChange={(e) => {
+                          const val = e.target.value === "" ? "" : parseInt(e.target.value, 10);
+                          setDurationMonths(val);
+                        }}
+                        placeholder="e.g. 3, 6, 12"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 pr-16"
+                        required
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">
+                        months
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <SelectField label="Work Mode" value={remote} onChange={setRemote} options={REMOTE_TYPES} />
 
                 <div className="flex flex-col gap-1.5 sm:col-span-2">

@@ -5,7 +5,7 @@ import Link from "next/link";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Search, ChevronRight, CheckCircle2, Clock, XCircle, Send, Eye,
-  Users, ChevronDown, Sparkles, AlertCircle
+  Users, ChevronDown, Sparkles, AlertCircle, Calendar, Award, Minus
 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { apiFetch, describeError } from "@/lib/api";
@@ -21,21 +21,21 @@ function formatEnum(value: string): string {
 }
 
 const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }> = {
-  New:        { color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Send         className="w-3 h-3" /> },
-  Shortlisted:{ color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3 h-3" /> },
-  Interview:  { color: "text-violet-700 bg-violet-50 border-violet-200", icon: <Clock        className="w-3 h-3" /> },
-  Rejected:   { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle      className="w-3 h-3" /> },
-  APPLIED:    { color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Send         className="w-3 h-3" /> },
-  UNDER_REVIEW:{ color: "text-violet-700 bg-violet-50 border-violet-200", icon: <Eye className="w-3 h-3" /> },
-  SHORTLISTED:{ color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3 h-3" /> },
-  INTERVIEW:  { color: "text-violet-700 bg-violet-50 border-violet-200", icon: <Clock        className="w-3 h-3" /> },
-  OFFERED:    { color: "text-emerald-700 bg-emerald-50 border-emerald-200", icon: <CheckCircle2 className="w-3 h-3" /> },
-  HIRED:      { color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3 h-3" /> },
-  REJECTED:   { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle      className="w-3 h-3" /> },
-  WITHDRAWN:  { color: "text-slate-700 bg-slate-50 border-slate-200",    icon: <XCircle      className="w-3 h-3" /> },
+  New:          { color: "text-blue-700 bg-blue-50 border-blue-200",          icon: <Send className="w-3 h-3" /> },
+  Shortlisted:  { color: "text-teal-700 bg-teal-50 border-teal-200",          icon: <Sparkles className="w-3 h-3" /> },
+  Interview:    { color: "text-indigo-700 bg-indigo-50 border-indigo-200",    icon: <Calendar className="w-3 h-3" /> },
+  Rejected:     { color: "text-rose-700 bg-rose-50 border-rose-200",          icon: <XCircle className="w-3 h-3" /> },
+  APPLIED:      { color: "text-blue-700 bg-blue-50 border-blue-200",          icon: <Send className="w-3 h-3" /> },
+  UNDER_REVIEW: { color: "text-amber-700 bg-amber-50 border-amber-200",       icon: <Eye className="w-3 h-3" /> },
+  SHORTLISTED:  { color: "text-teal-700 bg-teal-50 border-teal-200",          icon: <Sparkles className="w-3 h-3" /> },
+  INTERVIEW:    { color: "text-indigo-700 bg-indigo-50 border-indigo-200",    icon: <Calendar className="w-3 h-3" /> },
+  OFFERED:      { color: "text-emerald-700 bg-emerald-50 border-emerald-200", icon: <Award className="w-3 h-3" /> },
+  HIRED:        { color: "text-green-700 bg-green-50 border-green-200",       icon: <CheckCircle2 className="w-3 h-3" /> },
+  REJECTED:     { color: "text-rose-700 bg-rose-50 border-rose-200",          icon: <XCircle className="w-3 h-3" /> },
+  WITHDRAWN:    { color: "text-slate-600 bg-slate-100 border-slate-200",      icon: <Minus className="w-3 h-3" /> },
 };
 
-const STATUS_FILTERS: (AppStatus | "All")[] = ["All", "APPLIED", "UNDER_REVIEW", "SHORTLISTED", "INTERVIEW", "REJECTED"];
+const STATUS_FILTERS: (AppStatus | "All")[] = ["All", "APPLIED", "UNDER_REVIEW", "SHORTLISTED", "INTERVIEW", "OFFERED", "HIRED", "REJECTED"];
 
 export default function ApplicantsPage() {
   const [statusFilter, setStatusFilter] = useState<AppStatus | "All">("All");
@@ -98,8 +98,8 @@ export default function ApplicantsPage() {
       <main className="flex-1 overflow-y-auto p-3 sm:p-6">
 
         {/* Summary stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-5">
-          {(["APPLIED", "UNDER_REVIEW", "SHORTLISTED", "INTERVIEW", "REJECTED"] as AppStatus[]).map((s) => {
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-5">
+          {(["APPLIED", "UNDER_REVIEW", "SHORTLISTED", "INTERVIEW", "OFFERED", "HIRED", "REJECTED"] as AppStatus[]).map((s) => {
             const count = applicants.filter((a) => a.status === s).length;
             const cfg   = STATUS_CFG[s];
             if (!cfg) return null;

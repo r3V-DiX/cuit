@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   BarChart2, Eye, Users, TrendingUp, Briefcase,
-  ArrowUpRight, Lock, Zap, CheckCircle2, Clock, XCircle, Send,
+  ArrowUpRight, Lock, Zap, CheckCircle2, Clock, XCircle, Send, Sparkles, Minus,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useSubscriptionLimits } from "@/lib/use-subscription-limits";
@@ -29,6 +29,7 @@ interface StatusCounts {
 }
 
 interface AnalyticsSummary {
+  totalJobs: number;
   totalViews: number;
   totalApplications: number;
   conversionRate: number;
@@ -41,10 +42,10 @@ interface AnalyticsSummary {
 
 const APP_STATUS_CFG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   APPLIED:      { label: "Applied",      color: "bg-blue-100 text-blue-700",   icon: <Send className="w-3 h-3" />          },
-  UNDER_REVIEW: { label: "Under Review", color: "bg-violet-100 text-violet-700", icon: <Clock className="w-3 h-3" />       },
-  SHORTLISTED:  { label: "Shortlisted",  color: "bg-green-100 text-green-700", icon: <CheckCircle2 className="w-3 h-3" /> },
-  REJECTED:     { label: "Rejected",     color: "bg-rose-100 text-rose-700",   icon: <XCircle className="w-3 h-3" />      },
-  WITHDRAWN:    { label: "Withdrawn",    color: "bg-slate-100 text-slate-500", icon: <XCircle className="w-3 h-3" />      },
+  UNDER_REVIEW: { label: "Under Review", color: "bg-amber-100 text-amber-700", icon: <Eye className="w-3 h-3" />           },
+  SHORTLISTED:  { label: "Shortlisted",  color: "bg-teal-100 text-teal-700",   icon: <Sparkles className="w-3 h-3" />      },
+  REJECTED:     { label: "Rejected",     color: "bg-rose-100 text-rose-700",   icon: <XCircle className="w-3 h-3" />       },
+  WITHDRAWN:    { label: "Withdrawn",    color: "bg-slate-100 text-slate-600", icon: <Minus className="w-3 h-3" />         },
 };
 
 function pct(val: number, total: number) {

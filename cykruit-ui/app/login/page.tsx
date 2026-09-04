@@ -188,7 +188,7 @@ function LoginForm() {
       });
       setStep("otp");
       startResendCooldown();
-      toast({ type: "success", message: "OTP sent", description: "Check your inbox for a 6-digit code." });
+      toast({ type: "success", message: "Sign-in code requested", description: "If an account exists, a 6-digit code has been sent." });
     } catch (err: any) {
       if (err instanceof ApiError && (err.code === "ACCOUNT_NOT_FOUND" || err.code === "REGISTRATION_INCOMPLETE")) {
         toast({ type: "error", message: err.message });
@@ -265,7 +265,7 @@ function LoginForm() {
       });
       setOtp("");
       startResendCooldown();
-      toast({ type: "success", message: "New OTP sent" });
+      toast({ type: "success", message: "Sign-in code requested", description: "If an account exists, a new code has been sent." });
     } catch (err: any) {
       toast({ type: "error", message: err.message || "Failed to resend OTP" });
     } finally {
@@ -406,23 +406,22 @@ function LoginForm() {
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                     AUTH.VERIFY
                   </div>
-                  <h1 className="text-2xl font-bold text-slate-900 mb-1">Check your inbox</h1>
-                  <p className="text-base text-slate-500">
-                    We sent a 6-digit code to{" "}
-                    <span className="font-medium text-slate-700 font-mono">{email}</span>
+                  <h1 className="text-2xl font-bold text-slate-900 mb-1.5">Check your inbox</h1>
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    If an account exists for <span className="font-semibold text-slate-900 font-mono bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">{email}</span>, we&apos;ve sent a 6-digit sign-in code.
                   </p>
                 </div>
 
                 <form className="space-y-5" onSubmit={handleVerifyOtp}>
                   <div>
-                    <label className="block text-xs font-mono text-slate-400 tracking-widest mb-3 uppercase">Enter OTP</label>
+                    <label className="block text-xs font-mono font-semibold text-slate-600 tracking-wider mb-2.5 uppercase">Enter 6-Digit OTP</label>
                     <OtpInput value={otp} onChange={setOtp} disabled={loading} />
                   </div>
 
                   <button
                     type="submit"
                     disabled={loading || otp.length !== 6}
-                    className="w-full h-11 rounded-xl bg-linear-to-r from-blue-500 to-blue-600 text-white text-base font-semibold hover:from-blue-400 hover:to-blue-500 shadow-md shadow-blue-500/20 hover:shadow-blue-500/35 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full h-11 rounded-xl bg-linear-to-r from-blue-600 to-blue-700 text-white text-base font-semibold hover:from-blue-500 hover:to-blue-600 shadow-md shadow-blue-500/20 hover:shadow-blue-500/35 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
                     {loading ? (
                       <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -443,15 +442,18 @@ function LoginForm() {
                     type="button"
                     onClick={handleResend}
                     disabled={resendCooldown > 0 || loading}
-                    className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1.5 text-sm font-medium text-slate-700 hover:text-blue-600 transition-colors disabled:text-slate-400 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
-                    {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend OTP"}
+                    {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : "Resend OTP code"}
                   </button>
                 </div>
 
-                <p className="text-center text-xs text-slate-400 mt-4">
-                  OTP expires in 10 minutes · Didn&apos;t get it? Check spam or resend.
+                <p className="text-center text-sm text-slate-600 mt-4">
+                  Didn&apos;t receive a code? Check spam or{" "}
+                  <Link href="/register" className="text-blue-600 hover:text-blue-700 font-semibold underline underline-offset-2">
+                    create an account
+                  </Link>.
                 </p>
               </>
             )}

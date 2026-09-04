@@ -66,10 +66,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           const d = result.data;
           setJob({
             id: d.id,
+            jobCode: d.jobCode || "",
             title: d.jobTitle,
             company: d.employer?.companyName || "Unknown Company",
             location: d.location?.displayName || "Remote",
             type: d.jobType,
+            durationMonths: d.durationMonths,
             remote: d.workMode,
             description: d.description || "",
             logo: d.employer?.companyName?.[0] || "C",
@@ -77,7 +79,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             accent: "bg-blue-100 text-blue-800",
             posted: new Date(d.publishedAt || Date.now()).toLocaleDateString(),
             tags: d.skills?.map((s: any) => s.skill?.name || s.name) || [],
-            domain: d.role?.name || "Cybersecurity",
+            domain: d.domain?.name || d.role?.name || "Cybersecurity",
             responsibilities: Array.isArray(d.responsibilities) ? d.responsibilities : [],
             requirements: [
               ...(Array.isArray(d.requirements) ? d.requirements : []),
@@ -523,11 +525,22 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 {job.logo}
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight">{job.title}</h1>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 leading-tight">{job.title}</h1>
+                  {job.jobCode && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                      {job.jobCode}
+                    </span>
+                  )}
+                </div>
                 <p className="text-base font-semibold text-slate-600 mt-0.5">{job.company}</p>
                 <div className="flex flex-wrap gap-4 mt-3 text-sm text-slate-500">
                   <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-slate-400" />{job.location}</span>
-                  <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-slate-400" />{formatEnum(job.type)}</span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-slate-400" />
+                    {formatEnum(job.type)}
+                    {job.durationMonths ? ` (${job.durationMonths} months)` : ""}
+                  </span>
                   <span className="flex items-center gap-1.5"><Briefcase className="w-4 h-4 text-slate-400" />{formatEnum(job.remote)}</span>
                   <span className="flex items-center gap-1.5 text-slate-400 font-mono text-xs">Posted {job.posted}</span>
                 </div>

@@ -9,6 +9,7 @@ const JOB_DETAIL_INCLUDE = {
     skills: { include: { skill: true } },
     certifications: { include: { certification: true } },
     role: true,
+    domain: { select: { id: true, name: true, slug: true } },
     location: true,
     employer: {
         select: {
@@ -61,6 +62,7 @@ export class JobsRepository {
                 orderBy: { createdAt: 'desc' },
                 include: {
                     role: true,
+                    domain: { select: { id: true, name: true, slug: true } },
                     location: true,
                     _count: {
                         select: { applications: true },

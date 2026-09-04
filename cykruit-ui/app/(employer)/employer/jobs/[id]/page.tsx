@@ -10,7 +10,7 @@ import {
   ChevronLeft, Edit3, MapPin, Briefcase, Users, Eye,
   CheckCircle2, Clock, XCircle, Send, ChevronRight,
   Sparkles, MessageSquare, BarChart2, Calendar, AlertTriangle, RefreshCw,
-  Download, Lock,
+  Download, Lock, Award,
 } from "lucide-react";
 
 function formatEnum(value: string): string {
@@ -18,7 +18,7 @@ function formatEnum(value: string): string {
 }
 
 type JobStatus  = "Active" | "Pending" | "Draft" | "Closed";
-type AppStatus  = "New" | "Shortlisted" | "Interview" | "Rejected";
+type AppStatus  = "New" | "Under Review" | "Shortlisted" | "Interview" | "Offered" | "Hired" | "Rejected";
 
 const JOB_STATUS_CFG: Record<JobStatus, { color: string; icon: React.ReactNode }> = {
   Active:  { color: "text-green-700 bg-green-50 border-green-200", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
@@ -28,15 +28,16 @@ const JOB_STATUS_CFG: Record<JobStatus, { color: string; icon: React.ReactNode }
 };
 
 const APP_STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }> = {
-  New:         { color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Send         className="w-3 h-3" /> },
-  Shortlisted: { color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3 h-3" /> },
-  Interview:   { color: "text-violet-700 bg-violet-50 border-violet-200", icon: <Clock        className="w-3 h-3" /> },
-  Rejected:    { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle      className="w-3 h-3" /> },
+  New:            { color: "text-blue-700 bg-blue-50 border-blue-200",          icon: <Send className="w-3 h-3" /> },
+  "Under Review": { color: "text-amber-700 bg-amber-50 border-amber-200",      icon: <Eye className="w-3 h-3" /> },
+  Shortlisted:    { color: "text-teal-700 bg-teal-50 border-teal-200",          icon: <Sparkles className="w-3 h-3" /> },
+  Interview:      { color: "text-indigo-700 bg-indigo-50 border-indigo-200",    icon: <Calendar className="w-3 h-3" /> },
+  Offered:        { color: "text-emerald-700 bg-emerald-50 border-emerald-200",icon: <Award className="w-3 h-3" /> },
+  Hired:          { color: "text-green-700 bg-green-50 border-green-200",       icon: <CheckCircle2 className="w-3 h-3" /> },
+  Rejected:       { color: "text-rose-700 bg-rose-50 border-rose-200",          icon: <XCircle className="w-3 h-3" /> },
 };
 
-
-
-const STATUS_FILTERS: (AppStatus | "All")[] = ["All", "New", "Shortlisted", "Interview", "Rejected"];
+const STATUS_FILTERS: (AppStatus | "All")[] = ["All", "New", "Under Review", "Shortlisted", "Interview", "Offered", "Hired", "Rejected"];
 
 export default function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -74,11 +75,13 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             };
             const mapped = {
               id: rawJob.id,
+              jobCode: rawJob.jobCode || "",
               title: rawJob.jobTitle,
-              domain: rawJob.role?.name || "Cybersecurity",
+              domain: rawJob.domain?.name || rawJob.role?.name || "Cybersecurity",
               type: formatEnum(rawJob.jobType || "FULL_TIME"),
+              durationMonths: rawJob.durationMonths ?? rawJob.contractDuration ?? null,
               location: rawJob.location?.displayName || "Remote",
-              experience: formatEnum(rawJob.experienceLevel || "MID_LEVEL"),
+              experience: formatEnum(rawJob.experienceLevel || "ASSOCIATE"),
               posted: new Date(rawJob.createdAt).toLocaleDateString(),
               status: statusMap[rawJob.status] || "Draft",
               rawStatus: rawJob.status as string,
@@ -96,8 +99,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           const appsData = await appsRes.json();
           const items = appsData.data?.items ?? appsData.items ?? [];
           const appStatusMap: Record<string, AppStatus> = {
-            APPLIED: "New", UNDER_REVIEW: "New", SHORTLISTED: "Shortlisted",
-            INTERVIEW: "Interview", REJECTED: "Rejected",
+            APPLIED: "New", UNDER_REVIEW: "Under Review", SHORTLISTED: "Shortlisted",
+            INTERVIEW: "Interview", OFFERED: "Offered", HIRED: "Hired", REJECTED: "Rejected",
           };
           setApplicants(items.map((a: any) => ({
             id: a.id,
@@ -319,6 +322,11 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h1 className="text-lg font-bold text-slate-900">{job.title}</h1>
+                  {job.jobCode && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                      {job.jobCode}
+                    </span>
+                  )}
                   <span className={`inline-flex items-center gap-1 text-[10px] font-mono font-semibold px-2.5 py-1 rounded-lg border ${jcfg.color}`}>
                     {jcfg.icon} {job.status}
                   </span>
@@ -328,7 +336,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                     <MapPin className="w-3 h-3" /> {job.location}
                   </span>
                   <span className="flex items-center gap-1 text-xs text-slate-400">
-                    <Briefcase className="w-3 h-3" /> {job.type}
+                    <Briefcase className="w-3 h-3" /> {job.type} {job.durationMonths ? `(${job.durationMonths} mos)` : ""}
                   </span>
                   <span className="flex items-center gap-1 text-xs text-slate-400">
                     <Calendar className="w-3 h-3" /> Posted {job.posted}
@@ -423,8 +431,8 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {(["New", "Shortlisted", "Interview", "Rejected"] as AppStatus[]).map((s) => {
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          {(["New", "Under Review", "Shortlisted", "Interview", "Offered", "Hired", "Rejected"] as AppStatus[]).map((s) => {
             const count = countByStatus(s);
             const cfg   = APP_STATUS_CFG[s];
             return (

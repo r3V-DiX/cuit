@@ -8,6 +8,9 @@ import { ApplicationStatus } from '@prisma/client';
 export const EMPLOYER_SETTABLE_STATUSES = [
     ApplicationStatus.UNDER_REVIEW,
     ApplicationStatus.SHORTLISTED,
+    ApplicationStatus.INTERVIEW,
+    ApplicationStatus.OFFERED,
+    ApplicationStatus.HIRED,
     ApplicationStatus.REJECTED,
 ] as const;
 

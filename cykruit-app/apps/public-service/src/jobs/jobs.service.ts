@@ -25,11 +25,20 @@ export class JobsService {
 
     const selectOptions = {
       id: true,
+      jobCode: true,
       jobTitle: true,
       slug: true,
       jobType: true,
+      durationMonths: true,
       workMode: true,
       experienceLevel: true,
+      domain: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
       description: true,
       responsibilities: true,
       requirements: true,
@@ -184,7 +193,12 @@ export class JobsService {
     if (dto.workMode) where.workMode = dto.workMode;
     if (dto.locationId) where.locationId = dto.locationId;
     if (dto.experienceLevel) where.experienceLevel = dto.experienceLevel;
-    if (dto.domainId) where.role = { domainId: dto.domainId };
+    if (dto.domainId) {
+      where.OR = [
+        { domainId: dto.domainId },
+        { role: { domainId: dto.domainId } },
+      ];
+    }
 
     const [jobs, total] = await this.prisma.$transaction([
       this.prisma.job.findMany({
@@ -244,11 +258,20 @@ export class JobsService {
       },
       select: {
         id: true,
+        jobCode: true,
         jobTitle: true,
         slug: true,
         jobType: true,
+        durationMonths: true,
         workMode: true,
         experienceLevel: true,
+        domain: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         description: true,
         applicationType: true,
         externalUrl: true,

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
-  ArrowLeft, MapPin, Briefcase, CheckCircle2, Clock, XCircle, Send,
+  ArrowLeft, MapPin, Briefcase, CheckCircle2, Clock, XCircle, Send, Eye,
   Mail, Phone, Globe, Award, ChevronRight, MessageSquare, Calendar,
   Download, Sparkles, TrendingUp, TrendingDown, Minus,
   ShieldCheck, AlertTriangle, ThumbsUp, Lock, Loader2,
@@ -16,17 +16,20 @@ import { useInlineStyle } from "@/lib/use-inline-style";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
 
-type AppStatus = "New" | "Shortlisted" | "Under Review" | "Rejected" | "Withdrawn";
+type AppStatus = "New" | "Under Review" | "Shortlisted" | "Interview" | "Offered" | "Hired" | "Rejected" | "Withdrawn";
 
 const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode; label: string }> = {
-  New:            { color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Send         className="w-3.5 h-3.5" />, label: "New"         },
-  "Under Review": { color: "text-violet-700 bg-violet-50 border-violet-200", icon: <Clock        className="w-3.5 h-3.5" />, label: "Under Review" },
-  Shortlisted:    { color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3.5 h-3.5" />, label: "Shortlisted" },
-  Rejected:       { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle      className="w-3.5 h-3.5" />, label: "Rejected"    },
-  Withdrawn:      { color: "text-slate-500 bg-slate-100 border-slate-200",   icon: <Minus        className="w-3.5 h-3.5" />, label: "Withdrawn"   },
+  New:            { color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Send className="w-3.5 h-3.5" />,         label: "New"          },
+  "Under Review": { color: "text-amber-700 bg-amber-50 border-amber-200",   icon: <Eye className="w-3.5 h-3.5" />,          label: "Under Review" },
+  Shortlisted:    { color: "text-teal-700 bg-teal-50 border-teal-200",       icon: <Sparkles className="w-3.5 h-3.5" />,     label: "Shortlisted"  },
+  Interview:      { color: "text-indigo-700 bg-indigo-50 border-indigo-200", icon: <Calendar className="w-3.5 h-3.5" />,     label: "Interview"    },
+  Offered:        { color: "text-emerald-700 bg-emerald-50 border-emerald-200", icon: <Award className="w-3.5 h-3.5" />,    label: "Offered"      },
+  Hired:          { color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3.5 h-3.5" />, label: "Hired"        },
+  Rejected:       { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle className="w-3.5 h-3.5" />,      label: "Rejected"     },
+  Withdrawn:      { color: "text-slate-600 bg-slate-100 border-slate-200",   icon: <Minus className="w-3.5 h-3.5" />,        label: "Withdrawn"    },
 };
 
-const STATUS_FLOW: AppStatus[] = ["Under Review", "Shortlisted", "Rejected"];
+const STATUS_FLOW: AppStatus[] = ["Under Review", "Shortlisted", "Interview", "Offered", "Hired", "Rejected"];
 
 function DimensionBar({ score, color }: { score: number; color: string }) {
   const ref = useInlineStyle<HTMLDivElement>({ width: `${score}%` });
@@ -52,9 +55,12 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
         const appData = data as any;
         let mappedStatus: AppStatus = "New";
         if (appData.status === "UNDER_REVIEW") mappedStatus = "Under Review";
-        if (appData.status === "SHORTLISTED") mappedStatus = "Shortlisted";
-        if (appData.status === "REJECTED") mappedStatus = "Rejected";
-        if (appData.status === "WITHDRAWN") mappedStatus = "Withdrawn";
+        if (appData.status === "SHORTLISTED")  mappedStatus = "Shortlisted";
+        if (appData.status === "INTERVIEW")    mappedStatus = "Interview";
+        if (appData.status === "OFFERED")      mappedStatus = "Offered";
+        if (appData.status === "HIRED")        mappedStatus = "Hired";
+        if (appData.status === "REJECTED")     mappedStatus = "Rejected";
+        if (appData.status === "WITHDRAWN")    mappedStatus = "Withdrawn";
         setStatus(mappedStatus);
       } catch (err) {
         if (process.env.NODE_ENV === 'development') console.error(err);
@@ -422,7 +428,10 @@ export default function ApplicantDetailPage({ params }: { params: Promise<{ id: 
                             try {
                               let backendStatus = "UNDER_REVIEW";
                               if (s === "Shortlisted") backendStatus = "SHORTLISTED";
-                              if (s === "Rejected") backendStatus = "REJECTED";
+                              if (s === "Interview")   backendStatus = "INTERVIEW";
+                              if (s === "Offered")     backendStatus = "OFFERED";
+                              if (s === "Hired")       backendStatus = "HIRED";
+                              if (s === "Rejected")    backendStatus = "REJECTED";
                               await apiFetch(`/api/employer/applications/${id}/status`, {
                                 method: "PATCH",
                                 headers: authHeaders(),

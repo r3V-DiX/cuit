@@ -110,7 +110,7 @@ const JOB_TEMPLATES: {
   slug: string;
   jobType: 'FULL_TIME' | 'PART_TIME' | 'CONTRACT' | 'INTERNSHIP';
   workMode: 'REMOTE' | 'ONSITE' | 'HYBRID';
-  experienceLevel: 'ENTRY' | 'MID' | 'SENIOR' | 'LEAD';
+  experienceLevel: 'ASSOCIATE' | 'MID' | 'SENIOR' | 'EXECUTIVE';
   applicationType: 'DIRECT' | 'EXTERNAL';
   description: string;
   responsibilities: string[];
@@ -569,6 +569,7 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
 
       const job = await prisma.job.create({
         data: {
+          jobCode: `CYK-${jt.slug.slice(0, 10).toUpperCase().replace(/[^A-Z0-9]/g, '')}`,
           employerId: employer.id,
           jobTitle: jt.jobTitle,
           slug: jt.slug,

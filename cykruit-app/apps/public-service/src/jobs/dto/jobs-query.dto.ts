@@ -50,7 +50,7 @@ export class JobsQueryDto {
   @ApiPropertyOptional({
     description: "Filter by experience level",
     enum: ExperienceLevel,
-    example: ExperienceLevel.ENTRY,
+    example: ExperienceLevel.ASSOCIATE,
   })
   @IsOptional()
   @IsEnum(ExperienceLevel, { message: "Invalid experience level" })

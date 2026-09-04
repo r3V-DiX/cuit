@@ -57,3 +57,4 @@ libs/**/*.d.ts
 apps/**/*.js
 apps/**/*.d.ts
 
+/uploads

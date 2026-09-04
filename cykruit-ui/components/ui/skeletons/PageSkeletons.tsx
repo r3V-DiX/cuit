@@ -367,9 +367,9 @@ export function SettingsPageSkeleton() {
 
 export function DashboardQuickLinksSkeleton() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {Array.from({ length: 4 }).map((_, i) => (
-        <Skeleton key={i} className="h-12 rounded-xl" />
+        <Skeleton key={i} className="h-[76px] rounded-2xl" />
       ))}
     </div>
   );

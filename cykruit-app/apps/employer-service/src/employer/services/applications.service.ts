@@ -25,9 +25,13 @@ const EMPLOYER_FORBIDDEN_STATUSES = new Set<ApplicationStatus>([
 
 /** Valid employer-driven transitions matching the schema enum. */
 const VALID_TRANSITIONS: Partial<Record<ApplicationStatus, ApplicationStatus[]>> = {
-    [ApplicationStatus.APPLIED]:      [ApplicationStatus.UNDER_REVIEW, ApplicationStatus.REJECTED],
-    [ApplicationStatus.UNDER_REVIEW]: [ApplicationStatus.SHORTLISTED, ApplicationStatus.REJECTED],
-    [ApplicationStatus.SHORTLISTED]:  [ApplicationStatus.REJECTED],
+    [ApplicationStatus.APPLIED]:      [ApplicationStatus.UNDER_REVIEW, ApplicationStatus.SHORTLISTED, ApplicationStatus.INTERVIEW, ApplicationStatus.REJECTED],
+    [ApplicationStatus.UNDER_REVIEW]: [ApplicationStatus.SHORTLISTED, ApplicationStatus.INTERVIEW, ApplicationStatus.OFFERED, ApplicationStatus.HIRED, ApplicationStatus.REJECTED],
+    [ApplicationStatus.SHORTLISTED]:  [ApplicationStatus.UNDER_REVIEW, ApplicationStatus.INTERVIEW, ApplicationStatus.OFFERED, ApplicationStatus.HIRED, ApplicationStatus.REJECTED],
+    [ApplicationStatus.INTERVIEW]:    [ApplicationStatus.UNDER_REVIEW, ApplicationStatus.SHORTLISTED, ApplicationStatus.OFFERED, ApplicationStatus.HIRED, ApplicationStatus.REJECTED],
+    [ApplicationStatus.OFFERED]:      [ApplicationStatus.UNDER_REVIEW, ApplicationStatus.SHORTLISTED, ApplicationStatus.INTERVIEW, ApplicationStatus.HIRED, ApplicationStatus.REJECTED],
+    [ApplicationStatus.HIRED]:        [ApplicationStatus.REJECTED],
+    [ApplicationStatus.REJECTED]:     [ApplicationStatus.UNDER_REVIEW, ApplicationStatus.SHORTLISTED, ApplicationStatus.INTERVIEW],
 };
 
 @Injectable()

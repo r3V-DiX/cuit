@@ -6,7 +6,7 @@ import EmployerTopbar from "@/components/employer/EmployerTopbar";
 import {
   Briefcase, Users, Eye, TrendingUp, ArrowRight, ChevronRight,
   PlusCircle, CheckCircle2, Clock, XCircle, Send, Building2,
-  BarChart2, AlertTriangle, ShieldCheck, ShieldAlert,
+  BarChart2, AlertTriangle, ShieldCheck, ShieldAlert, Sparkles, Calendar,
 } from "lucide-react";
 import { DashboardListSkeleton } from "@/components/ui/skeletons/ListRowSkeleton";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -14,19 +14,20 @@ import { apiFetch } from "@/lib/api";
 import { useKycStatus } from "@/lib/employer-context";
 import { useInlineStyle } from "@/lib/use-inline-style";
 
-type AppStatus = "New" | "Shortlisted" | "Rejected" | "Interview";
+type AppStatus = "New" | "Under Review" | "Shortlisted" | "Rejected" | "Interview";
 
 const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }> = {
-  New:        { color: "text-blue-700 bg-blue-50 border-blue-200",   icon: <Send className="w-3 h-3" />         },
-  Shortlisted:{ color: "text-green-700 bg-green-50 border-green-200",icon: <CheckCircle2 className="w-3 h-3" /> },
-  Interview:  { color: "text-violet-700 bg-violet-50 border-violet-200", icon: <Clock className="w-3 h-3" />   },
-  Rejected:   { color: "text-rose-700 bg-rose-50 border-rose-200",   icon: <XCircle className="w-3 h-3" />     },
+  New:            { color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Send className="w-3 h-3" /> },
+  "Under Review": { color: "text-amber-700 bg-amber-50 border-amber-200",   icon: <Eye className="w-3 h-3" /> },
+  Shortlisted:    { color: "text-teal-700 bg-teal-50 border-teal-200",       icon: <Sparkles className="w-3 h-3" /> },
+  Interview:      { color: "text-indigo-700 bg-indigo-50 border-indigo-200", icon: <Calendar className="w-3 h-3" /> },
+  Rejected:       { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle className="w-3 h-3" /> },
 };
 
 const STATUS_MAP: Record<string, AppStatus> = {
   PENDING: "New",
   APPLIED: "New",
-  UNDER_REVIEW: "New",
+  UNDER_REVIEW: "Under Review",
   SHORTLISTED: "Shortlisted",
   REJECTED: "Rejected",
   INTERVIEW: "Interview",
@@ -53,13 +54,6 @@ function relativeTime(dateStr: string | null | undefined): string {
   return `${weeks}w ago`;
 }
 
-const QUICK_LINKS = [
-  { label: "Post a Job",      href: "/employer/jobs/new",   icon: <PlusCircle  className="w-4 h-4" />, requiresKyc: true  },
-  { label: "View Applicants", href: "/employer/applicants", icon: <Users       className="w-4 h-4" />, requiresKyc: false },
-  { label: "My Jobs",         href: "/employer/jobs",       icon: <Briefcase   className="w-4 h-4" />, requiresKyc: false },
-  { label: "Company Profile", href: "/employer/company",    icon: <Building2   className="w-4 h-4" />, requiresKyc: false },
-  { label: "Team",            href: "/employer/team",       icon: <Users       className="w-4 h-4" />, requiresKyc: false },
-];
 
 interface ApiJob {
   id: string | number;
@@ -255,30 +249,111 @@ export default function EmployerDashboardPage() {
             )}
           </div>
 
-          {/* Quick Links — below greeting */}
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-            {QUICK_LINKS.map(({ label, href, icon, requiresKyc }) => {
-              const locked = requiresKyc && !canPost;
-              return locked ? (
-                <div
-                  key={href}
-                  title="Complete KYC to unlock"
-                  className="flex flex-col items-center gap-2 py-3 px-2 rounded-xl border border-slate-200 bg-white text-slate-300 cursor-not-allowed select-none"
-                >
-                  <span>{icon}</span>
-                  <span className="text-[11px] font-medium text-center leading-snug">{label}</span>
+          {/* Quick Nav Action Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* 1. Post a Job */}
+            {canPost ? (
+              <Link
+                href="/employer/jobs/new"
+                className="group relative flex items-start gap-3.5 p-4 rounded-2xl border border-slate-200/80 bg-white hover:border-blue-300 hover:shadow-sm transition-all duration-200"
+              >
+                <div className="p-2.5 rounded-xl shrink-0 bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                  <PlusCircle className="w-5 h-5" />
                 </div>
-              ) : (
-                <Link
-                  key={href}
-                  href={href}
-                  className="flex flex-col items-center gap-2 py-3 px-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-all group"
-                >
-                  <span className="text-slate-400 group-hover:text-blue-500 transition-colors">{icon}</span>
-                  <span className="text-[11px] font-medium text-center leading-snug">{label}</span>
-                </Link>
-              );
-            })}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1.5 mb-1">
+                    <h3 className="text-sm font-semibold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
+                      Post a Job
+                    </h3>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-blue-200 bg-blue-50 text-blue-700 shrink-0">
+                      Instant
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 line-clamp-1">Create new job listing</p>
+                </div>
+              </Link>
+            ) : (
+              <div
+                title="Complete KYC to unlock"
+                className="relative flex items-start gap-3.5 p-4 rounded-2xl border border-slate-200 bg-slate-50/70 text-slate-400 cursor-not-allowed select-none"
+              >
+                <div className="p-2.5 rounded-xl shrink-0 bg-slate-100 text-slate-400">
+                  <PlusCircle className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1.5 mb-1">
+                    <h3 className="text-sm font-semibold text-slate-400 truncate">Post a Job</h3>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-700 shrink-0">
+                      KYC Req.
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 line-clamp-1">Verify account to publish</p>
+                </div>
+              </div>
+            )}
+
+            {/* 2. Review Applicants */}
+            <Link
+              href="/employer/applicants"
+              className="group relative flex items-start gap-3.5 p-4 rounded-2xl border border-slate-200/80 bg-white hover:border-violet-300 hover:shadow-sm transition-all duration-200"
+            >
+              <div className="p-2.5 rounded-xl shrink-0 bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white transition-colors">
+                <Users className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1.5 mb-1">
+                  <h3 className="text-sm font-semibold text-slate-800 group-hover:text-violet-600 transition-colors truncate">
+                    Review Applicants
+                  </h3>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-violet-200 bg-violet-50 text-violet-700 shrink-0">
+                    {totalApplicantsFromJobs} total
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 line-clamp-1">Screen candidate pipeline</p>
+              </div>
+            </Link>
+
+            {/* 3. Manage Jobs */}
+            <Link
+              href="/employer/jobs"
+              className="group relative flex items-start gap-3.5 p-4 rounded-2xl border border-slate-200/80 bg-white hover:border-emerald-300 hover:shadow-sm transition-all duration-200"
+            >
+              <div className="p-2.5 rounded-xl shrink-0 bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                <Briefcase className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1.5 mb-1">
+                  <h3 className="text-sm font-semibold text-slate-800 group-hover:text-emerald-600 transition-colors truncate">
+                    Manage Jobs
+                  </h3>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 shrink-0">
+                    {activeJobsCount} active
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 line-clamp-1">Edit & monitor listings</p>
+              </div>
+            </Link>
+
+            {/* 4. Company & Team */}
+            <Link
+              href="/employer/company"
+              className="group relative flex items-start gap-3.5 p-4 rounded-2xl border border-slate-200/80 bg-white hover:border-slate-400 hover:shadow-sm transition-all duration-200"
+            >
+              <div className="p-2.5 rounded-xl shrink-0 bg-slate-100 text-slate-700 group-hover:bg-slate-800 group-hover:text-white transition-colors">
+                <Building2 className="w-5 h-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1.5 mb-1">
+                  <h3 className="text-sm font-semibold text-slate-800 group-hover:text-slate-900 transition-colors truncate">
+                    Company & Team
+                  </h3>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-200 bg-slate-50 text-slate-700 shrink-0">
+                    Manage
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 line-clamp-1">Profile & team access</p>
+              </div>
+            </Link>
           </div>
 
           {/* Stats row */}

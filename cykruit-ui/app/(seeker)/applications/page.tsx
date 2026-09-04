@@ -6,6 +6,7 @@ import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import {
   MapPin, Clock, Search, X, ChevronRight,
   ArrowUpDown, CheckCircle2, Eye, XCircle, Send, Inbox,
+  Sparkles, Calendar, Award, Minus,
 } from "lucide-react";
 import { ApplicationsPageSkeleton } from "@/components/ui/skeletons/PageSkeletons";
 import type { AppStatus } from "./data";
@@ -18,14 +19,17 @@ function formatEnum(value: string): string {
 // ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode; dot: string }> = {
-  Applied:        { color: "text-blue-700 bg-blue-50 border-blue-200",     icon: <Send className="w-3 h-3" />,         dot: "bg-blue-500" },
-  "Under Review": { color: "text-amber-700 bg-amber-50 border-amber-200",  icon: <Eye className="w-3 h-3" />,          dot: "bg-amber-400" },
-  Shortlisted:    { color: "text-green-700 bg-green-50 border-green-200",  icon: <CheckCircle2 className="w-3 h-3" />, dot: "bg-green-500" },
-  Rejected:       { color: "text-red-700 bg-red-50 border-red-200",        icon: <XCircle className="w-3 h-3" />,      dot: "bg-red-400" },
-  Withdrawn:      { color: "text-slate-500 bg-slate-100 border-slate-200", icon: <X className="w-3 h-3" />,            dot: "bg-slate-400" },
+  Applied:        { color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Send className="w-3 h-3" />,         dot: "bg-blue-500" },
+  "Under Review": { color: "text-amber-700 bg-amber-50 border-amber-200",   icon: <Eye className="w-3 h-3" />,          dot: "bg-amber-500" },
+  Shortlisted:    { color: "text-teal-700 bg-teal-50 border-teal-200",       icon: <Sparkles className="w-3 h-3" />,     dot: "bg-teal-500" },
+  Interview:      { color: "text-indigo-700 bg-indigo-50 border-indigo-200", icon: <Calendar className="w-3 h-3" />,     dot: "bg-indigo-500" },
+  Offered:        { color: "text-emerald-700 bg-emerald-50 border-emerald-200", icon: <Award className="w-3 h-3" />,   dot: "bg-emerald-500" },
+  Hired:          { color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3 h-3" />, dot: "bg-green-500" },
+  Rejected:       { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle className="w-3 h-3" />,      dot: "bg-rose-500" },
+  Withdrawn:      { color: "text-slate-600 bg-slate-100 border-slate-200",   icon: <Minus className="w-3 h-3" />,        dot: "bg-slate-400" },
 };
 
-const TABS: (AppStatus | "All")[] = ["All", "Applied", "Under Review", "Shortlisted", "Rejected", "Withdrawn"];
+const TABS: (AppStatus | "All")[] = ["All", "Applied", "Under Review", "Shortlisted", "Interview", "Rejected", "Withdrawn"];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 

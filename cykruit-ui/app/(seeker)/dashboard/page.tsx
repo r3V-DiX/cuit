@@ -19,6 +19,9 @@ import {
   ChevronRight,
   Send,
   X,
+  Calendar,
+  Award,
+  Minus,
 } from "lucide-react";
 import { useInlineStyle } from "@/lib/use-inline-style";
 
@@ -31,28 +34,25 @@ function getGreeting(): string {
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-type AppStatus = "Applied" | "Under Review" | "Shortlisted" | "Rejected" | "Withdrawn";
+type AppStatus = "Applied" | "Under Review" | "Shortlisted" | "Interview" | "Offered" | "Hired" | "Rejected" | "Withdrawn";
 
 // ─── Status config ─────────────────────────────────────────────────────────────
 
 const STATUS_CFG: Record<AppStatus, { color: string; icon: React.ReactNode }> = {
-  Applied:        { color: "text-blue-700 bg-blue-50 border-blue-200",    icon: <Send className="w-3 h-3" />         },
-  "Under Review": { color: "text-amber-700 bg-amber-50 border-amber-200", icon: <Eye className="w-3 h-3" />          },
-  Shortlisted:    { color: "text-green-700 bg-green-50 border-green-200", icon: <CheckCircle2 className="w-3 h-3" /> },
-  Rejected:       { color: "text-red-700 bg-red-50 border-red-200",       icon: <XCircle className="w-3 h-3" />      },
-  Withdrawn:      { color: "text-slate-500 bg-slate-50 border-slate-200", icon: <X className="w-3 h-3" />            },
+  Applied:        { color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Send className="w-3 h-3" /> },
+  "Under Review": { color: "text-amber-700 bg-amber-50 border-amber-200",   icon: <Eye className="w-3 h-3" /> },
+  Shortlisted:    { color: "text-teal-700 bg-teal-50 border-teal-200",       icon: <Sparkles className="w-3 h-3" /> },
+  Interview:      { color: "text-indigo-700 bg-indigo-50 border-indigo-200", icon: <Calendar className="w-3 h-3" /> },
+  Offered:        { color: "text-emerald-700 bg-emerald-50 border-emerald-200", icon: <Award className="w-3 h-3" /> },
+  Hired:          { color: "text-green-700 bg-green-50 border-green-200",    icon: <CheckCircle2 className="w-3 h-3" /> },
+  Rejected:       { color: "text-rose-700 bg-rose-50 border-rose-200",       icon: <XCircle className="w-3 h-3" /> },
+  Withdrawn:      { color: "text-slate-600 bg-slate-100 border-slate-200",   icon: <Minus className="w-3 h-3" /> },
 };
 
 // ─── Seed data ─────────────────────────────────────────────────────────────────
 
 // Seed data removed to prevent fabricated metrics.
 
-const QUICK_LINKS: { label: string; href: string; icon: React.ReactNode }[] = [
-  { label: "Browse Jobs",       href: "/jobs",         icon: <Briefcase className="w-4 h-4" /> },
-  { label: "View Applications", href: "/applications", icon: <FileText className="w-4 h-4" />  },
-  { label: "Saved Jobs",        href: "/saved",        icon: <Bookmark className="w-4 h-4" />  },
-  { label: "Edit Profile",      href: "/profile",      icon: <User className="w-4 h-4" />      },
-];
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
@@ -243,21 +243,94 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* ── Quick Links ─────────────────────────────────────────────────── */}
+          {/* ── Quick Nav Action Cards ────────────────────────────────────────── */}
           {loadingDashboard ? (
             <DashboardQuickLinksSkeleton />
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {QUICK_LINKS.map(({ label, href, icon }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600 transition-all group"
-                >
-                  <span className="text-slate-400 group-hover:text-blue-500 transition-colors shrink-0">{icon}</span>
-                  <span className="text-xs font-semibold">{label}</span>
-                </Link>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* 1. Explore Jobs */}
+              <Link
+                href="/jobs"
+                className="group relative flex items-start gap-3.5 p-4 rounded-2xl border border-slate-200/80 bg-white hover:border-blue-300 hover:shadow-sm transition-all duration-200"
+              >
+                <div className="p-2.5 rounded-xl shrink-0 bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                  <Briefcase className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1.5 mb-1">
+                    <h3 className="text-sm font-semibold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
+                      Explore Jobs
+                    </h3>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-blue-200 bg-blue-50 text-blue-700 shrink-0">
+                      Discover
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 line-clamp-1">Search & discover roles</p>
+                </div>
+              </Link>
+
+              {/* 2. My Applications */}
+              <Link
+                href="/applications"
+                className="group relative flex items-start gap-3.5 p-4 rounded-2xl border border-slate-200/80 bg-white hover:border-violet-300 hover:shadow-sm transition-all duration-200"
+              >
+                <div className="p-2.5 rounded-xl shrink-0 bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white transition-colors">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1.5 mb-1">
+                    <h3 className="text-sm font-semibold text-slate-800 group-hover:text-violet-600 transition-colors truncate">
+                      My Applications
+                    </h3>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-violet-200 bg-violet-50 text-violet-700 shrink-0">
+                      {stats.applied} applied
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 line-clamp-1">Track status & progress</p>
+                </div>
+              </Link>
+
+              {/* 3. Saved Jobs */}
+              <Link
+                href="/saved"
+                className="group relative flex items-start gap-3.5 p-4 rounded-2xl border border-slate-200/80 bg-white hover:border-amber-300 hover:shadow-sm transition-all duration-200"
+              >
+                <div className="p-2.5 rounded-xl shrink-0 bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors">
+                  <Bookmark className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1.5 mb-1">
+                    <h3 className="text-sm font-semibold text-slate-800 group-hover:text-amber-600 transition-colors truncate">
+                      Saved Jobs
+                    </h3>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-700 shrink-0">
+                      {stats.saved} saved
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 line-clamp-1">Bookmarked positions</p>
+                </div>
+              </Link>
+
+              {/* 4. Complete Profile */}
+              <Link
+                href="/profile"
+                className="group relative flex items-start gap-3.5 p-4 rounded-2xl border border-slate-200/80 bg-white hover:border-emerald-300 hover:shadow-sm transition-all duration-200"
+              >
+                <div className="p-2.5 rounded-xl shrink-0 bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                  <User className="w-5 h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-1.5 mb-1">
+                    <h3 className="text-sm font-semibold text-slate-800 group-hover:text-emerald-600 transition-colors truncate">
+                      Complete Profile
+                    </h3>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 shrink-0">
+                      {profilePct}% done
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 line-clamp-1">Boost profile strength</p>
+                </div>
+              </Link>
             </div>
           )}
 

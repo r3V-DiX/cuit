@@ -9,7 +9,7 @@ import { useModal } from "@/components/ui/Modal";
 import {
   ChevronLeft, MapPin, Briefcase, Calendar, FileText,
   CheckCircle2, Eye, XCircle, Send, X, AlertCircle,
-  Clock, MessageSquare, ExternalLink, Quote,
+  Clock, MessageSquare, ExternalLink, Quote, Sparkles, Award, Minus,
 } from "lucide-react";
 import { ApplicationDetailSkeleton } from "@/components/ui/skeletons/PageSkeletons";
 import type { AppStatus, Application } from "../data";
@@ -28,11 +28,14 @@ const STATUS_CFG: Record<AppStatus, {
   icon: React.ReactNode;
   step: number;
 }> = {
-  Applied:        { color: "text-blue-700",   bg: "bg-blue-500",   icon: <Send className="w-4 h-4" />,         step: 1 },
-  "Under Review": { color: "text-amber-700",  bg: "bg-amber-400",  icon: <Eye className="w-4 h-4" />,          step: 2 },
-  Shortlisted:    { color: "text-green-700",  bg: "bg-green-500",  icon: <CheckCircle2 className="w-4 h-4" />, step: 3 },
-  Rejected:       { color: "text-red-600",    bg: "bg-red-400",    icon: <XCircle className="w-4 h-4" />,      step: -1 },
-  Withdrawn:      { color: "text-slate-500",  bg: "bg-slate-400",  icon: <X className="w-4 h-4" />,            step: -1 },
+  Applied:        { color: "text-blue-700",    bg: "bg-blue-500",    icon: <Send className="w-4 h-4" />,         step: 1 },
+  "Under Review": { color: "text-amber-700",   bg: "bg-amber-500",   icon: <Eye className="w-4 h-4" />,          step: 2 },
+  Shortlisted:    { color: "text-teal-700",    bg: "bg-teal-500",    icon: <Sparkles className="w-4 h-4" />,     step: 3 },
+  Interview:      { color: "text-indigo-700",  bg: "bg-indigo-500",  icon: <Calendar className="w-4 h-4" />,     step: 4 },
+  Offered:        { color: "text-emerald-700", bg: "bg-emerald-500", icon: <Award className="w-4 h-4" />,        step: 5 },
+  Hired:          { color: "text-green-700",   bg: "bg-green-500",   icon: <CheckCircle2 className="w-4 h-4" />,  step: 6 },
+  Rejected:       { color: "text-rose-600",    bg: "bg-rose-500",    icon: <XCircle className="w-4 h-4" />,      step: -1 },
+  Withdrawn:      { color: "text-slate-600",   bg: "bg-slate-400",   icon: <Minus className="w-4 h-4" />,        step: -1 },
 };
 
 const PROGRESS_STEPS: AppStatus[] = ["Applied", "Under Review", "Shortlisted"];
@@ -41,9 +44,12 @@ const PROGRESS_STEPS: AppStatus[] = ["Applied", "Under Review", "Shortlisted"];
 
 function timelineDotClass(event: string, isFirst: boolean): string {
   if (isFirst) return "bg-blue-500 w-3.5 h-3.5 ring-4 ring-blue-100";
-  if (/reject/i.test(event)) return "bg-red-400 w-2.5 h-2.5";
-  if (/shortlist/i.test(event)) return "bg-green-500 w-2.5 h-2.5";
-  if (/review/i.test(event)) return "bg-amber-400 w-2.5 h-2.5";
+  if (/reject/i.test(event)) return "bg-rose-500 w-2.5 h-2.5";
+  if (/hired/i.test(event)) return "bg-green-500 w-2.5 h-2.5";
+  if (/offer/i.test(event)) return "bg-emerald-500 w-2.5 h-2.5";
+  if (/interview/i.test(event)) return "bg-indigo-500 w-2.5 h-2.5";
+  if (/shortlist/i.test(event)) return "bg-teal-500 w-2.5 h-2.5";
+  if (/review/i.test(event)) return "bg-amber-500 w-2.5 h-2.5";
   if (/withdraw/i.test(event)) return "bg-slate-400 w-2.5 h-2.5";
   if (/submit/i.test(event)) return "bg-blue-300 w-2.5 h-2.5";
   return "bg-slate-300 w-2.5 h-2.5";
@@ -199,11 +205,14 @@ export default function ApplicationDetailPage() {
               {/* Status + View Job */}
               <div className="flex flex-col items-end gap-2.5 shrink-0 self-start">
                 <div className={`inline-flex items-center gap-2 text-sm font-semibold px-3.5 py-1.5 rounded-xl border ${
-                  app.status === "Shortlisted"  ? "text-green-700 bg-green-50 border-green-200" :
+                  app.status === "Shortlisted"  ? "text-teal-700 bg-teal-50 border-teal-200" :
                   app.status === "Under Review" ? "text-amber-700 bg-amber-50 border-amber-200" :
+                  app.status === "Interview"    ? "text-indigo-700 bg-indigo-50 border-indigo-200" :
+                  app.status === "Offered"      ? "text-emerald-700 bg-emerald-50 border-emerald-200" :
+                  app.status === "Hired"        ? "text-green-700 bg-green-50 border-green-200" :
                   app.status === "Applied"      ? "text-blue-700 bg-blue-50 border-blue-200" :
-                  app.status === "Rejected"     ? "text-red-700 bg-red-50 border-red-200" :
-                  "text-slate-500 bg-slate-100 border-slate-200"
+                  app.status === "Rejected"     ? "text-rose-700 bg-rose-50 border-rose-200" :
+                  "text-slate-600 bg-slate-100 border-slate-200"
                 }`}>
                   {cfg.icon}
                   {app.status}

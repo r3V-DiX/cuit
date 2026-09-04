@@ -17,7 +17,7 @@ import { LocationSelect, LocationValue } from "@/components/ui/LocationSelect";
 
 const JOB_TYPES   = ["Full-time", "Part-time", "Contract", "Internship"];
 const REMOTE_TYPES = ["Remote", "On-site", "Hybrid"];
-const LEVELS      = ["Junior (0–2 yrs)", "Mid-level (2–5 yrs)", "Senior (5+ yrs)"];
+const LEVELS      = ["Associate (0–2 yrs)", "Mid-level (2–5 yrs)", "Senior (5+ yrs)", "Executive (15+ yrs)"];
 const DESC_MIN    = 50;
 
 function SelectField({
@@ -176,9 +176,32 @@ export default function PostJobPage() {
   const kycStatus = useKycStatus();
   const [title, setTitle]               = useState("");
   const [domain, setDomain]             = useState("");
+  const [domainId, setDomainId]         = useState("");
+  const [domainsList, setDomainsList]   = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [loadingDomains, setLoadingDomains] = useState(false);
+  const [durationMonths, setDurationMonths] = useState<number | "">("");
   const [type, setType]                 = useState("");
   const [level, setLevel]               = useState("");
   const [isInferring, setIsInferring]   = useState(false);
+
+  useEffect(() => {
+    async function loadDomains() {
+      setLoadingDomains(true);
+      try {
+        const res = await fetch("/api/domains");
+        if (res.ok) {
+          const data = await res.json();
+          const items = Array.isArray(data) ? data : (data?.data ?? []);
+          if (items.length > 0) setDomainsList(items);
+        }
+      } catch (err) {
+        console.error("Failed to load domains", err);
+      } finally {
+        setLoadingDomains(false);
+      }
+    }
+    loadDomains();
+  }, []);
   const [isDrafting, setIsDrafting]     = useState(false);
   const [remote, setRemote]             = useState("");
   const [description, setDescription]   = useState("");
@@ -329,6 +352,10 @@ export default function PostJobPage() {
       toast({ type: "error", message: "Work mode is required" });
       return;
     }
+    if ((type === "Contract" || type === "Internship") && (!durationMonths || Number(durationMonths) < 1)) {
+      toast({ type: "error", message: `Please specify duration in months for ${type.toLowerCase()} listings` });
+      return;
+    }
     if (description.trim().length < DESC_MIN) {
       setShowDescTip(true);
       if (descTooltipTimerRef.current) clearTimeout(descTooltipTimerRef.current);
@@ -353,9 +380,11 @@ export default function PostJobPage() {
       };
 
       const levelMap: Record<string, string> = {
-        "Junior (0–2 yrs)":    "ENTRY",
+        "Associate (0–2 yrs)": "ASSOCIATE",
+        "Junior (0–2 yrs)":    "ASSOCIATE",
         "Mid-level (2–5 yrs)": "MID",
         "Senior (5+ yrs)":     "SENIOR",
+        "Executive (15+ yrs)": "EXECUTIVE",
       };
 
       const finalDesc = description.trim();
@@ -368,7 +397,9 @@ export default function PostJobPage() {
         headers: authHeaders(),
         body: JSON.stringify({
           jobTitle: title.trim(),
+          domainId: domainId || undefined,
           jobType: typeMap[type],
+          durationMonths: (type === "Contract" || type === "Internship") && typeof durationMonths === "number" ? durationMonths : undefined,
           workMode: modeMap[remote],
           experienceLevel: levelMap[level],
           description: finalDesc || undefined,
@@ -433,9 +464,11 @@ export default function PostJobPage() {
       };
 
       const levelMap: Record<string, string> = {
-        "Junior (0–2 yrs)":    "ENTRY",
+        "Associate (0–2 yrs)": "ASSOCIATE",
+        "Junior (0–2 yrs)":    "ASSOCIATE",
         "Mid-level (2–5 yrs)": "MID",
         "Senior (5+ yrs)":     "SENIOR",
+        "Executive (15+ yrs)": "EXECUTIVE",
       };
 
       const finalDesc = description.trim();
@@ -448,7 +481,9 @@ export default function PostJobPage() {
         headers: authHeaders(),
         body: JSON.stringify({
           jobTitle: title.trim(),
+          domainId: domainId || undefined,
           jobType: typeMap[type],
+          durationMonths: (type === "Contract" || type === "Internship") && typeof durationMonths === "number" ? durationMonths : undefined,
           workMode: modeMap[remote],
           experienceLevel: levelMap[level],
           description: finalDesc || undefined,
@@ -513,33 +548,65 @@ export default function PostJobPage() {
                 <div className="flex flex-col gap-1.5">
                   <label className="text-xs font-semibold text-slate-700">Domain</label>
                   <div className="flex items-center gap-2">
-                    <input
-                      value={domain}
-                      onChange={(e) => setDomain(e.target.value)}
-                      placeholder="e.g. Offensive Security"
-                      className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10"
-                    />
+                    <div className="relative flex-1">
+                      <select
+                        value={domainId}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setDomainId(val);
+                          const found = domainsList.find((d) => d.id === val);
+                          setDomain(found ? found.name : "");
+                        }}
+                        className="w-full appearance-none bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 pr-8 cursor-pointer"
+                      >
+                        <option value="">{loadingDomains ? "Loading domains..." : "Select domain…"}</option>
+                        {domainsList.map((d) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    </div>
                     <button
                       type="button"
                       onClick={async () => {
                         setIsInferring(true);
                         try {
+                          let inferredDomainName = "";
                           const res = await fetch("/api/ai/jobs/infer-domain", {
                             method: "POST", credentials: "include", headers: authHeaders(),
                             body: JSON.stringify({ title }),
                           });
                           if (res.ok) {
                             const data = await res.json();
-                            if (data.domain) setDomain(data.domain);
-                          } else {
-                            // Fallback to local logic
-                            const inferred = inferDomain(title);
-                            if (inferred) setDomain(inferred);
+                            if (data.domain) inferredDomainName = data.domain;
+                          }
+                          if (!inferredDomainName) inferredDomainName = inferDomain(title);
+
+                          if (inferredDomainName) {
+                            const match = domainsList.find(
+                              (d) => d.name.toLowerCase() === inferredDomainName.toLowerCase() ||
+                                     d.name.toLowerCase().includes(inferredDomainName.toLowerCase()) ||
+                                     inferredDomainName.toLowerCase().includes(d.name.toLowerCase())
+                            );
+                            if (match) {
+                              setDomainId(match.id);
+                              setDomain(match.name);
+                            } else {
+                              setDomain(inferredDomainName);
+                            }
                           }
                         } catch (e) {
                           console.error('[AI infer-domain]', e);
-                          const inferred = inferDomain(title);
-                          if (inferred) setDomain(inferred);
+                          const fallback = inferDomain(title);
+                          if (fallback) {
+                            const match = domainsList.find(d => d.name.toLowerCase().includes(fallback.toLowerCase()));
+                            if (match) {
+                              setDomainId(match.id);
+                              setDomain(match.name);
+                            }
+                          }
                         } finally {
                           setIsInferring(false);
                         }
@@ -551,10 +618,35 @@ export default function PostJobPage() {
                       {isInferring ? <span className="w-3.5 h-3.5 border-2 border-violet-300 border-t-violet-700 rounded-full animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />} AI Fill
                     </button>
                   </div>
-                  <p className="text-[10px] font-mono text-slate-400">Type a title first, then click AI Fill to auto-detect</p>
+                  <p className="text-[10px] font-mono text-slate-400">Select domain or click AI Fill to auto-detect</p>
                 </div>
                 <SelectField label="Experience Level" value={level} onChange={setLevel} options={LEVELS} required />
                 <SelectField label="Job Type" value={type} onChange={setType} options={JOB_TYPES} required />
+                {(type === "Contract" || type === "Internship") && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-slate-700">
+                      Duration (Months)<span className="text-rose-500 ml-0.5">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={1}
+                        max={60}
+                        value={durationMonths}
+                        onChange={(e) => {
+                          const val = e.target.value === "" ? "" : parseInt(e.target.value, 10);
+                          setDurationMonths(val);
+                        }}
+                        placeholder="e.g. 3, 6, 12"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 pr-16"
+                        required
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">
+                        months
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <SelectField label="Work Mode" value={remote} onChange={setRemote} options={REMOTE_TYPES} required />
                 <div className="flex flex-col gap-1.5 sm:col-span-2">
                   <LocationSelect

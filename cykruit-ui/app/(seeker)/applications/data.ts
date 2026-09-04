@@ -1,4 +1,4 @@
-export type AppStatus = "Applied" | "Under Review" | "Shortlisted" | "Rejected" | "Withdrawn";
+export type AppStatus = "Applied" | "Under Review" | "Shortlisted" | "Interview" | "Offered" | "Hired" | "Rejected" | "Withdrawn";
 
 export type TimelineEvent = { date: string; event: string; note?: string };
 

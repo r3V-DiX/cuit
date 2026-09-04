@@ -36,9 +36,11 @@ type StatusFilterType = typeof STATUS_FILTERS[number];
 
 interface Job {
   id: string;
+  jobCode: string;
   title: string;
   domain: string;
   type: string;
+  durationMonths?: number | null;
   location: string;
   applicants: number;
   views: number;
@@ -93,9 +95,11 @@ export default function MyJobsPage() {
         };
         return {
           id: job.id,
+          jobCode: job.jobCode || "",
           title: job.jobTitle,
-          domain: job.role?.name || "Cybersecurity",
+          domain: job.domain?.name || job.role?.name || "Cybersecurity",
           type: formatEnum(job.jobType || "FULL_TIME"),
+          durationMonths: job.durationMonths,
           location: job.location?.displayName || "Remote",
           applicants: job._count?.applications || 0,
           views: job.viewCount || 0,
@@ -251,10 +255,24 @@ export default function MyJobsPage() {
                   return (
                     <tr key={job.id} className="hover:bg-slate-50/60 transition-colors group">
                       <td className="px-5 py-3.5">
-                        <Link href={`/employer/jobs/${job.id}`} className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors hover:underline">{job.title}</Link>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Link href={`/employer/jobs/${job.id}`} className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors hover:underline">{job.title}</Link>
+                          {job.jobCode && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                              {job.jobCode}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-slate-400 mt-0.5 font-mono">{job.domain}</p>
                       </td>
-                      <td className="px-4 py-3.5 text-slate-500 hidden md:table-cell">{job.type}</td>
+                      <td className="px-4 py-3.5 text-slate-500 hidden md:table-cell">
+                        <div>
+                          <span>{job.type}</span>
+                          {job.durationMonths && (
+                            <span className="block text-xs text-slate-400 font-mono">({job.durationMonths} mos)</span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3.5 text-slate-500 hidden lg:table-cell">{job.location}</td>
                       <td className="px-4 py-3.5 text-center">
                         <Link href="/employer/applicants" className="flex items-center justify-center gap-1 text-sm font-semibold text-slate-700 hover:text-blue-600 transition-colors">

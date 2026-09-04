@@ -173,9 +173,10 @@ enum WorkMode {
 }
 
 enum ExperienceLevel {
-    ENTRY
+    ASSOCIATE
     MID
     SENIOR
+    EXECUTIVE
 }
 
 enum ApplicationType {
@@ -201,6 +202,9 @@ enum ApplicationStatus {
     APPLIED
     UNDER_REVIEW
     SHORTLISTED
+    INTERVIEW
+    OFFERED
+    HIRED
     REJECTED
     WITHDRAWN
 }
@@ -1308,6 +1312,7 @@ model JobDomain {
     updatedAt DateTime @updatedAt
 
     roles Role[]
+    jobs  Job[]
 
     @@index([isActive, sortOrder])
     @@map("job_domains")
@@ -1317,6 +1322,7 @@ model JobDomain {
 
 model Job {
     id         String   @id @default(uuid())
+    jobCode    String   @unique @db.VarChar(20)
     employerId String
     employer   Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
 
@@ -1324,8 +1330,10 @@ model Job {
     slug             String    @unique
     roleId           String?
     role             Role?     @relation(fields: [roleId], references: [id])
+    domainId         String?   @db.Uuid
+    domain           JobDomain? @relation(fields: [domainId], references: [id], onDelete: SetNull)
     jobType          JobType
-    contractDuration Int?
+    durationMonths   Int?
     workMode         WorkMode
     locationId       String?
     location         Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
@@ -1372,6 +1380,7 @@ model Job {
 
     @@index([employerId])
     @@index([roleId])
+    @@index([domainId])
     @@index([status])
     @@index([status, expiresAt])
     @@index([jobType])
