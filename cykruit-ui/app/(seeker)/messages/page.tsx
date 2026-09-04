@@ -193,9 +193,11 @@ export default function SeekerMessagesPage() {
         timeTs: new Date(returned.createdAt).getTime(),
       };
       setConvs((prev) => {
-        const updated = prev.map((c) =>
-          c.id === activeId ? { ...c, messages: [...c.messages, newMsg] } : c
-        );
+        const updated = prev.map((c) => {
+          if (c.id !== activeId) return c;
+          if (c.messages.some((m) => m.id === newMsg.id)) return c;
+          return { ...c, messages: [...c.messages, newMsg] };
+        });
         const idx = updated.findIndex((c) => c.id === activeId);
         if (idx <= 0) return updated;
         return [updated[idx], ...updated.slice(0, idx), ...updated.slice(idx + 1)];

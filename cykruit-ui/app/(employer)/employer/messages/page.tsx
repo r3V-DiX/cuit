@@ -218,11 +218,11 @@ export default function EmployerMessagesPage() {
         timeTs: savedMsg?.createdAt ? new Date(savedMsg.createdAt).getTime() : Date.now(),
       };
       setConvs((prev) => {
-        const updated = prev.map((c) =>
-          c.id === active.id
-            ? { ...c, messages: [...c.messages, newMsg], employerUnread: 0 }
-            : c
-        );
+        const updated = prev.map((c) => {
+          if (c.id !== active.id) return c;
+          if (c.messages.some((m) => m.id === newMsg.id)) return c;
+          return { ...c, messages: [...c.messages, newMsg], employerUnread: 0 };
+        });
         const idx = updated.findIndex((c) => c.id === active.id);
         if (idx <= 0) return updated;
         return [updated[idx], ...updated.slice(0, idx), ...updated.slice(idx + 1)];

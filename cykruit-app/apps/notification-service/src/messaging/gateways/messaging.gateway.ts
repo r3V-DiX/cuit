@@ -136,8 +136,17 @@ export class MessagingGateway implements OnGatewayConnection, OnGatewayDisconnec
         return { ok: true };
     }
 
-    emitToConversation(conversationId: string, event: string, payload: unknown) {
-        this.server.to(`conv:${conversationId}`).emit(event, payload);
+    emitToConversation(conversationId: string, event: string, payload: unknown, excludeSocketIds?: string[]) {
+        const room = this.server.to(`conv:${conversationId}`);
+        if (excludeSocketIds?.length) {
+            room.except(excludeSocketIds).emit(event, payload);
+        } else {
+            room.emit(event, payload);
+        }
+    }
+
+    getSocketIdsForUser(userId: string): string[] {
+        return Array.from(this.userSockets.get(userId) ?? []);
     }
 
     emitToUser(userId: string, event: string, payload: unknown) {

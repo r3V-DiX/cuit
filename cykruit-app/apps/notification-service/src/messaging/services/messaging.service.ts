@@ -90,11 +90,15 @@ export class MessagingService {
 
         const formatted = this.formatMessage(message as any);
 
-        // Emit real-time event to all clients in the conversation room
-        this.gateway?.emitToConversation(conversationId, 'message:new', {
+        // Emit real-time event to all other clients in the conversation room —
+        // exclude the sender's own sockets, since the HTTP response already
+        // gives the sender their copy of the message.
+        this.gateway?.emitToConversation(
             conversationId,
-            message: formatted,
-        });
+            'message:new',
+            { conversationId, message: formatted },
+            this.gateway.getSocketIdsForUser(userId),
+        );
 
         return formatted;
     }
