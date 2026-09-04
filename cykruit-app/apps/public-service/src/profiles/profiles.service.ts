@@ -55,9 +55,18 @@ export class ProfilesService {
     const visibility =
       user.jobSeekerSettings?.profileVisibility ?? ProfileVisibility.PUBLIC;
 
-    // 🔒 PRIVATE → block public access (throw 404)
-    if (visibility === ProfileVisibility.PRIVATE) {
-      throw new NotFoundException("Profile not found");
+    const isOwner = tracking?.viewerId === user.id;
+
+    // 🔒 PRIVATE → return friendly private response for external visitors, or allow owner preview
+    if (visibility === ProfileVisibility.PRIVATE && !isOwner) {
+      return {
+        data: {
+          id: user.id,
+          isPrivate: true,
+          message: "This profile is currently set to private.",
+        },
+        message: "This profile is currently set to private.",
+      };
     }
 
     const profile = user.jobSeekerProfile;
@@ -153,6 +162,8 @@ export class ProfilesService {
       anonymity: {
         isAnonymous: false,
       },
+      isPrivate: visibility === ProfileVisibility.PRIVATE,
+      isOwner,
     };
   }
 

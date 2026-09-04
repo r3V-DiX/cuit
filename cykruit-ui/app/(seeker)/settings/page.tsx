@@ -498,14 +498,32 @@ export default function SettingsPage() {
             {/* ── PRIVACY ── */}
             {activeTab === "privacy" && (
               <div>
-                <Section title="Profile Visibility" desc="Control who can see your profile and how it appears to employers.">
+                <Section title="Profile Visibility" desc="Control who can see your profile and whether your public link is accessible.">
                   <div className="-mx-6 -mt-4 space-y-0">
                     {([
-                      { key: "profileVisible", label: "Profile visible to employers", desc: "Employers and recruiters can find and view your profile" },
-                      { key: "showOpenToWork", label: "Show 'Open to Work' badge",    desc: "Displays a green badge on your profile" },
+                      { 
+                        key: "profileVisible", 
+                        label: "Public Profile Page", 
+                        desc: privacy.profileVisible 
+                          ? "Your profile is public and shareable with employers, recruiters, and colleagues via your public profile page." 
+                          : "Your profile is private. Anyone visiting your link will see a polite private notice." 
+                      },
+                      { key: "showOpenToWork", label: "Show 'Open to Work' badge", desc: "Displays a green badge on your profile" },
                     ] as { key: keyof typeof privacy; label: string; desc: string }[]).map(({ key, label, desc }) => (
                       <ToggleRow key={key} label={label} desc={desc} on={privacy[key]} onChange={(v) => setPrivacy({ ...privacy, [key]: v })} />
                     ))}
+                  </div>
+                  <div className="mt-4 p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <Globe className="w-4 h-4 text-blue-500 shrink-0" />
+                      <span>Direct link to share your public portfolio & verified skills.</span>
+                    </div>
+                    <a
+                      href="/profile"
+                      className="text-blue-600 hover:text-blue-700 font-semibold shrink-0"
+                    >
+                      View & Share in Profile →
+                    </a>
                   </div>
                 </Section>
 

@@ -122,6 +122,10 @@ const nextConfig: NextConfig = {
         source: "/api/roles",
         destination: `${PUBLIC_URL}/roles`,
       },
+      {
+        source: "/api/profiles/:path*",
+        destination: `${PUBLIC_URL}/public/:path*`,
+      },
       // Internal ai-service routes (embed/query, resume/parse, match-score, jobs/recommend)
       // are intentionally excluded — backend services call ai-service directly via AI_SERVICE_URL.
       // Only browser-facing endpoints are proxied here.

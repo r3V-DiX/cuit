@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import Link from "next/link";
 import SeekerTopbar from "@/components/seeker/SeekerTopbar";
 import { useToast } from "@/components/ui/Toast";
 import { useModal } from "@/components/ui/Modal";
@@ -8,10 +9,11 @@ import {
   User, Briefcase, Award, Terminal, FileText,
   Plus, Pencil, Trash2, Upload, Check, X, ExternalLink, Sparkles, Wand2,
   GraduationCap, Globe, Camera, ChevronDown as ChevronDownIcon,
+  Lock, Copy, Share2,
 } from "lucide-react";
 import { FaLinkedinIn, FaGithub, FaXTwitter } from "react-icons/fa6";
 import { Country, State, City } from "country-state-city";
-import { formatErrorDetails } from "@/lib/api";
+import { formatErrorDetails, apiFetch, authHeaders, describeError } from "@/lib/api";
 import { ProfilePageSkeleton } from "@/components/ui/skeletons/PageSkeletons";
 
 // Raw fetch() error responses arrive as {success:false, error:{code,message,details}} —
@@ -48,6 +50,45 @@ export default function ProfilePage() {
   const [activeSection, setActiveSection] = useState("basics");
   const [userId, setUserId] = useState<string>("");
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [isProfilePublic, setIsProfilePublic] = useState(true);
+  const [updatingVisibility, setUpdatingVisibility] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  async function toggleProfileVisibility() {
+    const nextVal = !isProfilePublic;
+    setUpdatingVisibility(true);
+    try {
+      await apiFetch("/api/settings/general", {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          profileVisibility: nextVal ? "PUBLIC" : "PRIVATE",
+        }),
+      });
+      setIsProfilePublic(nextVal);
+      toast({
+        type: "success",
+        message: nextVal ? "Profile is now Public" : "Profile is now Private",
+        description: nextVal ? "Anyone with your link can view your profile showcase." : "External visitors cannot view your profile.",
+      });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Failed to update profile visibility") });
+    } finally {
+      setUpdatingVisibility(false);
+    }
+  }
+
+  function handleCopyPublicLink() {
+    if (!userId) {
+      toast({ type: "error", message: "User profile ID not found" });
+      return;
+    }
+    const url = `${window.location.origin}/p/${userId}`;
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    toast({ type: "success", message: "Public link copied to clipboard", description: url });
+    setTimeout(() => setCopiedLink(false), 2000);
+  }
 
   // Photo
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -973,6 +1014,18 @@ export default function ProfilePage() {
           userName = [userObj.firstName, userObj.lastName].filter(Boolean).join(" ") || userObj.name || "";
           const id = userObj.id;
           if (id) setUserId(id);
+          try {
+            const settingsRes = await fetch("/api/settings", { credentials: "include" });
+            if (settingsRes.ok) {
+              const sData = await settingsRes.json();
+              const gen = sData.data?.general || sData.general || sData.data || sData;
+              if (gen.profileVisibility) {
+                setIsProfilePublic(gen.profileVisibility === "PUBLIC");
+              }
+            }
+          } catch (e) {
+            if (process.env.NODE_ENV === "development") console.error(e);
+          }
         }
       } catch (e) {
         if (process.env.NODE_ENV === "development") console.error(e);
@@ -1181,6 +1234,56 @@ export default function ProfilePage() {
                         </div>
                       )}
                     </div>
+                  )}
+                </div>
+
+                {/* Public / Private visibility switch & share link */}
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={toggleProfileVisibility}
+                    disabled={updatingVisibility}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-2xs ${
+                      isProfilePublic
+                        ? "bg-green-50/80 border-green-200 text-green-700 hover:bg-green-100"
+                        : "bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200"
+                    }`}
+                    title={isProfilePublic ? "Click to make Private" : "Click to make Public"}
+                  >
+                    {isProfilePublic ? (
+                      <>
+                        <Globe className="w-3.5 h-3.5 text-green-600" />
+                        <span>Public Profile</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Private Profile</span>
+                      </>
+                    )}
+                    <span className={`w-1.5 h-1.5 rounded-full ${isProfilePublic ? "bg-green-500 animate-pulse" : "bg-slate-400"}`} />
+                  </button>
+
+                  {userId && (
+                    <>
+                      <Link
+                        href={`/p/${userId}`}
+                        target="_blank"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                        <span>View Public Page</span>
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={handleCopyPublicLink}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                      >
+                        {copiedLink ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                        <span>{copiedLink ? "Copied Link" : "Copy Public Link"}</span>
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
