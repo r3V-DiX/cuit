@@ -27,6 +27,8 @@ import {
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import compression from 'compression';
+import express from 'express';
+import path from 'path';
 
 function flattenValidationErrors(errors: ValidationError[]): string[] {
     const result: string[] = [];
@@ -93,6 +95,14 @@ async function bootstrap() {
 
     app.use(cookieParser());
     app.use(compression());
+
+    // Local upload driver (dev default) writes under this service's own
+    // process.cwd() — admin-app is a separate directory tree from
+    // cykruit-app, so it must serve its own uploads/ folder rather than
+    // relying on cykruit-app's seeker-profile-service, which only serves
+    // its own cwd's uploads/. Mirrors seeker-profile-service's identical
+    // static-serve line. Production uses the S3 driver, unaffected.
+    app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
     app.useGlobalPipes(
         new SanitizationPipe(),
