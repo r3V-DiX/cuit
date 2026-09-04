@@ -19,6 +19,7 @@ const PUBLIC_URL    = process.env.PUBLIC_SERVICE_URL    || "http://127.0.0.1:400
 const NOTIF_URL     = process.env.NOTIF_SERVICE_URL     || "http://127.0.0.1:4007";
 const SUBS_URL      = process.env.SUBS_SERVICE_URL      || "http://127.0.0.1:4008";
 const AI_URL        = process.env.AI_SERVICE_URL        || "http://127.0.0.1:3005";
+const ADMIN_URL      = process.env.ADMIN_SERVICE_URL     || "http://127.0.0.1:4010";
 
 // CSP is set per-request with a nonce in proxy.ts — not here as a static header.
 const securityHeaders = [
@@ -132,6 +133,17 @@ const nextConfig: NextConfig = {
       { source: "/api/ai/jobs/infer-domain",           destination: `${AI_URL}/ai/jobs/infer-domain` },
       { source: "/api/ai/jobs/suggest-skills",         destination: `${AI_URL}/ai/jobs/suggest-skills` },
       { source: "/api/ai/jobs/generate-questions",     destination: `${AI_URL}/ai/jobs/generate-questions` },
+      // Ad/event creatives are uploaded via admin-app's own local driver
+      // (separate process.cwd() from cykruit-app's services, see admin-app/src/main.ts) —
+      // matched ahead of the general /uploads catch-all by their distinct folder prefixes.
+      {
+        source: "/uploads/ad-creatives/:path*",
+        destination: `${ADMIN_URL}/uploads/ad-creatives/:path*`,
+      },
+      {
+        source: "/uploads/event-banners/:path*",
+        destination: `${ADMIN_URL}/uploads/event-banners/:path*`,
+      },
       {
         source: "/uploads/:path*",
         destination: `${PROFILE_URL}/uploads/:path*`,
