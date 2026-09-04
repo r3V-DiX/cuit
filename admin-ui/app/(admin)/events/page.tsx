@@ -243,198 +243,184 @@ export default function EventsPage() {
         </div>
       </div>
 
-      {/* ── Events Table ── */}
-      <div className="bg-white rounded-xl border border-slate-200/80 shadow-2xs overflow-hidden">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-500 space-y-3">
-            <Loader2 className="h-8 w-8 animate-spin text-[#1B3C8B]" />
-            <p className="text-xs font-medium">Loading events...</p>
+      {/* ── Events Grid ── */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20 text-slate-500 space-y-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+          <Loader2 className="h-8 w-8 animate-spin text-[#1B3C8B]" />
+          <p className="text-xs font-medium">Loading events...</p>
+        </div>
+      ) : data.items.length === 0 ? (
+        <div className="text-center py-16 px-4 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+          <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-800 flex items-center justify-center mx-auto mb-3">
+            <Calendar className="h-6 w-6" />
           </div>
-        ) : data.items.length === 0 ? (
-          <div className="text-center py-16 px-4">
-            <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-800 flex items-center justify-center mx-auto mb-3">
-              <Calendar className="h-6 w-6" />
-            </div>
-            <h3 className="text-sm font-bold text-slate-900">No events found</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
-              {search || statusFilter !== 'ALL'
-                ? 'Try adjusting your search terms or status filter.'
-                : 'No events exist yet. Create your first one.'}
-            </p>
-            {canManage && (
-              <Link
-                href="/events/new"
-                className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1B3C8B] text-white hover:bg-blue-900 transition"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Create First Event</span>
-              </Link>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider text-[11px]">
-                  <th className="py-3 px-4">Event</th>
-                  <th className="py-3 px-4">Date &amp; Location</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.items.map((event) => (
-                  <tr key={event.id} className="hover:bg-slate-50/60 transition group">
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-start space-x-3">
-                        <div className="w-14 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0 flex items-center justify-center">
-                          {event.bannerImage ? (
-                            <img
-                              src={event.bannerImage}
-                              alt={event.title}
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <ImageIcon className="h-5 w-5 text-slate-300" />
-                          )}
-                        </div>
-                        <div className="space-y-0.5 max-w-md">
-                          <span className="font-semibold text-slate-900 group-hover:text-blue-900 transition line-clamp-1">
-                            {event.title}
-                          </span>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                              /{event.slug}
-                            </span>
-                            {event.category && (
-                              <span className="inline-flex items-center gap-1 text-[11px] text-slate-500">
-                                <Tag className="h-3 w-3 text-slate-400" />
-                                {event.category}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
+          <h3 className="text-sm font-bold text-slate-900">No events found</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+            {search || statusFilter !== 'ALL'
+              ? 'Try adjusting your search terms or status filter.'
+              : 'No events exist yet. Create your first one.'}
+          </p>
+          {canManage && (
+            <Link
+              href="/events/new"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#1B3C8B] text-white hover:bg-blue-900 transition"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Create First Event</span>
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {data.items.map((event) => (
+            <div
+              key={event.id}
+              className="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200"
+            >
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10" />
 
-                    <td className="py-3.5 px-4 text-slate-500">
-                      <div className="flex items-center gap-1.5 font-mono text-[11px]">
-                        <Calendar className="h-3 w-3 text-slate-400" />
-                        {new Date(event.eventDate).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </div>
-                      {event.location && (
-                        <div className="flex items-center gap-1.5 text-[11px] mt-0.5">
-                          <MapPin className="h-3 w-3 text-slate-400" />
-                          {event.location}
-                        </div>
-                      )}
-                    </td>
+              <div className="relative aspect-video w-full bg-slate-100 overflow-hidden">
+                {event.bannerImage ? (
+                  <img
+                    src={event.bannerImage}
+                    alt={event.title}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-300">
+                    <ImageIcon className="h-8 w-8" />
+                  </div>
+                )}
 
-                    <td className="py-3.5 px-4">
+                {event.category && (
+                  <div className="absolute top-2 left-2">
+                    <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-white bg-slate-900/70 backdrop-blur-sm px-2 py-0.5 rounded-full">
+                      <Tag className="h-2.5 w-2.5" />
+                      {event.category}
+                    </span>
+                  </div>
+                )}
+
+                <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                  {event.isPublished && (
+                    <a
+                      href={
+                        typeof window !== 'undefined' &&
+                        (window.location.hostname.includes('admin.cykruit.com') ||
+                          window.location.hostname.includes('cykruit.com'))
+                          ? `https://cykruit.com/whats-new/${event.slug}`
+                          : `http://localhost:3000/whats-new/${event.slug}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 rounded-lg bg-white text-slate-700 hover:bg-slate-100 shadow-sm transition"
+                      title="View Live on Cykruit"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  )}
+                  {canManage && (
+                    <>
+                      <Link
+                        href={`/events/${event.id}/edit`}
+                        className="p-2 rounded-lg bg-white text-slate-700 hover:bg-slate-100 shadow-sm transition"
+                        title="Edit Event (Full Screen)"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </Link>
                       <button
                         type="button"
-                        onClick={() => handleTogglePublish(event)}
-                        disabled={!canManage || togglingId === event.id}
-                        className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition ${
-                          event.isPublished
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-                            : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
-                        } ${!canManage ? 'cursor-default' : 'cursor-pointer'}`}
+                        onClick={() => handleDelete(event)}
+                        className="p-2 rounded-lg bg-white text-red-600 hover:bg-red-50 shadow-sm transition"
+                        title="Delete Event"
                       >
-                        {togglingId === event.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin text-slate-600" />
-                        ) : (
-                          <span className={`h-2 w-2 rounded-full ${event.isPublished ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                        )}
-                        <span>{event.isPublished ? 'Published Live' : 'Draft'}</span>
+                        <Trash2 className="h-4 w-4" />
                       </button>
-                    </td>
+                    </>
+                  )}
+                </div>
+              </div>
 
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end space-x-1.5">
-                        {event.isPublished && (
-                          <a
-                            href={
-                              typeof window !== 'undefined' &&
-                              (window.location.hostname.includes('admin.cykruit.com') ||
-                                window.location.hostname.includes('cykruit.com'))
-                                ? `https://cykruit.com/whats-new/${event.slug}`
-                                : `http://localhost:3000/whats-new/${event.slug}`
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-blue-900 hover:bg-slate-100 transition"
-                            title="View Live on Cykruit"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        )}
+              <div className="p-4 space-y-3">
+                <div>
+                  <p className="text-sm font-bold text-slate-900 line-clamp-1">{event.title}</p>
+                  <p className="font-mono text-[10px] text-slate-400 mt-0.5">/{event.slug}</p>
+                </div>
 
-                        {canManage && (
-                          <>
-                            <Link
-                              href={`/events/${event.id}/edit`}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
-                              title="Edit Event (Full Screen)"
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </Link>
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(event)}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition"
-                              title="Delete Event"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                <div className="text-[11px] text-slate-500 space-y-1">
+                  <div className="flex items-center gap-1.5 font-mono">
+                    <Calendar className="h-3 w-3 text-slate-400" />
+                    {new Date(event.eventDate).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </div>
+                  {event.location && (
+                    <div className="flex items-center gap-1.5">
+                      <MapPin className="h-3 w-3 text-slate-400" />
+                      {event.location}
+                    </div>
+                  )}
+                </div>
 
-        {/* ── Pagination ── */}
-        {data.pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-slate-50/50 text-xs">
-            <span className="text-slate-500">
-              Showing {(data.pagination.page - 1) * data.pagination.limit + 1} to{' '}
-              {Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} of{' '}
-              {data.pagination.total} events
-            </span>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={data.pagination.page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Previous
-              </Button>
-              <span className="font-mono px-2 font-medium">
-                {data.pagination.page} / {data.pagination.totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={data.pagination.page >= data.pagination.totalPages}
-                onClick={() => setPage((p) => Math.min(data.pagination.totalPages, p + 1))}
-              >
-                Next
-              </Button>
+                <div className="pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => handleTogglePublish(event)}
+                    disabled={!canManage || togglingId === event.id}
+                    className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition ${
+                      event.isPublished
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                        : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                    } ${!canManage ? 'cursor-default' : 'cursor-pointer'}`}
+                  >
+                    {togglingId === event.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin text-slate-600" />
+                    ) : (
+                      <span className={`h-2 w-2 rounded-full ${event.isPublished ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                    )}
+                    <span>{event.isPublished ? 'Published Live' : 'Draft'}</span>
+                  </button>
+                </div>
+              </div>
             </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Pagination ── */}
+      {data.pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-slate-200/80 bg-white shadow-2xs text-xs">
+          <span className="text-slate-500">
+            Showing {(data.pagination.page - 1) * data.pagination.limit + 1} to{' '}
+            {Math.min(data.pagination.page * data.pagination.limit, data.pagination.total)} of{' '}
+            {data.pagination.total} events
+          </span>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={data.pagination.page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <span className="font-mono px-2 font-medium">
+              {data.pagination.page} / {data.pagination.totalPages}
+            </span>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={data.pagination.page >= data.pagination.totalPages}
+              onClick={() => setPage((p) => Math.min(data.pagination.totalPages, p + 1))}
+            >
+              Next
+            </Button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

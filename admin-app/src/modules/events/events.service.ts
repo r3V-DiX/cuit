@@ -2,6 +2,7 @@
 
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
+import { UploadService, UPLOAD_CONFIGS } from '@cykruit/upload';
 import { EventsRepository } from './events.repository';
 import { AdminAuditLogger } from '../../common';
 import {
@@ -27,10 +28,16 @@ export class EventsService {
     constructor(
         private readonly repo: EventsRepository,
         private readonly auditLogger: AdminAuditLogger,
+        private readonly uploadService: UploadService,
     ) {}
 
     list(query: AdminEventsQueryDto) {
         return this.repo.findAll(query);
+    }
+
+    async uploadImage(file: Express.Multer.File) {
+        const result = await this.uploadService.uploadFile(file, UPLOAD_CONFIGS.EVENT_BANNER);
+        return { imageUrl: result.fileUrl };
     }
 
     async getById(id: string) {

@@ -8,7 +8,7 @@
 import { useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { api } from '@/lib';
+import { api, getCsrfToken } from '@/lib';
 import type { Event as WhatsNewEvent } from '@/lib';
 import { Button, useToast } from '@/components/ui';
 import {
@@ -40,6 +40,8 @@ import {
   Settings2,
   ChevronDown,
   ChevronUp,
+  Upload,
+  X,
 } from 'lucide-react';
 import MarkdownIt from 'markdown-it';
 
@@ -59,6 +61,9 @@ function slugify(text: string): string {
     .replace(/^-+/, '')
     .replace(/-+$/, '');
 }
+
+const BANNER_ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+const BANNER_MAX_BYTES = 5 * 1024 * 1024;
 
 function toDateInputValue(iso?: string | null): string {
   if (!iso) return '';
@@ -120,7 +125,9 @@ export default function FullScreenEventEditor({ initialEvent, eventId }: FullScr
   const [showSettings, setShowSettings] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'split' | 'write' | 'preview'>('split');
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [uploadingBanner, setUploadingBanner] = useState<boolean>(false);
 
+  const bannerInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [history, setHistory] = useState<{ past: string[]; future: string[] }>({ past: [], future: [] });
 
@@ -162,6 +169,48 @@ export default function FullScreenEventEditor({ initialEvent, eventId }: FullScr
     const val = e.target.value;
     setTitle(val);
     if (!slugManuallyEdited) setSlug(slugify(val));
+  };
+
+  const handleBannerFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!BANNER_ALLOWED_TYPES.includes(file.type)) {
+      toast({ type: 'error', message: 'Only JPEG, PNG, or WebP images are allowed.' });
+      e.target.value = '';
+      return;
+    }
+    if (file.size > BANNER_MAX_BYTES) {
+      toast({ type: 'error', message: 'Image must be 5MB or smaller.' });
+      e.target.value = '';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploadingBanner(true);
+    try {
+      const res = await fetch('/api/admin/events/upload', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'x-csrf-token': getCsrfToken() ?? '' },
+        body: formData,
+      });
+      const body = await res.json();
+      if (!res.ok || !body.success) {
+        throw new Error(body?.error?.message || body?.message || 'Upload failed');
+      }
+      setBannerImage(body.data.imageUrl);
+    } catch (err: unknown) {
+      toast({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to upload banner image.',
+      });
+    } finally {
+      setUploadingBanner(false);
+      e.target.value = '';
+    }
   };
 
   const insertSnippet = (openTag: string, closeTag: string = '', defaultPlaceholder: string = 'text') => {
@@ -296,7 +345,7 @@ export default function FullScreenEventEditor({ initialEvent, eventId }: FullScr
               <span className="text-xs font-semibold text-slate-800">{isPublished ? 'Published Live' : 'Draft'}</span>
             </label>
 
-            <Button type="submit" variant="primary" disabled={submitting} className="flex items-center space-x-1.5 shadow-sm">
+            <Button type="submit" variant="primary" disabled={submitting || uploadingBanner} className="flex items-center space-x-1.5 shadow-sm">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               <span>{initialEvent || eventId ? 'Update Event' : 'Publish Event'}</span>
             </Button>
@@ -350,15 +399,55 @@ export default function FullScreenEventEditor({ initialEvent, eventId }: FullScr
             <div className="md:col-span-12 space-y-1">
               <label className="font-bold text-slate-700 flex items-center space-x-1">
                 <ImageIcon className="h-3.5 w-3.5 text-slate-500" />
-                <span>Banner Image URL</span>
+                <span>Banner Image</span>
               </label>
               <input
-                type="url"
-                placeholder="https://..."
-                value={bannerImage}
-                onChange={(e) => setBannerImage(e.target.value)}
-                className="w-full px-3 py-1.5 font-mono text-xs rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+                ref={bannerInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleBannerFileChange}
               />
+              {bannerImage ? (
+                <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-white group max-h-32">
+                  <img src={bannerImage} alt="Banner preview" referrerPolicy="no-referrer" className="w-full max-h-32 object-cover" />
+                  <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => bannerInputRef.current?.click()}
+                      disabled={uploadingBanner}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white text-slate-800 hover:bg-slate-100 transition"
+                    >
+                      Replace
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBannerImage('')}
+                      className="p-1.5 rounded-lg bg-white text-slate-600 hover:bg-red-50 hover:text-red-600 transition"
+                      title="Remove image"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {uploadingBanner && (
+                    <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => bannerInputRef.current?.click()}
+                  disabled={uploadingBanner}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50/50 py-4 text-slate-400 hover:border-blue-300 hover:bg-blue-50/30 hover:text-blue-600 transition-colors disabled:opacity-60"
+                >
+                  {uploadingBanner ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  <span className="text-xs font-semibold">
+                    {uploadingBanner ? 'Uploading…' : 'Click to upload a banner image (JPEG, PNG, or WebP — up to 5MB)'}
+                  </span>
+                </button>
+              )}
             </div>
 
             <div className="md:col-span-12 space-y-1">
