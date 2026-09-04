@@ -5,7 +5,7 @@
 import { useRef, useState } from 'react';
 import { api, getCsrfToken } from '@/lib';
 import type { Ad } from '@/lib';
-import { Button, useToast } from '@/components/ui';
+import { Button, Combobox, useToast } from '@/components/ui';
 import { Save, Loader2, Image as ImageIcon, Link2, Tag, Type, Upload, X } from 'lucide-react';
 
 interface AdEditorModalProps {
@@ -123,20 +123,13 @@ export default function AdEditorModal({ initialAd, onSuccess, onCancel }: AdEdit
           <Tag className="h-3.5 w-3.5 text-slate-500" />
           <span>Slot</span>
         </label>
-        <input
-          type="text"
-          list="known-slots"
+        <Combobox
+          value={slotKey}
+          onChange={setSlotKey}
+          options={KNOWN_SLOTS}
           required
           placeholder="e.g. jobs-grid"
-          value={slotKey}
-          onChange={(e) => setSlotKey(e.target.value)}
-          className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-600"
         />
-        <datalist id="known-slots">
-          {KNOWN_SLOTS.map((slot) => (
-            <option key={slot} value={slot} />
-          ))}
-        </datalist>
         <p className="text-[11px] text-slate-400">
           Which page position this ad shows in. Multiple ads can target the same slot — the
           most recently updated active one wins.
