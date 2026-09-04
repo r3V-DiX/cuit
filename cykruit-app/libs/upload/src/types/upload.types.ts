@@ -7,6 +7,8 @@ export enum UploadFolder {
   COMPANY_BANNERS = "company-banners",
   KYC_DOCUMENTS = "kyc-documents",
   COMPANY_MEDIA_IMAGES = "company-media-images",
+  AD_CREATIVES = "ad-creatives",
+  EVENT_BANNERS = "event-banners",
 }
 
 export enum BucketType {
@@ -17,6 +19,8 @@ export enum BucketType {
   COMPANY_BANNERS = "companyBanners",
   KYC_DOCUMENTS = "kycDocuments",
   COMPANY_MEDIA = "companyMediaImages",
+  AD_CREATIVES = "adCreatives",
+  EVENT_BANNERS = "eventBanners",
 }
 
 export interface UploadOptions {
@@ -98,6 +102,20 @@ export const UPLOAD_CONFIGS = {
   COMPANY_MEDIA: {
     folder: UploadFolder.COMPANY_MEDIA_IMAGES,
     bucket: BucketType.COMPANY_MEDIA,
+    maxSizeInMB: 5,
+    allowedMimeTypes: FILE_TYPES.IMAGES,
+    makePublic: true,
+  },
+  AD_CREATIVE: {
+    folder: UploadFolder.AD_CREATIVES,
+    bucket: BucketType.AD_CREATIVES,
+    maxSizeInMB: 5,
+    allowedMimeTypes: FILE_TYPES.IMAGES,
+    makePublic: true,
+  },
+  EVENT_BANNER: {
+    folder: UploadFolder.EVENT_BANNERS,
+    bucket: BucketType.EVENT_BANNERS,
     maxSizeInMB: 5,
     allowedMimeTypes: FILE_TYPES.IMAGES,
     makePublic: true,

@@ -17,6 +17,10 @@ export default registerAs("upload", () => ({
       companyBanners: process.env.S3_COMPANY_BANNER || process.env.AWS_S3_BUCKET_COMPANY_BANNER || "cykruit-company-banner-prod",
       kycDocuments: process.env.S3_KYC_DOCUMENTS || process.env.AWS_S3_BUCKET_KYC_DOCUMENTS || "cykruit-kyc-documents-prod",
       companyMediaImages: process.env.S3_COMPANY_MEDIA || process.env.AWS_S3_BUCKET_COMPANY_MEDIA || "cykruit-company-banner-prod",
+      // No dedicated buckets provisioned yet — reuse the company-banner bucket
+      // under their own folder prefixes, same pattern as companyMediaImages.
+      adCreatives: process.env.S3_AD_CREATIVES || process.env.S3_COMPANY_BANNER || "cykruit-company-banner-prod",
+      eventBanners: process.env.S3_EVENT_BANNERS || process.env.S3_COMPANY_BANNER || "cykruit-company-banner-prod",
     },
   },
   driver: process.env.UPLOAD_DRIVER || (process.env.NODE_ENV === "development" ? "local" : "s3"),
