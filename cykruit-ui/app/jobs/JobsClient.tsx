@@ -7,6 +7,7 @@ import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AdSlot from "@/components/AdSlot";
+import { getGridAdPositions } from "@/lib/ad-placement";
 import {
   MapPin, Clock, X, ArrowRight, ChevronDown,
   Shield, Terminal, Lock, Bug, Wifi, Eye, Cpu, Crosshair,
@@ -166,6 +167,7 @@ function JobsContent() {
   };
 
   const { data: paginated, total, totalPages } = result;
+  const jobAdPositions = getGridAdPositions(paginated.length);
 
   return (
     <>
@@ -342,7 +344,7 @@ function JobsContent() {
                       </span>
                     </div>
                   </Link>
-                  {(i + 1) % 6 === 0 && <AdSlot slotKey="jobs-grid" />}
+                  {jobAdPositions.has(i + 1) && <AdSlot slotKey="jobs-grid" />}
                   </Fragment>
                 );
               })}

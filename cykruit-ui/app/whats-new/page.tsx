@@ -8,6 +8,7 @@ import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AdSlot from "@/components/AdSlot";
+import { getGridAdPositions } from "@/lib/ad-placement";
 import {
   Calendar,
   Search,
@@ -85,6 +86,7 @@ function EventsContent() {
       e.location?.toLowerCase().includes(term)
     );
   });
+  const eventAdPositions = getGridAdPositions(filteredEvents.length);
 
   return (
     <main className="min-h-screen bg-slate-50 pt-16">
@@ -226,7 +228,7 @@ function EventsContent() {
                     </div>
                   </div>
                 </Link>
-                {(i + 1) % 6 === 0 && <AdSlot slotKey="whats-new-grid" />}
+                {eventAdPositions.has(i + 1) && <AdSlot slotKey="whats-new-grid" />}
                 </Fragment>
               ))}
             </div>

@@ -8,6 +8,7 @@ import Link from "next/link";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AdSlot from "@/components/AdSlot";
+import { getGridAdPositions } from "@/lib/ad-placement";
 import {
   BookOpen,
   Search,
@@ -115,6 +116,8 @@ function BlogsContent() {
 
   const featuredBlog = filteredBlogs.length > 0 ? filteredBlogs[0] : null;
   const gridBlogs = filteredBlogs.length > 1 ? filteredBlogs.slice(1) : [];
+  const gridItems = searchTerm || page > 1 ? filteredBlogs : gridBlogs;
+  const blogAdPositions = getGridAdPositions(gridItems.length);
 
   return (
     <main className="min-h-screen bg-slate-50 pt-16">
@@ -313,7 +316,7 @@ function BlogsContent() {
 
             {/* Grid of Remaining / Filtered Articles */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {(searchTerm || page > 1 ? filteredBlogs : gridBlogs).map((blog, i) => (
+              {gridItems.map((blog, i) => (
                 <Fragment key={blog.id}>
                 <Link
                   href={`/blogs/${blog.slug}`}
@@ -376,7 +379,7 @@ function BlogsContent() {
                     </div>
                   </div>
                 </Link>
-                {(i + 1) % 6 === 0 && <AdSlot slotKey="blogs-grid" />}
+                {blogAdPositions.has(i + 1) && <AdSlot slotKey="blogs-grid" />}
                 </Fragment>
               ))}
             </div>
