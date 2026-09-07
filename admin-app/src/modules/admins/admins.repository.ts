@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { AdminInviteStatus, Prisma } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { AdminListQueryDto } from './dto/admins.dto';
 
 const ADMIN_LIST_SELECT = {
@@ -39,9 +40,34 @@ const INVITE_LIST_SELECT = {
     inviter: { select: { id: true, firstName: true, lastName: true } },
 } satisfies Prisma.AdminInviteSelect;
 
+@Searchable()
 @Injectable()
-export class AdminsRepository {
+export class AdminsRepository implements ISearchEntity {
+    readonly key = 'admins';
+    readonly label = 'Admins';
+    readonly action = ACTIONS.ADMINS.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.admin.findMany({
+            where: {
+                OR: [
+                    { email: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                    { firstName: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                    { lastName: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                ],
+            },
+            select: { id: true, email: true, firstName: true, lastName: true },
+            take,
+        });
+        return rows.map((a) => ({
+            id: a.id,
+            title: `${a.firstName} ${a.lastName}`.trim(),
+            subtitle: a.email,
+            href: `/admins?q=${encodeURIComponent(a.email)}`,
+        }));
+    }
 
     async findAll(query: AdminListQueryDto) {
         const { page = 1, limit = 20, q } = query;

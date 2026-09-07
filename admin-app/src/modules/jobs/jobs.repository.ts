@@ -3,11 +3,36 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { JobStatus, Prisma } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { AdminJobListQueryDto } from './dto/jobs.dto';
 
+@Searchable()
 @Injectable()
-export class AdminJobsRepository {
+export class AdminJobsRepository implements ISearchEntity {
+    readonly key = 'jobs';
+    readonly label = 'Jobs';
+    readonly action = ACTIONS.JOBS.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.job.findMany({
+            where: {
+                OR: [
+                    { jobTitle: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                    { employer: { companyName: { contains: q, mode: Prisma.QueryMode.insensitive } } },
+                ],
+            },
+            select: { id: true, jobTitle: true, employer: { select: { companyName: true } } },
+            take,
+        });
+        return rows.map((j) => ({
+            id: j.id,
+            title: j.jobTitle,
+            subtitle: j.employer?.companyName ?? null,
+            href: `/jobs/${j.id}`,
+        }));
+    }
 
     async findAll(query: AdminJobListQueryDto): Promise<{ items: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
         const { page = 1, limit = 20, status, q } = query;

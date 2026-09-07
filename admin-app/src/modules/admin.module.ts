@@ -35,6 +35,7 @@ import { EmailsModule } from './emails';
 import { BlogsModule } from './blogs';
 import { AdsModule } from './ads';
 import { EventsModule } from './events';
+import { SearchModule } from './search';
 
 @Module({
     imports: [
@@ -68,6 +69,7 @@ import { EventsModule } from './events';
         BlogsModule,
         AdsModule,
         EventsModule,
+        SearchModule,
     ],
 })
 export class AdminModule {}

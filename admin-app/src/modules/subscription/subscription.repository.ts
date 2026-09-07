@@ -3,12 +3,32 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { Prisma } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { CreatePackageDto, UpdatePackageDto, SubscriptionListQueryDto } from './dto/subscription.dto';
 // EmployerSubscription.status is a plain String field — no enum
 
+@Searchable()
 @Injectable()
-export class SubscriptionRepository {
+export class SubscriptionRepository implements ISearchEntity {
+    readonly key = 'subscriptions';
+    readonly label = 'Subscriptions';
+    readonly action = ACTIONS.SUBSCRIPTIONS.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.employerSubscription.findMany({
+            where: { employer: { companyName: { contains: q, mode: Prisma.QueryMode.insensitive } } },
+            select: { id: true, status: true, employer: { select: { companyName: true } } },
+            take,
+        });
+        return rows.map((s) => ({
+            id: s.id,
+            title: s.employer.companyName,
+            subtitle: s.status,
+            href: `/subscriptions/${s.id}`,
+        }));
+    }
 
     // ── Packages ──────────────────────────────────────────────────────────────
 

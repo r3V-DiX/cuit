@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { Prisma, Ad } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { AdminAdsQueryDto, CreateAdDto, UpdateAdDto } from './dto/ads.dto';
 
 export interface PaginatedAdsResult {
@@ -21,9 +22,33 @@ export interface PaginatedAdsResult {
     };
 }
 
+@Searchable()
 @Injectable()
-export class AdsRepository {
+export class AdsRepository implements ISearchEntity {
+    readonly key = 'ads';
+    readonly label = 'Ads';
+    readonly action = ACTIONS.ADS.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.ad.findMany({
+            where: {
+                OR: [
+                    { slotKey: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                    { altText: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                ],
+            },
+            select: { id: true, slotKey: true, altText: true },
+            take,
+        });
+        return rows.map((a) => ({
+            id: a.id,
+            title: a.slotKey,
+            subtitle: a.altText,
+            href: `/ads`,
+        }));
+    }
 
     async findAll(query: AdminAdsQueryDto): Promise<PaginatedAdsResult> {
         const { page = 1, limit = 10, search, slotKey, isActive } = query;

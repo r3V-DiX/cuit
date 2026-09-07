@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { Prisma, Blog } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { AdminBlogsQueryDto, CreateBlogDto, UpdateBlogDto } from './dto/blogs.dto';
 
 export interface PaginatedBlogsResult {
@@ -21,9 +22,23 @@ export interface PaginatedBlogsResult {
     };
 }
 
+@Searchable()
 @Injectable()
-export class BlogsRepository {
+export class BlogsRepository implements ISearchEntity {
+    readonly key = 'blogs';
+    readonly label = 'Blogs';
+    readonly action = ACTIONS.BLOGS.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.blog.findMany({
+            where: { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            select: { id: true, title: true },
+            take,
+        });
+        return rows.map((b) => ({ id: b.id, title: b.title, subtitle: null, href: `/blogs/${b.id}` }));
+    }
 
     async findAll(query: AdminBlogsQueryDto): Promise<PaginatedBlogsResult> {
         const { page = 1, limit = 10, search, category, isPublished } = query;

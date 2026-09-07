@@ -7,60 +7,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  LayoutDashboard,
-  Users,
-  ShieldCheck,
-  Briefcase,
-  CreditCard,
-  ScrollText,
-  Quote,
-  Shield,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  LogOut,
-  Menu,
-  X,
-  Mail,
-  Settings2,
-  Flag,
-  UserCog,
-  SlidersHorizontal,
-  Megaphone,
-  ShieldBan,
-  SearchCode,
-  Tag,
-  Server,
-  FileText,
-  ClipboardList,
-  SendHorizontal,
-  BookOpen,
-  Image as ImageIcon,
-  Calendar,
-} from 'lucide-react';
+import { Shield, ChevronLeft, ChevronRight, ChevronDown, LogOut, Menu, X } from 'lucide-react';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
 import { usePermissions } from '@/lib/permissions-context';
 import { ACTIONS } from '@/lib';
 import { getCsrfToken } from '@/lib/api';
-
-interface NavChild {
-  label: string;
-  /** Tab key this sub-link selects, e.g. /subscriptions?tab=packages */
-  tab: string;
-}
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-  /** Item is shown if the admin holds this action, or any one of these actions. */
-  action: string | string[];
-  badge?: number;
-  /** This item's page has tabs — show them as collapsible sub-links (?tab=). */
-  children?: NavChild[];
-}
+import { NAV_ITEMS } from '@/lib/nav-items';
 
 export default function AdminSidebar() {
   const pathname = usePathname();
@@ -102,173 +55,11 @@ export default function AdminSidebar() {
       .catch(() => {});
   }, [has]);
 
-  const ALL_NAV_ITEMS: NavItem[] = [
-    // Overview
-    {
-      label: 'Dashboard',
-      href: '/dashboard',
-      icon: <LayoutDashboard className="h-5 w-5" />,
-      action: ACTIONS.DASHBOARD.VIEW,
-    },
-    // Daily action queues — highest-frequency, badge-bearing work items first
-    {
-      label: 'KYC',
-      href: '/kyc',
-      icon: <ShieldCheck className="h-5 w-5" />,
-      action: ACTIONS.KYC.VIEW,
-      badge: pendingKyc,
-    },
-    {
-      label: 'Jobs',
-      href: '/jobs',
-      icon: <Briefcase className="h-5 w-5" />,
-      action: ACTIONS.JOBS.VIEW,
-      badge: pendingJobs,
-    },
-    {
-      label: 'Users',
-      href: '/users',
-      icon: <Users className="h-5 w-5" />,
-      action: ACTIONS.USERS.VIEW,
-    },
-    {
-      label: 'Applications',
-      href: '/applications',
-      icon: <ClipboardList className="h-5 w-5" />,
-      action: ACTIONS.APPLICATIONS.VIEW,
-    },
-    {
-      label: 'Content Reports',
-      href: '/reports',
-      icon: <Flag className="h-5 w-5" />,
-      action: ACTIONS.REPORTS.VIEW,
-    },
-    // Core entity/commerce management
-    {
-      label: 'Resumes',
-      href: '/resumes',
-      icon: <FileText className="h-5 w-5" />,
-      action: ACTIONS.RESUMES.VIEW,
-    },
-    {
-      label: 'Subscriptions & Discounts',
-      href: '/subscriptions',
-      icon: <CreditCard className="h-5 w-5" />,
-      action: [ACTIONS.SUBSCRIPTIONS.VIEW, ACTIONS.DISCOUNTS.VIEW],
-      children: [
-        { label: 'Packages', tab: 'packages' },
-        { label: 'Employer Subscriptions', tab: 'employers' },
-        { label: 'Payment History', tab: 'payments' },
-        { label: 'Discounts', tab: 'discounts' },
-      ],
-    },
-    // Content & growth — periodic, not daily
-    {
-      label: 'Testimonials',
-      href: '/testimonials',
-      icon: <Quote className="h-5 w-5" />,
-      action: ACTIONS.TESTIMONIALS.VIEW,
-    },
-    {
-      label: 'Blogs & Articles',
-      href: '/blogs',
-      icon: <BookOpen className="h-5 w-5" />,
-      action: ACTIONS.BLOGS.VIEW,
-    },
-    {
-      label: "What's New",
-      href: '/events',
-      icon: <Calendar className="h-5 w-5" />,
-      action: ACTIONS.EVENTS.VIEW,
-    },
-    {
-      label: 'Ads',
-      href: '/ads',
-      icon: <ImageIcon className="h-5 w-5" />,
-      action: ACTIONS.ADS.VIEW,
-    },
-    {
-      label: 'Announcements',
-      href: '/announcements',
-      icon: <Megaphone className="h-5 w-5" />,
-      action: ACTIONS.ANNOUNCEMENTS.MANAGE,
-    },
-    {
-      label: 'Broadcasts & Emails',
-      href: '/emails',
-      icon: <SendHorizontal className="h-5 w-5" />,
-      action: ACTIONS.EMAILS.VIEW,
-    },
-    {
-      label: 'Contact',
-      href: '/contact',
-      icon: <Mail className="h-5 w-5" />,
-      action: ACTIONS.CONTACT.VIEW,
-    },
-    {
-      label: 'Suggestions',
-      href: '/suggestions',
-      icon: <SearchCode className="h-5 w-5" />,
-      action: ACTIONS.SUGGESTIONS.MANAGE,
-    },
-    {
-      label: 'Blacklist',
-      href: '/blacklist',
-      icon: <ShieldBan className="h-5 w-5" />,
-      action: ACTIONS.BLACKLIST.MANAGE,
-    },
-    {
-      label: 'Job Roles',
-      href: '/roles',
-      icon: <Tag className="h-5 w-5" />,
-      action: ACTIONS.ROLES.MANAGE,
-    },
-    // Administration & governance — lowest frequency, highest stakes, last
-    {
-      label: 'Admins & Access',
-      href: '/admins',
-      icon: <UserCog className="h-5 w-5" />,
-      action: [ACTIONS.ADMINS.VIEW, ACTIONS.RBAC.VIEW],
-      children: [
-        { label: 'Roles', tab: 'roles' },
-        { label: 'Permissions Map', tab: 'permissions' },
-        { label: 'Admins', tab: 'admins' },
-        { label: 'Pending Invitations', tab: 'pending' },
-      ],
-    },
-    {
-      label: 'Audit Logs',
-      href: '/audit-logs',
-      icon: <ScrollText className="h-5 w-5" />,
-      action: ACTIONS.AUDIT.VIEW,
-      children: [
-        { label: 'Audit Logs', tab: 'audit' },
-        { label: 'System Logs', tab: 'system' },
-        { label: 'Admin Activity Logs', tab: 'admin' },
-      ],
-    },
-    {
-      label: 'Policies',
-      href: '/policies',
-      icon: <SlidersHorizontal className="h-5 w-5" />,
-      action: ACTIONS.POLICIES.MANAGE,
-    },
-    {
-      label: 'System Health',
-      href: '/system',
-      icon: <Server className="h-5 w-5" />,
-      action: ACTIONS.DASHBOARD.VIEW,
-    },
-    {
-      label: 'Platform Settings',
-      href: '/platform-settings',
-      icon: <Settings2 className="h-5 w-5" />,
-      action: ACTIONS.SETTINGS.MANAGE,
-    },
-  ];
+  // Badge counts, keyed by href — everything else lives in the shared NAV_ITEMS list.
+  const BADGES: Record<string, number> = { '/kyc': pendingKyc, '/jobs': pendingJobs };
 
   // Filter by permissions — items are absent, not disabled
-  const navItems = ALL_NAV_ITEMS.filter((item) =>
+  const navItems = NAV_ITEMS.filter((item) =>
     Array.isArray(item.action) ? item.action.some(has) : has(item.action),
   );
 
@@ -344,6 +135,8 @@ export default function AdminSidebar() {
             const active = isActive(item.href);
             const hasChildren = !collapsed && !!item.children?.length;
             const itemExpanded = expandedItems[item.href] ?? active;
+            const badge = BADGES[item.href];
+            const Icon = item.icon;
             return (
               <li key={item.href}>
                 <div
@@ -366,12 +159,12 @@ export default function AdminSidebar() {
                         active ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600'
                       }`}
                     >
-                      {item.icon}
+                      <Icon className="h-5 w-5" />
                     </span>
                     {!collapsed && <span className="flex-1">{item.label}</span>}
-                    {!collapsed && item.badge !== undefined && item.badge > 0 && (
+                    {!collapsed && badge !== undefined && badge > 0 && (
                       <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-500 px-1.5 font-mono text-[10px] font-bold text-white">
-                        {item.badge > 99 ? '99+' : item.badge}
+                        {badge > 99 ? '99+' : badge}
                       </span>
                     )}
                   </Link>

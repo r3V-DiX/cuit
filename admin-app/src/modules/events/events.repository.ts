@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { Prisma, Event } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { AdminEventsQueryDto, CreateEventDto, UpdateEventDto } from './dto/events.dto';
 
 export interface PaginatedEventsResult {
@@ -21,9 +22,23 @@ export interface PaginatedEventsResult {
     };
 }
 
+@Searchable()
 @Injectable()
-export class EventsRepository {
+export class EventsRepository implements ISearchEntity {
+    readonly key = 'events';
+    readonly label = 'Events';
+    readonly action = ACTIONS.EVENTS.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.event.findMany({
+            where: { title: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            select: { id: true, title: true },
+            take,
+        });
+        return rows.map((e) => ({ id: e.id, title: e.title, subtitle: null, href: `/events/${e.id}` }));
+    }
 
     async findAll(query: AdminEventsQueryDto): Promise<PaginatedEventsResult> {
         const { page = 1, limit = 10, search, category, isPublished } = query;

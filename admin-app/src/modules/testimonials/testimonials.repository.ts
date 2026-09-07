@@ -3,11 +3,37 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { Prisma } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { AdminTestimonialsQueryDto, CreateTestimonialDto, UpdateTestimonialDto } from './dto/testimonials.dto';
 
+@Searchable()
 @Injectable()
-export class TestimonialsRepository {
+export class TestimonialsRepository implements ISearchEntity {
+    readonly key = 'testimonials';
+    readonly label = 'Testimonials';
+    readonly action = ACTIONS.TESTIMONIALS.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.testimonial.findMany({
+            where: {
+                OR: [
+                    { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                    { company: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                    { role: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                ],
+            },
+            select: { id: true, name: true, company: true },
+            take,
+        });
+        return rows.map((t) => ({
+            id: t.id,
+            title: t.name,
+            subtitle: t.company,
+            href: `/testimonials?q=${encodeURIComponent(t.name)}`,
+        }));
+    }
 
     async findAll(query: AdminTestimonialsQueryDto): Promise<{ items: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
         const { page = 1, limit = 20, type, published, q } = query;

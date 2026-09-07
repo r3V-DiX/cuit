@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { Prisma } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { ContactListQueryDto } from './dto/contact.dto';
 
 const CONTACT_SELECT = {
@@ -20,9 +21,33 @@ const CONTACT_SELECT = {
     updatedAt: true,
 } satisfies Prisma.ContactFormSelect;
 
+@Searchable()
 @Injectable()
-export class ContactRepository {
+export class ContactRepository implements ISearchEntity {
+    readonly key = 'contact';
+    readonly label = 'Contact Submissions';
+    readonly action = ACTIONS.CONTACT.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.contactForm.findMany({
+            where: {
+                OR: [
+                    { fullName: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                    { email: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                ],
+            },
+            select: { id: true, fullName: true, email: true },
+            take,
+        });
+        return rows.map((c) => ({
+            id: c.id,
+            title: c.fullName,
+            subtitle: c.email,
+            href: `/contact/${c.id}`,
+        }));
+    }
 
     async list(query: ContactListQueryDto) {
         const { page = 1, limit = 20, q, status } = query;

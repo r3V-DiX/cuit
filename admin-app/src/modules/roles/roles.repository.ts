@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { Prisma } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { CreateRoleDto, RoleListQueryDto, UpdateRoleDto } from './dto/roles.dto';
 
 const ROLE_SELECT = {
@@ -16,9 +17,28 @@ const ROLE_SELECT = {
     updatedAt: true,
 } satisfies Prisma.RoleSelect;
 
+@Searchable()
 @Injectable()
-export class RolesRepository {
+export class RolesRepository implements ISearchEntity {
+    readonly key = 'roles';
+    readonly label = 'Job Roles';
+    readonly action = ACTIONS.ROLES.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.role.findMany({
+            where: { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            select: { id: true, name: true },
+            take,
+        });
+        return rows.map((r) => ({
+            id: r.id,
+            title: r.name,
+            subtitle: null,
+            href: `/roles?q=${encodeURIComponent(r.name)}`,
+        }));
+    }
 
     async findAll(query: RoleListQueryDto) {
         const { page = 1, limit = 20, isActive, domainId, q } = query;

@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { AnnouncementTarget, Prisma } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { AnnouncementListQueryDto, CreateAnnouncementDto, UpdateAnnouncementDto } from './dto/announcements.dto';
 
 const ANNOUNCEMENT_SELECT = {
@@ -18,9 +19,28 @@ const ANNOUNCEMENT_SELECT = {
     updatedAt: true,
 } satisfies Prisma.AnnouncementSelect;
 
+@Searchable()
 @Injectable()
-export class AnnouncementsRepository {
+export class AnnouncementsRepository implements ISearchEntity {
+    readonly key = 'announcements';
+    readonly label = 'Announcements';
+    readonly action = ACTIONS.ANNOUNCEMENTS.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.announcement.findMany({
+            where: { message: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            select: { id: true, message: true, type: true },
+            take,
+        });
+        return rows.map((a) => ({
+            id: a.id,
+            title: a.message.length > 80 ? `${a.message.slice(0, 80)}…` : a.message,
+            subtitle: a.type,
+            href: `/announcements`,
+        }));
+    }
 
     async findAll(query: AnnouncementListQueryDto) {
         const { page = 1, limit = 20, target, isActive } = query;

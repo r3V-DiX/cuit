@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { Prisma } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { CreateDomainDto, DomainListQueryDto, UpdateDomainDto } from './dto/domains.dto';
 
 const DOMAIN_SELECT = {
@@ -16,9 +17,28 @@ const DOMAIN_SELECT = {
     updatedAt: true,
 } satisfies Prisma.JobDomainSelect;
 
+@Searchable()
 @Injectable()
-export class DomainsRepository {
+export class DomainsRepository implements ISearchEntity {
+    readonly key = 'domains';
+    readonly label = 'Job Domains';
+    readonly action = ACTIONS.DOMAINS.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.jobDomain.findMany({
+            where: { name: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            select: { id: true, name: true },
+            take,
+        });
+        return rows.map((d) => ({
+            id: d.id,
+            title: d.name,
+            subtitle: null,
+            href: `/roles/domains?q=${encodeURIComponent(d.name)}`,
+        }));
+    }
 
     async findAll(query: DomainListQueryDto) {
         const { page = 1, limit = 20, isActive, q } = query;

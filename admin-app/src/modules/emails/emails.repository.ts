@@ -3,11 +3,31 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { EmailCampaignStatus, EmailRecipientType, Prisma, UserRole } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { CampaignListQueryDto } from './dto/emails.dto';
 
+@Searchable()
 @Injectable()
-export class EmailsRepository {
+export class EmailsRepository implements ISearchEntity {
+    readonly key = 'emails';
+    readonly label = 'Email Campaigns';
+    readonly action = ACTIONS.EMAILS.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.adminEmailCampaign.findMany({
+            where: { subject: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            select: { id: true, subject: true, status: true },
+            take,
+        });
+        return rows.map((c) => ({
+            id: c.id,
+            title: c.subject,
+            subtitle: c.status,
+            href: `/emails/${c.id}`,
+        }));
+    }
 
     async findCampaigns(query: CampaignListQueryDto) {
         const { page = 1, limit = 20, status, search } = query;

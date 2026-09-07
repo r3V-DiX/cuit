@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { FlagStatus, FlaggedContentType, Prisma } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { ReportListQueryDto } from './dto/reports.dto';
 
 const REPORT_SELECT = {
@@ -28,9 +29,28 @@ const REPORT_SELECT = {
     updatedAt: true,
 } satisfies Prisma.ContentReportSelect;
 
+@Searchable()
 @Injectable()
-export class ReportsRepository {
+export class ReportsRepository implements ISearchEntity {
+    readonly key = 'reports';
+    readonly label = 'Content Reports';
+    readonly action = ACTIONS.REPORTS.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.contentReport.findMany({
+            where: { description: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            select: { id: true, contentType: true, reason: true, description: true },
+            take,
+        });
+        return rows.map((r) => ({
+            id: r.id,
+            title: `${r.contentType} — ${r.reason}`,
+            subtitle: r.description,
+            href: `/reports`,
+        }));
+    }
 
     async list(query: ReportListQueryDto) {
         const { page = 1, limit = 20, status, contentType } = query;

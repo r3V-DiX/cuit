@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { AccountStatus, Prisma } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { AdminUserListQueryDto } from './dto/users.dto';
 
 const USER_LIST_SELECT = {
@@ -21,9 +22,34 @@ const USER_LIST_SELECT = {
 
 type UserListItem = Prisma.UserGetPayload<{ select: typeof USER_LIST_SELECT }>;
 
+@Searchable()
 @Injectable()
-export class UsersRepository {
+export class UsersRepository implements ISearchEntity {
+    readonly key = 'users';
+    readonly label = 'Users';
+    readonly action = ACTIONS.USERS.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.user.findMany({
+            where: {
+                OR: [
+                    { email: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                    { firstName: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                    { lastName: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                ],
+            },
+            select: { id: true, email: true, firstName: true, lastName: true },
+            take,
+        });
+        return rows.map((u) => ({
+            id: u.id,
+            title: `${u.firstName} ${u.lastName}`.trim() || u.email,
+            subtitle: u.email,
+            href: `/users/${u.id}`,
+        }));
+    }
 
     async findAll(query: AdminUserListQueryDto): Promise<{ items: UserListItem[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
         const { page = 1, limit = 20, role, status, q } = query;

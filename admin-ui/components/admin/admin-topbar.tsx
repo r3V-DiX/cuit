@@ -1,37 +1,12 @@
 'use client';
 
 // admin-ui/components/admin/AdminTopbar.tsx
-// Page topbar: page title (from route), admin identity, RBAC role pill.
+// Topbar: universal search bar, admin identity, RBAC role pill.
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { usePermissions } from '@/lib/permissions-context';
-
-const ROUTE_TITLES: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/users': 'User Management',
-  '/kyc': 'KYC Verification',
-  '/jobs': 'Job Moderation',
-  '/resumes': 'Resume Library',
-  '/applications': 'Job Applications',
-  '/subscriptions': 'Subscriptions & Discounts',
-  '/audit-logs': 'Audit Logs',
-  '/testimonials': 'Testimonials',
-  '/contact': 'Contact Submissions',
-  '/reports': 'Content Reports',
-  '/admins': 'Admins & Access',
-  '/platform-settings': 'Platform Settings',
-  '/policies': 'Policy & Rate Limits',
-  '/announcements': 'Platform Announcements',
-  '/emails': 'Broadcasts & Emails',
-  '/blogs': 'Blogs & Articles',
-  '/blacklist': 'Email & Domain Blacklist',
-  '/suggestions': 'Search Suggestions',
-  '/roles': 'Job Roles & Domains',
-  '/system': 'System Health',
-  '/profile': 'My Profile',
-};
+import GlobalSearch from './global-search';
 
 const ROLE_COLORS: Record<string, string> = {
   super_admin:
@@ -46,18 +21,7 @@ function getRoleColor(role: string): string {
   );
 }
 
-function formatPathToTitle(pathname: string): string {
-  const segments = pathname.split('/').filter(Boolean);
-  if (segments.length === 0) return 'Admin Console';
-  const last = segments[segments.length - 1];
-  return last
-    .split('-')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
-}
-
 export default function AdminTopbar() {
-  const pathname = usePathname();
   const { user, roles } = usePermissions();
   const [fetchedName, setFetchedName] = useState<string | null>(null);
   const [fetchedEmail, setFetchedEmail] = useState<string | null>(null);
@@ -89,18 +53,11 @@ export default function AdminTopbar() {
     .toUpperCase()
     .slice(0, 2);
 
-  // Resolve page title from pathname
-  const title =
-    Object.entries(ROUTE_TITLES)
-      .sort((a, b) => b[0].length - a[0].length) // longest match first
-      .find(([path]) => pathname === path || pathname.startsWith(path + '/'))
-      ?.[1] ?? formatPathToTitle(pathname);
-
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6">
-      {/* Left: page title */}
-      <div className="pl-14 lg:pl-0">
-        <h1 className="text-lg font-bold text-slate-900">{title}</h1>
+    <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-slate-200 bg-white px-6">
+      {/* Left: universal search */}
+      <div className="min-w-0 flex-1 pl-14 lg:pl-0">
+        <GlobalSearch />
       </div>
 
       {/* Right: identity */}

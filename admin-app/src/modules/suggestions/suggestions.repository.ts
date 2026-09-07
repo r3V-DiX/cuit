@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { Prisma, SuggestionType } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { SuggestionEntryDto, SuggestionListQueryDto, UpdateSuggestionDto } from './dto/suggestions.dto';
 
 const SUGGESTION_SELECT = {
@@ -15,9 +16,28 @@ const SUGGESTION_SELECT = {
     updatedAt: true,
 } satisfies Prisma.SearchSuggestionSelect;
 
+@Searchable()
 @Injectable()
-export class SuggestionsRepository {
+export class SuggestionsRepository implements ISearchEntity {
+    readonly key = 'suggestions';
+    readonly label = 'Search Suggestions';
+    readonly action = ACTIONS.SUGGESTIONS.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.searchSuggestion.findMany({
+            where: { text: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            select: { id: true, text: true, type: true },
+            take,
+        });
+        return rows.map((s) => ({
+            id: s.id,
+            title: s.text,
+            subtitle: s.type,
+            href: `/suggestions?q=${encodeURIComponent(s.text)}`,
+        }));
+    }
 
     async findAll(query: SuggestionListQueryDto) {
         const { page = 1, limit = 20, type, isActive, q } = query;

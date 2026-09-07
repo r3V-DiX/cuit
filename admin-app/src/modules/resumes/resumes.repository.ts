@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { Prisma } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { AdminResumeListQueryDto } from './dto/resumes.dto';
 
 const RESUME_LIST_SELECT = {
@@ -23,9 +24,38 @@ const RESUME_LIST_SELECT = {
 
 type ResumeListItem = Prisma.ResumeGetPayload<{ select: typeof RESUME_LIST_SELECT }>;
 
+@Searchable()
 @Injectable()
-export class ResumesRepository {
+export class ResumesRepository implements ISearchEntity {
+    readonly key = 'resumes';
+    readonly label = 'Resumes';
+    readonly action = ACTIONS.RESUMES.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.resume.findMany({
+            where: {
+                OR: [
+                    { fileName: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                    { profile: { firstName: { contains: q, mode: Prisma.QueryMode.insensitive } } },
+                    { profile: { lastName: { contains: q, mode: Prisma.QueryMode.insensitive } } },
+                ],
+            },
+            select: {
+                id: true,
+                fileName: true,
+                profile: { select: { firstName: true, lastName: true } },
+            },
+            take,
+        });
+        return rows.map((r) => ({
+            id: r.id,
+            title: r.fileName,
+            subtitle: r.profile ? `${r.profile.firstName} ${r.profile.lastName}`.trim() : null,
+            href: `/resumes?q=${encodeURIComponent(r.fileName)}`,
+        }));
+    }
 
     async findAll(query: AdminResumeListQueryDto): Promise<{ items: ResumeListItem[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
         const { page = 1, limit = 20, q } = query;

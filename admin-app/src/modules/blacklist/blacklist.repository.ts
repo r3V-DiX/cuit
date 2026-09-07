@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { BlacklistType, Prisma } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { BlacklistEntryDto, BlacklistListQueryDto } from './dto/blacklist.dto';
 
 const BLACKLIST_SELECT = {
@@ -14,9 +15,28 @@ const BLACKLIST_SELECT = {
     createdAt: true,
 } satisfies Prisma.BlacklistSelect;
 
+@Searchable()
 @Injectable()
-export class BlacklistRepository {
+export class BlacklistRepository implements ISearchEntity {
+    readonly key = 'blacklist';
+    readonly label = 'Blacklist';
+    readonly action = ACTIONS.BLACKLIST.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.blacklist.findMany({
+            where: { value: { contains: q, mode: Prisma.QueryMode.insensitive } },
+            select: { id: true, value: true, type: true },
+            take,
+        });
+        return rows.map((b) => ({
+            id: b.id,
+            title: b.value,
+            subtitle: b.type,
+            href: `/blacklist?q=${encodeURIComponent(b.value)}`,
+        }));
+    }
 
     async findAll(query: BlacklistListQueryDto) {
         const { page = 1, limit = 20, type, q } = query;

@@ -3,11 +3,38 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { VerificationStatus, Prisma } from '@prisma/client';
+import { ACTIONS, Searchable, type ISearchEntity, type SearchResultItem } from '../../common';
 import { KycListQueryDto } from './dto/kyc.dto';
 
+@Searchable()
 @Injectable()
-export class KycRepository {
+export class KycRepository implements ISearchEntity {
+    readonly key = 'kyc';
+    readonly label = 'KYC Verifications';
+    readonly action = ACTIONS.KYC.VIEW;
+
     constructor(private readonly prisma: PrismaService) {}
+
+    async search(q: string, take: number): Promise<SearchResultItem[]> {
+        const rows = await this.prisma.employerVerification.findMany({
+            where: {
+                employer: {
+                    OR: [
+                        { companyName: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                        { contactEmail: { contains: q, mode: Prisma.QueryMode.insensitive } },
+                    ],
+                },
+            },
+            select: { id: true, status: true, employer: { select: { companyName: true } } },
+            take,
+        });
+        return rows.map((k) => ({
+            id: k.id,
+            title: k.employer?.companyName ?? 'Unknown company',
+            subtitle: k.status,
+            href: `/kyc/${k.id}`,
+        }));
+    }
 
     async findAll(query: KycListQueryDto): Promise<{ items: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> {
         const { page = 1, limit = 20, status, q } = query;
