@@ -683,6 +683,7 @@ model JobSeekerProfile {
     resumes        Resume[]
     profileViews   ProfileView[] // ✅ ADD THIS
     jobMatches      SeekerJobMatch[]
+    resumeEmbedding ResumeEmbedding?
 
     @@index([userId])
     @@index([locationId])
@@ -2279,6 +2280,21 @@ model DiscountUsage {
 // ==========================
 
 // Cached embedding vector for a seeker's resume (for semantic job matching)
+// NOTE: accessed only via raw SQL ($queryRaw/$executeRaw) from ai-service —
+// no prisma.resumeEmbedding.* calls. Do not delete as "unused" without
+// grepping for "resume_embeddings" in raw SQL first.
+model ResumeEmbedding {
+    id         String           @id @default(uuid())
+    seekerId   String           @unique
+    seeker     JobSeekerProfile @relation(fields: [seekerId], references: [id], onDelete: Cascade)
+    // vector(1536) — text-embedding-3-small output; stored via raw SQL, not Prisma client
+    embedding  Unsupported("vector(1536)")
+    embeddedAt DateTime         @default(now())
+    updatedAt  DateTime         @updatedAt
+
+    @@index([seekerId])
+    @@map("resume_embeddings")
+}
 
 // Cached seeker ↔ job compatibility score (cosine similarity between embeddings)
 model SeekerJobMatch {
