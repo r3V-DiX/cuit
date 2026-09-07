@@ -4,6 +4,8 @@ import { Injectable, Inject } from '@nestjs/common';
 import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 import { PrismaService } from '@cykruit/prisma';
 import type Redis from 'ioredis';
+import * as os from 'os';
+import { promises as fs } from 'fs';
 
 const PING_TIMEOUT_MS = 2000;
 
@@ -20,7 +22,15 @@ interface DependencyHealth {
     status: 'up' | 'down';
 }
 
+export interface HostStats {
+    cpu: { percent: number; cores: number; loadAvg: [number, number, number] };
+    memory: { percent: number; usedBytes: number; totalBytes: number };
+    disk: { percent: number; usedBytes: number; totalBytes: number };
+    uptimeSeconds: number;
+}
+
 export interface SystemHealth {
+    host: HostStats;
     services: ServiceHealth[];
     redis: DependencyHealth;
     db: DependencyHealth;
@@ -52,7 +62,8 @@ export class SystemHealthService {
     async getHealth(): Promise<SystemHealth> {
         const isProduction = process.env.NODE_ENV === 'production';
 
-        const [services, redis, db] = await Promise.all([
+        const [host, services, redis, db] = await Promise.all([
+            this.getHostStats(),
             Promise.all(
                 Object.entries(SERVICE_URLS).map(([name, { url, path }]) =>
                     this.pingService(name, url, path, isProduction),
@@ -62,7 +73,37 @@ export class SystemHealthService {
             this.checkDb(),
         ]);
 
-        return { services, redis, db };
+        return { host, services, redis, db };
+    }
+
+    // Reports the host/container running this process — not a remote AWS
+    // API call. os.loadavg() is Linux-only (returns zeros on Windows).
+    private async getHostStats(): Promise<HostStats> {
+        const cores = os.cpus().length;
+        const loadAvg = os.loadavg() as [number, number, number];
+        const cpuPercent = Math.min(100, (loadAvg[0] / cores) * 100);
+
+        const totalMem = os.totalmem();
+        const freeMem = os.freemem();
+        const usedMem = totalMem - freeMem;
+
+        let disk: HostStats['disk'] = { percent: 0, usedBytes: 0, totalBytes: 0 };
+        try {
+            const stats = await fs.statfs('/');
+            const totalBytes = stats.blocks * stats.bsize;
+            const freeBytes = stats.bavail * stats.bsize;
+            const usedBytes = totalBytes - freeBytes;
+            disk = { percent: totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0, usedBytes, totalBytes };
+        } catch {
+            // statfs unsupported on this platform — leave zeroed out.
+        }
+
+        return {
+            cpu: { percent: cpuPercent, cores, loadAvg },
+            memory: { percent: totalMem > 0 ? (usedMem / totalMem) * 100 : 0, usedBytes: usedMem, totalBytes: totalMem },
+            disk,
+            uptimeSeconds: os.uptime(),
+        };
     }
 
     private async pingService(

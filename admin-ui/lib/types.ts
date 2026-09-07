@@ -774,7 +774,15 @@ export interface ServiceHealth {
   latencyMs: number | null;
 }
 
+export interface HostStats {
+  cpu: { percent: number; cores: number; loadAvg: [number, number, number] };
+  memory: { percent: number; usedBytes: number; totalBytes: number };
+  disk: { percent: number; usedBytes: number; totalBytes: number };
+  uptimeSeconds: number;
+}
+
 export interface SystemHealth {
+  host: HostStats;
   services: ServiceHealth[];
   redis: { status: 'up' | 'down' };
   db: { status: 'up' | 'down' };

@@ -4,11 +4,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib';
 import { ACTIONS } from '@/lib';
-import type { SystemHealth, ServiceHealth, ServiceStatus } from '@/lib';
+import type { SystemHealth, HostStats, ServiceHealth, ServiceStatus } from '@/lib';
 import { RequirePermission } from '@/components/ui';
 import { NoAccess } from '@/components/ui';
 import { Skeleton } from '@/components/ui';
-import { Database, RefreshCw, Server } from 'lucide-react';
+import { Database, RefreshCw, Server, Cpu, MemoryStick, HardDrive, Clock } from 'lucide-react';
 
 const AUTO_REFRESH_MS = 60_000;
 
@@ -29,6 +29,106 @@ function formatServiceName(name: string) {
     .split('-')
     .map((w) => w[0].toUpperCase() + w.slice(1))
     .join(' ');
+}
+
+function formatBytes(bytes: number) {
+  const gb = bytes / 1024 ** 3;
+  if (gb >= 1) return `${gb.toFixed(1)} GB`;
+  return `${(bytes / 1024 ** 2).toFixed(0)} MB`;
+}
+
+function formatUptime(seconds: number) {
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return `${d}d ${h}h ${m}m`;
+}
+
+function barColor(percent: number) {
+  if (percent >= 90) return 'bg-red-500';
+  if (percent >= 75) return 'bg-amber-500';
+  return 'bg-blue-500';
+}
+
+function HostResourceCard({
+  icon: Icon,
+  label,
+  percent,
+  detail,
+  badge,
+}: {
+  icon: typeof Cpu;
+  label: string;
+  percent: number | null;
+  detail: string;
+  badge: string;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <Icon className="h-4 w-4" />
+          </div>
+          <p className="text-sm font-semibold text-slate-900">{label}</p>
+        </div>
+        <span className="rounded bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-slate-600 border border-slate-200">
+          {badge}
+        </span>
+      </div>
+      {percent !== null ? (
+        <>
+          <p className="mt-2 text-2xl font-bold text-slate-900">{percent.toFixed(1)}%</p>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className={`h-full rounded-full ${barColor(percent)}`} style={{ width: `${Math.min(100, percent)}%` }} />
+          </div>
+          <p className="mt-1.5 text-xs text-slate-500">{detail}</p>
+        </>
+      ) : (
+        <>
+          <p className="mt-2 text-2xl font-bold text-slate-900">{detail}</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function HostResourcesSection({ host }: { host: HostStats }) {
+  return (
+    <div>
+      <h3 className="mb-3 text-sm font-semibold text-slate-900">Host Machine Resources</h3>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <HostResourceCard
+          icon={Cpu}
+          label="CPU Load"
+          percent={host.cpu.percent}
+          detail={`Load 1m: ${host.cpu.loadAvg[0].toFixed(2)}`}
+          badge={`${host.cpu.cores} Cores`}
+        />
+        <HostResourceCard
+          icon={MemoryStick}
+          label="RAM Memory"
+          percent={host.memory.percent}
+          detail={`Used: ${formatBytes(host.memory.usedBytes)} / ${formatBytes(host.memory.totalBytes)}`}
+          badge={formatBytes(host.memory.totalBytes)}
+        />
+        <HostResourceCard
+          icon={HardDrive}
+          label="Disk Storage"
+          percent={host.disk.percent}
+          detail={`Free: ${formatBytes(host.disk.totalBytes - host.disk.usedBytes)}`}
+          badge={formatBytes(host.disk.totalBytes)}
+        />
+        <HostResourceCard
+          icon={Clock}
+          label="Server Uptime"
+          percent={null}
+          detail={formatUptime(host.uptimeSeconds)}
+          badge="Online"
+        />
+      </div>
+    </div>
+  );
 }
 
 function ServiceCard({ service }: { service: ServiceHealth }) {
@@ -110,6 +210,11 @@ export default function SystemHealthPage() {
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
         ) : loading || !health ? (
           <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-28 w-full rounded-xl" />
+              ))}
+            </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Skeleton className="h-20 w-full rounded-xl" />
               <Skeleton className="h-20 w-full rounded-xl" />
@@ -122,6 +227,7 @@ export default function SystemHealthPage() {
           </div>
         ) : (
           <div className="space-y-6">
+            <HostResourcesSection host={health.host} />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
