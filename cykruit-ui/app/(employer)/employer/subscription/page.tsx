@@ -335,13 +335,31 @@ export default function SubscriptionPage() {
             {tab === "overview" && (
               <>
                 {planStatus === "EXPIRED" && (
-                  <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50">
-                    <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-semibold text-amber-800">Subscription expired</p>
-                      <p className="text-xs text-amber-600 mt-0.5">Your plan expired on {planRenewsAt}. Upgrade to restore full access.</p>
-                      <button onClick={() => setTab("plans")} className="text-xs font-semibold text-amber-700 underline mt-1">Upgrade now →</button>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl border border-amber-200 bg-amber-50/90 shadow-sm">
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-9 h-9 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0 mt-0.5">
+                        <AlertTriangle className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <h4 className="text-sm font-bold text-amber-900">
+                            {planName} Subscription Expired
+                          </h4>
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300">
+                            Transferred to Free Plan
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-800/90 leading-relaxed">
+                          Your <span className="font-semibold text-amber-900">{planName}</span> subscription expired on <span className="font-semibold text-amber-900">{planRenewsAt}</span>. Your account has automatically been transferred to the <span className="font-semibold text-amber-900">Free Tier</span>. Standard Free limits (1 active job, 1 team member) now apply, and premium features (such as AI candidate scoring and featured slots) are paused.
+                        </p>
+                      </div>
                     </div>
+                    <button
+                      onClick={() => setTab("plans")}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer shrink-0 ml-auto sm:ml-0"
+                    >
+                      <TrendingUp className="w-3.5 h-3.5" /> Renew / Upgrade
+                    </button>
                   </div>
                 )}
 
@@ -414,18 +432,25 @@ export default function SubscriptionPage() {
                     <div className="px-6 py-5 border-b border-slate-100">
                       <div className="flex items-start justify-between gap-4">
                         <div>
-                          <div className="flex items-center gap-2.5 mb-1.5">
-                            <Zap className="w-4 h-4 text-violet-500" />
+                          <div className="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                            <Zap className={`w-4 h-4 ${planStatus === "EXPIRED" ? "text-amber-500" : "text-violet-500"}`} />
                             <h3 className="text-base font-bold text-slate-900">{planName} Plan</h3>
                             <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${sc.cls}`}>{sc.label}</span>
+                            {planStatus === "EXPIRED" && (
+                              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border bg-slate-100 text-slate-600 border-slate-200">
+                                Current Access: Free Tier
+                              </span>
+                            )}
                           </div>
                           <p className="text-sm text-slate-400">
-                            {priceLabel(sub.package, planBilling)} · {planBilling === "YEARLY" ? "billed annually" : "billed monthly"}
+                            {planStatus === "EXPIRED"
+                              ? `Expired on ${planRenewsAt} · Active limits have defaulted to the Free tier`
+                              : `${priceLabel(sub.package, planBilling)} · ${planBilling === "YEARLY" ? "billed annually" : "billed monthly"}`}
                           </p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-[10px] font-mono text-slate-400 uppercase tracking-widest mb-0.5">
-                            {planStatus === "CANCELLED" ? "Expires" : "Renews"}
+                            {planStatus === "EXPIRED" ? "Expired on" : planStatus === "CANCELLED" ? "Expires" : "Renews"}
                           </p>
                           <p className="text-sm font-semibold text-slate-700 flex items-center gap-1.5 justify-end">
                             <Clock className="w-3.5 h-3.5 text-slate-400" /> {planRenewsAt}
@@ -454,9 +479,11 @@ export default function SubscriptionPage() {
                     <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-wrap gap-3">
                       <button
                         onClick={() => setTab("plans")}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors cursor-pointer"
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold transition-colors cursor-pointer ${
+                          planStatus === "EXPIRED" ? "bg-amber-600 hover:bg-amber-700" : "bg-blue-600 hover:bg-blue-700"
+                        }`}
                       >
-                        <TrendingUp className="w-3.5 h-3.5" /> Change Plan
+                        <TrendingUp className="w-3.5 h-3.5" /> {planStatus === "EXPIRED" ? "Upgrade / Renew Plan" : "Change Plan"}
                       </button>
                       <button
                         onClick={() => setTab("history")}

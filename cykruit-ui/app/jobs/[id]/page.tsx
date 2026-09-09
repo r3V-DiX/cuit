@@ -9,7 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 import {
   MapPin, Clock, Briefcase, ArrowLeft, ArrowRight,
   CheckCircle2, Shield, ChevronRight, Bookmark, Send,
-  Building2, Users, Globe, Sparkles, X, FileText, ChevronDown, Upload,
+  Building2, Users, Globe, Sparkles, X, FileText, ChevronDown, Upload, Info,
 } from "lucide-react";
 import { use } from "react";
 import { apiFetch, authHeaders, getCsrf, describeError } from "@/lib/api";
@@ -469,7 +469,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
                 </div>
               )}
               {resumes.length > 0 && !selectedResumeId && (
-                <p className="text-xs text-slate-400 mt-2 text-center">No resume selected — you can still apply without one</p>
+                <div className="flex items-start gap-2 mt-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-left">
+                  <Info className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-slate-600">
+                    <span className="font-semibold text-slate-700">Note:</span> If no resume is selected, your most recently uploaded resume will be submitted with your application automatically.
+                  </p>
+                </div>
               )}
             </div>
             <div className="px-6 py-4 border-t border-slate-100 flex justify-between items-center gap-2">

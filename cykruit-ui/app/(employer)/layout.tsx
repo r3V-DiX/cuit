@@ -51,7 +51,9 @@ async function getSessionUser(fwdHeaders: Record<string, string>) {
   return null;
 }
 
-async function getSubscriptionStatus(fwdHeaders: Record<string, string>): Promise<string | null> {
+async function getSubscriptionStatus(
+  fwdHeaders: Record<string, string>
+): Promise<{ status: string | null; planName: string | null } | null> {
   if (!fwdHeaders.Cookie) return null;
   const urls = Array.from(new Set([SUBSCRIPTION_URL, "http://subscription-service:4008", "http://gateway:5000", "http://127.0.0.1:4008"]));
   for (const baseUrl of urls) {
@@ -65,7 +67,10 @@ async function getSubscriptionStatus(fwdHeaders: Record<string, string>): Promis
         const data = body?.data ?? body;
         // Use the server-computed display status: a cancel-at-period-end plan keeps raw
         // status ACTIVE but must still surface the "cancelled" banner.
-        return data?.effectiveStatus ?? data?.status ?? null;
+        return {
+          status: data?.effectiveStatus ?? data?.status ?? null,
+          planName: data?.package?.name ?? null,
+        };
       }
     } catch {
       // try next fallback URL
@@ -147,13 +152,14 @@ export default async function EmployerLayout({
     redirect("/login?next=/employer/dashboard");
   }
 
-  const [kycData, subscriptionStatus, announcements, memberRole] = await Promise.all([
+  const [kycData, subscriptionInfo, announcements, memberRole] = await Promise.all([
     getKycData(fwdHeaders),
     getSubscriptionStatus(fwdHeaders),
     getAnnouncements(),
     getMemberRole(fwdHeaders),
   ]);
 
+  const subscriptionStatus = subscriptionInfo?.status ?? null;
   const isExpired = subscriptionStatus === "EXPIRED" || subscriptionStatus === "CANCELLED";
 
   return (
@@ -163,7 +169,12 @@ export default async function EmployerLayout({
         <EmployerSidebar />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <AnnouncementBanner announcements={announcements} />
-          {isExpired && <SubscriptionBanner status={subscriptionStatus!} />}
+          {isExpired && (
+            <SubscriptionBanner
+              status={subscriptionStatus!}
+              planName={subscriptionInfo?.planName ?? undefined}
+            />
+          )}
           {children}
         </div>
       </div>
