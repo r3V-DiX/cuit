@@ -7,7 +7,7 @@ const links = {
   "For Job Seekers": [
     { label: "Browse Jobs", href: "/jobs" },
     { label: "Create Profile", href: "/register" },
-    { label: "Saved Jobs", href: "/saved-jobs" },
+    { label: "Saved Jobs", href: "/saved" },
   ],
   "For Employers": [
     { label: "Post a Job", href: "/employers" },
@@ -69,12 +69,13 @@ export default function Footer() {
             <div className="flex gap-3">
               {[
                 { icon: <XIcon />, href: "#", label: "X" },
-                { icon: <LinkedInIcon />, href: "#", label: "LinkedIn" },
-                { icon: <GitHubIcon />, href: "#", label: "GitHub" },
+                { icon: <LinkedInIcon />, href: "https://www.linkedin.com/company/rivedix", label: "LinkedIn" },
+                { icon: <GitHubIcon />, href: "https://github.com/orgs/r3V-DiX", label: "GitHub" },
               ].map(({ icon, href, label }) => (
                 <a
                   key={label}
                   href={href}
+                  target="_blank"
                   aria-label={label}
                   className="w-8 h-8 rounded-lg bg-white/6 border border-white/8 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/12 transition-all"
                 >
