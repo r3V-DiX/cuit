@@ -541,9 +541,9 @@ export async function seedJobs(prisma: PrismaClient): Promise<void> {
             employerId: employer.id,
             packageId: pkg.id,
             status: 'ACTIVE',
-            startDate: new Date(),
-            endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-            autoRenew: true,
+            billingCycle: 'YEARLY',
+            startedAt: new Date(),
+            expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
           },
           update: {
             packageId: pkg.id,
