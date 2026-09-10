@@ -177,6 +177,24 @@ export class SubscriptionRepository implements ISearchEntity {
         });
     }
 
+    async refundPayment(orderId: string, paymentId: string, data: { razorpayRefundId: string; reason?: string }) {
+        return this.prisma.$transaction([
+            this.prisma.payment.update({
+                where: { id: paymentId },
+                data: {
+                    status: 'REFUNDED',
+                    razorpayRefundId: data.razorpayRefundId,
+                    refundedAt: new Date(),
+                    refundReason: data.reason,
+                },
+            }),
+            this.prisma.paymentOrder.update({
+                where: { id: orderId },
+                data: { status: 'REFUNDED' },
+            }),
+        ]);
+    }
+
     async refreshEmployerUsage(employerId: string) {
         const [activeJobs, teamMembers] = await this.prisma.$transaction([
             this.prisma.job.count({ where: { employerId, status: { in: ['APPROVED', 'PENDING'] } } }),

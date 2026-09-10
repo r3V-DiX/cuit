@@ -2052,6 +2052,7 @@ enum PaymentOrderStatus {
     PAID
     FAILED
     EXPIRED
+    REFUNDED
 }
 
 enum PaymentStatus {
@@ -2172,6 +2173,11 @@ model Payment {
     razorpaySignature String
     status            PaymentStatus @default(CAPTURED)
     capturedAt        DateTime?
+
+    // Set when an admin refunds this payment (full refund only — see PaymentService.refundPayment)
+    razorpayRefundId String?   @unique
+    refundedAt       DateTime?
+    refundReason     String?
 
     // e.g. "INV-2026-000123" — assigned atomically via InvoiceSequence when captured
     invoiceNumber String? @unique

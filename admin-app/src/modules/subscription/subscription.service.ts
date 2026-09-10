@@ -1,7 +1,11 @@
 // admin-app/src/admin/services/subscription.service.ts
 
-import { Injectable, Inject, Optional, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, Optional, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
+import Razorpay from 'razorpay';
+import { PrismaService } from '@cykruit/prisma';
+import { findFreePackage } from '@cykruit/subscription';
 import {
     CreatePackageDto,
     UpdatePackageDto,
@@ -25,11 +29,20 @@ function resolveEffectiveStatus(status: string, expiresAt: Date | null, cancelAt
 
 @Injectable()
 export class SubscriptionService {
+    private readonly razorpay: Razorpay;
+
     constructor(
         private readonly repository: SubscriptionRepository,
         private readonly auditLogger: AdminAuditLogger,
+        private readonly prisma: PrismaService,
+        private readonly config: ConfigService,
         @Optional() @Inject(getRedisConnectionToken()) private readonly redis: { del: (key: string) => Promise<unknown> } | null,
-    ) {}
+    ) {
+        this.razorpay = new Razorpay({
+            key_id: this.config.getOrThrow<string>('RAZORPAY_KEY_ID'),
+            key_secret: this.config.getOrThrow<string>('RAZORPAY_KEY_SECRET'),
+        });
+    }
 
     private async invalidateLimitsCache(employerId: string): Promise<void> {
         if (!this.redis) return;
@@ -157,6 +170,61 @@ export class SubscriptionService {
 
     async getPaymentOrder(id: string) {
         return this.repository.findPaymentOrderById(id);
+    }
+
+    /**
+     * Admin-triggered full refund. Refunds the entire captured amount via Razorpay,
+     * marks the Payment/PaymentOrder REFUNDED, and — only if this payment is still
+     * what's backing the employer's current subscription (not superseded by a later
+     * renewal/upgrade) — downgrades them to the Free package immediately, since paid
+     * entitlement shouldn't outlive the payment that granted it.
+     */
+    async refundPayment(adminId: string, orderId: string, reason?: string) {
+        const order = await this.repository.findPaymentOrderById(orderId);
+        if (!order) throw new NotFoundException('Payment order not found');
+        if (!order.payment) throw new BadRequestException('This order has no captured payment to refund');
+        if (order.payment.status !== 'CAPTURED') {
+            throw new BadRequestException(`Payment is ${order.payment.status.toLowerCase()}, not eligible for refund`);
+        }
+
+        const refund = await this.razorpay.payments.refund(order.payment.razorpayPaymentId, {
+            amount: order.totalAmountPaise,
+        });
+
+        await this.repository.refundPayment(order.id, order.payment.id, {
+            razorpayRefundId: refund.id,
+            reason,
+        });
+
+        // Only revoke if this order is still what activated the employer's current plan —
+        // a later renewal/upgrade payment should not be undone by refunding an older one.
+        const currentSub = await this.repository.findSubscriptionByEmployer(order.employerId);
+        if (currentSub && currentSub.id === order.subscriptionId) {
+            const freePkg = await findFreePackage(this.prisma);
+            if (freePkg) {
+                await this.repository.assignSubscription(order.employerId, freePkg.id, 'ACTIVE');
+            }
+        }
+        await this.invalidateLimitsCache(order.employerId);
+
+        this.auditLogger.log({
+            adminId,
+            action: 'subscription:refund-payment',
+            module: 'subscription',
+            resource: 'Payment',
+            resourceId: order.payment.id,
+            oldData: { status: order.payment.status },
+            newData: {
+                status: 'REFUNDED',
+                razorpayRefundId: refund.id,
+                amountPaise: order.totalAmountPaise,
+                reason,
+            },
+            riskLevel: 'CRITICAL',
+            result: 'SUCCESS',
+        });
+
+        return this.repository.findPaymentOrderById(orderId);
     }
 
     async refreshUsage(adminId: string, employerId: string) {

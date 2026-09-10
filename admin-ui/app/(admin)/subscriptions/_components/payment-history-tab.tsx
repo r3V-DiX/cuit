@@ -12,7 +12,9 @@ import { PaginationBar } from '@/components/ui';
 import { SkeletonTable } from '@/components/ui';
 import { EmptyState } from '@/components/ui';
 import { StatusBadge } from '@/components/ui';
-import { CreditCard, Search, X } from 'lucide-react';
+import { useModal } from '@/components/ui';
+import { useToast } from '@/components/ui';
+import { CreditCard, Search, X, Undo2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 function paise(n: number) {
@@ -31,6 +33,33 @@ export default function PaymentHistoryTab({ initialEmployerId }: PaymentHistoryT
   const [data, setData] = useState<PaginatedResponse<PaymentOrder> | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { openModal } = useModal();
+  const { toast } = useToast();
+
+  function handleRefund(order: PaymentOrder) {
+    openModal({
+      variant: 'danger',
+      title: 'Refund this payment?',
+      description: `Refunds the full ${paise(order.totalAmountPaise)} charge via Razorpay for ${
+        order.employer?.companyName ?? order.employerId
+      } and, if this is still their active plan, downgrades them to the Free package immediately. This cannot be undone.`,
+      confirmLabel: 'Yes, refund',
+      onConfirm: async () => {
+        try {
+          await api.post(`/api/admin/subscriptions/payment-orders/${order.id}/refund`);
+          toast({ type: 'success', message: 'Payment refunded' });
+          setData((prev) =>
+            prev
+              ? { ...prev, items: prev.items.map((o) => (o.id === order.id ? { ...o, status: 'REFUNDED' } : o)) }
+              : prev,
+          );
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : 'Failed to refund payment';
+          toast({ type: 'error', message: msg });
+        }
+      },
+    });
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -150,6 +179,19 @@ export default function PaymentHistoryTab({ initialEmployerId }: PaymentHistoryT
                     {format(new Date(o.createdAt), 'MMM d, yyyy HH:mm')}
                   </span>
                 ),
+              },
+              {
+                key: 'actions',
+                header: '',
+                render: (o) =>
+                  o.status === 'PAID' ? (
+                    <button
+                      onClick={() => handleRefund(o)}
+                      className="flex items-center gap-1.5 rounded-lg border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50"
+                    >
+                      <Undo2 className="h-3 w-3" /> Refund
+                    </button>
+                  ) : null,
               },
             ]}
           />

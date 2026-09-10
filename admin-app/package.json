@@ -45,6 +45,7 @@
     "dotenv": "^17.4.2",
     "helmet": "^8.1.0",
     "ioredis": "^5.7.0",
+    "razorpay": "^2.9.8",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "ua-parser-js": "^2.0.10"

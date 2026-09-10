@@ -26,6 +26,7 @@ import {
     UpdatePackageDto,
     AssignSubscriptionDto,
     SubscriptionListQueryDto,
+    RefundPaymentDto,
 } from './dto/subscription.dto';
 import { UpdateSubscriptionStatusDto } from './dto/update-subscription-status.dto';
 
@@ -103,6 +104,13 @@ export class SubscriptionController {
     @RequirePermission(ACTIONS.SUBSCRIPTIONS.VIEW)
     getPaymentOrder(@Param('id', ParseUUIDPipe) id: string) {
         return this.subscriptionService.getPaymentOrder(id);
+    }
+
+    @Post('payment-orders/:id/refund')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.SUBSCRIPTIONS.MANAGE)
+    refundPayment(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string, @Body() dto: RefundPaymentDto) {
+        return this.subscriptionService.refundPayment(admin.id, id, dto.reason);
     }
 
     @Post('assign')

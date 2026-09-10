@@ -69,6 +69,8 @@ const STATUS_MAP: Record<string, string> = {
   PROCESSING: 'bg-purple-50 text-purple-700 border-purple-200 animate-pulse',
   COMPLETED: 'bg-green-50 text-green-700 border-green-200',
   PARTIALLY_FAILED: 'bg-amber-50 text-amber-700 border-amber-200',
+  // Payment/order refund state
+  REFUNDED: 'bg-purple-50 text-purple-700 border-purple-200',
 };
 
 export default function StatusBadge({ status, className = '' }: StatusBadgeProps) {

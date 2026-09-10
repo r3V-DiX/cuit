@@ -311,7 +311,7 @@ export interface SubscriptionPackage {
 }
 
 export type BillingCycle = 'MONTHLY' | 'YEARLY';
-export type PaymentOrderStatus = 'CREATED' | 'PAID' | 'FAILED' | 'EXPIRED';
+export type PaymentOrderStatus = 'CREATED' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
 export type PaymentStatus = 'CAPTURED' | 'FAILED' | 'REFUNDED';
 
 export type DiscountTrigger = 'COUPON_CODE' | 'AUTOMATIC';

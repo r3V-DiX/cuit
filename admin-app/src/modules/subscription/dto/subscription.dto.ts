@@ -137,6 +137,12 @@ export class AssignSubscriptionDto {
     status?: string;
 }
 
+export class RefundPaymentDto {
+    @IsOptional()
+    @IsString()
+    reason?: string;
+}
+
 export class SubscriptionListQueryDto {
     @IsOptional()
     @IsIn(['ACTIVE', 'EXPIRED', 'CANCELLED'])
