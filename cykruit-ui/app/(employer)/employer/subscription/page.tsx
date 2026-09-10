@@ -354,12 +354,12 @@ export default function SubscriptionPage() {
                         </p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setTab("plans")}
+                    <Link
+                      href={`/employer/subscription/checkout?packageId=${planPackageId}&billing=${planBilling}`}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-sm transition-colors cursor-pointer shrink-0 ml-auto sm:ml-0"
                     >
-                      <TrendingUp className="w-3.5 h-3.5" /> Renew / Upgrade
-                    </button>
+                      <TrendingUp className="w-3.5 h-3.5" /> Renew Plan
+                    </Link>
                   </div>
                 )}
 
@@ -477,14 +477,21 @@ export default function SubscriptionPage() {
                     </div>
 
                     <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-wrap gap-3">
-                      <button
-                        onClick={() => setTab("plans")}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold transition-colors cursor-pointer ${
-                          planStatus === "EXPIRED" ? "bg-amber-600 hover:bg-amber-700" : "bg-blue-600 hover:bg-blue-700"
-                        }`}
-                      >
-                        <TrendingUp className="w-3.5 h-3.5" /> {planStatus === "EXPIRED" ? "Upgrade / Renew Plan" : "Change Plan"}
-                      </button>
+                      {planStatus === "EXPIRED" ? (
+                        <Link
+                          href={`/employer/subscription/checkout?packageId=${planPackageId}&billing=${planBilling}`}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold transition-colors cursor-pointer bg-amber-600 hover:bg-amber-700"
+                        >
+                          <TrendingUp className="w-3.5 h-3.5" /> Renew Plan
+                        </Link>
+                      ) : (
+                        <button
+                          onClick={() => setTab("plans")}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold transition-colors cursor-pointer bg-blue-600 hover:bg-blue-700"
+                        >
+                          <TrendingUp className="w-3.5 h-3.5" /> Change Plan
+                        </button>
+                      )}
                       <button
                         onClick={() => setTab("history")}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
@@ -573,6 +580,9 @@ export default function SubscriptionPage() {
                 <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
                   {packages.map((pkg) => {
                     const isCurrent = pkg.id === planPackageId || pkg.name === planName;
+                    // An expired current plan isn't "held" — it needs to be renewable,
+                    // not dead-ended behind a disabled "Current Plan" button.
+                    const isRenewable = isCurrent && planStatus === "EXPIRED";
                     const price = billingCycle === "yearly"
                       ? (pkg.priceYearly ? Number(pkg.priceYearly) : null)
                       : (pkg.priceMonthly ? Number(pkg.priceMonthly) : null);
@@ -619,16 +629,16 @@ export default function SubscriptionPage() {
 
                         {/* CTA — always same vertical position */}
                         <div className="px-5 pb-5">
-                          {isCurrent ? (
+                          {isCurrent && !isRenewable ? (
                             <button disabled className="w-full h-10 rounded-xl bg-slate-100 text-slate-400 text-xs font-semibold cursor-not-allowed flex items-center justify-center gap-1.5">
                               <Check className="w-3.5 h-3.5" /> Current Plan
                             </button>
                           ) : isKycVerified ? (
                             <Link
                               href={isEnterprise ? "/contact" : `/employer/subscription/checkout?packageId=${pkg.id}&billing=${billingCycle.toUpperCase()}`}
-                              className={`w-full h-10 rounded-xl text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${accentBtn}`}
+                              className={`w-full h-10 rounded-xl text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 ${isRenewable ? "bg-amber-600 hover:bg-amber-700" : accentBtn}`}
                             >
-                              {isEnterprise ? "Contact Sales" : price != null && Number(currentPriceVal) > 0 && price > currentPriceVal ? "Upgrade" : "Select Plan"}
+                              {isRenewable ? "Renew Plan" : isEnterprise ? "Contact Sales" : price != null && Number(currentPriceVal) > 0 && price > currentPriceVal ? "Upgrade" : "Select Plan"}
                               <ChevronRight className="w-3.5 h-3.5" />
                             </Link>
                           ) : (
