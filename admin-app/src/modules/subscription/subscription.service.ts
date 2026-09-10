@@ -1,9 +1,7 @@
 // admin-app/src/admin/services/subscription.service.ts
 
 import { Injectable, Inject, Optional, BadRequestException, NotFoundException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
-import Razorpay from 'razorpay';
 import { PrismaService } from '@cykruit/prisma';
 import { findFreePackage } from '@cykruit/subscription';
 import {
@@ -27,22 +25,19 @@ function resolveEffectiveStatus(status: string, expiresAt: Date | null, cancelAt
     return status;
 }
 
+// Same convention as system-health.service.ts's SERVICE_URLS — internal
+// Docker-network call, no auth (subscription-service is never exposed
+// through nginx, same trust boundary as the existing /health checks).
+const SUBSCRIPTION_SERVICE_URL = process.env.SUBSCRIPTION_SERVICE_URL || 'http://localhost:4008';
+
 @Injectable()
 export class SubscriptionService {
-    private readonly razorpay: Razorpay;
-
     constructor(
         private readonly repository: SubscriptionRepository,
         private readonly auditLogger: AdminAuditLogger,
         private readonly prisma: PrismaService,
-        private readonly config: ConfigService,
         @Optional() @Inject(getRedisConnectionToken()) private readonly redis: { del: (key: string) => Promise<unknown> } | null,
-    ) {
-        this.razorpay = new Razorpay({
-            key_id: this.config.getOrThrow<string>('RAZORPAY_KEY_ID'),
-            key_secret: this.config.getOrThrow<string>('RAZORPAY_KEY_SECRET'),
-        });
-    }
+    ) {}
 
     private async invalidateLimitsCache(employerId: string): Promise<void> {
         if (!this.redis) return;
@@ -187,12 +182,22 @@ export class SubscriptionService {
             throw new BadRequestException(`Payment is ${order.payment.status.toLowerCase()}, not eligible for refund`);
         }
 
-        const refund = await this.razorpay.payments.refund(order.payment.razorpayPaymentId, {
-            amount: order.totalAmountPaise,
+        const res = await fetch(`${SUBSCRIPTION_SERVICE_URL}/subscriptions/internal/refund`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                razorpayPaymentId: order.payment.razorpayPaymentId,
+                amountPaise: order.totalAmountPaise,
+            }),
         });
+        if (!res.ok) {
+            const body = await res.text().catch(() => '');
+            throw new BadRequestException(`Refund failed: ${res.status} ${body}`.trim());
+        }
+        const { refundId } = (await res.json()) as { refundId: string };
 
         await this.repository.refundPayment(order.id, order.payment.id, {
-            razorpayRefundId: refund.id,
+            razorpayRefundId: refundId,
             reason,
         });
 
@@ -216,7 +221,7 @@ export class SubscriptionService {
             oldData: { status: order.payment.status },
             newData: {
                 status: 'REFUNDED',
-                razorpayRefundId: refund.id,
+                razorpayRefundId: refundId,
                 amountPaise: order.totalAmountPaise,
                 reason,
             },

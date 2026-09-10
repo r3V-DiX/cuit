@@ -317,6 +317,17 @@ export class PaymentService {
         }
     }
 
+    // ── Admin refund (internal, called by admin-app) ──────────────────────────
+    // Thin wrapper so admin-app never needs its own Razorpay credentials — this
+    // service is the only one that owns the Razorpay client. All the business
+    // logic (guards, DB writes, subscription downgrade, audit) lives in admin-app;
+    // this just performs the actual gateway-side refund.
+
+    async adminRefund(razorpayPaymentId: string, amountPaise: number): Promise<{ refundId: string }> {
+        const refund = await this.razorpay.payments.refund(razorpayPaymentId, { amount: amountPaise });
+        return { refundId: refund.id };
+    }
+
     // ── Order history (employer-facing) ──────────────────────────────────────
 
     async getMyOrders(userId: string, page = 1, limit = 50) {

@@ -1,6 +1,6 @@
 // apps/subscription-service/src/subscription/dto/payment.dto.ts
 
-import { IsEnum, IsUUID, IsString, IsNotEmpty, IsOptional, Length } from 'class-validator';
+import { IsEnum, IsUUID, IsString, IsNotEmpty, IsOptional, IsInt, IsPositive, Length } from 'class-validator';
 
 export enum BillingCycleInput {
     MONTHLY = 'MONTHLY',
@@ -31,6 +31,16 @@ export class PreviewOrderDto {
     @IsString()
     @Length(1, 50)
     couponCode?: string;
+}
+
+export class AdminRefundDto {
+    @IsString()
+    @IsNotEmpty()
+    razorpayPaymentId: string;
+
+    @IsInt()
+    @IsPositive()
+    amountPaise: number;
 }
 
 export class VerifyPaymentDto {

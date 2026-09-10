@@ -18,7 +18,7 @@ import { AuthGuard, CsrfGuard, CurrentUser, Public } from '@cykruit/auth-core';
 import type { User } from '@prisma/client';
 import { AppLogger } from '@cykruit/logger';
 import { PaymentService } from '../services/payment.service';
-import { CreateOrderDto, PreviewOrderDto } from '../dto/payment.dto';
+import { CreateOrderDto, PreviewOrderDto, AdminRefundDto } from '../dto/payment.dto';
 
 @Controller('subscriptions')
 export class PaymentController {
@@ -47,6 +47,20 @@ export class PaymentController {
     @UseGuards(AuthGuard)
     getMyOrders(@CurrentUser() user: User) {
         return this.paymentService.getMyOrders(user.id);
+    }
+
+    /**
+     * POST /subscriptions/internal/refund — admin-app triggers Razorpay refunds here.
+     * No guard: subscription-service is never exposed through nginx (only the
+     * gateway and admin-app are), so this is only reachable within the Docker
+     * network — same trust boundary the existing /health endpoints already rely on.
+     * All refund business logic (guards, DB writes, audit) lives in admin-app;
+     * this just performs the actual gateway-side call.
+     */
+    @Post('internal/refund')
+    @Public()
+    adminRefund(@Body() dto: AdminRefundDto) {
+        return this.paymentService.adminRefund(dto.razorpayPaymentId, dto.amountPaise);
     }
 
     /** POST /subscriptions/webhook — Razorpay webhook (public, signature-verified) */
