@@ -24,6 +24,7 @@ import { adminInviteTemplate } from "./templates/admin-invite.template";
 import { jobReviewTemplate } from "./templates/job-review.template";
 import { broadcastTemplate } from "./templates/broadcast.template";
 import { subscriptionInvoiceTemplate } from "./templates/subscription-invoice.template";
+import { adminNotificationTemplate } from "./templates/admin-notification.template";
 import { generateInvoicePdf, InvoicePdfData } from "./invoice/generate-invoice-pdf";
 
 @Injectable()
@@ -174,6 +175,37 @@ export class MailService {
       );
       throw new InternalServerErrorException(
         "Failed to send notification email",
+      );
+    }
+  }
+
+  async sendAdminNotificationEmail(
+    email: string,
+    title: string,
+    message: string,
+    actionUrl?: string,
+    firstName?: string,
+  ): Promise<void> {
+    try {
+      const { error } = await this.resend.emails.send({
+        from: `Cykruit <${this.fromEmail}>`,
+        replyTo: "support@cykruit.com",
+        to: email,
+        subject: `[Admin] ${title}`,
+        text: `${firstName ? `Hi ${firstName},\n\n` : ""}${message}${actionUrl ? `\n\nView details: ${actionUrl}` : ""}\n\n-- Cykruit Team`,
+        html: adminNotificationTemplate(title, message, actionUrl, firstName),
+      });
+
+      if (error) throw new Error(error.message);
+      this.logger.log(`Admin notification email sent to ${email}`, "MailService");
+    } catch (err) {
+      this.logger.error(
+        "Failed to send admin notification email",
+        err,
+        "MailService",
+      );
+      throw new InternalServerErrorException(
+        "Failed to send admin notification email",
       );
     }
   }

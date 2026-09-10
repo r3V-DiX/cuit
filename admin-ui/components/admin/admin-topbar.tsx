@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePermissions } from '@/lib/permissions-context';
 import GlobalSearch from './global-search';
+import NotificationBell from './notification-bell';
 
 const ROLE_COLORS: Record<string, string> = {
   super_admin:
@@ -71,6 +72,8 @@ export default function AdminTopbar() {
             {role.replace('_', ' ')}
           </span>
         ))}
+
+        <NotificationBell />
 
         {/* Avatar + name */}
         <Link

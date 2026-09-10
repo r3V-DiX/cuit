@@ -400,6 +400,20 @@ export interface PaymentOrder {
   payment?: { razorpayPaymentId: string; capturedAt?: string; status: PaymentStatus } | null;
 }
 
+// Admin console's own in-app notification inbox
+export interface AdminNotification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  actionUrl?: string | null;
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
+  isRead: boolean;
+  readAt?: string | null;
+  createdAt: string;
+}
+
 // Tab 3: Admin Activity Logs — console mutations (AdminAuditLog)
 export interface AdminActivityLog {
   id: string;

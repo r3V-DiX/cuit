@@ -31,6 +31,7 @@ export enum DomainEventType {
     SUBSCRIPTION_RENEWED          = 'subscription.renewed',           // plan renewed after payment
     SUBSCRIPTION_CANCELLED        = 'subscription.cancelled',         // employer or admin cancelled plan
     SUBSCRIPTION_RESUMED          = 'subscription.resumed',           // cancelled-at-period-end plan re-activated
+    SUBSCRIPTION_PAYMENT_REFUNDED = 'subscription.payment_refunded',  // admin refunded a captured payment
 
     // ── Employer ─────────────────────────────────────────────────────────────
     EMPLOYER_SETUP_COMPLETE       = 'employer.setup_complete',         // employer finished company setup
@@ -180,6 +181,14 @@ export interface SubscriptionResumedPayload {
     expiresAt: string;
 }
 
+export interface SubscriptionPaymentRefundedPayload {
+    orderId: string;
+    employerId: string;
+    employerUserId: string;
+    packageName: string;
+    amountPaise: number;
+}
+
 export interface EmployerSetupCompletePayload {
     employerId: string;
     userId: string;
@@ -232,6 +241,7 @@ export type DomainEventPayloadMap = {
     [DomainEventType.SUBSCRIPTION_RENEWED]:           SubscriptionRenewedPayload;
     [DomainEventType.SUBSCRIPTION_CANCELLED]:         SubscriptionCancelledPayload;
     [DomainEventType.SUBSCRIPTION_RESUMED]:           SubscriptionResumedPayload;
+    [DomainEventType.SUBSCRIPTION_PAYMENT_REFUNDED]:  SubscriptionPaymentRefundedPayload;
     [DomainEventType.EMPLOYER_SETUP_COMPLETE]:        EmployerSetupCompletePayload;
     [DomainEventType.TEAM_INVITE_ACCEPTED]:           TeamInviteAcceptedPayload;
     [DomainEventType.JOIN_REQUEST_RECEIVED]:          JoinRequestReceivedPayload;

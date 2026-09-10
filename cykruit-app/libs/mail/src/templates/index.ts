@@ -13,4 +13,5 @@ export * from "./company-join-request.template";
 export * from "./admin-invite.template";
 export * from "./job-review.template";
 export * from "./broadcast.template";
+export * from "./admin-notification.template";
 

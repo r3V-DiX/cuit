@@ -363,6 +363,26 @@ export class DomainEventProcessor {
                 break;
             }
 
+            case DomainEventType.SUBSCRIPTION_PAYMENT_REFUNDED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                const amountRupees = p.amountPaise ? `₹${Math.round(p.amountPaise / 100).toLocaleString('en-IN')}` : '';
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.PLATFORM_ANNOUNCEMENT,
+                    title: 'Payment Refunded',
+                    message: `Your payment of ${amountRupees} for the ${p.packageName} plan has been refunded.`,
+                    actionUrl: `/employer/subscription`,
+                    relatedEntityType: 'PaymentOrder',
+                    relatedEntityId: p.orderId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
             case DomainEventType.SUBSCRIPTION_CANCELLED: {
                 const p = event.payload as any;
                 const contact = await this.userContact(p.employerUserId);

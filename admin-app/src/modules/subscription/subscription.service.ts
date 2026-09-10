@@ -4,6 +4,7 @@ import { Injectable, Inject, Optional, BadRequestException, NotFoundException } 
 import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 import { PrismaService } from '@cykruit/prisma';
 import { findFreePackage } from '@cykruit/subscription';
+import { EventPublisher, DomainEventType } from '@cykruit/events';
 import {
     CreatePackageDto,
     UpdatePackageDto,
@@ -12,6 +13,7 @@ import {
 } from './dto/subscription.dto';
 import { SubscriptionRepository } from './subscription.repository';
 import { AdminAuditLogger } from '../../common';
+import { AdminNotificationService } from '../admin-notifications';
 
 /**
  * Resolve the display status for the admin console — MUST stay in sync with
@@ -36,6 +38,8 @@ export class SubscriptionService {
         private readonly repository: SubscriptionRepository,
         private readonly auditLogger: AdminAuditLogger,
         private readonly prisma: PrismaService,
+        private readonly adminNotificationService: AdminNotificationService,
+        private readonly eventPublisher: EventPublisher,
         @Optional() @Inject(getRedisConnectionToken()) private readonly redis: { del: (key: string) => Promise<unknown> } | null,
     ) {}
 
@@ -228,6 +232,40 @@ export class SubscriptionService {
             riskLevel: 'CRITICAL',
             result: 'SUCCESS',
         });
+
+        const amountRupees = `₹${(order.totalAmountPaise / 100).toLocaleString('en-IN')}`;
+        const companyName = order.employer?.companyName ?? order.employerId;
+        const packageName = order.package?.name ?? '';
+
+        // Fire-and-forget — a notification failure must never undo or block
+        // a refund that already succeeded.
+        this.adminNotificationService
+            .notifyAllAdmins({
+                type: 'SUBSCRIPTION_PAYMENT_REFUNDED',
+                title: 'Payment Refunded',
+                message: `${amountRupees} refunded to ${companyName} (${packageName} plan)${reason ? ` — ${reason}` : ''}`,
+                actionUrl: `/subscriptions/payment-orders/${order.id}`,
+                relatedEntityType: 'PaymentOrder',
+                relatedEntityId: order.id,
+                excludeAdminId: adminId,
+            })
+            .catch(() => {});
+
+        if (order.employer?.userId) {
+            this.eventPublisher
+                .publish(
+                    DomainEventType.SUBSCRIPTION_PAYMENT_REFUNDED,
+                    {
+                        orderId: order.id,
+                        employerId: order.employerId,
+                        employerUserId: order.employer.userId,
+                        packageName,
+                        amountPaise: order.totalAmountPaise,
+                    },
+                    'admin-app',
+                )
+                .catch(() => {});
+        }
 
         return this.repository.findPaymentOrderById(orderId);
     }

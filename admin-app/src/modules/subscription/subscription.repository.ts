@@ -170,7 +170,7 @@ export class SubscriptionRepository implements ISearchEntity {
         return this.prisma.paymentOrder.findUnique({
             where: { id },
             include: {
-                employer: { select: { id: true, companyName: true, slug: true } },
+                employer: { select: { id: true, userId: true, companyName: true, slug: true } },
                 package: { select: { id: true, name: true } },
                 payment: true,
             },

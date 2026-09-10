@@ -1808,6 +1808,7 @@ model Admin {
     searchSuggestions   SearchSuggestion[]
     jobDomains          JobDomain[]
     emailCampaigns      AdminEmailCampaign[]
+    adminNotifications  AdminNotification[]
 
     @@index([email])
     @@map("admins")
@@ -1879,6 +1880,36 @@ model AdminAuditLog {
     @@index([createdAt])
     @@index([resource, resourceId])
     @@map("admin_audit_logs")
+}
+
+// Admin console's own in-app notification inbox — general-purpose, triggers
+// wired up per-feature (currently: subscription refunds). `type` is a plain
+// string (not an enum) so new triggers never need a schema migration, same
+// intentional pattern as AuditLog.action / EmployerSubscription.status.
+model AdminNotification {
+    id      String @id @default(uuid())
+    adminId String @db.Uuid
+    admin   Admin  @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+    type    String
+    title   String
+    message String @db.Text
+
+    actionUrl         String?
+    relatedEntityType String?
+    relatedEntityId   String?
+    metadata          Json?
+
+    isRead Boolean   @default(false)
+    readAt DateTime?
+
+    emailSentAt DateTime?
+    createdAt   DateTime  @default(now())
+
+    @@index([adminId])
+    @@index([adminId, isRead])
+    @@index([createdAt])
+    @@map("admin_notifications")
 }
 
 model AuthAuditLog {
