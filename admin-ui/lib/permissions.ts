@@ -12,6 +12,7 @@ export const ACTIONS = {
   APPLICATIONS: { VIEW: 'applications:view' },
   SUBSCRIPTIONS: { VIEW: 'subscriptions:view', MANAGE: 'subscriptions:manage' },
   RBAC: { VIEW: 'rbac:view', MANAGE: 'rbac:manage' },
+  EMPLOYER_RBAC: { VIEW: 'employer_rbac:view', MANAGE: 'employer_rbac:manage' },
   AUDIT: { VIEW: 'audit:view' },
   TESTIMONIALS: { VIEW: 'testimonials:view', MANAGE: 'testimonials:manage' },
   DISCOUNTS: { VIEW: 'discounts:view', MANAGE: 'discounts:manage' },

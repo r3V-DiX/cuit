@@ -36,6 +36,10 @@ export const ACTIONS = {
         VIEW: 'rbac:view',
         MANAGE: 'rbac:manage',
     },
+    EMPLOYER_RBAC: {
+        VIEW: 'employer_rbac:view',
+        MANAGE: 'employer_rbac:manage',
+    },
     AUDIT: {
         VIEW: 'audit:view',
     },
@@ -137,6 +141,8 @@ export const PERMISSION_DESCRIPTIONS: Record<Action, string> = {
     'subscriptions:manage': 'Create/edit/delete packages and manage employer subscriptions',
     'rbac:view': 'View roles, permissions, assignments and overrides',
     'rbac:manage': 'Create/edit roles, assign roles and set permission overrides',
+    'employer_rbac:view': 'View the employer team-role permission matrix',
+    'employer_rbac:manage': 'Edit which permissions each employer team role (Owner/Hiring Manager/Recruiter/Viewer) grants',
     'audit:view': 'View the admin audit log',
     'testimonials:view': 'List and view testimonials',
     'testimonials:manage': 'Create/edit/delete and publish/unpublish testimonials',
@@ -202,6 +208,7 @@ export const SYSTEM_ROLES: readonly SystemRoleDefinition[] = [
         grants: ALL_ACTIONS.filter(
             (a) =>
                 a !== ACTIONS.RBAC.MANAGE &&
+                a !== ACTIONS.EMPLOYER_RBAC.MANAGE &&
                 a !== ACTIONS.ADMINS.VIEW &&
                 a !== ACTIONS.ADMINS.MANAGE &&
                 a !== ACTIONS.USERS.DELETE &&

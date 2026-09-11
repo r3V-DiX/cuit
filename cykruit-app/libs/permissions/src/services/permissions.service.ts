@@ -5,6 +5,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@cykruit/prisma';
 import { UserRole } from '@prisma/client';
 import { PermissionCacheService } from './permission-cache.service';
+import { ALL_EMPLOYER_ACTIONS } from '../employer-rbac.registry';
 
 export interface PermissionContext {
     userId: string;
@@ -24,57 +25,14 @@ const SEEKER_ONLY_ACTIONS = new Set([
 ]);
 
 // Permissions only EMPLOYER can use
-const EMPLOYER_ONLY_ACTIONS = new Set([
-    'jobs:read',
-    'jobs:create',
-    'jobs:update',
-    'jobs:delete',
-    'jobs:publish',
-    'jobs:close',
-    'company:invite_member',
-    'company:remove_member',
-    'company:change_role',
-    'company:transfer_owner',
-    'company:update',
-    'company:submit_kyc',
-    'company:view_activity',
-    'applications:update_status',
-    'applications:add_note',
-    'applications:read_all',
-    'subscription:read',
-    'subscription:manage',
-]);
+const EMPLOYER_ONLY_ACTIONS = new Set<string>(ALL_EMPLOYER_ACTIONS);
 
-// OWNER only
-const OWNER_ONLY_ACTIONS = new Set([
-    'company:change_role',
-    'company:transfer_owner',
-    'company:update',
-    'company:submit_kyc',
-    'subscription:read',
-    'subscription:manage',
-]);
-
-// OWNER + HIRING_MANAGER
-const MANAGER_ACTIONS = new Set([
-    'company:invite_member',
-    'company:remove_member',
-    'jobs:delete',
-    'jobs:publish',
-]);
-
-// OWNER + HIRING_MANAGER + RECRUITER
-const RECRUITER_ACTIONS = new Set([
-    'jobs:create',
-    'jobs:update',
-    'jobs:close',
-    'applications:update_status',
-    'applications:add_note',
-    'applications:read_all',
-]);
-
-// ALL members including VIEWER
-const ALL_MEMBER_ACTIONS = new Set([
+// Granted to any EMPLOYER account even before they have an EmployerMember row
+// (e.g. mid-KYC-setup, before the company/org exists yet). Intentionally not
+// part of the admin-editable role matrix — this is a bootstrap allowance, not
+// a role grant, so an admin zeroing out VIEWER's permissions can't lock a
+// brand-new employer out of their own setup flow.
+const PRE_MEMBERSHIP_ACTIONS = new Set([
     'company:read',
     'company:view_activity',
     'jobs:read',
@@ -122,30 +80,19 @@ export class PermissionsService {
             return granted;
         }
 
-        // EMPLOYER: basic reads are available to any EMPLOYER user (e.g. during KYC setup).
-        // Role-gated actions require a confirmed EmployerMember row.
+        // EMPLOYER: role-gated actions require a confirmed EmployerMember row.
         if (ctx.userRole === UserRole.EMPLOYER) {
-            ALL_MEMBER_ACTIONS.forEach(p => granted.add(p));
-
             const member = await this.resolveEmployerMember(ctx.userId, ctx.employerId);
-            if (!member) return granted; // no org membership yet — read-only access
-
-            const role = member.role;
-
-            // RECRUITER+
-            if (role === 'RECRUITER' || role === 'HIRING_MANAGER' || role === 'OWNER') {
-                RECRUITER_ACTIONS.forEach(p => granted.add(p));
+            if (!member) {
+                PRE_MEMBERSHIP_ACTIONS.forEach(p => granted.add(p));
+                return granted;
             }
 
-            // HIRING_MANAGER+
-            if (role === 'HIRING_MANAGER' || role === 'OWNER') {
-                MANAGER_ACTIONS.forEach(p => granted.add(p));
-            }
-
-            // OWNER only
-            if (role === 'OWNER') {
-                OWNER_ONLY_ACTIONS.forEach(p => granted.add(p));
-            }
+            const rolePermissions = await this.prisma.employerRolePermission.findMany({
+                where: { role: member.role, permission: { isActive: true } },
+                select: { permission: { select: { module: true, action: true } } },
+            });
+            rolePermissions.forEach(({ permission }) => granted.add(`${permission.module}:${permission.action}`));
         }
 
         return granted;

@@ -59,6 +59,19 @@ interface InviteRow {
   status: "PENDING" | "ACCEPTED" | "EXPIRED";
 }
 
+interface PermissionMatrixRow {
+  id: string;
+  module: string;
+  action: string;
+  description?: string;
+  grantedRoles: MemberRole[];
+}
+
+interface PermissionsMatrix {
+  roles: MemberRole[];
+  permissions: PermissionMatrixRow[];
+}
+
 const ROLE_META: Record<MemberRole, { label: string; color: string; icon: React.ReactNode; desc: string }> = {
   OWNER:          { label: "Owner",           color: "text-yellow-700 bg-yellow-50 border-yellow-200",  icon: <Crown className="w-3 h-3" />,    desc: "Full access — billing, team, jobs, settings" },
   HIRING_MANAGER: { label: "Hiring Manager",  color: "text-blue-700 bg-blue-50 border-blue-200",       icon: <Briefcase className="w-3 h-3" />, desc: "Manage jobs, applications, invite members" },
@@ -79,6 +92,8 @@ export default function TeamPage() {
   const [myUserId, setMyUserId]         = useState<string | null>(null);
   const [openMenu, setOpenMenu]         = useState<string | null>(null);
   const [activeTab, setActiveTab]       = useState<ActiveTab>("members");
+  const [permMatrix, setPermMatrix]     = useState<PermissionsMatrix | null>(null);
+  const [permLoading, setPermLoading]   = useState(false);
   const { limits: subLimits, loading: subLoading } = useSubscriptionLimits();
   const teamLimit = subLimits?.maxTeamMembers ?? null;
 
@@ -129,6 +144,17 @@ export default function TeamPage() {
   }, [kycStatus, toast]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (activeTab !== "permissions" || permMatrix || kycStatus !== "verified") return;
+    setPermLoading(true);
+    apiFetch<PermissionsMatrix>("/api/employer/team/permissions-matrix")
+      .then((res) => { if (res.data) setPermMatrix(res.data); })
+      .catch((err: unknown) => {
+        toast({ type: "error", message: (err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Failed to load permissions") });
+      })
+      .finally(() => setPermLoading(false));
+  }, [activeTab, permMatrix, kycStatus, toast]);
 
   async function handleInvite() {
     if (!inviteEmail.trim() || inviting) return;
@@ -630,45 +656,50 @@ export default function TeamPage() {
                 <Shield className="w-4 h-4 text-slate-400" />
                 <span className="text-sm font-semibold text-slate-700">Role Permissions</span>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-100">
-                      <th className="px-6 py-3 text-left text-slate-500 font-semibold">Permission</th>
-                      {(["OWNER","HIRING_MANAGER","RECRUITER","VIEWER"] as MemberRole[]).map((r) => (
-                        <th key={r} className="px-4 py-3 text-center">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-semibold ${ROLE_META[r].color}`}>
-                            {ROLE_META[r].icon}{ROLE_META[r].label}
-                          </span>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {[
-                      ["Post & create jobs",       true,  true,  true,  false],
-                      ["Publish & delete jobs",    true,  true,  false, false],
-                      ["Review applications",      true,  true,  true,  true ],
-                      ["View all applications",    true,  true,  true,  false],
-                      ["Invite team members",      true,  true,  false, false],
-                      ["Remove team members",      true,  true,  false, false],
-                      ["Change member roles",      true,  false, false, false],
-                      ["Company profile & KYC",    true,  false, false, false],
-                      ["Billing & subscription",   true,  false, false, false],
-                      ["View all data",            true,  true,  true,  true ],
-                    ].map(([label, ...perms]) => (
-                      <tr key={label as string} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-6 py-3 text-slate-700 font-medium">{label}</td>
-                        {perms.map((p, i) => (
-                          <td key={i} className="px-4 py-3 text-center">
-                            {p ? <span className="text-green-500">✓</span> : <span className="text-slate-300">–</span>}
-                          </td>
+              {permLoading && !permMatrix ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                </div>
+              ) : !permMatrix || permMatrix.permissions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                  <p className="text-sm text-slate-500">No permissions found</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-100">
+                        <th className="px-6 py-3 text-left text-slate-500 font-semibold">Permission</th>
+                        {permMatrix.roles.map((r) => (
+                          <th key={r} className="px-4 py-3 text-center">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-semibold ${ROLE_META[r].color}`}>
+                              {ROLE_META[r].icon}{ROLE_META[r].label}
+                            </span>
+                          </th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {permMatrix.permissions.map((p) => (
+                        <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-3 text-slate-700 font-medium">
+                            {p.description ?? `${p.module}:${p.action}`}
+                          </td>
+                          {permMatrix!.roles.map((r) => (
+                            <td key={r} className="px-4 py-3 text-center">
+                              {p.grantedRoles.includes(r) ? (
+                                <span className="text-green-500">✓</span>
+                              ) : (
+                                <span className="text-slate-300">–</span>
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

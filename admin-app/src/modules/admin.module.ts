@@ -13,6 +13,7 @@ import { UsersModule } from './users';
 import { ResumesModule } from './resumes';
 import { ApplicationsModule } from './applications';
 import { RbacModule } from './rbac';
+import { EmployerRbacModule } from './employer-rbac';
 import { SubscriptionModule } from './subscription';
 import { AuditModule } from './audit';
 import { DashboardModule } from './dashboard';
@@ -48,6 +49,7 @@ import { AdminNotificationModule } from './admin-notifications';
         ResumesModule,
         ApplicationsModule,
         RbacModule,
+        EmployerRbacModule,
         SubscriptionModule,
         AuditModule,
         DashboardModule,

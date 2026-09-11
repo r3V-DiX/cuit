@@ -61,6 +61,19 @@ export class TeamController {
     }
 
     /**
+     * GET /employer/team/permissions-matrix
+     * Returns the current role -> permission grant matrix (read-only). Mirrors
+     * what the admin console's employer-RBAC editor manages — kept in sync so
+     * this display never drifts from actual enforcement.
+     */
+    @Get('permissions-matrix')
+    @SkipKycCheck()
+    @RequirePermission(ACTIONS.COMPANY.READ)
+    getPermissionsMatrix() {
+        return this.teamService.getPermissionsMatrix();
+    }
+
+    /**
      * POST /employer/team/invite
      * Sends an email invitation to join the company. OWNER or HIRING_MANAGER only.
      */

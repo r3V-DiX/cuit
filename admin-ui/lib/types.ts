@@ -513,6 +513,20 @@ export interface RolePermissionEntry {
   permission: Permission;
 }
 
+export interface EmployerPermission {
+  id: string;
+  module: string;
+  action: string;
+  description?: string;
+  isActive: boolean;
+  grantedRoles: EmployerMemberRole[];
+}
+
+export interface EmployerRbacMatrix {
+  roles: EmployerMemberRole[];
+  permissions: EmployerPermission[];
+}
+
 export interface AdminRoleAssignment {
   id: string;
   adminId: string;

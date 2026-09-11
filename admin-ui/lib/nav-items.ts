@@ -80,10 +80,11 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Admins & Access',
     href: '/admins',
     icon: UserCog,
-    action: [ACTIONS.ADMINS.VIEW, ACTIONS.RBAC.VIEW],
+    action: [ACTIONS.ADMINS.VIEW, ACTIONS.RBAC.VIEW, ACTIONS.EMPLOYER_RBAC.VIEW],
     children: [
       { label: 'Roles', tab: 'roles' },
       { label: 'Permissions Map', tab: 'permissions' },
+      { label: 'Employer Permissions', tab: 'employer-permissions' },
       { label: 'Admins', tab: 'admins' },
       { label: 'Pending Invitations', tab: 'pending' },
     ],

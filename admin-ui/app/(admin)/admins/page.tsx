@@ -22,8 +22,9 @@ import InviteAdminForm from './_components/invite-admin-form';
 import PendingInvitesTab from './_components/pending-invites-tab';
 import RolesTab from './_components/roles-tab';
 import PermissionsTab from './_components/permissions-tab';
+import EmployerPermissionsTab from './_components/employer-permissions-tab';
 
-type PageTab = 'roles' | 'permissions' | 'admins' | 'pending';
+type PageTab = 'roles' | 'permissions' | 'employer-permissions' | 'admins' | 'pending';
 
 function formatDate(value?: string) {
   if (!value) return '—';
@@ -49,6 +50,8 @@ function AdminsPageContent() {
   const canViewRbac = has(ACTIONS.RBAC.VIEW);
   const canManageRbac = has(ACTIONS.RBAC.MANAGE);
   const hasAdminsView = has(ACTIONS.ADMINS.VIEW);
+  const canViewEmployerRbac = has(ACTIONS.EMPLOYER_RBAC.VIEW);
+  const canManageEmployerRbac = has(ACTIONS.EMPLOYER_RBAC.MANAGE);
   const refresh = useCallback(() => setReloadKey((k) => k + 1), []);
 
   const availableTabs: { key: PageTab; label: string }[] = [
@@ -58,6 +61,7 @@ function AdminsPageContent() {
           { key: 'permissions' as const, label: 'Permissions Map' },
         ]
       : []),
+    ...(canViewEmployerRbac ? [{ key: 'employer-permissions' as const, label: 'Employer Permissions' }] : []),
     ...(hasAdminsView
       ? [
           { key: 'admins' as const, label: 'Admins' },
@@ -206,6 +210,8 @@ function AdminsPageContent() {
           <RolesTab canManage={canManageRbac} />
         ) : tab === 'permissions' ? (
           <PermissionsTab />
+        ) : tab === 'employer-permissions' ? (
+          <EmployerPermissionsTab canManage={canManageEmployerRbac} />
         ) : tab === 'pending' ? (
           <PendingInvitesTab canManage={canManage} />
         ) : (

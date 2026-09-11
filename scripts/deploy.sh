@@ -272,6 +272,36 @@ do_seed() {
   info "Seed complete."
 }
 
+# ── Individual RBAC/policy seed scripts ───────────────────────────────────────
+# Idempotent, but each is a deliberate on-demand action — never run
+# automatically on container start (see admin-app/Dockerfile).
+do_rbac_seed() {
+  step "Running admin console RBAC seed (permission catalog, system roles, bootstrap super_admin)..."
+  pull_with_fallback cykruit-admin-app "" "$ENV" "$TAG"
+  docker run --rm --env-file "$ADMIN_ENV" \
+    "$ECR_REGISTRY/cykruit-admin-app:$ENV-$TAG" \
+    node -r ./tsconfig-paths-bootstrap.prod.js dist/admin-app/prisma/rbac-seed.js
+  info "RBAC seed complete."
+}
+
+do_policy_seed() {
+  step "Running policy-config seed (rate-limit/policy defaults)..."
+  pull_with_fallback cykruit-admin-app "" "$ENV" "$TAG"
+  docker run --rm --env-file "$ADMIN_ENV" \
+    "$ECR_REGISTRY/cykruit-admin-app:$ENV-$TAG" \
+    node -r ./tsconfig-paths-bootstrap.prod.js dist/admin-app/prisma/policy-seed.js
+  info "Policy seed complete."
+}
+
+do_employer_rbac_seed() {
+  step "Running employer RBAC seed (team-role permission catalog + defaults)..."
+  pull_with_fallback cykruit-app auth-service "$ENV" "$TAG"
+  docker run --rm --env-file "$BACKEND_ENV" \
+    "$ECR_REGISTRY/cykruit-app:auth-service-$ENV-$TAG" \
+    npx --yes tsx prisma/employer-rbac-seed.ts
+  info "Employer RBAC seed complete."
+}
+
 do_cykruit_app() {
   step "Pulling cykruit-app (sha=$TAG, fallback=latest per service)..."
   for svc in "${CYKRUIT_SERVICES[@]}"; do
@@ -319,11 +349,17 @@ run_deploy() {
     admin-app)   do_admin_app   ;;
     cykruit-ui)  do_cykruit_ui  ;;
     admin-ui)    do_admin_ui    ;;
-    migrate)     do_migrate     ;;
-    seed)        do_seed        ;;
+    migrate)             do_migrate             ;;
+    seed)                do_seed                ;;
+    rbac-seed)           do_rbac_seed           ;;
+    policy-seed)         do_policy_seed         ;;
+    employer-rbac-seed)  do_employer_rbac_seed  ;;
     all)
       do_migrate
       do_seed
+      do_rbac_seed
+      do_policy_seed
+      do_employer_rbac_seed
       do_cykruit_app
       do_admin_app
       do_cykruit_ui
@@ -356,32 +392,35 @@ echo "  1) cykruit-app  (all 10 microservices)"
 echo "  2) admin-app"
 echo "  3) cykruit-ui"
 echo "  4) admin-ui"
-echo "  5) migrate      (prisma migrate deploy)"
-echo "  6) seed         (prisma db seed — skills, locations, admins)"
-echo "  7) All services (migrate + seed + all 4 apps)"
-echo "  8) Build env    (pull secrets from SSM)"
-echo "  9) Build env + Full deploy"
+echo "  5) migrate             (prisma migrate deploy)"
+echo "  6) seed                (prisma db seed — skills, locations, admins)"
+echo "  7) rbac-seed           (admin console RBAC catalog/roles/bootstrap admin)"
+echo "  8) policy-seed         (platform policy/rate-limit defaults)"
+echo "  9) employer-rbac-seed  (employer team-role permission catalog/defaults)"
+echo " 10) All services (migrate + all seeds + all 4 apps)"
+echo " 11) Build env    (pull secrets from SSM)"
+echo " 12) Build env + Full deploy"
 echo ""
-read -rp "Select (1-9): " OPT
+read -rp "Select (1-12): " OPT
 
 case "$OPT" in
-  1|2|3|4|5|6)
+  1|2|3|4|5|6|7|8|9)
     resolve_tag
-    run_deploy "$(case $OPT in 1) echo cykruit-app;; 2) echo admin-app;; 3) echo cykruit-ui;; 4) echo admin-ui;; 5) echo migrate;; 6) echo seed;; esac)"
+    run_deploy "$(case $OPT in 1) echo cykruit-app;; 2) echo admin-app;; 3) echo cykruit-ui;; 4) echo admin-ui;; 5) echo migrate;; 6) echo seed;; 7) echo rbac-seed;; 8) echo policy-seed;; 9) echo employer-rbac-seed;; esac)"
     ;;
-  7)
+  10)
     resolve_tag
-    warn "This will redeploy ALL services + run migrations + seed."
+    warn "This will redeploy ALL services + run migrations + all seeds."
     read -rp "Confirm? (yes/no): " C; [ "$C" = "yes" ] || { info "Aborted."; exit 0; }
     run_deploy all
     ;;
-  8)
+  11)
     do_build_env
     ;;
-  9)
+  12)
     do_build_env
     resolve_tag
-    warn "This will rebuild env + redeploy ALL services + run migrations + seed."
+    warn "This will rebuild env + redeploy ALL services + run migrations + all seeds."
     read -rp "Confirm? (yes/no): " C; [ "$C" = "yes" ] || { info "Aborted."; exit 0; }
     run_deploy all
     ;;

@@ -73,6 +73,36 @@ export class TeamService {
         return { role: member?.role ?? null };
     }
 
+    // ── Permissions matrix (read-only mirror of the admin-editable RBAC table) ──
+
+    async getPermissionsMatrix() {
+        const [permissions, grants] = await Promise.all([
+            this.prisma.employerPermission.findMany({
+                where: { isActive: true },
+                orderBy: [{ module: 'asc' }, { action: 'asc' }],
+                select: { id: true, module: true, action: true, description: true },
+            }),
+            this.prisma.employerRolePermission.findMany({
+                select: { role: true, permissionId: true },
+            }),
+        ]);
+
+        const rolesByPermission = new Map<string, EmployerMemberRole[]>();
+        for (const grant of grants) {
+            const list = rolesByPermission.get(grant.permissionId) ?? [];
+            list.push(grant.role);
+            rolesByPermission.set(grant.permissionId, list);
+        }
+
+        return {
+            roles: Object.values(EmployerMemberRole),
+            permissions: permissions.map((p) => ({
+                ...p,
+                grantedRoles: rolesByPermission.get(p.id) ?? [],
+            })),
+        };
+    }
+
     // ── Invite Member ─────────────────────────────────────────────
 
     async inviteMember(userId: string, dto: InviteMemberDto, ipAddress?: string, userAgent?: string) {

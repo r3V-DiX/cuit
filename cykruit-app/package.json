@@ -58,6 +58,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "migration:lite-seed": "tsx prisma/migration/seed/lite-seed.ts",
+    "employer-rbac:seed": "tsx prisma/employer-rbac-seed.ts",
     "preview:emails": "npx tsx scripts/generate-email-previews.ts"
   },
   "prisma": {

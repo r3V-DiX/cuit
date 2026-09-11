@@ -2018,6 +2018,43 @@ model EmployerMember {
     @@map("employer_members")
 }
 
+// ==========================
+// Employer-side RBAC — role -> permission grants for the fixed
+// EmployerMemberRole tiers (OWNER/HIRING_MANAGER/RECRUITER/VIEWER).
+// Catalog + defaults are seeded from
+// cykruit-app/libs/permissions/src/employer-rbac.registry.ts
+// (npm run employer-rbac:seed) — never edit these rows by hand.
+// Separate from the AdminPermission/AdminRolePermission tables above,
+// which govern admin console staff, not employer team members.
+// ==========================
+
+model EmployerPermission {
+    id          String   @id @default(uuid())
+    module      String // "jobs", "applications", "company", ...
+    action      String // "create", "publish", "invite_member", ...
+    description String?
+    isActive    Boolean  @default(true)
+    createdAt   DateTime @default(now())
+
+    rolePermissions EmployerRolePermission[]
+
+    @@unique([module, action])
+    @@index([isActive])
+    @@map("employer_permissions")
+}
+
+model EmployerRolePermission {
+    id           String             @id @default(uuid())
+    role         EmployerMemberRole
+    permissionId String
+    permission   EmployerPermission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+    updatedBy    String?
+    updatedAt    DateTime           @updatedAt
+
+    @@unique([role, permissionId])
+    @@map("employer_role_permissions")
+}
+
 // ============================================
 // EMPLOYER JOIN REQUEST MODEL
 // ============================================
