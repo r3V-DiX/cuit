@@ -16,7 +16,7 @@ import { SkeletonTable } from '@/components/ui';
 import { EmptyState } from '@/components/ui';
 import { useModal } from '@/components/ui';
 import { useToast } from '@/components/ui';
-import { Percent, Plus, Pencil, Ban, History, Search, X } from 'lucide-react';
+import { Percent, Plus, Pencil, Ban, RotateCcw, Trash2, History, Search, X } from 'lucide-react';
 import DiscountForm from './discount-form';
 
 function formatValue(d: Discount) {
@@ -155,6 +155,41 @@ export default function DiscountsTab() {
           refresh();
         } catch (err) {
           toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to deactivate discount' });
+        }
+      },
+    });
+  };
+
+  const handleReactivate = (d: Discount) => {
+    openModal({
+      title: 'Reactivate discount?',
+      description: `"${d.name}" will start applying to new orders again.`,
+      confirmLabel: 'Reactivate',
+      onConfirm: async () => {
+        try {
+          await api.patch<Discount>(`/api/admin/discounts/${d.id}/reactivate`);
+          toast({ type: 'success', message: 'Discount reactivated.' });
+          refresh();
+        } catch (err) {
+          toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to reactivate discount' });
+        }
+      },
+    });
+  };
+
+  const handleDelete = (d: Discount) => {
+    openModal({
+      title: 'Delete discount?',
+      description: `"${d.name}" will be permanently deleted. This cannot be undone.`,
+      variant: 'danger',
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        try {
+          await api.del(`/api/admin/discounts/${d.id}`);
+          toast({ type: 'success', message: 'Discount deleted.' });
+          refresh();
+        } catch (err) {
+          toast({ type: 'error', message: err instanceof Error ? err.message : 'Failed to delete discount' });
         }
       },
     });
@@ -302,13 +337,30 @@ export default function DiscountsTab() {
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
-                        {d.status === 'ACTIVE' && (
+                        {d.status === 'ACTIVE' ? (
                           <button
                             onClick={() => handleDeactivate(d)}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
                             title="Deactivate"
                           >
                             <Ban className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleReactivate(d)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-green-50 hover:text-green-600"
+                            title="Reactivate"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </button>
+                        )}
+                        {(d._count?.usages ?? 0) === 0 && (
+                          <button
+                            onClick={() => handleDelete(d)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600"
+                            title="Delete"
+                          >
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         )}
                       </>

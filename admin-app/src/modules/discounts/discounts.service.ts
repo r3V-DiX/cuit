@@ -92,6 +92,49 @@ export class DiscountsService {
         return updated;
     }
 
+    async reactivate(adminId: string, id: string) {
+        const existing = await this.getById(id);
+        if (existing.status === 'ACTIVE') {
+            throw new BadRequestException('Discount is already active');
+        }
+
+        const updated = await this.repo.reactivate(id, adminId);
+
+        this.auditLogger.log({
+            adminId,
+            action: 'discounts:reactivate',
+            module: 'discounts',
+            resource: 'Discount',
+            resourceId: id,
+            riskLevel: 'LOW',
+            result: 'SUCCESS',
+        });
+
+        return updated;
+    }
+
+    async delete(adminId: string, id: string) {
+        const existing = await this.getById(id);
+        if (existing._count.usages > 0) {
+            throw new BadRequestException('Cannot delete a discount that has already been used — deactivate it instead');
+        }
+
+        await this.repo.delete(id);
+
+        this.auditLogger.log({
+            adminId,
+            action: 'discounts:delete',
+            module: 'discounts',
+            resource: 'Discount',
+            resourceId: id,
+            oldData: { name: existing.name, code: existing.code } as unknown as Prisma.InputJsonValue,
+            riskLevel: 'HIGH',
+            result: 'SUCCESS',
+        });
+
+        return { id };
+    }
+
     async getUsages(id: string, query: DiscountUsagesQueryDto) {
         await this.getById(id);
         return this.repo.findUsages(id, query);

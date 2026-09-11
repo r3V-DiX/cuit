@@ -151,6 +151,18 @@ export class DiscountsRepository {
         });
     }
 
+    async reactivate(id: string, adminId: string) {
+        return this.prisma.discount.update({
+            where: { id },
+            data: { status: DiscountStatus.ACTIVE, updatedBy: adminId },
+            select: { id: true, status: true },
+        });
+    }
+
+    async delete(id: string) {
+        await this.prisma.discount.delete({ where: { id } });
+    }
+
     async findUsages(id: string, query: DiscountUsagesQueryDto) {
         const { page = 1, limit = 20 } = query;
         const skip = (page - 1) * limit;

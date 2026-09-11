@@ -5,6 +5,7 @@ import {
     Get,
     Post,
     Patch,
+    Delete,
     Param,
     Body,
     Query,
@@ -72,6 +73,14 @@ export class DiscountsController {
         return this.service.deactivate(admin.id, id);
     }
 
+    // PATCH /admin/discounts/:id/reactivate — must come before :id
+    @Patch(':id/reactivate')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.DISCOUNTS.MANAGE)
+    reactivate(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string) {
+        return this.service.reactivate(admin.id, id);
+    }
+
     // PATCH /admin/discounts/:id
     @Patch(':id')
     @HttpCode(HttpStatus.OK)
@@ -82,5 +91,13 @@ export class DiscountsController {
         @Body() dto: UpdateDiscountDto,
     ) {
         return this.service.update(admin.id, id, dto);
+    }
+
+    // DELETE /admin/discounts/:id
+    @Delete(':id')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.DISCOUNTS.MANAGE)
+    remove(@CurrentAdmin() admin: Admin, @Param('id', ParseUUIDPipe) id: string) {
+        return this.service.delete(admin.id, id);
     }
 }
