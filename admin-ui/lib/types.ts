@@ -82,6 +82,16 @@ export interface Employer {
   isActive?: boolean;
   isFlagged?: boolean;
   createdAt?: string;
+  members?: EmployerMember[];
+}
+
+export type EmployerMemberRole = 'OWNER' | 'HIRING_MANAGER' | 'RECRUITER' | 'VIEWER';
+
+export interface EmployerMember {
+  id: string;
+  role: EmployerMemberRole;
+  createdAt: string;
+  user: { id: string; firstName: string; lastName: string; email: string };
 }
 
 export interface Experience {

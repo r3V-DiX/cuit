@@ -396,6 +396,33 @@ export default function UserDetailPage({ params }: { params: Promise<{ id: strin
                 </div>
               )}
 
+              {user.role === 'EMPLOYER' && user.employer && (user.employer.members?.length ?? 0) > 0 && (
+                <SubCard title="Team Members">
+                  <Table
+                    data={user.employer.members ?? []}
+                    getRowKey={(m) => m.id}
+                    columns={[
+                      {
+                        key: 'name',
+                        header: 'Name',
+                        render: (m) => (
+                          <div>
+                            <p className="text-slate-900">{m.user.firstName} {m.user.lastName}</p>
+                            <p className="font-mono text-xs text-slate-500">{m.user.email}</p>
+                          </div>
+                        ),
+                      },
+                      { key: 'role', header: 'Role', render: (m) => <StatusBadge status={m.role} /> },
+                      {
+                        key: 'joined',
+                        header: 'Joined',
+                        render: (m) => <span className="text-xs text-slate-500">{format(new Date(m.createdAt), 'MMM d, yyyy')}</span>,
+                      },
+                    ]}
+                  />
+                </SubCard>
+              )}
+
               {/* Jobseeker profile details if role is SEEKER */}
               {user.role === 'SEEKER' && user.jobSeekerProfile && (
                 <>

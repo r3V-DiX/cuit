@@ -157,7 +157,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
     return () => clearInterval(interval);
   }, [id, aiRank]);
 
-  async function handleResubmit() {
+  async function handleSubmit() {
     setSubmitting(true);
     try {
       const res = await fetch(`/api/employer/jobs/${id}/submit`, {
@@ -167,12 +167,12 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error((body as { error?: { message?: string } })?.error?.message ?? "Failed to resubmit");
+        throw new Error((body as { error?: { message?: string } })?.error?.message ?? "Failed to submit");
       }
       setJob((prev: any) => prev ? { ...prev, status: "Pending", rawStatus: "PENDING", rejectionReason: null } : prev);
-      toast({ type: "success", message: "Job resubmitted for review" });
+      toast({ type: "success", message: "Job submitted for review" });
     } catch (err) {
-      toast({ type: "error", ...describeError(err, "Resubmit failed") });
+      toast({ type: "error", ...describeError(err, "Submit failed") });
     } finally {
       setSubmitting(false);
     }
@@ -303,12 +303,30 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               <p className="text-xs text-rose-600 mt-1">Edit the job to address the feedback, then resubmit for review.</p>
             </div>
             <button
-              onClick={handleResubmit}
+              onClick={handleSubmit}
               disabled={submitting}
               className="shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             >
               {submitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
               Resubmit
+            </button>
+          </div>
+        )}
+
+        {job.rawStatus === "DRAFT" && (
+          <div className="flex items-start gap-3 px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl">
+            <Clock className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-800">This job is still a draft</p>
+              <p className="text-xs text-slate-500 mt-0.5">It won't be visible to seekers until you submit it for admin review.</p>
+            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {submitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+              Submit for Review
             </button>
           </div>
         )}

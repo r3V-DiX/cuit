@@ -71,6 +71,11 @@ const STATUS_MAP: Record<string, string> = {
   PARTIALLY_FAILED: 'bg-amber-50 text-amber-700 border-amber-200',
   // Payment/order refund state
   REFUNDED: 'bg-purple-50 text-purple-700 border-purple-200',
+  // Employer team member roles
+  OWNER: 'bg-blue-50 text-blue-700 border-blue-200',
+  HIRING_MANAGER: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+  RECRUITER: 'bg-slate-100 text-slate-600 border-slate-200',
+  VIEWER: 'bg-slate-100 text-slate-600 border-slate-200',
 };
 
 export default function StatusBadge({ status, className = '' }: StatusBadgeProps) {

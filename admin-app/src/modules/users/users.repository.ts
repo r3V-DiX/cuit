@@ -147,6 +147,15 @@ export class UsersRepository implements ISearchEntity {
                 isActive: true,
                 isFlagged: true,
                 createdAt: true,
+                members: {
+                    select: {
+                        id: true,
+                        role: true,
+                        createdAt: true,
+                        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+                    },
+                    orderBy: { createdAt: 'asc' },
+                },
             },
         },
         jobSeekerProfile: {
