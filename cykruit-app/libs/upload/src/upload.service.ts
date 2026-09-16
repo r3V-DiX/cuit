@@ -38,6 +38,7 @@ export class UploadService {
     BucketType.RESUMES,
     BucketType.CERTIFICATIONS,
     BucketType.KYC_DOCUMENTS,
+    BucketType.AD_CREATIVES,
   ]);
 
   constructor(private configService: ConfigService) {

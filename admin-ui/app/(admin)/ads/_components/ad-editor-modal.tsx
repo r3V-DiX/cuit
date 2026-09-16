@@ -32,6 +32,7 @@ export default function AdEditorModal({ initialAd, onSuccess, onCancel }: AdEdit
 
   const [slotKey, setSlotKey] = useState<string>(initialAd?.slotKey || '');
   const [imageUrl, setImageUrl] = useState<string>(initialAd?.imageUrl || '');
+  const [previewUrl, setPreviewUrl] = useState<string>(initialAd?.previewUrl || initialAd?.imageUrl || '');
   const [linkUrl, setLinkUrl] = useState<string>(initialAd?.linkUrl || '');
   const [altText, setAltText] = useState<string>(initialAd?.altText || '');
   const [isActive, setIsActive] = useState<boolean>(initialAd?.isActive ?? true);
@@ -69,6 +70,7 @@ export default function AdEditorModal({ initialAd, onSuccess, onCancel }: AdEdit
         throw new Error(body?.error?.message || body?.message || 'Upload failed');
       }
       setImageUrl(body.data.imageUrl);
+      setPreviewUrl(body.data.previewUrl || body.data.imageUrl);
     } catch (err: unknown) {
       toast({
         type: 'error',
@@ -150,7 +152,7 @@ export default function AdEditorModal({ initialAd, onSuccess, onCancel }: AdEdit
         />
         {imageUrl ? (
           <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-50 group">
-            <img src={imageUrl} alt="Preview" referrerPolicy="no-referrer" className="w-full max-h-48 object-contain" />
+            <img src={previewUrl || imageUrl} alt="Preview" referrerPolicy="no-referrer" className="w-full max-h-48 object-contain" />
             <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/40 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
               <button
                 type="button"
@@ -162,7 +164,7 @@ export default function AdEditorModal({ initialAd, onSuccess, onCancel }: AdEdit
               </button>
               <button
                 type="button"
-                onClick={() => setImageUrl('')}
+                onClick={() => { setImageUrl(''); setPreviewUrl(''); }}
                 className="p-1.5 rounded-lg bg-white text-slate-600 hover:bg-red-50 hover:text-red-600 transition"
                 title="Remove image"
               >

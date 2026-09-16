@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "@cykruit/prisma";
+import { UploadService } from "@cykruit/upload";
 import { BlogQueryDto } from "./dto/blog-query.dto";
 import { EventQueryDto } from "./dto/event-query.dto";
 
 @Injectable()
 export class CmsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploadService: UploadService,
+  ) {}
 
   async getBlogPosts(dto: BlogQueryDto) {
     const page = dto.page || 1;
@@ -158,7 +162,11 @@ export class CmsService {
       // Already ordered by updatedAt desc, so the first hit per slot is the
       // most-recently-updated active ad — later duplicates are ignored.
       if (!bySlot[ad.slotKey]) {
-        bySlot[ad.slotKey] = { imageUrl: ad.imageUrl, linkUrl: ad.linkUrl, altText: ad.altText };
+        bySlot[ad.slotKey] = {
+          imageUrl: (await this.uploadService.convertToPresignedUrl(ad.imageUrl)) ?? ad.imageUrl,
+          linkUrl: ad.linkUrl,
+          altText: ad.altText,
+        };
       }
     }
     return bySlot;
@@ -171,6 +179,11 @@ export class CmsService {
       orderBy: { updatedAt: "desc" },
       select: { imageUrl: true, linkUrl: true, altText: true },
     });
-    return ads;
+    return Promise.all(
+      ads.map(async (ad) => ({
+        ...ad,
+        imageUrl: (await this.uploadService.convertToPresignedUrl(ad.imageUrl)) ?? ad.imageUrl,
+      })),
+    );
   }
 }

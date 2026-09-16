@@ -994,6 +994,7 @@ export interface Ad {
   id: string;
   slotKey: string;
   imageUrl: string;
+  previewUrl?: string;
   linkUrl: string;
   altText: string;
   isActive: boolean;

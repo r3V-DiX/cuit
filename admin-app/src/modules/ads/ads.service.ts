@@ -17,17 +17,26 @@ export class AdsService {
 
     async uploadImage(file: Express.Multer.File) {
         const result = await this.uploadService.uploadFile(file, UPLOAD_CONFIGS.AD_CREATIVE);
-        return { imageUrl: result.fileUrl };
+        const previewUrl = await this.uploadService.convertToPresignedUrl(result.fileUrl);
+        return { imageUrl: result.fileUrl, previewUrl: previewUrl ?? result.fileUrl };
     }
 
-    list(query: AdminAdsQueryDto) {
-        return this.repo.findAll(query);
+    async list(query: AdminAdsQueryDto) {
+        const result = await this.repo.findAll(query);
+        result.items = await Promise.all(
+            result.items.map(async (ad) => ({
+                ...ad,
+                previewUrl: (await this.uploadService.convertToPresignedUrl(ad.imageUrl)) ?? ad.imageUrl,
+            })),
+        );
+        return result;
     }
 
     async getById(id: string) {
         const ad = await this.repo.findById(id);
         if (!ad) throw new NotFoundException('Ad not found');
-        return ad;
+        const previewUrl = await this.uploadService.convertToPresignedUrl(ad.imageUrl);
+        return { ...ad, previewUrl: previewUrl ?? ad.imageUrl };
     }
 
     async create(adminId: string, dto: CreateAdDto) {

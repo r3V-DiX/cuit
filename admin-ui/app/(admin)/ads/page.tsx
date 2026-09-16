@@ -283,7 +283,7 @@ export default function AdsPage() {
               <div className="relative aspect-video w-full bg-slate-100 overflow-hidden">
                 {ad.imageUrl ? (
                   <img
-                    src={ad.imageUrl}
+                    src={ad.previewUrl || ad.imageUrl}
                     alt={ad.altText}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover"

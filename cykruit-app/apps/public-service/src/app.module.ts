@@ -10,6 +10,7 @@ import {
 } from "@cykruit/context";
 import { CommonModule } from "@cykruit/common";
 import { RateLimitModule } from "@cykruit/rate-limit";
+import { UploadModule } from "@cykruit/upload";
 
 // Domain Modules
 import { LocationsModule } from "./locations/locations.module";
@@ -52,6 +53,7 @@ import { DomainsModule } from "./domains/domains.module";
     PrismaModule,
     CommonModule,
     RateLimitModule,
+    UploadModule,
 
     // Domain Modules
     LocationsModule,
