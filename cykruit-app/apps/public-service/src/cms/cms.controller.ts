@@ -113,4 +113,13 @@ export class CmsController {
   async getAds() {
     return this.cmsService.getActiveAds();
   }
+
+  @Get("ads/:slotKey")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Get all active ads for a single slot" })
+  @ApiParam({ name: "slotKey", type: String })
+  @ApiResponse({ status: 200, description: "List of active ad creatives for the slot." })
+  async getAdsBySlot(@Param("slotKey") slotKey: string) {
+    return this.cmsService.getAdsBySlot(slotKey);
+  }
 }

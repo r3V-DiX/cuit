@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import HeroSection from "@/components/landing/HeroSection";
+import AdCarousel from "@/components/AdCarousel";
 
 export const metadata: Metadata = {
   title: "Cykruit — Cybersecurity Jobs Platform",
@@ -67,6 +68,9 @@ export default async function LandingPage() {
         <div className="relative bg-white">
           <div className="absolute inset-0 bg-grid-hero pointer-events-none" />
           <HeroSection />
+        </div>
+        <div className="py-8">
+          <AdCarousel slotKey="landing-hero-strip" />
         </div>
         <FeaturedJobsSection jobs={jobs} />
         <HowItWorksSection />

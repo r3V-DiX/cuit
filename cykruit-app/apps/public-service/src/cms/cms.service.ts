@@ -163,4 +163,14 @@ export class CmsService {
     }
     return bySlot;
   }
+
+  /** All active ads for one slot, undeduped — used by carousel-style slots that show multiple cards. */
+  async getAdsBySlot(slotKey: string): Promise<{ imageUrl: string; linkUrl: string; altText: string }[]> {
+    const ads = await this.prisma.ad.findMany({
+      where: { slotKey, isActive: true },
+      orderBy: { updatedAt: "desc" },
+      select: { imageUrl: true, linkUrl: true, altText: true },
+    });
+    return ads;
+  }
 }
