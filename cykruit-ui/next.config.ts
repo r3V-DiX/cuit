@@ -116,11 +116,11 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/api/domains",
-        destination: `${PUBLIC_URL}/domains`,
+        destination: `${PUBLIC_URL}/public/domains`,
       },
       {
         source: "/api/roles",
-        destination: `${PUBLIC_URL}/roles`,
+        destination: `${PUBLIC_URL}/public/roles`,
       },
       {
         source: "/api/profiles/:path*",

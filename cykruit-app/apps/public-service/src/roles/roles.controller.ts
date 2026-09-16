@@ -4,6 +4,7 @@ import { Public } from "@cykruit/auth-core";
 import { SkipRateLimit } from "@cykruit/rate-limit";
 import { RolesService } from "./roles.service";
 import { RolesSearchDto } from "./dto/roles-search.dto";
+import { RolesListDto } from "./dto/roles-list.dto";
 
 @ApiTags("roles")
 @Controller("roles")
@@ -11,6 +12,15 @@ import { RolesSearchDto } from "./dto/roles-search.dto";
 @SkipRateLimit()
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "List job roles, optionally filtered by domain" })
+  @ApiQuery({ name: "domainId", type: String, required: false })
+  @ApiResponse({ status: 200, description: "List of roles." })
+  async list(@Query() query: RolesListDto) {
+    return this.rolesService.listRoles(query.domainId);
+  }
 
   @Get("search")
   @HttpCode(HttpStatus.OK)

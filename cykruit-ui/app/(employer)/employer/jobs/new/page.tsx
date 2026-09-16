@@ -179,6 +179,9 @@ export default function PostJobPage() {
   const [domainId, setDomainId]         = useState("");
   const [domainsList, setDomainsList]   = useState<{ id: string; name: string; slug: string }[]>([]);
   const [loadingDomains, setLoadingDomains] = useState(false);
+  const [roleId, setRoleId]             = useState("");
+  const [rolesList, setRolesList]       = useState<{ id: string; name: string }[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(false);
   const [durationMonths, setDurationMonths] = useState<number | "">("");
   const [type, setType]                 = useState("");
   const [level, setLevel]               = useState("");
@@ -202,6 +205,30 @@ export default function PostJobPage() {
     }
     loadDomains();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadRoles() {
+      setLoadingRoles(true);
+      try {
+        const res = await fetch(`/api/roles${domainId ? `?domainId=${domainId}` : ""}`);
+        if (res.ok) {
+          const data = await res.json();
+          const items = Array.isArray(data) ? data : (data?.data ?? []);
+          if (!cancelled) {
+            setRolesList(items);
+            setRoleId((prev) => (prev && !items.some((r: { id: string }) => r.id === prev) ? "" : prev));
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load roles", err);
+      } finally {
+        if (!cancelled) setLoadingRoles(false);
+      }
+    }
+    loadRoles();
+    return () => { cancelled = true; };
+  }, [domainId]);
   const [isDrafting, setIsDrafting]     = useState(false);
   const [remote, setRemote]             = useState("");
   const [description, setDescription]   = useState("");
@@ -398,6 +425,7 @@ export default function PostJobPage() {
         body: JSON.stringify({
           jobTitle: title.trim(),
           domainId: domainId || undefined,
+          roleId: roleId || undefined,
           jobType: typeMap[type],
           durationMonths: (type === "Contract" || type === "Internship") && typeof durationMonths === "number" ? durationMonths : undefined,
           workMode: modeMap[remote],
@@ -482,6 +510,7 @@ export default function PostJobPage() {
         body: JSON.stringify({
           jobTitle: title.trim(),
           domainId: domainId || undefined,
+          roleId: roleId || undefined,
           jobType: typeMap[type],
           durationMonths: (type === "Contract" || type === "Internship") && typeof durationMonths === "number" ? durationMonths : undefined,
           workMode: modeMap[remote],
@@ -619,6 +648,25 @@ export default function PostJobPage() {
                     </button>
                   </div>
                   <p className="text-[10px] font-mono text-slate-400">Select domain or click AI Fill to auto-detect</p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-slate-700">Job Role</label>
+                  <div className="relative">
+                    <select
+                      value={roleId}
+                      onChange={(e) => setRoleId(e.target.value)}
+                      className="w-full appearance-none bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/10 pr-8 cursor-pointer"
+                    >
+                      <option value="">{loadingRoles ? "Loading roles..." : "Select role…"}</option>
+                      {rolesList.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  </div>
+                  <p className="text-[10px] font-mono text-slate-400">Select the specific job role, e.g. Penetration Tester</p>
                 </div>
                 <SelectField label="Experience Level" value={level} onChange={setLevel} options={LEVELS} required />
                 <SelectField label="Job Type" value={type} onChange={setType} options={JOB_TYPES} required />

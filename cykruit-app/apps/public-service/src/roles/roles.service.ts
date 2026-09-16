@@ -22,4 +22,19 @@ export class RolesService {
       take: 20,
     });
   }
+
+  async listRoles(domainId?: string) {
+    return this.prisma.role.findMany({
+      where: {
+        isActive: true,
+        ...(domainId ? { domainId } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        domain: { select: { id: true, name: true, slug: true } },
+      },
+      orderBy: { name: "asc" },
+    });
+  }
 }
