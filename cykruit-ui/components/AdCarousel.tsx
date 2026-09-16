@@ -98,7 +98,7 @@ export default function AdCarousel({ slotKey }: { slotKey: string }) {
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex">
           {ads.map((ad, i) => (
-            <div className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%] min-w-0 px-2" key={i}>
+            <div className="flex-[0_0_100%] min-w-0" key={i}>
               <AdCard ad={ad} />
             </div>
           ))}
