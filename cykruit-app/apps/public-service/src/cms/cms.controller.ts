@@ -114,6 +114,16 @@ export class CmsController {
     return this.cmsService.getActiveAds();
   }
 
+  @Get("ads/detail/:id")
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Get a single ad by id" })
+  @ApiParam({ name: "id", type: String })
+  @ApiResponse({ status: 200, description: "Ad creative details." })
+  @ApiResponse({ status: 404, description: "Ad not found." })
+  async getAdById(@Param("id") id: string) {
+    return this.cmsService.getAdById(id);
+  }
+
   @Get("ads/:slotKey")
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: "Get all active ads for a single slot" })

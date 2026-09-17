@@ -173,11 +173,13 @@ export class CmsService {
   }
 
   /** All active ads for one slot, undeduped — used by carousel-style slots that show multiple cards. */
-  async getAdsBySlot(slotKey: string): Promise<{ imageUrl: string; linkUrl: string; altText: string }[]> {
+  async getAdsBySlot(
+    slotKey: string,
+  ): Promise<{ id: string; imageUrl: string; linkUrl: string; altText: string }[]> {
     const ads = await this.prisma.ad.findMany({
       where: { slotKey, isActive: true },
       orderBy: { updatedAt: "desc" },
-      select: { imageUrl: true, linkUrl: true, altText: true },
+      select: { id: true, imageUrl: true, linkUrl: true, altText: true },
     });
     return Promise.all(
       ads.map(async (ad) => ({
@@ -185,5 +187,24 @@ export class CmsService {
         imageUrl: (await this.uploadService.convertToPresignedUrl(ad.imageUrl)) ?? ad.imageUrl,
       })),
     );
+  }
+
+  /** Single ad by id — backs the /ads/:id interstitial redirect page. */
+  async getAdById(
+    id: string,
+  ): Promise<{ id: string; imageUrl: string; linkUrl: string; altText: string; slotKey: string }> {
+    const ad = await this.prisma.ad.findFirst({
+      where: { id, isActive: true },
+      select: { id: true, imageUrl: true, linkUrl: true, altText: true, slotKey: true },
+    });
+
+    if (!ad) {
+      throw new NotFoundException("Ad not found");
+    }
+
+    return {
+      ...ad,
+      imageUrl: (await this.uploadService.convertToPresignedUrl(ad.imageUrl)) ?? ad.imageUrl,
+    };
   }
 }

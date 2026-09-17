@@ -6,9 +6,11 @@
 // silent-fallback pattern as AdSlot.tsx.
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
 
 interface AdCreative {
+  id: string;
   imageUrl: string;
   linkUrl: string;
   altText: string;
@@ -18,10 +20,8 @@ const AUTOPLAY_INTERVAL_MS = 5000;
 
 function AdCard({ ad }: { ad: AdCreative }) {
   return (
-    <a
-      href={ad.linkUrl}
-      target="_blank"
-      rel="noopener sponsored"
+    <Link
+      href={`/ads/${ad.id}`}
       className="group relative flex flex-col rounded-2xl bg-white border border-slate-200 border-l-2 border-l-slate-200 shadow-sm hover:border-blue-300 hover:border-l-blue-400 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-200 overflow-hidden"
     >
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-blue-400/0 via-blue-500/60 to-blue-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10" />
@@ -34,7 +34,7 @@ function AdCard({ ad }: { ad: AdCreative }) {
         referrerPolicy="no-referrer"
         className="w-full h-full min-h-[180px] object-cover"
       />
-    </a>
+    </Link>
   );
 }
 
