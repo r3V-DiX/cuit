@@ -9,6 +9,7 @@ import { seedTestimonials } from './testimonials.seed';
 import { seedJobs } from './jobs.seed';
 import { seedPlatformSettings } from './platform-settings.seed';
 import { seedSuggestions } from './suggestions.seed';
+import { seedAds } from './ads.seed';
 
 const prisma = new PrismaClient();
 
@@ -101,6 +102,12 @@ async function main() {
         await seedSuggestions(prisma);
     } catch (e) {
         console.error('❌ Suggestions seeding failed:', e);
+    }
+
+    try {
+        await seedAds(prisma);
+    } catch (e) {
+        console.error('❌ Ads seeding failed:', e);
     }
 
     console.log('\n================================================');

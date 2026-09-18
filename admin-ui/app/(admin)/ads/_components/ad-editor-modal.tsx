@@ -15,10 +15,12 @@ interface AdEditorModalProps {
 }
 
 const KNOWN_SLOTS = [
+  'landing-hero-strip',
   'jobs-grid',
   'blogs-banner',
   'blogs-grid',
   'blog-article-end',
+  'whats-new-banner',
   'whats-new-grid',
   'whats-new-article-end',
 ];

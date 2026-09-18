@@ -21,12 +21,12 @@ const AUTOPLAY_INTERVAL_MS = 5000;
 function AdCard({ ad }: { ad: AdCreative }) {
   return (
     <Link
-      href={`/ads/${ad.id}`}
+      href={`/spotlight/${ad.id}`}
       className="group relative flex flex-col rounded-2xl bg-white border border-slate-200 border-l-2 border-l-slate-200 shadow-sm hover:border-blue-300 hover:border-l-blue-400 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-200 overflow-hidden"
     >
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-blue-400/0 via-blue-500/60 to-blue-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10" />
-      <span className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono uppercase tracking-wide bg-slate-900/70 text-white backdrop-blur-sm">
-        Sponsored
+      <span className="absolute top-2.5 right-2.5 z-10 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-slate-900/80 text-white backdrop-blur-sm">
+        Featured Partner
       </span>
       <img
         src={ad.imageUrl}
