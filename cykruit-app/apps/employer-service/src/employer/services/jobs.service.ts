@@ -143,7 +143,7 @@ export class JobsService {
         jobId: string,
         isResubmission: boolean,
     ): void {
-        const adminUrl = this.configService.get<string>('ADMIN_URL') ?? 'http://localhost:3001';
+        const adminUrl = this.configService.get<string>('ADMIN_URL') ?? 'http://localhost:3100';
         const reviewUrl = `${adminUrl}/jobs/${jobId}`;
 
         this.prisma.admin.findMany({

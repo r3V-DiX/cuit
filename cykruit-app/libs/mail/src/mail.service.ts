@@ -32,6 +32,7 @@ export class MailService {
   private resend: Resend;
   private fromEmail: string;
   private frontendUrl: string;
+  private adminUrl: string;
   private readonly isDev: boolean;
 
   constructor(
@@ -54,7 +55,20 @@ export class MailService {
     this.frontendUrl = /^https?:\/\/.+/.test(rawAppUrl)
       ? rawAppUrl.replace(/\/+$/, "")
       : "http://localhost:3000";
+    const rawAdminUrl = this.configService.get<string>("ADMIN_URL") || "";
+    this.adminUrl = /^https?:\/\/.+/.test(rawAdminUrl)
+      ? rawAdminUrl.replace(/\/+$/, "")
+      : "http://localhost:3100";
     this.isDev = this.configService.get<string>("NODE_ENV") !== "production";
+  }
+
+  /** Notification actionUrls arrive as relative paths (e.g. "/employer/jobs/:id") —
+   *  resolve them against the given base so email clients get a real absolute link
+   *  instead of a bare path with no domain. Already-absolute URLs pass through untouched. */
+  private resolveActionUrl(actionUrl: string | undefined, base: string): string | undefined {
+    if (!actionUrl) return undefined;
+    if (/^https?:\/\//.test(actionUrl)) return actionUrl;
+    return `${base}${actionUrl.startsWith("/") ? "" : "/"}${actionUrl}`;
   }
 
   async sendVerificationEmail(email: string, verifyUrl: string): Promise<void> {
@@ -156,13 +170,14 @@ export class MailService {
     firstName?: string,
   ): Promise<void> {
     try {
+      const resolvedActionUrl = this.resolveActionUrl(actionUrl, this.frontendUrl);
       const { error } = await this.resend.emails.send({
         from: `Cykruit <${this.fromEmail}>`,
         replyTo: "support@cykruit.com",
         to: email,
         subject: "New notification from Cykruit",
-        text: `${firstName ? `Hi ${firstName},\n\n` : ""}${message}${actionUrl ? `\n\nView details: ${actionUrl}` : ""}\n\n-- Cykruit Team`,
-        html: notificationTemplate(message, actionUrl, firstName),
+        text: `${firstName ? `Hi ${firstName},\n\n` : ""}${message}${resolvedActionUrl ? `\n\nView details: ${resolvedActionUrl}` : ""}\n\n-- Cykruit Team`,
+        html: notificationTemplate(message, resolvedActionUrl, firstName),
       });
 
       if (error) throw new Error(error.message);
@@ -187,13 +202,14 @@ export class MailService {
     firstName?: string,
   ): Promise<void> {
     try {
+      const resolvedActionUrl = this.resolveActionUrl(actionUrl, this.adminUrl);
       const { error } = await this.resend.emails.send({
         from: `Cykruit <${this.fromEmail}>`,
         replyTo: "support@cykruit.com",
         to: email,
         subject: `[Admin] ${title}`,
-        text: `${firstName ? `Hi ${firstName},\n\n` : ""}${message}${actionUrl ? `\n\nView details: ${actionUrl}` : ""}\n\n-- Cykruit Team`,
-        html: adminNotificationTemplate(title, message, actionUrl, firstName),
+        text: `${firstName ? `Hi ${firstName},\n\n` : ""}${message}${resolvedActionUrl ? `\n\nView details: ${resolvedActionUrl}` : ""}\n\n-- Cykruit Team`,
+        html: adminNotificationTemplate(title, message, resolvedActionUrl, firstName),
       });
 
       if (error) throw new Error(error.message);
