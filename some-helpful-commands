@@ -1,0 +1,30 @@
+sudo certbot --nginx -d cykruit.com -d www.cykruit.com -d api.cykruit.com -d admin.cykruit.com -d admin-api.cykruit.com --non-interactive --agree-tos --email admin@rkavach.com --redirect
+
+
+sudo docker exec -it cykruit-backend sh
+sudo docker exec -it cykruit-frontend sh
+
+
+ssh -i "cykruit-prod-key.pem" ubuntu@ec2-13-232-105-168.ap-south-1.compute.amazonaws.com
+
+
+
+z
+
+
+
+
+
+
+
+
+cd /opt/cykruit-prod
+
+# Update docker-compose.yml back to Docker Hub images
+sudo sed -i 's|443370715886.dkr.ecr.ap-south-1.amazonaws.com/job-seeker-ui-backend|akshaydevsec/job-seeker-ui-backend|g' docker-compose.yml
+sudo sed -i 's|443370715886.dkr.ecr.ap-south-1.amazonaws.com/job-seeker-ui-frontend|akshaydevsec/job-seeker-ui-frontend|g' docker-compose.yml
+sudo sed -i 's|443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-admin-backend|akshaydevsec/cykruit-admin-backend|g' docker-compose.yml
+sudo sed -i 's|443370715886.dkr.ecr.ap-south-1.amazonaws.com/cykruit-admin-frontend|akshaydevsec/cykruit-admin-frontend|g' docker-compose.yml
+
+# Bring everything back up
+sudo docker compose up -d --force-recreate
