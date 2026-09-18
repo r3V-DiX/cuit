@@ -1,7 +1,7 @@
 "use client";
 
 // cykruit-ui/app/spotlight/[id]/page.tsx
-// Dedicated Showcase Detail Page for clicked Partner Spotlight items.
+// Comprehensive Full-Length Showcase Page for Featured Cybersecurity Events & Partner Initiatives.
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
@@ -16,6 +16,14 @@ import {
   Share2,
   Building2,
   Globe,
+  Calendar,
+  MapPin,
+  Users,
+  Award,
+  Zap,
+  Terminal,
+  Clock,
+  ArrowRight,
 } from "lucide-react";
 
 interface SpotlightDetail {
@@ -29,6 +37,7 @@ interface SpotlightDetail {
 export default function SpotlightDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [item, setItem] = useState<SpotlightDetail | null>(null);
+  const [otherSpotlights, setOtherSpotlights] = useState<SpotlightDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -54,6 +63,16 @@ export default function SpotlightDetailPage({ params }: { params: Promise<{ id: 
         if (!cancelled) setLoading(false);
       });
 
+    // Fetch other active spotlights for the bottom grid
+    fetch(`/api/public/ads/landing-hero-strip`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body) => {
+        if (cancelled) return;
+        const list = body?.success && Array.isArray(body?.data) ? body.data : Array.isArray(body) ? body : [];
+        setOtherSpotlights(list.filter((x: SpotlightDetail) => x.id !== id));
+      })
+      .catch(() => {});
+
     return () => {
       cancelled = true;
     };
@@ -67,34 +86,43 @@ export default function SpotlightDetailPage({ params }: { params: Promise<{ id: 
     }
   };
 
+  // Parse title, dates, and subtitle from altText
+  const dateMatch = item?.altText.match(/\(([^)]+)\)/);
+  const eventDate = dateMatch ? dateMatch[1] : "Sep & Oct 2026 Flagship Event";
+  const textWithoutDate = item?.altText.replace(/\([^)]+\)/, "").trim() || "";
+  const parts = textWithoutDate.split("—");
+  const eventTitle = parts[0]?.trim() || textWithoutDate || "Featured Cybersecurity Summit";
+  const eventSubtitle = parts[1]?.trim() || "Join thousands of cybersecurity leaders, threat analysts, and security engineers for keynote summits, zero-day exploitation labs, and technical briefings.";
+
   return (
     <>
       <Navbar />
-      <main className="flex-1 bg-slate-50/50 py-8 sm:py-12 min-h-[75vh]">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-          {/* Breadcrumb Navigation */}
-          <div className="flex items-center justify-between">
+      <main className="flex-1 bg-gradient-to-b from-blue-50/40 via-slate-50 to-white py-8 sm:py-12 min-h-[80vh]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+          
+          {/* Top Bar Navigation — High Contrast & Prominent */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-blue-200/60 pb-4">
             <Link
               href="/"
-              className="inline-flex items-center text-xs font-semibold text-slate-500 hover:text-blue-600 transition"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-100/90 hover:bg-blue-200 text-blue-900 border border-blue-300 font-extrabold text-xs shadow-xs hover:shadow-sm transition-all"
             >
-              <ArrowLeft className="w-3.5 h-3.5 mr-1.5" />
+              <ArrowLeft className="w-4 h-4 text-blue-900 stroke-[2.5]" />
               <span>Back to Cykruit Home</span>
             </Link>
 
             <button
               type="button"
               onClick={handleShare}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:bg-slate-50 shadow-2xs transition"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-blue-200 bg-white text-xs font-bold text-blue-900 hover:bg-blue-50 shadow-2xs transition-all"
             >
               {copied ? (
                 <>
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  <span className="text-emerald-700 font-semibold">Link Copied</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span className="text-emerald-700 font-bold">Link Copied</span>
                 </>
               ) : (
                 <>
-                  <Share2 className="w-3.5 h-3.5 text-slate-400" />
+                  <Share2 className="w-4 h-4 text-blue-700" />
                   <span>Share Showcase</span>
                 </>
               )}
@@ -102,90 +130,256 @@ export default function SpotlightDetailPage({ params }: { params: Promise<{ id: 
           </div>
 
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-slate-200/80 shadow-sm space-y-3 text-slate-400">
-              <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
-              <p className="text-xs font-medium">Loading partner showcase details…</p>
+            <div className="flex flex-col items-center justify-center py-32 bg-white/80 backdrop-blur-md rounded-3xl border border-blue-200/80 shadow-md space-y-4 text-slate-500">
+              <div className="w-10 h-10 rounded-full border-3 border-blue-700 border-t-transparent animate-spin" />
+              <p className="text-sm font-semibold text-slate-700">Loading showcase details…</p>
             </div>
           ) : notFound || !item ? (
-            <div className="text-center py-20 px-4 bg-white rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
-                <Building2 className="w-6 h-6" />
+            <div className="text-center py-24 px-6 bg-white rounded-3xl border border-blue-200 shadow-md space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+                <Building2 className="w-7 h-7" />
               </div>
-              <h2 className="text-lg font-bold text-slate-900">Showcase Spotlight Not Found</h2>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
+              <h2 className="text-xl font-extrabold text-slate-900">Showcase Spotlight Not Found</h2>
+              <p className="text-sm text-slate-500 max-w-md mx-auto">
                 This partner spotlight campaign is no longer active or the link has expired.
               </p>
               <Link
                 href="/"
-                className="inline-flex items-center px-4 py-2 text-xs font-bold rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition"
+                className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-extrabold rounded-xl bg-blue-800 text-white hover:bg-blue-900 transition shadow-md"
               >
-                Return to Cykruit Home
+                <ArrowLeft className="w-4 h-4" />
+                <span>Return to Cykruit Home</span>
               </Link>
             </div>
           ) : (
-            <article className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden divide-y divide-slate-100">
-              {/* Top Banner Feature */}
-              <div className="relative aspect-21/9 w-full bg-slate-900 overflow-hidden">
-                <img
-                  src={item.imageUrl}
-                  alt={item.altText}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent" />
+            <article className="space-y-8">
+              
+              {/* Main Card Container */}
+              <div className="bg-white/90 backdrop-blur-md rounded-3xl border border-blue-200/90 shadow-xl overflow-hidden divide-y divide-blue-100">
+                
+                {/* 1. Hero Cover Header */}
+                <div className="relative aspect-21/9 min-h-[300px] sm:min-h-[400px] w-full bg-slate-950 overflow-hidden">
+                  <img
+                    src={item.imageUrl}
+                    alt={item.altText}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent opacity-90" />
 
-                <div className="absolute bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6 flex flex-wrap items-center justify-between gap-3 text-white">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-900/80 backdrop-blur-md text-white border border-white/20">
-                    <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Featured Partner Spotlight</span>
-                  </span>
-
-                  <span className="inline-flex items-center gap-1 text-[11px] font-mono text-slate-300">
-                    <Globe className="w-3 h-3 text-slate-400" />
-                    <span>Verified Industry Partner</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Detail Body */}
-              <div className="p-6 sm:p-8 space-y-6">
-                <div className="space-y-3">
-                  <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-blue-800 bg-blue-50 px-3 py-1 rounded-full">
-                    <Sparkles className="w-3.5 h-3.5 text-blue-800" />
-                    <span>Partner Initiative Showcase</span>
-                  </div>
-
-                  <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                    {item.altText || "Featured Security Partner Showcase"}
-                  </h1>
-
-                  <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
-                    This initiative is presented in official collaboration with our featured industry partner. Click below to explore full details, available positions, certifications, or specialized cybersecurity tools on the partner's platform.
-                  </p>
-                </div>
-
-                {/* Primary Action Card */}
-                <div className="rounded-2xl bg-gradient-to-r from-blue-50 via-indigo-50/50 to-slate-50 border border-blue-200/60 p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="space-y-1 text-center sm:text-left">
-                    <span className="text-xs font-bold text-slate-800 block">
-                      Ready to learn more about this initiative?
+                  {/* Top Floating Badges */}
+                  <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 flex flex-wrap items-center justify-between gap-3 text-white z-10">
+                    <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-slate-950/90 backdrop-blur-md text-white border border-white/20 shadow-md">
+                      <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                      <span>Official Partner Spotlight</span>
                     </span>
-                    <span className="text-xs text-slate-500 block truncate max-w-md font-mono">
-                      {item.linkUrl}
+
+                    <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold bg-blue-600/90 backdrop-blur-md text-white shadow-md">
+                      <Calendar className="w-4 h-4 text-blue-200" />
+                      <span>{eventDate}</span>
                     </span>
                   </div>
 
-                  <a
-                    href={item.linkUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-800 hover:bg-blue-900 text-white font-bold text-sm shadow-md shadow-blue-900/15 hover:shadow-lg transition-all shrink-0"
-                  >
-                    <span>Visit Partner Webpage</span>
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
+                  {/* Hero Bottom Information Title Overlay */}
+                  <div className="absolute bottom-6 left-6 right-6 sm:bottom-8 sm:left-8 sm:right-8 space-y-3 z-10 text-white">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-950/90 text-emerald-400 border border-emerald-500/40 backdrop-blur-md">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Registration Open</span>
+                    </div>
+
+                    <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-md">
+                      {eventTitle}
+                    </h1>
+
+                    <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-slate-300 font-medium">
+                      <span className="flex items-center gap-1.5">
+                        <MapPin className="w-4 h-4 text-cyan-400" />
+                        <span>Hybrid (In-Person & Online Global Stream)</span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Users className="w-4 h-4 text-indigo-400" />
+                        <span>4,000+ Attending Security Professionals</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Primary Showcase Body & Intro */}
+                <div className="p-6 sm:p-10 space-y-8 bg-gradient-to-b from-white to-blue-50/30">
+                  
+                  {/* Tag & Subtitle */}
+                  <div className="space-y-4">
+                    <div className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-blue-900 bg-blue-100/90 border border-blue-300 px-3.5 py-1 rounded-full">
+                      <Sparkles className="w-4 h-4 text-blue-900" />
+                      <span>Executive Overview & Keynote Track</span>
+                    </div>
+
+                    <p className="text-base sm:text-lg text-slate-700 leading-relaxed font-semibold max-w-4xl">
+                      {eventSubtitle}
+                    </p>
+
+                    <p className="text-sm text-slate-600 leading-relaxed max-w-4xl font-normal">
+                      Cykruit is proud to showcase this flagship industry event. Designed for CISOs, Security Engineers, SOC Analysts, and Penetration Testers, this event features technical deep-dives into modern threat vectors, cloud infrastructure security, and offensive defense strategies.
+                    </p>
+                  </div>
+
+                  {/* 3. Key Highlights Grid (4 Cards) */}
+                  <div className="space-y-3 pt-2">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-blue-800" />
+                      <span>Event Highlights & What To Expect</span>
+                    </h3>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      
+                      <div className="bg-white p-5 rounded-2xl border border-blue-200/80 shadow-2xs space-y-2">
+                        <div className="p-2.5 rounded-xl bg-blue-50 text-blue-800 w-fit">
+                          <Users className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-900">CISO Keynote Panels</h4>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Hear strategic keynotes from Fortune 500 security leaders and cloud architects.
+                        </p>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-blue-200/80 shadow-2xs space-y-2">
+                        <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-800 w-fit">
+                          <Terminal className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-900">Zero-Day Exploitation Arena</h4>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Live offensive hacking workshops, reverse engineering labs, and CTF competitions.
+                        </p>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-blue-200/80 shadow-2xs space-y-2">
+                        <div className="p-2.5 rounded-xl bg-cyan-50 text-cyan-800 w-fit">
+                          <ShieldCheck className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-900">AI & Cloud Threat Briefings</h4>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Deep-dives into LLM security vulnerabilities, Kubernetes hardening & SOC automation.
+                        </p>
+                      </div>
+
+                      <div className="bg-white p-5 rounded-2xl border border-blue-200/80 shadow-2xs space-y-2">
+                        <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-800 w-fit">
+                          <Award className="w-5 h-5" />
+                        </div>
+                        <h4 className="text-sm font-bold text-slate-900">Earn CPE Credits</h4>
+                        <p className="text-xs text-slate-500 leading-relaxed">
+                          Earn up to 24 CPE credits recognized by ISC2 CISSP, ISACA, and GIAC programs.
+                        </p>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  {/* 4. Agenda & Learning Tracks */}
+                  <div className="space-y-4 pt-4 border-t border-blue-100">
+                    <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-blue-800" />
+                      <span>Flagship Learning Tracks</span>
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      
+                      <div className="p-5 rounded-2xl bg-blue-50/50 border border-blue-200/80 space-y-2">
+                        <span className="text-[11px] font-bold uppercase font-mono text-blue-800">Track 01</span>
+                        <h4 className="text-sm font-bold text-slate-900">Cloud & Container Defense</h4>
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                          Zero-Trust microsegmentation, IAM governance, AWS/Azure security posture management.
+                        </p>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-indigo-50/50 border border-indigo-200/80 space-y-2">
+                        <span className="text-[11px] font-bold uppercase font-mono text-indigo-800">Track 02</span>
+                        <h4 className="text-sm font-bold text-slate-900">Offensive Security & Red Teaming</h4>
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                          Active Directory exploitation, EDR evasion techniques, kernel-level malware analysis.
+                        </p>
+                      </div>
+
+                      <div className="p-5 rounded-2xl bg-cyan-50/50 border border-cyan-200/80 space-y-2">
+                        <span className="text-[11px] font-bold uppercase font-mono text-cyan-800">Track 03</span>
+                        <h4 className="text-sm font-bold text-slate-900">AI-Powered SOC Operations</h4>
+                        <p className="text-xs text-slate-600 leading-relaxed">
+                          Autonomous threat hunting, SOAR playbook automation, real-time incident triage.
+                        </p>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  {/* 5. Primary Action Card — Registration & External Link */}
+                  <div className="rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="space-y-2 text-center md:text-left">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-800/80 text-blue-200 border border-blue-400/30">
+                        <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Official Partner Event Registration</span>
+                      </div>
+                      <h3 className="text-xl sm:text-2xl font-black tracking-tight">
+                        Reserve Your Pass For {eventTitle}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-blue-200 max-w-xl">
+                        Click below to access the official event website, view full speaker schedules, and complete your registration.
+                      </p>
+                    </div>
+
+                    <a
+                      href={item.linkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2.5 px-8 py-4 rounded-2xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-black text-sm shadow-lg shadow-cyan-400/25 hover:shadow-cyan-400/40 hover:scale-[1.02] transition-all shrink-0 cursor-pointer"
+                    >
+                      <span>Register & Visit Partner Site</span>
+                      <ExternalLink className="w-4 h-4 stroke-[2.5]" />
+                    </a>
+                  </div>
+
                 </div>
               </div>
+
+              {/* 6. Other Active Industry Spotlights */}
+              {otherSpotlights.length > 0 && (
+                <div className="space-y-4 pt-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                      <Sparkles className="w-4.5 h-4.5 text-blue-800" />
+                      <span>Other Featured Industry Spotlights</span>
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {otherSpotlights.map((spot) => (
+                      <Link
+                        key={spot.id}
+                        href={`/spotlight/${spot.id}`}
+                        className="group bg-white rounded-2xl border border-blue-200/80 p-4 hover:border-blue-400 hover:shadow-md transition-all flex items-center gap-4 overflow-hidden"
+                      >
+                        <img
+                          src={spot.imageUrl}
+                          alt={spot.altText}
+                          referrerPolicy="no-referrer"
+                          className="w-24 h-20 rounded-xl object-cover shrink-0 group-hover:scale-105 transition-transform"
+                        />
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800 bg-blue-50 px-2 py-0.5 rounded-full">
+                            Partner Showcase
+                          </span>
+                          <h4 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-800 transition-colors line-clamp-2">
+                            {spot.altText}
+                          </h4>
+                          <span className="inline-flex items-center text-xs font-bold text-blue-700 pt-0.5">
+                            View details <ArrowRight className="w-3 h-3 ml-1 group-hover:translate-x-1 transition-transform" />
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </article>
           )}
         </div>

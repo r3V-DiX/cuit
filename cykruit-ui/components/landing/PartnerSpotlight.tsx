@@ -1,7 +1,7 @@
 "use client";
 
 // cykruit-ui/components/landing/PartnerSpotlight.tsx
-// Ultra-attractive Spotlight Showcase for Flagship Cybersecurity Events (Sep/Oct 2026).
+// High-Impact Spotlight Showcase for Flagship Cybersecurity Events & Initiatives.
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -15,6 +15,7 @@ import {
   Flame,
   ChevronLeft,
   ChevronRight,
+  Zap,
 } from "lucide-react";
 
 interface SpotlightItem {
@@ -27,38 +28,43 @@ interface SpotlightItem {
 const AUTOPLAY_INTERVAL_MS = 6000;
 
 function SpotlightCard({ item }: { item: SpotlightItem }) {
-  // Extract date string from title if present, e.g. (Sept 28 - Oct 1, 2026)
+  // Extract date string from title if present inside parentheses, e.g. (Sept 28 - Oct 1, 2026)
   const dateMatch = item.altText.match(/\(([^)]+)\)/);
   const eventDate = dateMatch ? dateMatch[1] : null;
-  const eventTitle = item.altText.replace(/\([^)]+\)/, "").trim();
+
+  // Split title and subtitle by "—" or "-" if provided in Admin Panel altText
+  const textWithoutDate = item.altText.replace(/\([^)]+\)/, "").trim();
+  const parts = textWithoutDate.split("—");
+  const eventTitle = parts[0]?.trim() || textWithoutDate;
+  const eventSubtitle = parts[1]?.trim() || "Join thousands of cybersecurity leaders, threat analysts, and security engineers. Explore live technical briefings, zero-day exploitation labs, and keynote summits.";
 
   return (
     <Link
       href={`/spotlight/${item.id}`}
-      className="group relative flex flex-col lg:flex-row items-stretch gap-6 rounded-3xl bg-gradient-to-br from-white via-slate-50/50 to-blue-50/30 border border-slate-200/90 p-5 sm:p-7 shadow-md hover:shadow-2xl hover:border-blue-400 hover:shadow-blue-500/12 transition-all duration-300 overflow-hidden"
+      className="group relative flex flex-col lg:flex-row items-stretch gap-8 rounded-3xl bg-blue-50/40 backdrop-blur-xl border border-blue-200/70 p-6 sm:p-8 shadow-lg shadow-blue-950/5 hover:bg-blue-50/70 hover:border-blue-300 hover:shadow-2xl hover:shadow-blue-500/12 transition-all duration-300 overflow-hidden"
     >
-      {/* Top Gradient Highlight Bar */}
+      {/* Signature Blue Gradient Highlight Bar */}
       <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 opacity-90 group-hover:opacity-100 transition-opacity duration-300 z-20" />
 
-      {/* Creative Media Preview */}
-      <div className="relative w-full lg:w-3/5 aspect-16/9 lg:aspect-21/9 rounded-2xl overflow-hidden bg-slate-950 shrink-0 shadow-inner">
+      {/* Media Preview — Increased Height & Scale FX */}
+      <div className="relative w-full lg:w-3/5 min-h-[260px] sm:min-h-[320px] lg:min-h-[360px] rounded-2xl overflow-hidden bg-slate-950 shrink-0 shadow-md">
         <img
           src={item.imageUrl}
           alt={item.altText}
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent opacity-70 group-hover:opacity-50 transition-opacity" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/30 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
 
         {/* Floating Top Badges */}
-        <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide bg-slate-950/85 text-white border border-white/15 backdrop-blur-md shadow-md">
-            <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+        <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wide bg-slate-950/85 text-white border border-white/20 backdrop-blur-md shadow-md">
+            <ShieldCheck className="w-4 h-4 text-cyan-400" />
             <span>Featured Summit</span>
           </span>
 
           {eventDate && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-600/90 text-white backdrop-blur-md shadow-md">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-blue-600/90 text-white backdrop-blur-md shadow-md border border-blue-400/30">
               <Calendar className="w-3.5 h-3.5 text-blue-200" />
               <span>{eventDate}</span>
             </span>
@@ -66,39 +72,44 @@ function SpotlightCard({ item }: { item: SpotlightItem }) {
         </div>
 
         {/* Live Status Indicator */}
-        <div className="absolute bottom-3 left-3 z-10 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 backdrop-blur-md">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="absolute bottom-4 left-4 z-10 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-950/90 text-emerald-400 border border-emerald-500/40 backdrop-blur-md shadow-md">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
           <span>Registration Open</span>
         </div>
       </div>
 
       {/* Content Details */}
-      <div className="flex-1 flex flex-col justify-between w-full space-y-4 py-1">
-        <div className="space-y-3">
+      <div className="flex-1 flex flex-col justify-between w-full space-y-5 py-2">
+        <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-blue-900 bg-blue-100/80 border border-blue-200/60 px-2.5 py-0.5 rounded-full">
-              <Flame className="w-3 h-3 text-orange-500 fill-orange-500" />
-              <span>Sep / Oct 2026 Highlight</span>
+            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-blue-900 bg-blue-100/90 border border-blue-300/80 px-3 py-1 rounded-full shadow-2xs">
+              <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
+              <span>Flagship Industry Event</span>
+            </span>
+
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-indigo-800 bg-indigo-50 border border-indigo-200/80 px-2.5 py-0.5 rounded-full">
+              <Zap className="w-3 h-3 text-indigo-600" />
+              <span>Spotlight</span>
             </span>
           </div>
 
-          <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight leading-snug group-hover:text-blue-800 transition-colors">
+          <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight group-hover:text-blue-800 transition-colors">
             {eventTitle}
           </h3>
 
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed line-clamp-3 font-medium">
-            Join thousands of cybersecurity leaders, threat analysts, and security engineers. Explore live technical briefings, zero-day exploitation labs, and keynote summits.
+          <p className="text-sm text-slate-600 leading-relaxed font-medium line-clamp-4">
+            {eventSubtitle}
           </p>
         </div>
 
-        {/* Action Button */}
-        <div className="pt-3 border-t border-slate-200/60 flex items-center justify-between">
-          <span className="inline-flex items-center text-xs sm:text-sm font-extrabold text-blue-800 group-hover:text-blue-900 transition-colors">
-            <span>View Event & Register Showcase</span>
-            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1.5 transition-transform duration-300" />
+        {/* Action Button Card */}
+        <div className="pt-4 border-t border-blue-200/60 flex items-center justify-between gap-4">
+          <span className="inline-flex items-center text-sm font-extrabold text-blue-900 group-hover:text-blue-800 transition-colors">
+            <span>Explore Event Showcase & Details</span>
+            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-2 transition-transform duration-300 text-blue-700" />
           </span>
 
-          <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 text-slate-400 group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 shadow-2xs transition-all duration-300">
+          <div className="p-3 rounded-2xl bg-white border border-blue-200 text-blue-700 group-hover:bg-blue-800 group-hover:text-white group-hover:border-blue-800 shadow-sm transition-all duration-300 shrink-0">
             <ExternalLink className="w-4 h-4" />
           </div>
         </div>
@@ -120,7 +131,6 @@ export default function PartnerSpotlight({ slotKey = "landing-hero-strip" }: { s
       .then((body) => {
         const data = body?.success && body?.data !== undefined ? body.data : body;
         if (!cancelled) {
-          // Keep top 2 items for maximum impact
           const list = Array.isArray(data) ? data.slice(0, 2) : [];
           setItems(list);
         }
@@ -155,24 +165,24 @@ export default function PartnerSpotlight({ slotKey = "landing-hero-strip" }: { s
   if (items.length === 0) return null;
 
   return (
-    <section className="py-8 sm:py-10 bg-gradient-to-b from-slate-100/70 via-slate-50 to-white border-y border-slate-200/70">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+    <section className="py-12 sm:py-16 bg-gradient-to-b from-blue-50/50 via-slate-50/60 to-white border-y border-blue-100/80">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         {/* Section Header */}
-        <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 rounded-xl bg-blue-800 text-white shadow-md shadow-blue-900/15">
-              <Sparkles className="w-4 h-4" />
+        <div className="flex items-center justify-between border-b border-blue-200/70 pb-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 rounded-2xl bg-blue-800 text-white shadow-md shadow-blue-900/20">
+              <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-sm sm:text-base font-black uppercase tracking-wider text-slate-900">
+                <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-slate-900">
                   Featured Partner Spotlight
                 </h2>
-                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-900">
-                  Sep & Oct 2026 Flagship Summits
+                <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100/90 text-blue-900 border border-blue-200">
+                  Flagship Summits & Conferences
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium">
+              <p className="text-xs sm:text-sm text-slate-600 font-medium mt-0.5">
                 Premier cybersecurity conferences, global summits, and technical defense arenas
               </p>
             </div>
@@ -183,7 +193,7 @@ export default function PartnerSpotlight({ slotKey = "landing-hero-strip" }: { s
               <button
                 type="button"
                 onClick={() => emblaApi?.scrollPrev()}
-                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition shadow-2xs"
+                className="p-2 rounded-xl border border-blue-200 bg-white text-blue-900 hover:bg-blue-50 hover:border-blue-300 transition shadow-2xs"
                 aria-label="Previous event"
               >
                 <ChevronLeft className="w-4 h-4" />
@@ -196,8 +206,8 @@ export default function PartnerSpotlight({ slotKey = "landing-hero-strip" }: { s
                     type="button"
                     aria-label={`Go to slide ${i + 1}`}
                     onClick={() => emblaApi?.scrollTo(i)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      i === selectedIndex ? "w-7 bg-blue-800" : "w-2 bg-slate-300 hover:bg-slate-400"
+                    className={`h-2.5 rounded-full transition-all duration-300 ${
+                      i === selectedIndex ? "w-8 bg-blue-800" : "w-2.5 bg-blue-200 hover:bg-blue-300"
                     }`}
                   />
                 ))}
@@ -206,7 +216,7 @@ export default function PartnerSpotlight({ slotKey = "landing-hero-strip" }: { s
               <button
                 type="button"
                 onClick={() => emblaApi?.scrollNext()}
-                className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 transition shadow-2xs"
+                className="p-2 rounded-xl border border-blue-200 bg-white text-blue-900 hover:bg-blue-50 hover:border-blue-300 transition shadow-2xs"
                 aria-label="Next event"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -225,7 +235,7 @@ export default function PartnerSpotlight({ slotKey = "landing-hero-strip" }: { s
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
-            <div className="flex gap-4">
+            <div className="flex gap-6">
               {items.map((item) => (
                 <div className="flex-[0_0_100%] min-w-0" key={item.id}>
                   <SpotlightCard item={item} />
