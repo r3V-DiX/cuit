@@ -46,38 +46,38 @@ function SpotlightCard({ item }: { item: SpotlightItem }) {
   return (
     <Link
       href={`/spotlight/${item.id}`}
-      className="group relative flex flex-col lg:flex-row items-stretch gap-8 rounded-3xl bg-gradient-to-br from-blue-50/50 via-white to-sky-50/40 backdrop-blur-xl border border-blue-200/80 p-6 sm:p-8 shadow-xl shadow-blue-950/5 hover:bg-blue-50/80 hover:border-blue-300 hover:shadow-2xl hover:shadow-blue-500/15 transition-all duration-300 overflow-hidden"
+      className="group relative flex flex-col lg:flex-row items-stretch gap-8 rounded-3xl bg-gradient-to-br from-blue-50/70 via-sky-50/40 to-white backdrop-blur-xl border border-blue-200/80 p-6 sm:p-8 shadow-xl shadow-blue-500/5 hover:bg-blue-50/90 hover:border-blue-300 hover:shadow-2xl hover:shadow-blue-500/12 transition-all duration-300 overflow-hidden"
     >
-      {/* Signature Blue Gradient Highlight Bar */}
-      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 opacity-90 group-hover:opacity-100 transition-opacity duration-300 z-20" />
+      {/* Signature Light Blue Highlight Bar */}
+      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 via-sky-400 to-indigo-500 opacity-90 group-hover:opacity-100 transition-opacity duration-300 z-20" />
 
       {/* Media Preview — Increased Height & Scale FX */}
-      <div className="relative w-full lg:w-3/5 min-h-[280px] sm:min-h-[340px] lg:min-h-[380px] rounded-2xl overflow-hidden bg-slate-950 shrink-0 shadow-md">
+      <div className="relative w-full lg:w-3/5 min-h-[280px] sm:min-h-[340px] lg:min-h-[380px] rounded-2xl overflow-hidden bg-slate-900 shrink-0 shadow-md">
         <img
           src={item.imageUrl}
           alt={item.altText}
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/30 to-transparent opacity-85 group-hover:opacity-70 transition-opacity" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/75 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity" />
 
         {/* Floating Top Badges */}
         <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wide bg-slate-950/85 text-white border border-white/20 backdrop-blur-md shadow-md">
-            <ShieldCheck className="w-4 h-4 text-cyan-400" />
+          <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wide bg-blue-900/85 text-white border border-blue-300/30 backdrop-blur-md shadow-md">
+            <ShieldCheck className="w-4 h-4 text-cyan-300" />
             <span>Featured Summit</span>
           </span>
 
           {eventDate && (
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-blue-600/90 text-white backdrop-blur-md shadow-md border border-blue-400/30">
-              <Calendar className="w-3.5 h-3.5 text-blue-200" />
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-blue-600 text-white backdrop-blur-md shadow-md border border-blue-400/40">
+              <Calendar className="w-3.5 h-3.5 text-blue-100" />
               <span>{eventDate}</span>
             </span>
           )}
         </div>
 
         {/* Live Status Indicator */}
-        <div className="absolute bottom-4 left-4 z-10 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-950/90 text-emerald-400 border border-emerald-500/40 backdrop-blur-md shadow-md">
+        <div className="absolute bottom-4 left-4 z-10 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-900/85 text-emerald-300 border border-emerald-400/40 backdrop-blur-md shadow-md">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
           <span>Registration Open</span>
         </div>
@@ -87,18 +87,18 @@ function SpotlightCard({ item }: { item: SpotlightItem }) {
       <div className="flex-1 flex flex-col justify-between w-full space-y-6 py-2">
         <div className="space-y-4">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-blue-900 bg-blue-100/90 border border-blue-300 px-3 py-1 rounded-full shadow-2xs">
+            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-blue-900 bg-blue-100/90 border border-blue-200 px-3 py-1 rounded-full shadow-2xs">
               <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
               <span>Flagship Industry Event</span>
             </span>
 
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-indigo-800 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-full">
-              <Zap className="w-3 h-3 text-indigo-600" />
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-sky-800 bg-sky-100/80 border border-sky-200 px-2.5 py-0.5 rounded-full">
+              <Zap className="w-3 h-3 text-sky-600" />
               <span>Spotlight</span>
             </span>
           </div>
 
-          <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight group-hover:text-blue-800 transition-colors">
+          <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight group-hover:text-blue-700 transition-colors">
             {eventTitle}
           </h3>
 
@@ -108,16 +108,16 @@ function SpotlightCard({ item }: { item: SpotlightItem }) {
 
           {/* Quick Feature Badges on Right Side */}
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 bg-white/90 border border-blue-200 px-3 py-1 rounded-xl shadow-2xs">
-              <Users className="w-3.5 h-3.5 text-blue-700" />
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-900 bg-white border border-blue-200 px-3 py-1 rounded-xl shadow-2xs">
+              <Users className="w-3.5 h-3.5 text-blue-600" />
               <span>CISO Keynotes & Briefings</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 bg-white/90 border border-blue-200 px-3 py-1 rounded-xl shadow-2xs">
-              <Terminal className="w-3.5 h-3.5 text-indigo-700" />
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-900 bg-white border border-blue-200 px-3 py-1 rounded-xl shadow-2xs">
+              <Terminal className="w-3.5 h-3.5 text-indigo-600" />
               <span>Zero-Day Exploitation Arena</span>
             </span>
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-700 bg-white/90 border border-blue-200 px-3 py-1 rounded-xl shadow-2xs">
-              <Award className="w-3.5 h-3.5 text-emerald-700" />
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-900 bg-white border border-blue-200 px-3 py-1 rounded-xl shadow-2xs">
+              <Award className="w-3.5 h-3.5 text-emerald-600" />
               <span>24 CPE Credits</span>
             </span>
           </div>
@@ -125,12 +125,12 @@ function SpotlightCard({ item }: { item: SpotlightItem }) {
 
         {/* Action Button Card */}
         <div className="pt-4 border-t border-blue-200/80 flex items-center justify-between gap-4">
-          <span className="inline-flex items-center text-sm sm:text-base font-extrabold text-blue-900 group-hover:text-blue-800 transition-colors">
+          <span className="inline-flex items-center text-sm sm:text-base font-extrabold text-blue-800 group-hover:text-blue-700 transition-colors">
             <span>Explore Event Showcase & Details</span>
-            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-2 transition-transform duration-300 text-blue-700" />
+            <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-2 transition-transform duration-300 text-blue-600" />
           </span>
 
-          <div className="p-3.5 rounded-2xl bg-white border border-blue-200 text-blue-800 group-hover:bg-blue-800 group-hover:text-white group-hover:border-blue-800 shadow-sm transition-all duration-300 shrink-0">
+          <div className="p-3.5 rounded-2xl bg-blue-600 text-white group-hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all duration-300 shrink-0">
             <ExternalLink className="w-4 h-4" />
           </div>
         </div>
@@ -191,7 +191,7 @@ export default function PartnerSpotlight({ slotKey = "landing-hero-strip" }: { s
         {/* Section Header */}
         <div className="flex items-center justify-between border-b border-blue-200/70 pb-4">
           <div className="flex items-center space-x-3">
-            <div className="p-2.5 rounded-2xl bg-blue-800 text-white shadow-md shadow-blue-900/20">
+            <div className="p-2.5 rounded-2xl bg-blue-600 text-white shadow-md shadow-blue-500/20">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
@@ -199,7 +199,7 @@ export default function PartnerSpotlight({ slotKey = "landing-hero-strip" }: { s
                 <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-slate-900">
                   Featured Partner Spotlight
                 </h2>
-                <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100/90 text-blue-900 border border-blue-200">
+                <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
                   Flagship Summits & Conferences
                 </span>
               </div>
@@ -228,7 +228,7 @@ export default function PartnerSpotlight({ slotKey = "landing-hero-strip" }: { s
                     aria-label={`Go to slide ${i + 1}`}
                     onClick={() => emblaApi?.scrollTo(i)}
                     className={`h-2.5 rounded-full transition-all duration-300 ${
-                      i === selectedIndex ? "w-8 bg-blue-800" : "w-2.5 bg-blue-200 hover:bg-blue-300"
+                      i === selectedIndex ? "w-8 bg-blue-600" : "w-2.5 bg-blue-200 hover:bg-blue-300"
                     }`}
                   />
                 ))}
