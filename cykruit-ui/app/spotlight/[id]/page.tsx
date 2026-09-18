@@ -24,6 +24,7 @@ import {
   Terminal,
   Clock,
   ArrowRight,
+  ChevronRight,
 } from "lucide-react";
 
 interface SpotlightDetail {
@@ -92,43 +93,70 @@ export default function SpotlightDetailPage({ params }: { params: Promise<{ id: 
   const textWithoutDate = item?.altText.replace(/\([^)]+\)/, "").trim() || "";
   const parts = textWithoutDate.split("—");
   const eventTitle = parts[0]?.trim() || textWithoutDate || "Featured Cybersecurity Summit";
-  const eventSubtitle = parts[1]?.trim() || "Join thousands of cybersecurity leaders, threat analysts, and security engineers for keynote summits, zero-day exploitation labs, and technical briefings.";
+  const eventSubtitle =
+    parts[1]?.trim() ||
+    "Join thousands of cybersecurity leaders, threat analysts, and security engineers for keynote summits, zero-day exploitation labs, CISO panels, and technical briefings.";
 
   return (
     <>
       <Navbar />
-      <main className="flex-1 bg-gradient-to-b from-blue-50/40 via-slate-50 to-white py-8 sm:py-12 min-h-[80vh]">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          
-          {/* Top Bar Navigation — High Contrast & Prominent */}
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-blue-200/60 pb-4">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-100/90 hover:bg-blue-200 text-blue-900 border border-blue-300 font-extrabold text-xs shadow-xs hover:shadow-sm transition-all"
-            >
-              <ArrowLeft className="w-4 h-4 text-blue-900 stroke-[2.5]" />
-              <span>Back to Cykruit Home</span>
-            </Link>
 
+      {/* Prominent High-Contrast Top Navigation Sub-Bar */}
+      <div className="sticky top-0 z-40 bg-blue-900/95 backdrop-blur-md text-white border-b border-blue-800 shadow-md py-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-md hover:scale-[1.02] transition-all cursor-pointer border border-blue-400/40 shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4 text-white stroke-[3]" />
+            <span>Back to Cykruit Home</span>
+          </Link>
+
+          <div className="hidden md:flex items-center gap-2 text-xs text-blue-200 font-medium truncate">
+            <Link href="/" className="hover:text-white transition">Home</Link>
+            <ChevronRight className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <span className="text-blue-300">Partner Spotlight</span>
+            <ChevronRight className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <span className="text-white font-bold truncate max-w-xs">{eventTitle}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleShare}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-blue-200 bg-white text-xs font-bold text-blue-900 hover:bg-blue-50 shadow-2xs transition-all"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-950/80 border border-blue-700/80 hover:bg-blue-800 text-xs font-bold text-white transition-all shrink-0"
             >
               {copied ? (
                 <>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span className="text-emerald-700 font-bold">Link Copied</span>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-300">Copied</span>
                 </>
               ) : (
                 <>
-                  <Share2 className="w-4 h-4 text-blue-700" />
+                  <Share2 className="w-3.5 h-3.5 text-blue-300" />
                   <span>Share Showcase</span>
                 </>
               )}
             </button>
-          </div>
 
+            {item?.linkUrl && (
+              <a
+                href={item.linkUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold text-xs shadow-md transition-all shrink-0"
+              >
+                <span>Register</span>
+                <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <main className="flex-1 bg-gradient-to-b from-blue-50/50 via-slate-50 to-white py-8 sm:py-12 min-h-[80vh]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+          
           {loading ? (
             <div className="flex flex-col items-center justify-center py-32 bg-white/80 backdrop-blur-md rounded-3xl border border-blue-200/80 shadow-md space-y-4 text-slate-500">
               <div className="w-10 h-10 rounded-full border-3 border-blue-700 border-t-transparent animate-spin" />
@@ -158,14 +186,14 @@ export default function SpotlightDetailPage({ params }: { params: Promise<{ id: 
               <div className="bg-white/90 backdrop-blur-md rounded-3xl border border-blue-200/90 shadow-xl overflow-hidden divide-y divide-blue-100">
                 
                 {/* 1. Hero Cover Header */}
-                <div className="relative aspect-21/9 min-h-[300px] sm:min-h-[400px] w-full bg-slate-950 overflow-hidden">
+                <div className="relative aspect-21/9 min-h-[320px] sm:min-h-[420px] w-full bg-slate-950 overflow-hidden">
                   <img
                     src={item.imageUrl}
                     alt={item.altText}
                     referrerPolicy="no-referrer"
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent opacity-90" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-transparent opacity-90" />
 
                   {/* Top Floating Badges */}
                   <div className="absolute top-4 left-4 right-4 sm:top-6 sm:left-6 sm:right-6 flex flex-wrap items-center justify-between gap-3 text-white z-10">
@@ -205,7 +233,7 @@ export default function SpotlightDetailPage({ params }: { params: Promise<{ id: 
                 </div>
 
                 {/* 2. Primary Showcase Body & Intro */}
-                <div className="p-6 sm:p-10 space-y-8 bg-gradient-to-b from-white to-blue-50/30">
+                <div className="p-6 sm:p-10 space-y-8 bg-gradient-to-b from-white via-blue-50/20 to-slate-50/50">
                   
                   {/* Tag & Subtitle */}
                   <div className="space-y-4">
@@ -214,7 +242,7 @@ export default function SpotlightDetailPage({ params }: { params: Promise<{ id: 
                       <span>Executive Overview & Keynote Track</span>
                     </div>
 
-                    <p className="text-base sm:text-lg text-slate-700 leading-relaxed font-semibold max-w-4xl">
+                    <p className="text-base sm:text-lg text-slate-800 leading-relaxed font-semibold max-w-4xl">
                       {eventSubtitle}
                     </p>
 
@@ -284,7 +312,7 @@ export default function SpotlightDetailPage({ params }: { params: Promise<{ id: 
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       
-                      <div className="p-5 rounded-2xl bg-blue-50/50 border border-blue-200/80 space-y-2">
+                      <div className="p-5 rounded-2xl bg-blue-50/60 border border-blue-200/80 space-y-2">
                         <span className="text-[11px] font-bold uppercase font-mono text-blue-800">Track 01</span>
                         <h4 className="text-sm font-bold text-slate-900">Cloud & Container Defense</h4>
                         <p className="text-xs text-slate-600 leading-relaxed">
@@ -292,7 +320,7 @@ export default function SpotlightDetailPage({ params }: { params: Promise<{ id: 
                         </p>
                       </div>
 
-                      <div className="p-5 rounded-2xl bg-indigo-50/50 border border-indigo-200/80 space-y-2">
+                      <div className="p-5 rounded-2xl bg-indigo-50/60 border border-indigo-200/80 space-y-2">
                         <span className="text-[11px] font-bold uppercase font-mono text-indigo-800">Track 02</span>
                         <h4 className="text-sm font-bold text-slate-900">Offensive Security & Red Teaming</h4>
                         <p className="text-xs text-slate-600 leading-relaxed">
@@ -300,7 +328,7 @@ export default function SpotlightDetailPage({ params }: { params: Promise<{ id: 
                         </p>
                       </div>
 
-                      <div className="p-5 rounded-2xl bg-cyan-50/50 border border-cyan-200/80 space-y-2">
+                      <div className="p-5 rounded-2xl bg-cyan-50/60 border border-cyan-200/80 space-y-2">
                         <span className="text-[11px] font-bold uppercase font-mono text-cyan-800">Track 03</span>
                         <h4 className="text-sm font-bold text-slate-900">AI-Powered SOC Operations</h4>
                         <p className="text-xs text-slate-600 leading-relaxed">
