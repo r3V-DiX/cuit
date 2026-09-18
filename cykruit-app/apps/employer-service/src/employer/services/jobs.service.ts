@@ -111,11 +111,11 @@ export class JobsService {
     }
 
     private async assertWithinActiveJobLimit(employerId: string): Promise<void> {
-        const [activeCount, limits] = await Promise.all([
-            this.jobsRepository.countActive(employerId),
+        const [postedCount, limits] = await Promise.all([
+            this.jobsRepository.countPostedThisMonth(employerId),
             this.employerLimitsService.resolveForEmployer(employerId),
         ]);
-        if (activeCount >= limits.maxActiveJobs) {
+        if (postedCount >= limits.maxActiveJobs) {
             throw new BadRequestException(JobErrorCodes.JOB_LIMIT_REACHED);
         }
     }
@@ -481,19 +481,21 @@ export class JobsService {
 
         // Atomically check the active-job count and update status in one TX.
         // Prevents two concurrent submits from both passing the count check.
+        const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
         const submitted = await this.prisma.$transaction(async (tx) => {
-            const activeCount = await tx.job.count({
+            const postedCount = await tx.job.count({
                 where: {
                     employerId: employer.id,
                     status: { in: [JobStatus.APPROVED, JobStatus.PENDING] },
+                    lastPostedAt: { gte: startOfMonth },
                 },
             });
-            if (activeCount >= limits.maxActiveJobs) {
+            if (postedCount >= limits.maxActiveJobs) {
                 throw new BadRequestException(JobErrorCodes.JOB_LIMIT_REACHED);
             }
             return tx.job.update({
                 where: { id: jobId },
-                data: { status: JobStatus.PENDING, rejectionReason: null },
+                data: { status: JobStatus.PENDING, rejectionReason: null, lastPostedAt: new Date() },
                 include: this.jobsRepository.getDetailInclude(),
             });
         });
@@ -597,10 +599,10 @@ export class JobsService {
             throw new BadRequestException(JobErrorCodes.INVALID_JOB_STATUS);
         }
 
-        // Reopening sends the job back through admin review → counts as a new active slot
+        // Reopening sends the job back through admin review → counts as a new posting this month
         const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
-        const activeCount = await this.jobsRepository.countActive(employer.id);
-        if (activeCount >= limits.maxActiveJobs) {
+        const postedCount = await this.jobsRepository.countPostedThisMonth(employer.id);
+        if (postedCount >= limits.maxActiveJobs) {
             throw new BadRequestException(JobErrorCodes.JOB_LIMIT_REACHED);
         }
 
@@ -613,6 +615,7 @@ export class JobsService {
             closedAt: null,
             publishedAt,
             expiresAt,
+            lastPostedAt: publishedAt,
             rejectionReason: null,
         });
 
@@ -631,6 +634,82 @@ export class JobsService {
         });
 
         return reopened;
+    }
+
+    /** Repost an EXPIRED job — content is unchanged, so it goes straight back to APPROVED (no re-review). */
+    async repost(userId: string, jobId: string, ipAddress?: string, userAgent?: string) {
+        const { employer, job } = await this.resolveJobForEmployer(userId, jobId);
+
+        if (job.status !== JobStatus.EXPIRED) {
+            throw new BadRequestException(JobErrorCodes.INVALID_JOB_STATUS);
+        }
+
+        // Reposting counts as a new posting this month, same as submit/reopen
+        const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
+        const postedCount = await this.jobsRepository.countPostedThisMonth(employer.id);
+        if (postedCount >= limits.maxActiveJobs) {
+            throw new BadRequestException(JobErrorCodes.JOB_LIMIT_REACHED);
+        }
+
+        const publishedAt = new Date();
+        const expiresAt = new Date(publishedAt);
+        expiresAt.setDate(expiresAt.getDate() + limits.jobPostingPeriodDays);
+
+        const reposted = await this.jobsRepository.updateStatus(jobId, JobStatus.APPROVED, {
+            closedReason: null,
+            closedAt: null,
+            publishedAt,
+            expiresAt,
+            lastPostedAt: publishedAt,
+        });
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'jobs:repost',
+            module: 'JOBS',
+            targetType: 'Job',
+            targetId: jobId,
+            oldData: { status: job.status },
+            newData: { status: reposted.status },
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
+        return reposted;
+    }
+
+    /** Extend an APPROVED job's expiry by another full posting period. Does not consume a monthly slot. */
+    async extend(userId: string, jobId: string, ipAddress?: string, userAgent?: string) {
+        const { employer, job } = await this.resolveJobForEmployer(userId, jobId);
+
+        if (job.status !== JobStatus.APPROVED) {
+            throw new BadRequestException(JobErrorCodes.INVALID_JOB_STATUS);
+        }
+
+        const limits = await this.employerLimitsService.resolveForEmployer(employer.id);
+        const base = job.expiresAt && job.expiresAt > new Date() ? job.expiresAt : new Date();
+        const expiresAt = new Date(base);
+        expiresAt.setDate(expiresAt.getDate() + limits.jobPostingPeriodDays);
+
+        const extended = await this.jobsRepository.update(jobId, { expiresAt });
+
+        this.auditService.logAction({
+            actorId: userId,
+            actorRole: 'EMPLOYER',
+            action: 'jobs:extend',
+            module: 'JOBS',
+            targetType: 'Job',
+            targetId: jobId,
+            oldData: { expiresAt: job.expiresAt },
+            newData: { expiresAt },
+            result: 'SUCCESS',
+            ipAddress,
+            metadata: { userAgent },
+        });
+
+        return extended;
     }
 
     async rankApplications(userId: string, jobId: string, ipAddress?: string, userAgent?: string) {

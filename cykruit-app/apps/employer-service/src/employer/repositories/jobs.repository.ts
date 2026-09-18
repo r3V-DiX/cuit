@@ -120,16 +120,50 @@ export class JobsRepository {
     }
 
     /**
-     * Count APPROVED + PENDING jobs for an employer.
-     * Used to enforce subscription.maxActiveJobs limit.
+     * Count APPROVED + PENDING jobs (re-)posted by this employer since the start
+     * of the current calendar month. Used to enforce subscription.maxActiveJobs,
+     * which now caps new postings per month rather than concurrent postings.
      */
-    async countActive(employerId: string): Promise<number> {
+    async countPostedThisMonth(employerId: string): Promise<number> {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         return this.prisma.job.count({
             where: {
                 employerId,
                 status: { in: [JobStatus.APPROVED, JobStatus.PENDING] },
+                lastPostedAt: { gte: startOfMonth },
             },
         });
+    }
+
+    /** Batch of APPROVED jobs whose expiresAt has passed. Used by the daily auto-expiry cron. */
+    async findExpiredApproved(batchSize = 200): Promise<Array<{ id: string; jobTitle: string | null; employerId: string }>> {
+        return this.prisma.job.findMany({
+            where: {
+                status: JobStatus.APPROVED,
+                expiresAt: { lt: new Date() },
+            },
+            take: batchSize,
+            orderBy: { expiresAt: 'asc' },
+            select: { id: true, jobTitle: true, employerId: true },
+        });
+    }
+
+    /** Flip a batch of expired jobs to EXPIRED. Returns the number actually updated. */
+    async expireMany(ids: string[]): Promise<number> {
+        const result = await this.prisma.job.updateMany({
+            where: {
+                id: { in: ids },
+                status: JobStatus.APPROVED,
+                expiresAt: { lt: new Date() },
+            },
+            data: {
+                status: JobStatus.EXPIRED,
+                closedAt: new Date(),
+                closedReason: 'Auto-expired',
+            },
+        });
+        return result.count;
     }
 
     async close(id: string, reason: string) {

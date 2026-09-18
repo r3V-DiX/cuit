@@ -39,8 +39,8 @@ export class SubscriptionExpiryService {
             // Audit each expiry and publish event for notifications
             for (const sub of batch) {
                 this.auditService.logAction({
-                    actorId: 'SYSTEM',
-                    actorRole: 'ADMIN',
+                    actorId: null,
+                    actorRole: 'SYSTEM',
                     action: 'subscriptions:expire',
                     module: 'SUBSCRIPTIONS',
                     targetType: 'EmployerSubscription',

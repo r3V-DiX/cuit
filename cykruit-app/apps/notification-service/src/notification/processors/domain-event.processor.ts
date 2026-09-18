@@ -157,6 +157,25 @@ export class DomainEventProcessor {
                 break;
             }
 
+            case DomainEventType.JOB_EXPIRED: {
+                const p = event.payload as any;
+                const contact = await this.userContact(p.employerUserId);
+                await this.notificationService.emit({
+                    userId: p.employerUserId,
+                    type: NotificationType.JOB_EXPIRY_ALERT,
+                    title: 'Job Expired',
+                    message: `"${p.jobTitle}" has expired and is no longer visible to seekers. Repost it to keep receiving applications.`,
+                    actionUrl: `/employer/jobs/${p.jobId}`,
+                    relatedEntityType: 'Job',
+                    relatedEntityId: p.jobId,
+                    deliveredVia: [DeliveryChannel.WEBSOCKET, DeliveryChannel.EMAIL],
+                    sendEmail: true,
+                    userEmail: contact?.email,
+                    firstName: contact?.firstName,
+                });
+                break;
+            }
+
             // ── KYC events ────────────────────────────────────────────────────
 
             case DomainEventType.KYC_APPROVED: {

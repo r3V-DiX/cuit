@@ -73,8 +73,8 @@ export interface AuditLogEntry {
  * (login/logout/account events) only.
  */
 export interface SystemAuditEntry {
-  actorId: string;
-  actorRole: "SEEKER" | "EMPLOYER" | "ADMIN";
+  actorId: string | null; // null for system/cron-triggered actions — pair with actorRole "SYSTEM"
+  actorRole: "SEEKER" | "EMPLOYER" | "ADMIN" | "SYSTEM";
   action: string; // "jobs:create", "kyc:submit", etc. — module:verb convention
   module: string; // "JOBS", "KYC", "APPLICATIONS", "TEAM", "COMPANY", "PROFILE", "SETTINGS"
   targetType?: string;

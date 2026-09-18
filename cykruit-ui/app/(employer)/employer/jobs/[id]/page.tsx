@@ -92,6 +92,7 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
               requirements: Array.isArray(rawJob.requirements) ? rawJob.requirements as string[] : [],
               niceToHave: Array.isArray(rawJob.niceToHave) ? rawJob.niceToHave as string[] : [],
               rejectionReason: rawJob.rejectionReason ?? null,
+              closedReason: rawJob.closedReason ?? null,
             };
             setJob(mapped);
         }
@@ -173,6 +174,96 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
       toast({ type: "success", message: "Job submitted for review" });
     } catch (err) {
       toast({ type: "error", ...describeError(err, "Submit failed") });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRepost() {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/employer/jobs/${id}/repost`, {
+        method: "POST",
+        credentials: "include",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: { message?: string } })?.error?.message ?? "Failed to repost");
+      }
+      setJob((prev: any) => prev ? { ...prev, status: "Active", rawStatus: "APPROVED" } : prev);
+      toast({ type: "success", message: "Job reposted and live again" });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Repost failed") });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleExtend() {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/employer/jobs/${id}/extend`, {
+        method: "POST",
+        credentials: "include",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: { message?: string } })?.error?.message ?? "Failed to extend");
+      }
+      toast({ type: "success", message: "Job expiry extended" });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Extend failed") });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleClose() {
+    const reason = window.prompt("Why are you closing this job? (shown in your audit history, not to seekers)");
+    if (reason === null) return; // cancelled
+    if (!reason.trim()) {
+      toast({ type: "error", message: "A reason is required to close a job" });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/employer/jobs/${id}/close`, {
+        method: "POST",
+        credentials: "include",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: { message?: string } })?.error?.message ?? "Failed to close");
+      }
+      setJob((prev: any) => prev ? { ...prev, status: "Closed", rawStatus: "CLOSED", closedReason: reason.trim() } : prev);
+      toast({ type: "success", message: "Job closed" });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Close failed") });
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleReopen() {
+    setSubmitting(true);
+    try {
+      const res = await fetch(`/api/employer/jobs/${id}/reopen`, {
+        method: "POST",
+        credentials: "include",
+        headers: authHeaders(),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { error?: { message?: string } })?.error?.message ?? "Failed to reopen");
+      }
+      setJob((prev: any) => prev ? { ...prev, status: "Pending", rawStatus: "PENDING", closedReason: null } : prev);
+      toast({ type: "success", message: "Job reopened — awaiting admin approval" });
+    } catch (err) {
+      toast({ type: "error", ...describeError(err, "Reopen failed") });
     } finally {
       setSubmitting(false);
     }
@@ -313,6 +404,45 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
           </div>
         )}
 
+        {job.rawStatus === "EXPIRED" && (
+          <div className="flex items-start gap-3 px-5 py-4 bg-rose-50 border border-rose-200 rounded-2xl">
+            <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-rose-800">This job has expired</p>
+              <p className="text-xs text-rose-700 mt-0.5">It's no longer visible to seekers. Repost it to go live again immediately — no re-review needed since nothing changed.</p>
+            </div>
+            <button
+              onClick={handleRepost}
+              disabled={submitting}
+              className="shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg bg-rose-600 text-white text-xs font-semibold hover:bg-rose-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {submitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Repost
+            </button>
+          </div>
+        )}
+
+        {job.rawStatus === "CLOSED" && (
+          <div className="flex items-start gap-3 px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl">
+            <XCircle className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-800">This job is closed</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {job.closedReason ? `Reason: ${job.closedReason}. ` : ""}
+                Reopen it to start receiving applications again — it'll need admin approval first.
+              </p>
+            </div>
+            <button
+              onClick={handleReopen}
+              disabled={submitting}
+              className="shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg bg-slate-800 text-white text-xs font-semibold hover:bg-slate-900 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {submitting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Reopen
+            </button>
+          </div>
+        )}
+
         {job.rawStatus === "DRAFT" && (
           <div className="flex items-start gap-3 px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl">
             <Clock className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
@@ -368,6 +498,24 @@ export default function JobDetailPage({ params }: { params: Promise<{ id: string
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              {job.rawStatus === "APPROVED" && (
+                <button
+                  onClick={handleExtend}
+                  disabled={submitting}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Calendar className="w-3.5 h-3.5" /> Extend
+                </button>
+              )}
+              {(job.rawStatus === "APPROVED" || job.rawStatus === "PENDING") && (
+                <button
+                  onClick={handleClose}
+                  disabled={submitting}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:border-rose-300 transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <XCircle className="w-3.5 h-3.5" /> Close Job
+                </button>
+              )}
               <Link href={`/employer/jobs/${job.id}/edit`}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors">
                 <Edit3 className="w-3.5 h-3.5" /> Edit Job

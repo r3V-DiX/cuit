@@ -451,7 +451,7 @@ export interface AdminActivityLog {
 // Tab 2: System Logs — main app business actions (AuditLog)
 export interface SystemAuditLog {
   id: string;
-  actorId: string;
+  actorId: string | null;
   actorRole: string;
   action: string;
   module: string;
@@ -471,7 +471,7 @@ export interface SystemAuditLog {
     firstName: string;
     lastName: string;
     role: string;
-  };
+  } | null;
 }
 
 // Tab 1: Audit Logs — unified auth trail, merged from AuthAuditLog (main app)

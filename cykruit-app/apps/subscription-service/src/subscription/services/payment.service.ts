@@ -372,8 +372,8 @@ export class PaymentService {
         );
 
         this.auditService.logAction({
-            actorId: 'SYSTEM',
-            actorRole: 'ADMIN',
+            actorId: null,
+            actorRole: 'SYSTEM',
             action: 'subscriptions:free_tier_activated',
             module: 'SUBSCRIPTIONS',
             targetType: 'EmployerSubscription',

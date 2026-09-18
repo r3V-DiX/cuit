@@ -143,6 +143,24 @@ export class JobsController {
         return this.jobsService.reopen(user.id, id, req.ip, req.headers['user-agent']);
     }
 
+    // ── POST /employer/jobs/:id/repost ──────────────────────────────────────
+
+    @Post(':id/repost')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.JOBS.PUBLISH)
+    repost(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
+        return this.jobsService.repost(user.id, id, req.ip, req.headers['user-agent']);
+    }
+
+    // ── POST /employer/jobs/:id/extend ──────────────────────────────────────
+
+    @Post(':id/extend')
+    @HttpCode(HttpStatus.OK)
+    @RequirePermission(ACTIONS.JOBS.PUBLISH)
+    extend(@CurrentUser() user: User, @Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
+        return this.jobsService.extend(user.id, id, req.ip, req.headers['user-agent']);
+    }
+
     // ── POST /employer/jobs/:id/ai-rank ─────────────────────────────────────
 
     @Post(':id/ai-rank')

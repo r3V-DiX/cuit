@@ -1363,8 +1363,9 @@ model Job {
     applicationCount Int     @default(0)
     isFeatured       Boolean @default(false)
 
-    expiresAt   DateTime?
-    publishedAt DateTime?
+    expiresAt    DateTime?
+    publishedAt  DateTime?
+    lastPostedAt DateTime? // set on submit/reopen/repost — anchors the monthly posting quota, not touched by edits or extend
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -2392,8 +2393,8 @@ model SeekerJobMatch {
 
 model AuditLog {
     id         String   @id @default(uuid())
-    actorId    String
-    actor      User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+    actorId    String? // null for system/cron-triggered actions — see actorRole "SYSTEM"
+    actor      User?    @relation(fields: [actorId], references: [id], onDelete: Cascade)
     actorRole  String   @default("ADMIN")
     action     String
     module     String

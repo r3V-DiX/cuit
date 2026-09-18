@@ -12,6 +12,7 @@ export enum DomainEventType {
     JOB_APPROVED                = 'job.approved',                 // admin approved
     JOB_REJECTED                = 'job.rejected',                 // admin rejected
     JOB_EXPIRING_SOON           = 'job.expiring_soon',            // cron: 3 days left
+    JOB_EXPIRED                 = 'job.expired',                  // cron: expiresAt passed
 
     // ── KYC ───────────────────────────────────────────────────────────────────
     KYC_APPROVED                = 'kyc.approved',                 // admin approved
@@ -95,6 +96,13 @@ export interface JobExpiringSoonPayload {
     employerId: string;
     employerUserId: string;
     expiresAt: string; // ISO string
+}
+
+export interface JobExpiredPayload {
+    jobId: string;
+    jobTitle: string;
+    employerId: string;
+    employerUserId: string;
 }
 
 export interface KycApprovedPayload {
@@ -230,6 +238,7 @@ export type DomainEventPayloadMap = {
     [DomainEventType.JOB_APPROVED]:                   JobApprovedPayload;
     [DomainEventType.JOB_REJECTED]:                   JobRejectedPayload;
     [DomainEventType.JOB_EXPIRING_SOON]:              JobExpiringSoonPayload;
+    [DomainEventType.JOB_EXPIRED]:                    JobExpiredPayload;
     [DomainEventType.KYC_APPROVED]:                   KycApprovedPayload;
     [DomainEventType.KYC_REJECTED]:                   KycRejectedPayload;
     [DomainEventType.TEAM_INVITE_SENT]:               TeamInviteSentPayload;

@@ -108,7 +108,7 @@ export default function PackageForm({ initial, onSaved, onCancel }: PackageFormP
 
       <div className="grid grid-cols-3 gap-3">
         <div>
-          <label className={labelCls}>Max active jobs</label>
+          <label className={labelCls}>Max job posts / month</label>
           <input
             type="number"
             min={1}

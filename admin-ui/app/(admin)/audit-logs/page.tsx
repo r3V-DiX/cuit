@@ -174,7 +174,7 @@ function AuditLogsPageContent() {
             <div>
               <p className="font-mono text-[10px] text-slate-500 uppercase">Actor</p>
               <p className="font-medium text-slate-900">
-                {log.actor ? `${log.actor.firstName} ${log.actor.lastName}` : log.actorId}
+                {log.actor ? `${log.actor.firstName} ${log.actor.lastName}` : log.actorRole === 'SYSTEM' ? 'System' : (log.actorId ?? 'Unknown')}
               </p>
             </div>
             <div>
@@ -538,7 +538,7 @@ function AuditLogsPageContent() {
                     render: (l) => (
                       <div>
                         <p className="font-medium text-slate-900">
-                          {l.actor ? `${l.actor.firstName} ${l.actor.lastName}` : 'Unknown'}
+                          {l.actor ? `${l.actor.firstName} ${l.actor.lastName}` : l.actorRole === 'SYSTEM' ? 'System' : 'Unknown'}
                         </p>
                         <p className="text-xs text-slate-500">{l.actor?.email}</p>
                       </div>
