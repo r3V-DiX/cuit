@@ -1,28 +1,26 @@
 import { PrismaClient } from '@prisma/client';
 
 export async function seedAds(prisma: PrismaClient): Promise<void> {
-  console.log('🌱 Seeding Partner Spotlight Ads & Events...');
+  console.log('🌱 Seeding Flagship Sep/Oct 2026 Cybersecurity Events...');
 
-  const sampleAds = [
+  // Clear existing landing-hero-strip entries so exactly 2 events remain for the landing spotlight
+  await prisma.ad.deleteMany({
+    where: { slotKey: 'landing-hero-strip' },
+  });
+
+  const flagshipEvents = [
     {
       slotKey: 'landing-hero-strip',
       imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=1200&auto=format&fit=crop',
-      linkUrl: 'https://www.blackhat.com',
-      altText: 'Global Cyber Summit 2026 — Keynote Workshops & Live Hacking Demos',
-      isActive: true,
-    },
-    {
-      slotKey: 'landing-hero-strip',
-      imageUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=1200&auto=format&fit=crop',
-      linkUrl: 'https://www.defcon.org',
-      altText: 'National CTF Cyber Defense Arena & Live Penetration Testing Tournament',
+      linkUrl: 'https://www.infosecworldusa.com',
+      altText: 'InfoSec World 2026 (Sept 28 - Oct 1, 2026) — 4,000+ CISOs, Live Hacking Labs & Threat Summits',
       isActive: true,
     },
     {
       slotKey: 'landing-hero-strip',
       imageUrl: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop',
-      linkUrl: 'https://www.zscaler.com',
-      altText: 'Zscaler Zero Trust Cloud Security Architecture Showcase',
+      linkUrl: 'https://www.blackhat.com',
+      altText: 'Black Hat Europe 2026 (Oct 26 - 29, 2026) — Elite Zero-Day Exploitation & Cyber Defense Summit',
       isActive: true,
     },
     {
@@ -41,15 +39,9 @@ export async function seedAds(prisma: PrismaClient): Promise<void> {
     },
   ];
 
-  for (const adData of sampleAds) {
-    const existing = await prisma.ad.findFirst({
-      where: { slotKey: adData.slotKey, altText: adData.altText },
-    });
-
-    if (!existing) {
-      await prisma.ad.create({ data: adData });
-    }
+  for (const adData of flagshipEvents) {
+    await prisma.ad.create({ data: adData });
   }
 
-  console.log(`✅ Seeded ${sampleAds.length} Partner Spotlight Ads & Events`);
+  console.log(`✅ Seeded ${flagshipEvents.length} Partner Spotlight Ads (Exactly 2 Flagship Sep/Oct 2026 Events on Landing Page)`);
 }
