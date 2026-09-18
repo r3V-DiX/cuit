@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import SeekerSidebar from "@/components/seeker/SeekerSidebar";
 import { AnnouncementBanner, type AnnouncementItem } from "@/components/ui/AnnouncementBanner";
 import { SessionGuardMount } from "@/components/auth/SessionGuardMount";
